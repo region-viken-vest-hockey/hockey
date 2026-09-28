@@ -1,11 +1,9 @@
 """Tests for the `_run_ical_scraper` wrapper's `location_exclude_substring`.
 
-Regression coverage for the Frisk Asker/Askerhallen away-fixture bug: the
-Teamup feed is otherwise entirely Askerhallen evidence, but a handful of
-entries are genuine away fixtures whose LOCATION carries the destination
-city as a " - <city>" suffix on the resource label (e.g.
-"FA Jentegarderoben - Stavanger 5") rather than a distinct venue name, so
-the existing inclusion `location_filter` can't select them out.
+The exclusion hook is a generic iCal ingestion option for sources that really
+need LOCATION-based subtraction. Frisk Asker's configured Askerhallen source
+intentionally does not use it: that source's identity, not ambiguous resource
+labels, owns the physical arena.
 """
 
 from datetime import datetime
@@ -27,8 +25,8 @@ def _event(name: str, location: str) -> CalendarEvent:
 
 class TestLocationExcludeSubstring:
     def test_drops_events_matching_exclude_substring(self):
-        home_event = _event("U15 Kamp", "Jentegarderoben")
-        away_event = _event("U15 Treningskamp - Stavanger", "FA Jentegarderoben - Stavanger 5")
+        home_event = _event("U15 Kamp", "Home rink")
+        away_event = _event("U15 Treningskamp - Stavanger", "Away arena - Stavanger 5")
 
         with patch(
             "tournament_scheduler.data_sources.ical_scraper.ICalScraper"
@@ -47,8 +45,8 @@ class TestLocationExcludeSubstring:
         assert names == {"U15 Kamp"}
 
     def test_no_exclude_substring_keeps_every_event(self):
-        home_event = _event("U15 Kamp", "Jentegarderoben")
-        away_event = _event("U15 Treningskamp - Stavanger", "FA Jentegarderoben - Stavanger 5")
+        home_event = _event("U15 Kamp", "Home rink")
+        away_event = _event("U15 Treningskamp - Stavanger", "Away arena - Stavanger 5")
 
         with patch(
             "tournament_scheduler.data_sources.ical_scraper.ICalScraper"
@@ -65,7 +63,7 @@ class TestLocationExcludeSubstring:
         assert len(events) == 2
 
     def test_exclude_match_is_case_insensitive_on_location(self):
-        away_event = _event("Match", "fa jentegarderoben - stavanger 5")
+        away_event = _event("Match", "away arena - stavanger 5")
 
         with patch(
             "tournament_scheduler.data_sources.ical_scraper.ICalScraper"

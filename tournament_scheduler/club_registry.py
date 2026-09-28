@@ -195,19 +195,14 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
         skip=False,
         note=(
             "This Teamup feed ('Frisk Asker Istider Askerhallen') is Askerhallen-"
-            "only. No event's LOCATION/CATEGORIES ever mentions Varner Arena, so "
-            "no inclusion location filter is applied — every scraped event "
-            "counts as Askerhallen availability evidence. A minority of "
-            "entries carry a ' - <city>' suffix on the title (informational "
-            "away-fixture notices, e.g. 'U15A - Stavanger' with no LOCATION at "
-            "all) or on the resource label (e.g. 'FA Jentegarderoben - "
-            "Stavanger 5', which still names a real home resource -- 'FA' -- "
-            "so it reads as hosting evidence, most likely a visiting team's "
-            "locker-room allocation for a match played at Askerhallen, not an "
-            "away trip). Which of these are genuinely away is not resolvable "
-            "from the feed alone; `sources status` surfaces the "
-            "' - <token>' title pattern as a review flag rather than guessing "
-            "an exclusion -- confirm with the club before excluding anything."
+            "only, so no inclusion location filter is applied: every valid "
+            "scraped event counts as Askerhallen availability evidence. "
+            "LOCATION/resource labels are preserved as audit metadata only; "
+            "ambiguous numbered labels, FA resource labels, missing LOCATION, "
+            "or even Varner-like text must not reassign or exclude evidence "
+            "from this configured Askerhallen source. Keep the separate "
+            "Varner Teamup calendar out of this registry entry unless RVV "
+            "explicitly adds a non-schedulable audit source."
         ),
         location_filter=None,
         non_schedulable_arena_aliases=("Varner Arena",),
