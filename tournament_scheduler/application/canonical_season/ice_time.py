@@ -273,7 +273,14 @@ def clear_ice_time_minutes(
         actor=resolved_actor,
         now=now,
         note=note,
-        details={"override_id": existing_id},
+        details={
+            "override_id": existing_id,
+            # The age-group default the release restores. Recording it with the
+            # event lets published-baseline replay converge on current canonical
+            # state even when an intervening repair captured the overridden
+            # duration in its after_records.
+            "default_minutes": existing.get("default_minutes"),
+        },
     )
     result: dict[str, Any] = {
         "season": season,

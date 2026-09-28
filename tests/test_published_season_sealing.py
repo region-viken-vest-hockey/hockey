@@ -47,7 +47,9 @@ from tournament_scheduler.pipeline.state import PipelineState, StageName, StageS
 from tournament_scheduler.published_baseline import (
     PublishedBaselineError,
     SeasonSealedError,
+    effective_projection_from_canonical_schedule,
     is_published_sealed,
+    projection_from_canonical_schedule,
 )
 from tournament_scheduler.published_mutation_history import (
     reconcile_published_baseline,
@@ -97,6 +99,7 @@ def _write_canonical(
     *,
     history: list[dict] | None = None,
     season: str = "2026-2027",
+    problem: dict | None = None,
 ) -> None:
     now = "2026-09-22T00:00:00+00:00"
     plan = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": tournaments}
@@ -110,7 +113,7 @@ def _write_canonical(
         "fingerprint": fingerprint,
         "plan_schema_version": 1,
         "plan": plan,
-        "verification_context": {"problem": _problem(plan)},
+        "verification_context": {"problem": problem if problem is not None else _problem(plan)},
     }
     decisions = {
         "schema_version": DECISIONS_SCHEMA_VERSION,
@@ -351,13 +354,15 @@ def test_reconciliation_replays_typed_cancellation_guest_and_duration_mutations(
 
 
 def test_reconciliation_recognizes_ice_time_override_events_as_decision_only() -> None:
-    """Host-confirmed ice-time overrides advance the revision but are not replayed as schedule drift.
+    """Host-confirmed ice-time overrides advance the revision but are not schedule drift.
 
     The override narrows the rendered occupied interval through the projected
-    verification problem, but the published-baseline reconciliation projection is
-    built from the canonical schedule without decision-only overlays. The replay
-    must therefore recognize the events and skip them instead of failing closed
-    on an unknown event, while a genuine schedule drift is still detected.
+    verification problem and never edits plan placement. Reconciliation applies
+    the current active override set to the replayed schedule-only projection and
+    reports the before/after duration with provenance, so it converges on the
+    effective current projection instead of silently ignoring the change or
+    failing closed on it. A release event restores the recorded default, and a
+    genuine unrelated schedule drift is still detected.
     """
 
     plan = {
@@ -367,34 +372,64 @@ def test_reconciliation_recognizes_ice_time_override_events_as_decision_only() -
         ]
     }
     configured = _problem(plan)
-    projection = tournament_projection(plan, configured)
+    schedule_only = tournament_projection(plan, configured)
+    override_event = {
+        "event": "set_ice_time_minutes",
+        "tournament_id": "rvv-1",
+        "details": {"minutes": 60, "default_minutes": 120},
+    }
+    effective = tournament_projection(
+        plan, {**configured, "ice_time_minutes_overrides": {"rvv-1": 60}}
+    )
+    assert effective["rvv-1"]["duration_minutes"] == 60
+    assert schedule_only["rvv-1"]["duration_minutes"] == 120
+
     report = reconcile_published_baseline(
-        published_projection=projection,
-        current_projection=projection,
-        history=[
-            {
-                "event": "set_ice_time_minutes",
-                "tournament_id": "rvv-1",
-                "details": {"minutes": 60, "default_minutes": 120},
-            },
-            {
-                "event": "clear_ice_time_minutes",
-                "tournament_id": "rvv-1",
-                "details": {"override_id": "ice-time-override:deadbeef"},
-            },
-        ],
+        published_projection=schedule_only,
+        current_projection=effective,
+        history=[override_event],
         attested_additions={},
+        occupancy_overrides={"rvv-1": 60},
     )
     assert report["ok"] is True
     assert report["applied_mutation_count"] == 0
+    assert report["decision_backed_occupancy_changes"] == [
+        {"tournament_id": "rvv-1", "before_minutes": 120, "after_minutes": 60}
+    ]
 
-    # The override is still a real occupancy change for the projected export
-    # problem; it just is not part of the reconciliation schedule projection.
-    overridden = tournament_projection(
-        plan, {**configured, "ice_time_minutes_overrides": {"rvv-1": 60}}
+    # A release recorded with the restored default replays back to the default.
+    released = reconcile_published_baseline(
+        published_projection=schedule_only,
+        current_projection=schedule_only,
+        history=[
+            override_event,
+            {
+                "event": "clear_ice_time_minutes",
+                "tournament_id": "rvv-1",
+                "details": {"override_id": "ice-time-override:deadbeef", "default_minutes": 120},
+            },
+        ],
+        attested_additions={},
+        occupancy_overrides={},
     )
-    assert overridden["rvv-1"]["duration_minutes"] == 60
-    assert projection["rvv-1"]["duration_minutes"] == 120
+    assert released["ok"] is True
+
+    # An unrelated schedule drift is still unexplained and fails closed.
+    drifted = copy.deepcopy(plan)
+    drifted["tournaments"][0]["start_time"] = "13:00"
+    drifted_override = {
+        **configured,
+        "ice_time_minutes_overrides": {"rvv-1": 60},
+    }
+    drift_report = reconcile_published_baseline(
+        published_projection=schedule_only,
+        current_projection=tournament_projection(drifted, drifted_override),
+        history=[override_event],
+        attested_additions={},
+        occupancy_overrides={"rvv-1": 60},
+    )
+    assert drift_report["ok"] is False
+    assert drift_report["unexplained_delta"]["placement_changes"][0]["tournament_id"] == "rvv-1"
 
 
 def test_full_operational_projection_detects_age_duration_cancellation_and_guest_drift() -> None:
@@ -1582,7 +1617,9 @@ def test_promote_force_cannot_replace_sealed_season(tmp_path: Path) -> None:
 
 def _full_projection(root: Path) -> dict:
     snapshot = CanonicalSeasonStore(root).load("2026-2027")
-    return _tp(snapshot.schedule["plan"])
+    schedule = snapshot.schedule
+    context = schedule.get("verification_context") if isinstance(schedule.get("verification_context"), dict) else {}
+    return tournament_projection(schedule["plan"], context.get("problem"))
 
 
 def _seal_full(
@@ -1592,15 +1629,16 @@ def _seal_full(
     canonical_revision: str,
     run_id: str,
     published_at: str = "2026-09-21T09:14:53+00:00",
+    projection: dict | None = None,
 ) -> dict:
     from tournament_scheduler.pipeline.publication_evidence import build_publication_evidence
     from tournament_scheduler.published_baseline import projection_fingerprint
 
-    projection = _full_projection(root)
+    resolved_projection = projection if projection is not None else _full_projection(root)
     evidence = build_publication_evidence(
         run_id=run_id,
         canonical_revision=canonical_revision,
-        projection_fingerprint=projection_fingerprint(projection),
+        projection_fingerprint=projection_fingerprint(resolved_projection),
         bundle_fingerprint=f"bundle-{run_id}",
         pages_branch="gh-pages",
         pages_commit=f"commit-{run_id}",
@@ -1611,8 +1649,8 @@ def _seal_full(
         publication_id=publication_id,
         canonical_revision=canonical_revision,
         published_at=published_at,
-        published_projection=projection,
-        publication_canonical_projection=projection,
+        published_projection=resolved_projection,
+        publication_canonical_projection=resolved_projection,
         actor="tester",
         publication_evidence=evidence,
     )
@@ -2054,3 +2092,374 @@ def test_already_sealed_retry_still_refuses_actual_schedule_drift(tmp_path: Path
     )
     with pytest.raises(RuntimeError, match="no longer matches the current canonical schedule"):
         assert_publication_allowed(export_dir, repo_dir=tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# Active per-tournament ice-time overrides at the publication boundary
+# ---------------------------------------------------------------------------
+
+
+def _effective_projection(root: Path) -> dict:
+    snapshot = CanonicalSeasonStore(root).load("2026-2027")
+    return effective_projection_from_canonical_schedule(snapshot.schedule, snapshot.decisions)
+
+
+def _write_manifest_with_projection(
+    tmp_path: Path,
+    root: Path,
+    publication_id: str,
+    projection: dict,
+    *,
+    revision: str | None = None,
+) -> Path:
+    snapshot = CanonicalSeasonStore(root).load("2026-2027")
+    if revision is None:
+        revision = canonical_state_revision(snapshot.schedule, snapshot.decisions)
+    export_dir = tmp_path / "export" / publication_id
+    export_dir.mkdir(parents=True)
+    write_draft_manifest(
+        export_dir,
+        export_id=publication_id,
+        generated_at="2026-09-28T09:08:01+00:00",
+        export_fingerprint="fp",
+        source_run_id="run",
+        canonical_season="2026-2027",
+        canonical_revision=revision,
+        schedule_projection=projection,
+    )
+    return export_dir
+
+
+def _override_season(tmp_path: Path, tournaments: list[dict], minutes: int) -> Path:
+    root = tmp_path / "season"
+    _write_canonical(root, tournaments)
+    CanonicalSeasonService(root=root).set_ice_time_minutes(
+        season="2026-2027",
+        tournament_id=tournaments[0]["id"],
+        minutes=minutes,
+        request_id=f"host-confirmation:{tournaments[0]['id']}",
+        note="host confirmed the real occupied window",
+        actor="tester",
+    )
+    return root
+
+
+def test_publication_freshness_accepts_active_ice_time_override(tmp_path: Path) -> None:
+    """The freshness/seal guard must compare against the effective projection.
+
+    A host-confirmed override changes the published occupied interval without
+    editing any plan placement field. The export manifest carries the effective
+    duration, so the guard must not compare it to the schedule-only projection
+    and report the accepted override as stale export drift.
+    """
+
+    from tournament_scheduler.pipeline.publication_lifecycle import _publication_context
+
+    root = _override_season(
+        tmp_path, [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha", "U12")], 60
+    )
+    snapshot = CanonicalSeasonStore(root).load("2026-2027")
+    schedule_only = projection_from_canonical_schedule(snapshot.schedule)
+    effective = _effective_projection(root)
+
+    # Precondition: the two projections genuinely differ for this revision.
+    assert schedule_only["rvv-1"]["duration_minutes"] == 120
+    assert effective["rvv-1"]["duration_minutes"] == 60
+    assert effective["rvv-1"]["end_time"] == "11:00"
+
+    export_dir = _write_manifest_with_projection(tmp_path, root, "2026-09-28T0908", effective)
+    context = _publication_context(export_dir, repo_dir=tmp_path)
+    assert context is not None
+    assert context["published_projection"]["rvv-1"]["duration_minutes"] == 60
+
+
+def test_publication_freshness_refuses_unrecorded_duration_change(tmp_path: Path) -> None:
+    """An altered duration with the current revision is still refused."""
+
+    from tournament_scheduler.pipeline.publication_lifecycle import _publication_context
+
+    root = _override_season(
+        tmp_path, [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha", "U12")], 60
+    )
+    tampered = copy.deepcopy(_effective_projection(root))
+    tampered["rvv-1"]["duration_minutes"] = 90
+    tampered["rvv-1"]["end_time"] = "11:30"
+
+    export_dir = _write_manifest_with_projection(tmp_path, root, "2026-09-28T0908", tampered)
+    with pytest.raises(RuntimeError, match="no longer matches the current canonical schedule"):
+        _publication_context(export_dir, repo_dir=tmp_path)
+
+
+def test_publication_freshness_refuses_stale_revision_with_override(tmp_path: Path) -> None:
+    from tournament_scheduler.pipeline.publication_lifecycle import _publication_context
+
+    root = _override_season(
+        tmp_path, [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha", "U12")], 60
+    )
+    export_dir = _write_manifest_with_projection(
+        tmp_path, root, "2026-09-28T0908", _effective_projection(root), revision="stale-revision"
+    )
+    with pytest.raises(RuntimeError, match="current canonical revision"):
+        _publication_context(export_dir, repo_dir=tmp_path)
+
+
+def test_reconciliation_identifies_active_override_with_provenance(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha", "U12")])
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    service = CanonicalSeasonService(root=root)
+    service.set_ice_time_minutes(
+        season="2026-2027",
+        tournament_id="rvv-1",
+        minutes=60,
+        request_id="host:rvv-1",
+        note="host confirmed",
+        actor="tester",
+    )
+
+    report = service.verify_sealed_reconciliation("2026-2027")
+    assert report["ok"] is True
+    changes = report["decision_backed_occupancy_changes"]
+    assert [entry["tournament_id"] for entry in changes] == ["rvv-1"]
+    assert changes[0]["before_minutes"] == 120
+    assert changes[0]["after_minutes"] == 60
+    assert report["unexplained_delta"]["changed"] is False
+
+
+def test_reconciliation_fails_closed_on_unrecorded_override_provenance() -> None:
+    """An active override with no recorded set/clear event is not trusted."""
+
+    plan = {"tournaments": [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha")]}
+    configured = _problem(plan)
+    schedule_only = tournament_projection(plan, configured)
+    effective = tournament_projection(
+        plan, {**configured, "ice_time_minutes_overrides": {"rvv-1": 60}}
+    )
+
+    report = reconcile_published_baseline(
+        published_projection=schedule_only,
+        current_projection=effective,
+        history=[],
+        attested_additions={},
+        occupancy_overrides={"rvv-1": 60},
+    )
+    assert report["ok"] is False
+    assert "do not match the recorded" in report["unexplained_delta"]["replay_error"]
+
+
+def test_reconciliation_fails_closed_on_unknown_or_nonpositive_override() -> None:
+    plan = {"tournaments": [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha")]}
+    configured = _problem(plan)
+    schedule_only = tournament_projection(plan, configured)
+
+    unknown = reconcile_published_baseline(
+        published_projection=schedule_only,
+        current_projection=schedule_only,
+        history=[
+            {
+                "event": "set_ice_time_minutes",
+                "tournament_id": "rvv-999",
+                "details": {"minutes": 60},
+            }
+        ],
+        attested_additions={},
+        occupancy_overrides={"rvv-999": 60},
+    )
+    assert unknown["ok"] is False
+    assert "unknown tournament" in unknown["unexplained_delta"]["replay_error"]
+
+    nonpositive = reconcile_published_baseline(
+        published_projection=schedule_only,
+        current_projection=schedule_only,
+        history=[
+            {
+                "event": "set_ice_time_minutes",
+                "tournament_id": "rvv-1",
+                "details": {"minutes": 0},
+            }
+        ],
+        attested_additions={},
+        occupancy_overrides={"rvv-1": 0},
+    )
+    assert nonpositive["ok"] is False
+    assert "positive" in nonpositive["unexplained_delta"]["replay_error"]
+
+
+def test_clearing_override_restores_default_and_reconciles(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha", "U12")])
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    service = CanonicalSeasonService(root=root)
+    service.set_ice_time_minutes(
+        season="2026-2027",
+        tournament_id="rvv-1",
+        minutes=60,
+        request_id="host:rvv-1",
+        note="host confirmed",
+        actor="tester",
+    )
+    assert service.verify_sealed_reconciliation("2026-2027")["ok"] is True
+
+    service.clear_ice_time_minutes(
+        season="2026-2027", tournament_id="rvv-1", actor="tester", note="window reverted"
+    )
+    report = service.verify_sealed_reconciliation("2026-2027")
+    assert report["ok"] is True
+    assert report["decision_backed_occupancy_changes"] == []
+    assert _effective_projection(root)["rvv-1"]["duration_minutes"] == 120
+
+
+def test_replacement_seal_records_real_override_interval_and_retains_previous(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha", "U12")])
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    service = CanonicalSeasonService(root=root)
+    service.set_ice_time_minutes(
+        season="2026-2027",
+        tournament_id="rvv-1",
+        minutes=60,
+        request_id="host:rvv-1",
+        note="host confirmed",
+        actor="tester",
+    )
+
+    effective = _effective_projection(root)
+    snapshot = service.load("2026-2027")
+    revision = canonical_state_revision(snapshot.schedule, snapshot.decisions)
+    report = _seal_full(
+        root,
+        publication_id="2026-09-28T0908",
+        canonical_revision=revision,
+        run_id="run-2",
+        projection=effective,
+    )
+
+    delta = report["republish_delta"]
+    assert delta["summary"]["changed"] == 1
+    assert delta["delta"]["field_changes"][0]["fields"]["duration_minutes"] == {
+        "before": 120,
+        "after": 60,
+    }
+    assert delta["delta"]["field_changes"][0]["fields"]["end_time"] == {
+        "before": "12:00",
+        "after": "11:00",
+    }
+
+    lifecycle = CanonicalSeasonStore(root).load("2026-2027").decisions["season_lifecycle"]
+    # The historical 2026-09-21 snapshot is preserved byte-for-byte.
+    assert lifecycle["publication_history"][0]["publication_id"] == "2026-09-21T0908"
+    historical = lifecycle["publication_history"][0]["tournaments"][0]
+    assert historical["duration_minutes"] == 120
+    # The replacement baseline records the actually published effective interval.
+    replacement = lifecycle["published_baseline"]["tournaments"][0]
+    assert replacement["duration_minutes"] == 60
+
+
+def test_publication_guard_allows_republish_with_active_override(tmp_path: Path) -> None:
+    """End-to-end publication guard accepts an already-sealed override."""
+
+    from tournament_scheduler.pipeline import pages_publish
+
+    local = tmp_path / "local"
+    _init_local_repo(local)
+    root = local / "season"
+    _write_canonical(root, [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha", "U12")])
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    service = CanonicalSeasonService(root=root)
+    service.set_ice_time_minutes(
+        season="2026-2027",
+        tournament_id="rvv-1",
+        minutes=60,
+        request_id="host:rvv-1",
+        note="host confirmed",
+        actor="tester",
+    )
+
+    export_dir = _write_manifest_with_projection(
+        tmp_path, root, "2026-09-28T0908", _effective_projection(root)
+    )
+
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "season_plan.html").write_text("<h1>plan</h1>", encoding="utf-8")
+    assert (
+        pages_publish.publish(
+            export_dir=str(bundle),
+            run_id="run-1",
+            repo_dir=str(local),
+            push=False,
+            bundle_fingerprint="bundle-run-1",
+        ).status
+        == "ok"
+    )
+
+    report = assert_publication_allowed(export_dir, repo_dir=local)
+    assert report is not None
+    assert report["ok"] is True
+    assert len(report["decision_backed_occupancy_changes"]) == 1
+    assert report["previous_publication"]["run_snapshot_retained"] == "true"
+
+
+_PRODUCTION_OVERRIDES: dict[str, tuple[int, int]] = {
+    # tournament id -> (default age-group minutes, active override minutes)
+    "rvv-0003": (100, 60),
+    "rvv-0004": (100, 60),
+    "rvv-0104": (155, 120),
+    "rvv-0191": (155, 120),
+    "rvv-0187": (100, 80),
+    "rvv-0134": (155, 120),
+    "rvv-0127": (140, 120),
+    "rvv-0179": (155, 120),
+    "rvv-0181": (140, 120),
+    "rvv-0070": (140, 120),
+    "rvv-0011": (155, 170),
+    "rvv-0028": (100, 110),
+    "rvv-0176": (100, 120),
+    "rvv-0162": (100, 120),
+    "rvv-0023": (100, 80),
+    "rvv-0075": (100, 80),
+    "rvv-0088": (100, 80),
+    "rvv-0063": (100, 80),
+}
+
+
+def test_eighteen_active_overrides_pass_reconciliation_and_freshness(tmp_path: Path) -> None:
+    """Production-shaped 18-tournament override set: longer and shorter intervals."""
+
+    from tournament_scheduler.pipeline.publication_lifecycle import _publication_context
+
+    default_to_age = {100: "U12", 140: "U13", 155: "U14"}
+    tournaments = [
+        _tournament(tid, "2026-10-11", "10:00", f"Arena {index}", f"Host {index}", default_to_age[default])
+        for index, (tid, (default, _override)) in enumerate(_PRODUCTION_OVERRIDES.items())
+    ]
+    problem = {"ice_time_minutes": {age: default for default, age in default_to_age.items()}}
+
+    root = tmp_path / "season"
+    _write_canonical(root, tournaments, problem=problem)
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    service = CanonicalSeasonService(root=root)
+    for tid, (_default, override) in _PRODUCTION_OVERRIDES.items():
+        service.set_ice_time_minutes(
+            season="2026-2027",
+            tournament_id=tid,
+            minutes=override,
+            request_id=f"host:{tid}",
+            note="host confirmed the real occupied window",
+            actor="tester",
+        )
+
+    report = service.verify_sealed_reconciliation("2026-2027")
+    assert report["ok"] is True
+    assert len(report["decision_backed_occupancy_changes"]) == 18
+
+    effective = _effective_projection(root)
+    for tid, (_default, override) in _PRODUCTION_OVERRIDES.items():
+        assert effective[tid]["duration_minutes"] == override
+
+    export_dir = _write_manifest_with_projection(tmp_path, root, "2026-09-28T0908", effective)
+    context = _publication_context(export_dir, repo_dir=tmp_path)
+    assert context is not None
+    assert len(context["published_projection"]) == 18

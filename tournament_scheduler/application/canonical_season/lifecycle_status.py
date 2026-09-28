@@ -18,15 +18,16 @@ from typing import Any, Mapping
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
+from tournament_scheduler.canonical_ice_time_overrides import active_overrides
 from tournament_scheduler.published_baseline import (
     SEASON_LIFECYCLE_KEY,
     STATE_PROMOTED,
     STATE_PUBLISHED_SEALED,
     active_baseline,
+    effective_projection_from_canonical_schedule,
     is_published_sealed,
     lifecycle_record,
     lifecycle_state,
-    projection_from_canonical_schedule,
     publication_history,
 )
 from tournament_scheduler.published_mutation_history import (
@@ -64,6 +65,7 @@ def _reconcile(
         current_projection=current_projection,
         history=decisions.get("history") or [],
         attested_additions=attested_additions,
+        occupancy_overrides=active_overrides(decisions),
     )
 
 
@@ -101,7 +103,9 @@ def season_lifecycle_report(service, *, season: str) -> dict[str, Any]:
         reconciliation = _reconcile(
             service=service,
             baseline=baseline,
-            current_projection=projection_from_canonical_schedule(snapshot.schedule),
+            current_projection=effective_projection_from_canonical_schedule(
+                snapshot.schedule, decisions
+            ),
             decisions=decisions,
         )
         report["reconciliation"] = {
@@ -124,7 +128,9 @@ def verify_sealed_reconciliation(service, *, season: str) -> dict[str, Any]:
     report = _reconcile(
         service=service,
         baseline=baseline,
-        current_projection=projection_from_canonical_schedule(snapshot.schedule),
+        current_projection=effective_projection_from_canonical_schedule(
+            snapshot.schedule, snapshot.decisions
+        ),
         decisions=snapshot.decisions,
     )
     report.update(
@@ -149,7 +155,9 @@ def publication_evidence_report(service, *, season: str) -> dict[str, Any]:
 
     snapshot = service.load(season)
     decisions = snapshot.decisions
-    current_projection = projection_from_canonical_schedule(snapshot.schedule)
+    current_projection = effective_projection_from_canonical_schedule(
+        snapshot.schedule, decisions
+    )
     state = lifecycle_state(decisions)
     season_root = getattr(service.store, "root", "season")
     report: dict[str, Any] = {

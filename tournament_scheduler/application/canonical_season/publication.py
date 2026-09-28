@@ -13,16 +13,17 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
+from tournament_scheduler.canonical_ice_time_overrides import active_overrides
 from tournament_scheduler.published_baseline import (
     SEASON_LIFECYCLE_KEY,
     STATE_PUBLISHED_SEALED,
     PublishedBaselineError,
     active_baseline,
     build_baseline_record,
+    effective_projection_from_canonical_schedule,
     lifecycle_record,
     projection_entry,
     projection_fingerprint,
-    projection_from_canonical_schedule,
     publication_history,
 )
 from tournament_scheduler.pipeline.publication_evidence import (
@@ -74,7 +75,9 @@ def seal_published_season(
     resolved_actor = _operator_identity(actor)
     now = _now_iso()
 
-    current_projection = projection_from_canonical_schedule(snapshot.schedule)
+    current_projection = effective_projection_from_canonical_schedule(
+        snapshot.schedule, decisions
+    )
 
     omission_entries: dict[str, dict[str, Any]] = {}
     if publication_canonical_projection is not None:
@@ -124,6 +127,7 @@ def seal_published_season(
         current_projection=current_projection,
         history=decisions.get("history") or [],
         attested_additions={**omission_entries, **materialization_entries},
+        occupancy_overrides=active_overrides(decisions),
     )
     if not reconciliation["ok"]:
         raise PublishedBaselineError(
