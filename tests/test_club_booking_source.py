@@ -14,6 +14,7 @@ from __future__ import annotations
 import pytest
 
 from tournament_scheduler.calendar_bookings import (
+    CALENDAR_BOOKING_ASSOCIATIONS_KEY,
     CLUB_BOOKING_SOURCE_ASSERTIONS_KEY,
     MANUAL_BOOKING_ASSERTIONS_KEY,
     _club_booking_source_projection,
@@ -669,3 +670,82 @@ def test_source_creation_requires_version_and_reference(tmp_path):
         _source_set(root, source_document="")
     with pytest.raises(SeasonStateError, match="traceable source reference"):
         _source_set(root, reference="", note="")
+
+
+def test_unassociated_own_calendar_event_is_not_a_false_external_conflict(tmp_path):
+    """issue #556 follow-up: a source-confirmed interval must not be blocked by
+
+    the host's own still-unassociated calendar event for the same tournament.
+    Before the tournament's real Askerhallen event was ever explicitly matched
+    via ``confirm-calendar-booking``, applying a club-wide worksheet interval
+    that lands inside that same event's window used to be misread as an
+    external (third-party) conflict, refusing to record the assertion.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    event = {
+        "availability": "fixed_busy",
+        "calendar_event": "U10 Serierunde",
+        "date": "2026-09-12",
+        "start": "10:00",
+        "end": "12:00",
+    }
+    problem = _host_a_problem([event])
+    source = _source_set(root)["source"]
+
+    result = _interpretation(
+        root,
+        source_id=source["id"],
+        problem=problem,
+        stated_date="2026-09-12",
+        stated_start="10:00",
+        stated_end="12:00",
+    )
+
+    assert result["changed"] is True
+    assert result["booking_feasibility_warnings"] == []
+    tournament = load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]
+    assert tournament["start_time"] == "10:00"
+
+    decisions = load_decisions("2026-2027", root=root)
+    associations = decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []
+    assert len(associations) == 1
+    assert associations[0]["tournament_id"] == "t1"
+    assert associations[0]["title"] == "U10 Serierunde"
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
+    assert "external_calendar_conflicts" not in row.get("follow_up_reasons", [])
+
+
+def test_own_calendar_event_that_does_not_cover_the_stated_interval_still_blocks(tmp_path):
+    """A genuinely differing own-club calendar event is not silently excused.
+
+    When the host's calendar event does not actually cover the newly stated
+    interval (for example the club's calendar has not caught up with a
+    requested start-time shift), the discrepancy must stay a real, visible
+    blocker rather than being auto-linked away.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    event = {
+        "availability": "fixed_busy",
+        "calendar_event": "U10 Serierunde",
+        "date": "2026-09-12",
+        "start": "10:30",
+        "end": "12:20",
+    }
+    problem = _host_a_problem([event])
+    source = _source_set(root)["source"]
+
+    with pytest.raises(SeasonStateError, match="known external calendar conflict"):
+        _interpretation(
+            root,
+            source_id=source["id"],
+            problem=problem,
+            stated_date="2026-09-12",
+            stated_start="10:00",
+            stated_end="11:50",
+        )
+    decisions = load_decisions("2026-2027", root=root)
+    assert (decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []) == []
