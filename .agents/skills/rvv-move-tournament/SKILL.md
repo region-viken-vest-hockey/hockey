@@ -22,13 +22,23 @@ Require at least one concrete requested placement change:
 - `--host-club "..."`;
 - `--start-time HH:MM` (or the repository-supported placement value).
 
-If the operator only says "move it somewhere else" without a concrete target, do not invent a slot. Use the canonical replanning workflow instead.
+If the operator only says "move it somewhere else" without a concrete target, do not invent a slot. Use the canonical replanning workflow to discover and compare candidates, then return here for the selected placement. A candidate is not a booking.
 
 Before mutation, snapshot the target tournament's current placement and the current approval/lock record. Also record the canonical revision so the result can be verified. Inspect `scripts/rvv-miniputt season protections --season <season> --json` so the requested move does not unknowingly reverse an earlier accepted change.
 
 Assign the incoming change a stable `request_id`. Prefer an external/message/request id when available; otherwise synthesize a deterministic local id from the club/source/date/purpose and ensure it does not collide with existing protections. Do not ask the operator to choose this internal id.
 
-## 2. Inspect approval/lock state
+## 2. Verify calendar and booking evidence before mutation
+
+Load `.agents/commands/rvv-miniputt/booking-management.md` and the shared tournament-maintenance instructions. Resolve the host/arena through the canonical club registry, not an agent's recollection. A configured source (including Skien's BRP/Exigo source) must never be described as nonexistent merely because scraping failed or produced no events. Inspect source health, scraper strategy, freshness, completeness and coverage for the exact proposed date and **full tournament interval**; refresh through the supported canonical calendar workflow when needed. Relate known defects to their existing issues.
+
+Compare the old and proposed placements with actual source events: accepted RVV booking, external conflict, movable host-controlled event, genuinely free interval, or not checkable. An empty/incomplete scrape is not evidence of free ice. Search for a matching existing RVV booking and authorized date/time corrections before requesting new confirmation. If the authoritative host calendar records an accepted booking with a different interval, reconcile the plan to its exact interval using the canonical evidence workflow; do not retain an obsolete planned interval or demand a redundant email solely because a scraper did not run. Preserve source URL, event identity, observation time, coverage and booking provenance.
+
+Evaluate affected teams, spacing, season balance, hosting and churn, and compare supported alternatives rather than accepting the first hard-valid date. If coverage cannot be established, report the source-health gap and keep the proposal unverified; do not invent a date or claim booking. A free calendar slot is only a planning candidate, never accepted booking evidence. Explicit operator-supplied confirmation may be recorded through the canonical booking workflow with its actual reference; never manufacture it.
+
+Perform this check before revoking approval or changing canonical state. If the operator specified a particular target, verify that target rather than silently substituting another date.
+
+## 3. Inspect approval/lock state
 
 Run:
 
@@ -49,7 +59,7 @@ Preserve the previous lock scopes in memory so they can be restored if the move 
 
 Do not unapprove unrelated tournaments.
 
-## 3. Apply only the requested placement mutation
+## 4. Apply only the requested placement mutation
 
 Build the command with only fields the operator actually requested:
 
@@ -69,7 +79,7 @@ Do not change participants or unrelated tournaments to make the move fit. If the
 
 The move must preserve the tournament's durable id.
 
-## 4. Restore the old approval if the move fails
+## 5. Restore the old approval if the move fails
 
 Revoking approval and moving are separate canonical commands. Make the scenario operationally safe:
 
@@ -83,7 +93,7 @@ Use the original placement-lock setting and add `--participants-lock` only if it
 
 If the schedule changed despite a reported failure, do **not** guess or auto-restore. Stop and inspect canonical state.
 
-## 5. Verify a successful move
+## 6. Verify a successful move
 
 After success, inspect canonical state and approval state:
 
@@ -102,9 +112,9 @@ Compare the target tournament before/after and require:
 - the move added protections for only the placement fields actually changed, and existing protections remain satisfied;
 - a previously approved tournament is now unapproved/pending review unless the operator explicitly confirmed the **new** placement too.
 
-Do not silently reapprove the new placement. A move means the old booking confirmation is no longer valid. If the operator also says the new slot is confirmed/booked, delegate the final approval step to `.agents/skills/rvv-confirm-tournament/SKILL.md` after the move verifies successfully.
+Do not silently reapprove the new placement. Evidence and approval tied to the superseded interval do not transfer to the replacement; preserve unrelated accepted evidence and historical provenance. If the operator also says the new slot is confirmed/booked, delegate the final approval step to `.agents/skills/rvv-confirm-tournament/SKILL.md` after the move verifies successfully.
 
-## 6. Persist the canonical change in Git
+## 7. Persist the canonical change in Git
 
 Inspect the worktree:
 
@@ -130,6 +140,8 @@ Move tournament <tournament-id>
 Push when the active repository/harness policy authorizes updating the shared branch. Moving a tournament does **not** authorize public GitHub Pages publication.
 
 ## Review/export handling
+
+If publication is requested, regenerate the export, reconcile the exact changed interval and run the canonical tournament-scoped publication audit/gate. Publish only on an eligible, accepted source-backed replacement interval with explicit publication authorization. Unrelated season-wide planning debt is diagnostic, not an excuse to waive a scoped blocker. Do not downgrade audit verdicts or invent evidence.
 
 Do not overwrite the existing club-review export. Canonical state is authoritative after the move.
 
