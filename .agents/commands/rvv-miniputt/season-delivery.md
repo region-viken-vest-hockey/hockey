@@ -1,0 +1,7 @@
+# Season delivery and health (lazy-loaded)
+
+Load for season reconciliation, health checks, export, audit, publication, republish or rollback. Follow `season.md`, `republish.md`, `publish.md` and the RVV semantic audit contract as applicable; this guide adds no publication authority.
+
+A health report compares canonical revision, fresh findings, approvals/locks, accepted bookings, calendar coverage, constraints, distribution, export fingerprint, audit and public publication revision. Distinguish absent evidence from negative evidence, planning candidates from accepted bookings, and an incomplete season from a publication blocker. Reconcile mismatches through supported canonical operations, never edits to generated output.
+
+After a canonical schedule or decision change intended for review, regenerate the canonical export and run semantic audit against the exact revision. For public output, include only active tournaments with accepted source-backed bookings for their exact published intervals; unverified candidates remain internal, and other unfinished season work does not automatically block incremental publication. Use publication-evidence and the existing publish/republish preflight, preserve audit and approval gates, and verify the resulting public revision. Never publish or roll back without an explicit operator request. If the deployment cannot yet be observed, report publication as unconfirmed rather than successful.
