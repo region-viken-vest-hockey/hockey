@@ -470,7 +470,10 @@ def _audit_owner_evidence(
                 club = str(row.get("club") or "")
                 findings.append(
                     {
-                        "finding_id": hosting_finding_id(age_group, club),
+                        # Distinct from the balance finding's ``hosting_balance:`` id
+                        # so a coverage obligation is never silently discarded by a
+                        # same-scope balance finding with a different code.
+                        "finding_id": f"hosting_coverage:{age_group}:{club}",
                         "code": "unresolved_hosting_obligation",
                         "category": HOSTING,
                         "severity": "strong_goal",
@@ -589,13 +592,27 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
     findings = _findings(plan, problem, verification)
     # The findings projection already translates coverage rows; append only the
     # owner findings it does not carry (structural coverage shortfalls and
-    # responsibility transfers) so a rule's evidence is never counted twice.
-    existing_finding_ids = {str(finding.get("finding_id") or "") for finding in findings}
+    # responsibility transfers). Deduplicate by semantic identity
+    # ``(code, age_group, club)`` -- not the finding id alone -- so a
+    # same-scope balance finding with a different code cannot silently swallow
+    # the coverage obligation, and vice versa.
+    existing_finding_keys = {
+        (
+            str(finding.get("code") or ""),
+            str(finding.get("age_group") or ""),
+            str(finding.get("club") or ""),
+        )
+        for finding in findings
+    }
     for finding in owner_findings:
-        finding_id = str(finding.get("finding_id") or "")
-        if finding_id and finding_id in existing_finding_ids:
+        key = (
+            str(finding.get("code") or ""),
+            str(finding.get("age_group") or ""),
+            str(finding.get("club") or ""),
+        )
+        if key in existing_finding_keys:
             continue
-        existing_finding_ids.add(finding_id)
+        existing_finding_keys.add(key)
         findings.append(finding)
     from .calendar_bookings import association_findings
 

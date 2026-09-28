@@ -1626,6 +1626,25 @@ def test_season_audit_hosting_coverage_and_responsibility_fail_independently(
     assert report["audit"]["ok"] is False
 
 
+def test_season_audit_reports_structural_coverage_shortfall(tmp_path: Path) -> None:
+    plan, problem = _clean_season_plan()
+    # An age group with a registered team but zero tournaments is a structural
+    # coverage obligation the deficit/balance projection cannot emit (target 0
+    # means deficit 0), so only the coverage owner can surface it.
+    problem["teams"] = list(problem["teams"]) + [
+        {"club": "Alfa", "label": "Alfa U11", "age_group": "U11"}
+    ]
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+
+    report = season_audit(YEAR, root=root)
+
+    checks = _checks_by_rule(report)
+    assert checks["hosting_age_group_coverage"]["status"] == "finding"
+    assert "unresolved_hosting_obligation" in checks["hosting_age_group_coverage"]["evidence"]
+    assert report["audit"]["ok"] is False
+
+
 def test_season_audit_guest_reservation_integrity_violation_blocks(tmp_path: Path) -> None:
     plan, problem = _clean_season_plan()
     # A filled reservation with no matching guest participant: the place was

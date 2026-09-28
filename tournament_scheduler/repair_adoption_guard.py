@@ -1063,7 +1063,12 @@ def season_wide_audit(
         )
         if result is not None:
             reason = (incomplete_reasons or {}).get(result["rule_id"])
-            if reason and result["status"] == "incomplete":
+            if reason:
+                # A failed or unevaluable owner is incomplete coverage even when
+                # another source (for example the findings projection) emitted a
+                # same-rule finding: the gate must not report complete coverage
+                # for a check whose owner did not run.
+                result["status"] = "incomplete"
                 result["incomplete_reason"] = str(reason)
             checks.append(result)
 

@@ -568,12 +568,21 @@ def test_review_packet_workbook_shows_guest_places(tmp_path: Path) -> None:
     assert "External IF 1 (gjest)" in participating
 
 
-def test_guest_reservation_integrity_requires_filled_records_to_match_guests() -> None:
-    """A filled reservation is represented by exactly one guest participant.
+def _codes(tournaments) -> set[str]:
+    from tournament_scheduler.guest_slots import guest_reservation_integrity_violations
 
-    Dropping the participant while keeping the ``filled`` record (or adding a
-    guest participant with no reservation) consumed/introduced a place outside
-    the reserve/fill/release lifecycle and must fail the canonical verifier.
+    return {
+        violation["code"]
+        for violation in guest_reservation_integrity_violations(tournaments)
+    }
+
+
+def test_guest_reservation_integrity_requires_filled_records_to_match_guests() -> None:
+    """A filled reservation names exactly the one guest participant it places.
+
+    Dropping the participant, matching the wrong external team, duplicating a
+    reservation or dropping a malformed record consumed/introduced a place
+    outside the reserve/fill/release lifecycle and must fail the verifier.
     """
     from tournament_scheduler.guest_slots import guest_reservation_integrity_violations
 
@@ -594,6 +603,25 @@ def test_guest_reservation_integrity_requires_filled_records_to_match_guests() -
     assert guest_reservation_integrity_violations(consistent["tournaments"]) == []
     assert verify_candidate(consistent)["ok"], verify_candidate(consistent)["violations"]
 
+    # A same-count but different external team is not a match.
+    wrong_guest = _candidate(["A1", "B1", "C1", "Y1"])
+    for team in wrong_guest["tournaments"][0]["teams"]:
+        if team["label"] == "Y1":
+            team["guest"] = True
+    wrong_guest["tournaments"][0]["guest_slots"] = [filled_slot]
+    assert _codes(wrong_guest["tournaments"]) == {"guest_reservation_integrity"}
+
+    # Two reservations naming the same external team are never valid.
+    duplicate_reservation = _candidate(["A1", "B1", "C1", "X1"])
+    for team in duplicate_reservation["tournaments"][0]["teams"]:
+        if team["label"] == "X1":
+            team["guest"] = True
+    duplicate_reservation["tournaments"][0]["guest_slots"] = [
+        filled_slot,
+        {**filled_slot, "id": "guest:2"},
+    ]
+    assert _codes(duplicate_reservation["tournaments"]) == {"guest_reservation_integrity"}
+
     dropped_participant = _candidate(["A1", "B1", "C1"])
     dropped_participant["tournaments"][0]["guest_slots"] = [filled_slot]
     codes = {v["code"] for v in guest_reservation_integrity_violations(dropped_participant["tournaments"])}
@@ -608,3 +636,37 @@ def test_guest_reservation_integrity_requires_filled_records_to_match_guests() -
     assert "guest_reservation_integrity" in {
         violation["code"] for violation in verify_candidate(orphan_guest)["violations"]
     }
+
+    # Legacy readable external_club/external_label still matches its guest.
+    legacy = _candidate(["A1", "B1", "C1", "X1"])
+    for team in legacy["tournaments"][0]["teams"]:
+        if team["label"] == "X1":
+            team["guest"] = True
+    legacy["tournaments"][0]["guest_slots"] = [
+        {
+            "id": "guest:1",
+            "status": "filled",
+            "external_club": "X",
+            "external_label": "X1",
+        }
+    ]
+    assert guest_reservation_integrity_violations(legacy["tournaments"]) == []
+
+
+def test_guest_reservation_integrity_rejects_malformed_explicit_records() -> None:
+    from tournament_scheduler.guest_slots import guest_reservation_integrity_violations
+
+    malformed = _candidate(["A1", "B1", "C1"])
+    malformed["tournaments"][0]["guest_slots"] = [
+        None,
+        {"status": "open"},
+        {"id": "guest:3"},
+    ]
+    violations = guest_reservation_integrity_violations(malformed["tournaments"])
+    assert violations and {v["code"] for v in violations} == {"guest_reservation_integrity"}
+
+    # The legacy integer-only payload stays compatible: it is not malformed.
+    legacy_integer = _candidate(["A1", "B1", "C1"])
+    legacy_integer["tournaments"][0].pop("guest_slots", None)
+    legacy_integer["tournaments"][0]["reserved_guest_slots"] = 1
+    assert guest_reservation_integrity_violations(legacy_integer["tournaments"]) == []
