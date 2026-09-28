@@ -1,11 +1,13 @@
-"""Tournament-scoped publication eligibility (issue #541).
+"""Tournament-scoped publication eligibility.
 
 Publication eligibility belongs to each active tournament, not to season-wide
 planning completeness. These tests pin the deterministic publication-scope
-result: an incremental republish whose exact last-publication delta is
-eligible must not be blocked by unrelated full-season planning debt, while an
-unaccepted interval, an unexplained removal, a projection inconsistency or an
-unauthorized hosting-responsibility transfer must still be held or blocked.
+result: an incremental republish whose exact last-publication delta is eligible
+must not be blocked by unrelated full-season planning debt, an unaccepted
+interval publishes as a clearly labelled proposal, while a placement whose own
+evidence rejects/contradicts it, an unexplained removal, a projection
+inconsistency or an unauthorized hosting-responsibility transfer is held or
+blocked.
 """
 
 from __future__ import annotations
@@ -13,7 +15,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from tournament_scheduler.canonical_state import schedule_fingerprint
-from tournament_scheduler.calendar_bookings import new_manual_assertion_record
+from tournament_scheduler.calendar_bookings import (
+    TOURNAMENT_BOOKING_EVIDENCE_KEY,
+    new_booking_evidence_record,
+    new_manual_assertion_record,
+)
 from tournament_scheduler.infrastructure.canonical_season_store import (
     DECISIONS_SCHEMA_VERSION,
     SEASON_STATE_SCHEMA_VERSION,
@@ -145,6 +151,21 @@ def _booked_assertion(*, tournament: dict, problem: dict) -> dict:
     )
 
 
+def _rejection_assertion(*, tournament: dict, problem: dict) -> dict:
+    return new_manual_assertion_record(
+        tournament=tournament,
+        booking_status="not-booked",
+        problem=problem,
+        actor="tester",
+        note="club rejected the assigned slot",
+        reference="email-2026-09-21",
+        source_scope="tournament",
+        stated_interval=None,
+        asserted_at="2026-09-21T00:00:00+00:00",
+        source_revision="rev-published",
+    )
+
+
 def _scope(root: Path, *, reviewed_plan: dict, problem: dict, decisions_extra: dict | None = None):
     decisions = CanonicalSeasonStore(root).load(_SEASON).decisions
     return evaluate_publication_scope(
@@ -193,6 +214,8 @@ class TestEligibleIncrementalCorrection:
         assert result["status"] == STATUS_ELIGIBLE, result
         assert result["delta"]["changed_tournament_ids"] == ["t2"]
         assert result["delta"]["interval_changed_tournament_ids"] == ["t2"]
+        assert result["booked_tournament_ids"] == ["t2"]
+        assert result["proposed_tournament_ids"] == []
         # Unrelated full-season planning debt is retained as diagnostic, not
         # used as a global blocker.
         assert result["diagnostic"]["full_season_reasons"] == [
@@ -219,19 +242,44 @@ class TestEligibleIncrementalCorrection:
         assert result["delta"]["participant_only_changed_tournament_ids"] == ["t1"]
 
 
-class TestHeldAffectedTournaments:
-    def test_changed_interval_without_booking_is_held(self, tmp_path):
+class TestProposedPlacements:
+    """A placement without accepted booking publishes as a proposal, not a held item."""
+
+    def test_changed_interval_without_booking_is_publishable_proposal(self, tmp_path):
         published = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-10-11", start_time="10:00", host_club="A")]}
         current = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-12-12", start_time="12:00", host_club="A")]}
         problem = _write_season(tmp_path, plan=current, published_plan=published)
 
         result = _scope(tmp_path, reviewed_plan=current, problem=problem)
 
-        assert result["status"] == STATUS_HELD, result
-        assert result["held"][0]["tournament_id"] == "t1"
-        assert result["held"][0]["code"] == "changed_interval_without_accepted_booking"
+        assert result["status"] == STATUS_ELIGIBLE, result
+        assert result["proposed_tournament_ids"] == ["t1"]
+        assert result["booked_tournament_ids"] == []
+        assert result["held"] == []
 
-    def test_reactivated_cancelled_tournament_requires_booking(self, tmp_path):
+    def test_stale_confirmation_is_publishable_proposal(self, tmp_path):
+        # The exact rvv-0030 shape: a confirmation for the old interval is
+        # invalidated by the correction, so the new interval is an
+        # awaiting-confirmation proposal rather than a held blocker.
+        published = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-10-11", start_time="10:00", host_club="A")]}
+        current = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-12-12", start_time="12:00", host_club="A")]}
+        problem = _write_season(tmp_path, plan=current, published_plan=published)
+        stale_assertion = _booked_assertion(
+            tournament=_tournament("t1", date="2026-10-11", start_time="10:00", host_club="A"),
+            problem=problem,
+        )
+        store = CanonicalSeasonStore(tmp_path)
+        snapshot = store.load(_SEASON)
+        snapshot.decisions.setdefault("manual_booking_assertions", []).append(stale_assertion)
+        store.write(snapshot)
+
+        result = _scope(tmp_path, reviewed_plan=current, problem=problem)
+
+        assert result["status"] == STATUS_ELIGIBLE, result
+        assert result["proposed_tournament_ids"] == ["t1"]
+        assert result["booked_tournament_ids"] == []
+
+    def test_reactivated_cancelled_tournament_is_proposed_without_booking(self, tmp_path):
         published = {
             "start_date": "2026-09-01",
             "end_date": "2027-04-30",
@@ -241,8 +289,8 @@ class TestHeldAffectedTournaments:
             ],
         }
         # Reactivating a previously published cancellation changes only the
-        # ``cancelled`` flag; the interval is unchanged, so it must still prove
-        # an accepted booking for the exact interval.
+        # ``cancelled`` flag; the interval is unchanged, so it stays a proposal
+        # rather than silently carrying the old acceptance.
         current = {
             "start_date": "2026-09-01",
             "end_date": "2027-04-30",
@@ -255,10 +303,10 @@ class TestHeldAffectedTournaments:
 
         result = _scope(tmp_path, reviewed_plan=current, problem=problem)
 
-        assert result["status"] == STATUS_HELD, result
+        assert result["status"] == STATUS_ELIGIBLE, result
         assert result["delta"]["interval_changed_tournament_ids"] == ["t2"]
-        assert result["held"][0]["tournament_id"] == "t2"
-        assert result["held"][0]["code"] == "changed_interval_without_accepted_booking"
+        assert result["proposed_tournament_ids"] == ["t2"]
+        assert result["booked_tournament_ids"] == []
 
     def test_active_cancellation_keeps_published_acceptance(self, tmp_path):
         published = {
@@ -304,16 +352,16 @@ class TestHeldAffectedTournaments:
             reason["code"] == "hosting_evidence_unavailable" for reason in result["reasons"]
         )
 
-    def test_added_tournament_without_booking_is_held(self, tmp_path):
+    def test_added_tournament_without_booking_is_publishable_proposal(self, tmp_path):
         published = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-10-11", start_time="10:00", host_club="A")]}
         current = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-10-11", start_time="10:00", host_club="A"), _tournament("t2", date="2026-11-15", start_time="10:00", host_club="B")]}
         problem = _write_season(tmp_path, plan=current, published_plan=published)
 
         result = _scope(tmp_path, reviewed_plan=current, problem=problem)
 
-        assert result["status"] == STATUS_HELD, result
-        codes = {entry["code"] for entry in result["held"]}
-        assert "added_tournament_without_accepted_booking" in codes
+        assert result["status"] == STATUS_ELIGIBLE, result
+        assert result["proposed_tournament_ids"] == ["t2"]
+        assert result["held"] == []
 
     def test_unexplained_removal_is_held(self, tmp_path):
         published = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-10-11", start_time="10:00", host_club="A"), _tournament("t2", date="2026-11-15", start_time="10:00", host_club="B")]}
@@ -324,6 +372,79 @@ class TestHeldAffectedTournaments:
 
         assert result["status"] == STATUS_HELD, result
         assert any(entry["code"] == "unexplained_public_entry_removal" for entry in result["held"])
+
+
+class TestContradictedPlacements:
+    """Evidence that rejects or contradicts the placement is held, never published."""
+
+    def _add_assertions(self, tmp_path, assertions) -> None:
+        store = CanonicalSeasonStore(tmp_path)
+        snapshot = store.load(_SEASON)
+        snapshot.decisions.setdefault("manual_booking_assertions", []).extend(assertions)
+        store.write(snapshot)
+
+    def test_changed_interval_with_explicit_rejection_is_held(self, tmp_path):
+        published = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-10-11", start_time="10:00", host_club="A")]}
+        current = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-12-12", start_time="12:00", host_club="A")]}
+        problem = _write_season(tmp_path, plan=current, published_plan=published)
+        self._add_assertions(
+            tmp_path,
+            [_rejection_assertion(tournament=current["tournaments"][0], problem=problem)],
+        )
+
+        result = _scope(tmp_path, reviewed_plan=current, problem=problem)
+
+        assert result["status"] == STATUS_HELD, result
+        assert result["held"][0]["tournament_id"] == "t1"
+        assert result["held"][0]["code"] == "changed_interval_contradicted_booking_evidence"
+        assert result["proposed_tournament_ids"] == []
+
+    def test_added_tournament_with_explicit_rejection_is_held(self, tmp_path):
+        published = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-10-11", start_time="10:00", host_club="A")]}
+        current = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-10-11", start_time="10:00", host_club="A"), _tournament("t2", date="2026-11-15", start_time="10:00", host_club="B")]}
+        problem = _write_season(tmp_path, plan=current, published_plan=published)
+        self._add_assertions(
+            tmp_path,
+            [_rejection_assertion(tournament=current["tournaments"][1], problem=problem)],
+        )
+
+        result = _scope(tmp_path, reviewed_plan=current, problem=problem)
+
+        assert result["status"] == STATUS_HELD, result
+        assert result["held"][0]["tournament_id"] == "t2"
+        assert result["held"][0]["code"] == "added_tournament_contradicted_booking_evidence"
+
+    def test_conflicting_calendar_evidence_is_held(self, tmp_path):
+        # A manual confirmation and an independent calendar that explicitly
+        # reads the slot as not-booked are a genuine contradiction, not mere
+        # ambiguity, so the placement is held rather than published.
+        published = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-10-11", start_time="10:00", host_club="A")]}
+        current = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [_tournament("t1", date="2026-12-12", start_time="12:00", host_club="A")]}
+        problem = _write_season(tmp_path, plan=current, published_plan=published)
+        t1 = current["tournaments"][0]
+        record = new_booking_evidence_record(
+            tournament=t1,
+            status="confirmed_not_booked",
+            problem=problem,
+            actor="tester",
+            note="calendar shows a different activity on the slot",
+            checked_at="2026-09-22T00:00:00+00:00",
+            source_revision="rev-published",
+            reason="explicit_host_rejection",
+        )
+        store = CanonicalSeasonStore(tmp_path)
+        snapshot = store.load(_SEASON)
+        snapshot.decisions.setdefault("manual_booking_assertions", []).append(
+            _booked_assertion(tournament=t1, problem=problem)
+        )
+        snapshot.decisions.setdefault(TOURNAMENT_BOOKING_EVIDENCE_KEY, []).append(record)
+        store.write(snapshot)
+
+        result = _scope(tmp_path, reviewed_plan=current, problem=problem)
+
+        assert result["status"] == STATUS_HELD, result
+        assert result["held"][0]["code"] == "changed_interval_contradicted_booking_evidence"
+        assert result["held"][0]["booking_status"] == "manually_booked"
 
 
 class TestGlobalBlockers:

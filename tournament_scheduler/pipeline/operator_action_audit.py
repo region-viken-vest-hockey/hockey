@@ -262,11 +262,15 @@ def _blocked_for_publication_scope(
     reasons = list(scope.get("reasons") or [])
     problems = [str(reason.get("message") or reason.get("code")) for reason in reasons]
     held_ids = sorted({str(entry.get("tournament_id") or "") for entry in scope.get("held") or []})
+    booked_ids = sorted(str(item) for item in scope.get("booked_tournament_ids") or [])
+    proposed_ids = sorted(str(item) for item in scope.get("proposed_tournament_ids") or [])
     evidence = [
         f"publication_scope_status={status}",
         f"publication_scope_export_fingerprint={scope.get('export_fingerprint')}",
         f"publication_scope_canonical_revision={scope.get('canonical_revision')}",
         f"publication_scope_held_tournament_ids={','.join(held_ids)}",
+        f"publication_scope_booked_tournament_ids={','.join(booked_ids)}",
+        f"publication_scope_proposed_tournament_ids={','.join(proposed_ids)}",
     ]
     if status == STATUS_BLOCKED:
         summary = (
@@ -275,8 +279,9 @@ def _blocked_for_publication_scope(
         )
     else:
         summary = (
-            "Publisering holdt tilbake: ett eller flere endrede eller nye turneringer "
-            "mangler godkjent, kildenbundet booking for sin eksakte publiserte periode."
+            "Publisering holdt tilbake: en eller flere turneringer har bookingbevis "
+            "som motsier den offentlige plasseringen, eller en tidligere publisert "
+            "oppføring forsvant uten kanonisk avlysning."
         )
     return with_collision_warning(
         CapabilityResult.blocked(
@@ -285,8 +290,9 @@ def _blocked_for_publication_scope(
             problems=problems,
             evidence=evidence,
             suggested_actions=[
-                "Bekreft bookingen for den eksakte perioden med en kildenbundet "
-                "kalenderassosiasjon eller en manuell bookingbekreftelse, og eksporter på nytt.",
+                "Løs den navngitte turneringen: flytt/planlegg den på nytt eller korriger "
+                "bookingbeviset, og eksporter på nytt. En plassering uten bookingbevis "
+                "publiseres som forslag/vil bekreftes, ikke som booket.",
             ],
             artifacts=list(bundle_result.artifacts),
         )
@@ -309,11 +315,14 @@ def apply_publish_audit_gate(
     zero-violation pass.
 
     Publication eligibility is *tournament-scoped*: an incremental republish is
-    gated on the exact last-publication delta (accepted booking for each changed
-    interval, identity traceability, no silent hosting transfer), while the
-    full-season semantic audit's planning debt remains visible as diagnostic
-    rather than as a global blocker. A missing/stale audit still blocks, and an
-    unresolved (``NOT_CHECKABLE``) scope falls back to the full audit gate.
+    gated on the exact last-publication delta (identity traceability, no silent
+    hosting transfer, no unexplained removal, and no placement whose own
+    booking evidence rejects/contradicts it), while the full-season semantic
+    audit's planning debt remains visible as diagnostic rather than as a global
+    blocker. A missing accepted booking is not itself a blocker: the placement
+    publishes as a clearly labelled proposal awaiting host confirmation. A
+    missing/stale audit still blocks, and an unresolved (``NOT_CHECKABLE``)
+    scope falls back to the full audit gate.
     """
     from .audit_result import audit_is_fresh, is_blocking_status
     from .capability_result import CapabilityResult

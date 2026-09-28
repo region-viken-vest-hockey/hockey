@@ -1450,6 +1450,13 @@ def booking_status_report(
                 "date": str(tournament.get("date") or ""),
                 "start_time": str(tournament.get("start_time") or ""),
                 "needs_attention": status in _ATTENTION_BOOKING_STATUSES or bool(follow_up_reasons),
+                # The club's accepted authority and the independent calendar
+                # actively disagree (a manual confirmation the calendar reads as
+                # not-booked, or a manual rejection the calendar reads as
+                # booked). This is a genuine contradiction, not mere ambiguity,
+                # so it is exposed as a typed flag rather than left for a
+                # consumer to re-parse the follow-up reason strings.
+                "conflict": conflict,
                 "stale_reasons": stale_reasons,
                 "follow_up_reasons": follow_up_reasons,
                 "calendar_status": calendar_status,
@@ -1495,6 +1502,7 @@ def booking_status_report(
                 "start_time": str(tournament.get("start_time") or ""),
                 "needs_attention": status in _ATTENTION_BOOKING_STATUSES
                 or operational_state in (OPERATIONAL_CHANGED_SLOT_REVIEW, OPERATIONAL_PRESUMED_UNSCHEDULED),
+                "conflict": False,
                 "stale_reasons": stale_reasons,
                 "follow_up_reasons": [],
                 "calendar_status": status,

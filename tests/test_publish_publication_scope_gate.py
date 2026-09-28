@@ -1,10 +1,10 @@
-"""Publish-gate integration for tournament-scoped publication eligibility
-(issue #541).
+"""Publish-gate integration for tournament-scoped publication eligibility.
 
 The deterministic publish preflight must consume the typed publication-scope
-result: an incremental republish whose exact last-publication delta is
-eligible is not blocked by unrelated full-season planning debt, while a held
-changed interval or a missing/stale audit still blocks.
+result: an incremental republish whose exact last-publication delta is eligible
+is not blocked by unrelated full-season planning debt. An unaccepted interval
+publishes as a proposal awaiting confirmation, while a placement the host
+explicitly rejected and a missing/stale audit still blocks.
 """
 
 from __future__ import annotations
@@ -87,7 +87,14 @@ def _problem() -> dict:
     return {"teams": _teams(), "ice_time_minutes": {"U10": 120}, "parallel_games": {"U10": 2}}
 
 
-def _write_canonical(root, *, plan: dict, published_plan: dict, booked_t2: bool) -> None:
+def _write_canonical(
+    root,
+    *,
+    plan: dict,
+    published_plan: dict,
+    booked_t2: bool,
+    rejected_t2: bool = False,
+) -> None:
     schedule = {
         "schema_version": SEASON_STATE_SCHEMA_VERSION,
         "season": _SEASON,
@@ -135,6 +142,22 @@ def _write_canonical(root, *, plan: dict, published_plan: dict, booked_t2: bool)
                 source_scope="tournament",
                 stated_interval=None,
                 asserted_at="2026-09-20T00:00:00+00:00",
+                source_revision="rev-published",
+            )
+        ]
+    if rejected_t2:
+        t2 = next(t for t in plan["tournaments"] if t["id"] == "t2")
+        decisions["manual_booking_assertions"] = [
+            new_manual_assertion_record(
+                tournament=t2,
+                booking_status="not-booked",
+                problem=_problem(),
+                actor="tester",
+                note="club rejected the slot",
+                reference="email-2026-09-21",
+                source_scope="tournament",
+                stated_interval=None,
+                asserted_at="2026-09-21T00:00:00+00:00",
                 source_revision="rev-published",
             )
         ]
@@ -230,11 +253,27 @@ def test_eligible_incremental_correction_is_not_blocked_by_full_season_audit_fai
     assert _evaluate(tmp_path, tmp_path) is None
 
 
-def test_changed_interval_without_accepted_booking_is_blocked(tmp_path, monkeypatch):
+def test_changed_interval_without_accepted_booking_publishes_as_proposal(tmp_path, monkeypatch):
     _init_repo(tmp_path)
     published = _plan()
     current = _plan(t2_date="2026-03-05", t2_start="12:00")
     _write_canonical(tmp_path, plan=current, published_plan=published, booked_t2=False)
+    monkeypatch.setenv("RVV_CANONICAL_SEASON_ROOT", str(tmp_path / "season"))
+    fingerprint = _write_reviewed_export(tmp_path, plan=current)
+    # A full-season FAIL is planning debt: the unaccepted interval is still
+    # publishable as a clearly labelled proposal awaiting confirmation.
+    _write_audit(tmp_path, status="FAIL", export_fingerprint=fingerprint)
+
+    assert _evaluate(tmp_path, tmp_path) is None
+
+
+def test_changed_interval_with_explicit_rejection_is_blocked(tmp_path, monkeypatch):
+    _init_repo(tmp_path)
+    published = _plan()
+    current = _plan(t2_date="2026-03-05", t2_start="12:00")
+    _write_canonical(
+        tmp_path, plan=current, published_plan=published, booked_t2=False, rejected_t2=True
+    )
     monkeypatch.setenv("RVV_CANONICAL_SEASON_ROOT", str(tmp_path / "season"))
     fingerprint = _write_reviewed_export(tmp_path, plan=current)
     _write_audit(tmp_path, status="PASS", export_fingerprint=fingerprint)
