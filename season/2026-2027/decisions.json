@@ -1130,7 +1130,7 @@
       }
     }
   ],
-  "canonical_state_revision": "7f11f9bb8fd4d0a6e428b92b7fc461afabe9faaf0a7e11b4606a2284fbda7cef",
+  "canonical_state_revision": "88c070ba1a9fc70271e3c07564d05b7ec0529c233159a83521d3c0118fa4f4de",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -6291,13 +6291,13 @@
       "status": "pending_review"
     },
     "rvv-0060": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-09-28T19:51:14.488859+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "fb8572ca71d5768654cfd2ea8bcb3cff5c8fb21c20aff60661c434dc08d8ba48",
+      "note": "Sandefjord confirmed 15:30 start (club-feedback:sandefjord:1530-start-time)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0061": {
       "approved_at": "2026-09-27T19:28:23.871154+00:00",
@@ -6770,13 +6770,13 @@
       "status": "pending_review"
     },
     "rvv-0118": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-09-28T19:51:15.455913+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "a9df97db67ff9daf38f33ad9c4e2ac6db32af630b49d79ef5ae158cd8fb9abe3",
+      "note": "Sandefjord confirmed 15:30 start (club-feedback:sandefjord:1530-start-time)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0119": {
       "approved_at": "2026-09-22T14:08:36.024088+00:00",
@@ -40098,6 +40098,117 @@
       "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
       "tournament_fingerprint": "19596d845f6de802e78ad3b3604f93961895806a21cd3a9769fecb7d39d8856e",
       "tournament_id": "rvv-0024"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:51:14.488859+00:00",
+      "event": "approve",
+      "note": "Sandefjord confirmed 15:30 start (club-feedback:sandefjord:1530-start-time)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": "fb8572ca71d5768654cfd2ea8bcb3cff5c8fb21c20aff60661c434dc08d8ba48",
+      "tournament_id": "rvv-0060"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:51:15.455913+00:00",
+      "event": "approve",
+      "note": "Sandefjord confirmed 15:30 start (club-feedback:sandefjord:1530-start-time)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": "a9df97db67ff9daf38f33ad9c4e2ac6db32af630b49d79ef5ae158cd8fb9abe3",
+      "tournament_id": "rvv-0118"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:52:23.665688+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U9",
+          "date": "2026-12-06",
+          "duration_minutes": "155",
+          "end_time": "18:05",
+          "round_count": "5",
+          "start_time": "15:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_date_changed",
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "club-feedback:sandefjord:2026-09-28:1530-start-time",
+        "source_scope": "tournament",
+        "stated_interval": {},
+        "supersedes": "manual_booking:rvv-0024:2026-09-28T07:48:26.954275+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Sandefjord confirmed ice is free at 15:30 for this tournament; retimed per club request",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0024"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:52:31.624964+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U8",
+          "date": "2026-11-01",
+          "duration_minutes": "155",
+          "end_time": "18:05",
+          "round_count": "5",
+          "start_time": "15:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "club-feedback:sandefjord:2026-09-28:1530-start-time",
+        "source_scope": "tournament",
+        "stated_interval": {},
+        "supersedes": "manual_booking:rvv-0037:2026-09-28T07:48:35.127441+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Sandefjord confirmed ice is free at 15:30 for this tournament; retimed per club request",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0037"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T19:52:39.848556+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U7",
+          "date": "2027-01-10",
+          "duration_minutes": "155",
+          "end_time": "18:05",
+          "round_count": "5",
+          "start_time": "15:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "club-feedback:sandefjord:2026-09-28:1530-start-time",
+        "source_scope": "tournament",
+        "stated_interval": {},
+        "supersedes": "manual_booking:rvv-0102:2026-09-28T07:48:43.239247+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Sandefjord confirmed ice is free at 15:30 for this tournament; retimed per club request",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0102"
     }
   ],
   "holiday_date_exceptions": [
@@ -42245,7 +42356,15 @@
       "source_scope": "club_wide_interpretation",
       "start_time": "15:00",
       "stated_interval": {},
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Sandefjord confirmed ice is free at 15:30 for this tournament; retimed per club request",
+      "superseded_at": "2026-09-28T19:52:23.665688+00:00",
+      "superseded_by": "manual_booking:rvv-0024:2026-09-28T19:52:23.665688+00:00",
+      "superseded_stale_reasons": [
+        "tournament_date_changed",
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U9",
@@ -42282,7 +42401,14 @@
       "source_scope": "club_wide_interpretation",
       "start_time": "15:00",
       "stated_interval": {},
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Sandefjord confirmed ice is free at 15:30 for this tournament; retimed per club request",
+      "superseded_at": "2026-09-28T19:52:31.624964+00:00",
+      "superseded_by": "manual_booking:rvv-0037:2026-09-28T19:52:31.624964+00:00",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U8",
@@ -42319,7 +42445,14 @@
       "source_scope": "club_wide_interpretation",
       "start_time": "15:00",
       "stated_interval": {},
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Sandefjord confirmed ice is free at 15:30 for this tournament; retimed per club request",
+      "superseded_at": "2026-09-28T19:52:39.848556+00:00",
+      "superseded_by": "manual_booking:rvv-0102:2026-09-28T19:52:39.848556+00:00",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U7",
@@ -43253,6 +43386,130 @@
         "start_time": "15:00"
       },
       "tournament_id": "rvv-0181"
+    },
+    {
+      "arena": "Bugården ishall",
+      "asserted_at": "2026-09-28T19:52:23.665688+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U9",
+        "date": "2026-12-06",
+        "duration_minutes": "155",
+        "end_time": "18:05",
+        "round_count": "5",
+        "start_time": "15:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-12-06",
+      "host_club": "Sandefjord Penguins",
+      "id": "manual_booking:rvv-0024:2026-09-28T19:52:23.665688+00:00",
+      "note": "Sandefjord confirmed ice is free at 15:30 for this tournament; retimed per club request",
+      "reconfirms_stale_reasons": [
+        "tournament_date_changed",
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "club-feedback:sandefjord:2026-09-28:1530-start-time",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "e5b634f1a765ef123ab3671883bdf80430dadf41806500562919fa9bb46d8c12",
+      "source_scope": "tournament",
+      "start_time": "15:30",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0024:2026-09-28T07:48:26.954275+00:00",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Bugården ishall",
+        "date": "2026-12-06",
+        "host_club": "Sandefjord Penguins",
+        "start_time": "15:30"
+      },
+      "tournament_id": "rvv-0024"
+    },
+    {
+      "arena": "Bugården ishall",
+      "asserted_at": "2026-09-28T19:52:31.624964+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U8",
+        "date": "2026-11-01",
+        "duration_minutes": "155",
+        "end_time": "18:05",
+        "round_count": "5",
+        "start_time": "15:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-01",
+      "host_club": "Sandefjord Penguins",
+      "id": "manual_booking:rvv-0037:2026-09-28T19:52:31.624964+00:00",
+      "note": "Sandefjord confirmed ice is free at 15:30 for this tournament; retimed per club request",
+      "reconfirms_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "club-feedback:sandefjord:2026-09-28:1530-start-time",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "09a8bfea77bb7b03b54f3870e16a5535709ceaa0fd594867aed8cf5438f13b33",
+      "source_scope": "tournament",
+      "start_time": "15:30",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0037:2026-09-28T07:48:35.127441+00:00",
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Bugården ishall",
+        "date": "2026-11-01",
+        "host_club": "Sandefjord Penguins",
+        "start_time": "15:30"
+      },
+      "tournament_id": "rvv-0037"
+    },
+    {
+      "arena": "Bugården ishall",
+      "asserted_at": "2026-09-28T19:52:39.848556+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U7",
+        "date": "2027-01-10",
+        "duration_minutes": "155",
+        "end_time": "18:05",
+        "round_count": "5",
+        "start_time": "15:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-10",
+      "host_club": "Sandefjord Penguins",
+      "id": "manual_booking:rvv-0102:2026-09-28T19:52:39.848556+00:00",
+      "note": "Sandefjord confirmed ice is free at 15:30 for this tournament; retimed per club request",
+      "reconfirms_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "club-feedback:sandefjord:2026-09-28:1530-start-time",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "6d9a0f5e9a7cdf9b027e01bbe0adcdfbdc53c4595ba116d96c01298e25ca8c60",
+      "source_scope": "tournament",
+      "start_time": "15:30",
+      "stated_interval": {},
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0102:2026-09-28T07:48:43.239247+00:00",
+      "tournament_facts": {
+        "age_group": "U7",
+        "arena": "Bugården ishall",
+        "date": "2027-01-10",
+        "host_club": "Sandefjord Penguins",
+        "start_time": "15:30"
+      },
+      "tournament_id": "rvv-0102"
     }
   ],
   "participation_withdrawals": [
@@ -84480,5 +84737,5 @@
       "tournament_id": "rvv-0187"
     }
   ],
-  "updated_at": "2026-09-28T19:49:29.177324+00:00"
+  "updated_at": "2026-09-28T19:52:39.848556+00:00"
 }
