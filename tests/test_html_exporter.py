@@ -193,6 +193,70 @@ def _heatmap_render_js() -> str:
     return source[start:end]
 
 
+def _render_heatmap(
+    tournaments: list[dict],
+    heatmap: dict,
+    *,
+    clubs: list[str],
+    weeks: list[str],
+    colors: dict,
+    theme: str = "dark",
+) -> str:
+    """Run the shipped heatmap renderer against a minimal DOM stub.
+
+    Returns the rendered body HTML joined with every element the renderer
+    created (legend spans), so tests can assert on both sinks.
+    """
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.fail("node is required to execute the shipped heatmap template")
+
+    script = (
+        "const TOURNAMENTS = "
+        + json.dumps(tournaments)
+        + ";\nconst HEATMAP_WEEKS = "
+        + json.dumps(weeks)
+        + ";\nconst HEATMAP_CLUBS = "
+        + json.dumps(clubs)
+        + ";\nconst HEATMAP = "
+        + json.dumps(heatmap)
+        + ";\nconst HEATMAP_CLUB_COLORS_BY_THEME = "
+        + json.dumps(colors)
+        + ";\n"
+        "var __bodyHtml = '';\n"
+        "var __created = [];\n"
+        "function __stubEl() { return {style: {}, appendChild: function() {}, innerHTML: '', className: '', textContent: ''}; }\n"
+        "var document = {documentElement: {dataset: {theme: '"
+        + theme
+        + "'}},\n"
+        "  getElementById: function(id) {\n"
+        "    if (id === 'heatmapHead') return {innerHTML: ''};\n"
+        "    if (id === 'heatmapBody') return {set innerHTML(v) {__bodyHtml = v;}, get innerHTML() {return __bodyHtml;}};\n"
+        "    if (id === 'heatmapLegend') return {appendChild: function() {}};\n"
+        "    return null;\n"
+        "  },\n"
+        "  createElement: function() { var el = __stubEl(); __created.push(el); return el; }\n"
+        "};\n"
+        + _heatmap_render_js()
+        + "\nconsole.log(JSON.stringify({body: __bodyHtml, created: __created.map(function(e) {"
+        "return {className: e.className, textContent: e.textContent, innerHTML: e.innerHTML, cssText: e.style.cssText}; })}));\n"
+    )
+    completed = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+    data = json.loads(completed.stdout)
+    parts = [data["body"]]
+    for element in data["created"]:
+        parts.extend(
+            [
+                str(element.get("className") or ""),
+                str(element.get("textContent") or ""),
+                str(element.get("innerHTML") or ""),
+                str(element.get("cssText") or ""),
+            ]
+        )
+    return "\n".join(parts)
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -341,10 +405,6 @@ class TestBookingStatusRendering:
         emitted classes must be the shared operational states.
         """
 
-        node = shutil.which("node")
-        if node is None:
-            pytest.fail("node is required to execute the shipped heatmap template")
-
         hostile = '<img src=x onerror=alert(1)>'
         tournaments = [
             {"id": "t1", "obs": "booked", "bs": "manually_booked", "ba": False},
@@ -374,34 +434,9 @@ class TestBookingStatusRendering:
             "dark": {"Holmen": {"bg": "#111111", "text": "#ffffff"}},
             "light": {"Holmen": {"bg": "#eeeeee", "text": "#111111"}},
         }
-        script = (
-            "const TOURNAMENTS = "
-            + json.dumps(tournaments)
-            + ";\nconst HEATMAP_WEEKS = "
-            + json.dumps(["2025-W40"])
-            + ";\nconst HEATMAP_CLUBS = "
-            + json.dumps(["Holmen"])
-            + ";\nconst HEATMAP = "
-            + json.dumps(heatmap)
-            + ";\nconst HEATMAP_CLUB_COLORS_BY_THEME = "
-            + json.dumps(colors)
-            + ";\n"
-            "var __bodyHtml = '';\n"
-            "function __stubEl() { return {style: {}, appendChild: function() {}}; }\n"
-            "var document = {documentElement: {dataset: {theme: 'dark'}},\n"
-            "  getElementById: function(id) {\n"
-            "    if (id === 'heatmapHead') return {innerHTML: ''};\n"
-            "    if (id === 'heatmapBody') return {set innerHTML(v) {__bodyHtml = v;}, get innerHTML() {return __bodyHtml;}};\n"
-            "    if (id === 'heatmapLegend') return {appendChild: function() {}};\n"
-            "    return null;\n"
-            "  },\n"
-            "  createElement: function() { return __stubEl(); }\n"
-            "};\n"
-            + _heatmap_render_js()
-            + "\nconsole.log(__bodyHtml);\n"
+        rendered = _render_heatmap(
+            tournaments, heatmap, clubs=["Holmen"], weeks=["2025-W40"], colors=colors
         )
-        completed = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
-        rendered = completed.stdout
         assert "&lt;img src=x onerror=alert(1)&gt;" in rendered
         assert "<img" not in rendered
         assert "heatmap-booking-booked" in rendered
@@ -409,6 +444,42 @@ class TestBookingStatusRendering:
         assert "BOOKET · LÅST" in rendered
         assert "MÅ RE-BEKREFTES" in rendered
         assert "må følges opp" in rendered
+
+    def test_heatmap_rejects_invalid_club_colors(self):
+        """Club colours are CSS, not HTML: constrain them to the hex format."""
+
+        tournaments = [{"id": "t1", "obs": "booked", "bs": "manually_booked", "ba": False}]
+        heatmap = {
+            "2025-W40": {
+                "Holmen": [
+                    {
+                        "age_group": "U10",
+                        "tournament_id": "t1",
+                        "operational_state": "booked",
+                        "booking_status": "manually_booked",
+                        "needs_attention": False,
+                    }
+                ]
+            }
+        }
+        colors = {
+            "dark": {
+                "Holmen": {
+                    "bg": "#zzzzzz",
+                    "text": "red; background-image:url(javascript:alert(1))",
+                }
+            },
+            "light": {"Holmen": {"bg": "#eeeeee", "text": "#111111"}},
+        }
+        rendered = _render_heatmap(
+            tournaments, heatmap, clubs=["Holmen"], weeks=["2025-W40"], colors=colors
+        )
+        assert "#zzzzzz" not in rendered
+        assert "javascript:alert" not in rendered
+        assert "background-image" not in rendered
+        # Invalid values fall back to the theme default colours.
+        assert "#2a2a2a" in rendered
+        assert "#999" in rendered
 
     def test_schedule_booking_provenance_and_negative_evidence_states(self, tmp_path):
         def _tournament(tid, age_group, start_time):

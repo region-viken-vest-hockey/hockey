@@ -262,12 +262,26 @@ function heatmapOperationalClass(state) {
     ? {bg: '#e4e4e7', text: '#52525b'}
     : {bg: '#2a2a2a', text: '#999'};
 
+  // CSS values are not HTML, so HTML-escaping a colour is not CSS
+  // sanitization. Constrain every interpolated colour to the known generated
+  // hex format and fall back to the theme default otherwise.
+  function safeHeatmapColor(value, fallback) {
+    return /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(value || '')) ? value : fallback;
+  }
+  function heatmapClubColors(club) {
+    const c = HEATMAP_CLUB_COLORS[club] || DEFAULT_CLUB_COLOR;
+    return {
+      bg: safeHeatmapColor(c.bg, DEFAULT_CLUB_COLOR.bg),
+      text: safeHeatmapColor(c.text, DEFAULT_CLUB_COLOR.text)
+    };
+  }
+
   // Build legend
   HEATMAP_CLUBS.forEach(club => {
-    const c = HEATMAP_CLUB_COLORS[club] || DEFAULT_CLUB_COLOR;
+    const c = heatmapClubColors(club);
     const span = document.createElement('span');
     span.style.cssText = 'display:inline-flex;align-items:center;gap:4px;font-size:11px;color:' + c.text;
-    span.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + escapeHtml(c.bg) + ';border:1px solid ' + escapeHtml(c.text) + '"></span>' + escapeHtml(club);
+    span.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + c.bg + ';border:1px solid ' + c.text + '"></span>' + escapeHtml(club);
     legend.appendChild(span);
   });
   OPERATIONAL_HEATMAP_LEGEND.forEach(function(item) {
@@ -301,9 +315,9 @@ function heatmapOperationalClass(state) {
   // Build body: one row per club
   let bodyHtml = '';
   HEATMAP_CLUBS.forEach(club => {
-    const c = HEATMAP_CLUB_COLORS[club] || DEFAULT_CLUB_COLOR;
+    const c = heatmapClubColors(club);
     bodyHtml += '<tr style="border-bottom:1px solid var(--border-dim)">';
-    bodyHtml += '<td style="position:sticky;left:0;z-index:0;background:var(--bg);padding:6px 10px;font-size:12px;color:' + escapeHtml(c.text) + ';font-weight:600">' + escapeHtml(club) + '</td>';
+    bodyHtml += '<td style="position:sticky;left:0;z-index:0;background:var(--bg);padding:6px 10px;font-size:12px;color:' + c.text + ';font-weight:600">' + escapeHtml(club) + '</td>';
     HEATMAP_WEEKS.forEach(wk => {
       const weekData = HEATMAP[wk] || {};
       const clubData = weekData[club];
@@ -316,7 +330,7 @@ function heatmapOperationalClass(state) {
           const state = heatmapState(item);
           return '<span class="heatmap-booking-item heatmap-booking-' + heatmapOperationalClass(state) + '" title="' + escapeHtml(heatmapTitle(item)) + '">' + escapeHtml(item.age_group || '') + '</span>';
         }).join('');
-        bodyHtml += '<td style="background:' + escapeHtml(c.bg) + ';border:1px solid ' + escapeHtml(c.text) + ';padding:3px 4px;text-align:center;font-size:10px;color:' + escapeHtml(c.text) + ';font-weight:600;white-space:nowrap">' + label + '</td>';
+        bodyHtml += '<td style="background:' + c.bg + ';border:1px solid ' + c.text + ';padding:3px 4px;text-align:center;font-size:10px;color:' + c.text + ';font-weight:600;white-space:nowrap">' + label + '</td>';
       } else {
         bodyHtml += '<td style="background:var(--heatmap-empty-bg);border:1px solid var(--border-dim);padding:3px 4px;text-align:center"></td>';
       }
