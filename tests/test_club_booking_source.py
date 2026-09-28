@@ -28,6 +28,7 @@ from tournament_scheduler.season_state import (
     load_schedule,
     reconcile_calendar_bookings,
     set_club_booking_source,
+    set_ice_time_minutes,
     set_manual_booking_assertion,
 )
 from tests.test_approval_lifecycle import (
@@ -234,7 +235,52 @@ def test_booked_source_interval_updates_canonical_occupancy(tmp_path):
     report = club_booking_sources(season="2026-2027", root=root, problem=problem)
     item = report["sources"][0]["tournaments"][0]
     assert item["canonical_interval"]["end_time"] == "14:20"
-    assert item["interval_follow_up"] == []
+    assert item["interval_follow_up"] == ["ice_time_governing_minimum"]
+
+
+def test_real_overlapping_source_intervals_are_recorded_with_blocking_follow_up(tmp_path):
+    t2_teams = [
+        {"club": "A", "label": "A2", "age_group": "U10"},
+        *_teams(("E", "F", "G")),
+    ]
+    root = _promote(
+        tmp_path,
+        [
+            _tournament("t1", date_str="2026-09-13"),
+            {**_tournament("t2", date_str="2026-09-13", teams=t2_teams), "start_time": "14:00"},
+        ],
+    )
+    problem = {**_host_a_problem([]), "teams": _teams(("A", "B", "C", "D", "E", "F", "G")) + [t2_teams[0]]}
+    source = _source_set(root)["source"]
+    _interpretation(
+        root,
+        tournament_id="t1",
+        source_id=source["id"],
+        problem=problem,
+        stated_date="2026-09-13",
+        stated_start="12:30",
+        stated_end="14:30",
+    )
+    result = _interpretation(
+        root,
+        tournament_id="t2",
+        source_id=source["id"],
+        problem=problem,
+        stated_date="2026-09-13",
+        stated_start="14:00",
+        stated_end="16:00",
+    )
+
+    assert [warning["code"] for warning in result["booking_feasibility_warnings"]] == [
+        "arena_interval_conflict"
+    ]
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = next(row for row in report["tournaments"] if row["tournament_id"] == "t2")
+    assert row["status"] == "manually_booked"
+    assert "arena_interval_conflict" in row["follow_up_reasons"]
+    sources = club_booking_sources(season="2026-2027", root=root, problem=problem)
+    t2 = next(item for item in sources["sources"][0]["tournaments"] if item["tournament_id"] == "t2")
+    assert "arena_interval_conflict" in t2["interval_follow_up"]
 
 
 def test_adjacent_booked_source_intervals_use_actual_duration_for_conflicts(tmp_path):
@@ -274,6 +320,95 @@ def test_adjacent_booked_source_intervals_use_actual_duration_for_conflicts(tmp_
     by_id = {t["id"]: t for t in load_schedule("2026-2027", root=root)["plan"]["tournaments"]}
     assert by_id["t1"]["start_time"] == "12:30"
     assert by_id["t2"]["start_time"] == "14:20"
+
+
+def test_reconfirming_prior_assertion_supersedes_and_retry_is_idempotent(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    source = _source_set(root)["source"]
+    old = _interpretation(root, source_id=source["id"], problem=problem)
+
+    changed = _interpretation(
+        root,
+        source_id=source["id"],
+        problem=problem,
+        stated_date="2026-09-13",
+        stated_start="12:30",
+        stated_end="14:20",
+        reference="email:club-2026-09-27",
+    )
+    assert changed["previous_assertion"]["id"] == old["assertion"]["id"]
+    assert changed["assertion"]["supersedes"] == old["assertion"]["id"]
+    assert changed["assertion"]["source_assertion_id"] == source["id"]
+
+    retry = _interpretation(
+        root,
+        source_id=source["id"],
+        problem=problem,
+        stated_date="2026-09-13",
+        stated_start="12:30",
+        stated_end="14:20",
+        reference="email:club-2026-09-27",
+    )
+    assert retry["idempotent"] is True
+
+
+def test_matching_default_interval_does_not_create_redundant_override(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    source = _source_set(root)["source"]
+    result = _interpretation(
+        root,
+        source_id=source["id"],
+        problem=problem,
+        stated_start="10:00",
+        stated_end="12:00",
+    )
+    assert result["interval_alignment"]["changed"] is False
+    assert result["ice_time_override"] is None
+    assert "ice_time_minutes_overrides" not in load_decisions("2026-2027", root=root)
+
+
+def test_existing_matching_override_keeps_source_provenance_without_new_override(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    set_ice_time_minutes(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        minutes=120,
+        request_id="host-confirmed-120",
+        reference="old host confirmation",
+        problem=problem,
+    )
+    before_overrides = list(load_decisions("2026-2027", root=root)["ice_time_minutes_overrides"])
+    source = _source_set(root)["source"]
+    result = _interpretation(
+        root,
+        source_id=source["id"],
+        problem=problem,
+        stated_start="10:00",
+        stated_end="12:00",
+    )
+
+    assert result["ice_time_override"] is None
+    assert result["assertion"]["source_assertion_id"] == source["id"]
+    assert load_decisions("2026-2027", root=root)["ice_time_minutes_overrides"] == before_overrides
+
+
+def test_stated_date_must_be_date_only(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    source = _source_set(root)["source"]
+    with pytest.raises(SeasonStateError, match="YYYY-MM-DD"):
+        _interpretation(
+            root,
+            source_id=source["id"],
+            problem=problem,
+            stated_date="2026-09-13T10:00:00",
+            stated_start="10:00",
+            stated_end="11:50",
+        )
 
 
 def test_source_supersession_and_idempotency(tmp_path):

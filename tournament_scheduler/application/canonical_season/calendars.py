@@ -1142,6 +1142,7 @@ def _align_tournament_to_authoritative_interval(
     request_id: str,
     reference: str,
     accepted_key: str,
+    freeze_default_equal_interval: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any] | None]:
     """Return schedule/decisions aligned to an accepted authoritative interval."""
 
@@ -1166,8 +1167,12 @@ def _align_tournament_to_authoritative_interval(
     updated_decisions = dict(decisions)
     override_record: dict[str, Any] | None = None
     existing_override = override_for_tournament(decisions, tournament_id)
-    existing_minutes = int(existing_override.get("minutes") or 0) if existing_override else None
-    if existing_minutes != interval_minutes:
+    previous_interval = tournament_occupancy_interval_facts(before, problem)
+    try:
+        effective_minutes = int(previous_interval.get("duration_minutes") or 0)
+    except (TypeError, ValueError):
+        effective_minutes = 0
+    if effective_minutes != interval_minutes or (freeze_default_equal_interval and existing_override is None):
         normalized = validate_ice_time_override(
             {
                 "tournament_id": tournament_id,
@@ -1197,7 +1202,7 @@ def _align_tournament_to_authoritative_interval(
         )
 
     alignment = {
-        "previous_interval": tournament_occupancy_interval_facts(before, problem),
+        "previous_interval": previous_interval,
         accepted_key: {
             "date": interval_date,
             "start_time": interval_start,
@@ -1238,6 +1243,7 @@ def _align_tournament_to_calendar_event(
         request_id=f"calendar-booking:{str(event.get('fingerprint') or event_fingerprint(event))}",
         reference=str(event.get("calendar_event") or event.get("title") or "calendar event"),
         accepted_key="accepted_calendar_interval",
+        freeze_default_equal_interval=True,
     )
 
 
@@ -1622,7 +1628,8 @@ def set_manual_booking_assertion(
         booking_feasibility_warnings = [
             blocker
             for blocker in hard_blockers
-            if str(blocker.get("code") or "") in {"ice_time_playing_minimum", "ice_time_governing_minimum"}
+            if str(blocker.get("code") or "")
+            in {"ice_time_playing_minimum", "ice_time_governing_minimum", "arena_interval_conflict"}
         ]
         blockers = [blocker for blocker in hard_blockers if blocker not in booking_feasibility_warnings] + unresolved_blockers
         if blockers:
@@ -1652,6 +1659,10 @@ def set_manual_booking_assertion(
         source_revision=current_revision,
         source_assertion_id=linked_source_id,
     )
+    if booking_feasibility_warnings:
+        candidate["booking_feasibility_warnings"] = [
+            str(blocker.get("code") or "") for blocker in booking_feasibility_warnings
+        ]
     if _manual_assertion_matches_existing(existing, candidate, reference=reference):
         return {
             "season": season,

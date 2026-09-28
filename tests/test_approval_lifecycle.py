@@ -1782,6 +1782,7 @@ def test_manual_assertion_stated_duration_updates_canonical_occupancy(tmp_path):
     row = _booking_row(report, "t1")
     assert row["status"] == "manually_booked"
     assert "manual_booking_stated_end_differs_from_canonical" not in row["follow_up_reasons"]
+    assert "ice_time_governing_minimum" in row["follow_up_reasons"]
     tournament = load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]
     assert tournament["start_time"] == "10:00"
 
@@ -1801,6 +1802,7 @@ def test_manual_assertion_stated_duration_is_exported_as_canonical_html(tmp_path
     html = _export_html_with_booking_report(root, problem, tmp_path)
     assert '"s": "10:00"' in html
     assert '"e": "10:45"' in html
+    assert "ice_time_governing_minimum" in html
 
 
 def test_manual_assertion_clear_revokes_and_is_idempotent(tmp_path):
