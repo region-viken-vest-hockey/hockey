@@ -1225,6 +1225,74 @@ def test_sealed_move_reconciles_immediately(tmp_path: Path) -> None:
     assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
 
 
+def test_sealed_confirm_calendar_booking_reconciles_shorter_authoritative_interval(
+    tmp_path: Path,
+) -> None:
+    """An event-authoritative interval below the planning minimum reconciles on a sealed season.
+
+    The calendar confirmation changes the booked interval (start time plus an
+    evidence-backed occupancy override). That occupancy change must be recorded
+    through the canonical override-decision chain so the sealed-season replay
+    can prove its provenance instead of refusing the otherwise-correct match.
+    """
+
+    from tournament_scheduler.calendar_bookings import iter_events
+
+    root = tmp_path / "season"
+    tournaments = [_tournament("rvv-1", "2026-10-11", "10:00", "Alpha Arena", "Alpha")]
+    problem = _problem({"tournaments": tournaments})
+    problem["clubs"] = {"Alpha": "Alpha Arena"}
+    problem["club_calendar_status"] = {"Alpha": "known"}
+    # 80 minutes is below the 120-minute governing floor for U10: the calendar
+    # records what is actually booked, not what the planning model prefers.
+    problem["club_busy_intervals"] = {
+        "Alpha": [
+            {
+                "date": "2026-10-11",
+                "start": "10:00",
+                "end": "11:20",
+                "availability": "fixed_busy",
+                "calendar_event": "Serierunde U10",
+            }
+        ]
+    }
+    _write_canonical(root, tournaments, problem=problem)
+    service = CanonicalSeasonService(root=root)
+    snapshot = service.load("2026-2027")
+    projection = tournament_projection(snapshot.schedule["plan"], problem)
+    service.seal_published_season(
+        season="2026-2027",
+        publication_id="2026-09-21T0908",
+        canonical_revision="rev-published",
+        published_at="2026-09-21T09:14:53+00:00",
+        published_projection=projection,
+        publication_canonical_projection=projection,
+        materializations=[],
+        actor="tester",
+    )
+
+    event = next(iter(iter_events(problem)))
+    result = service.confirm_calendar_booking(
+        season="2026-2027",
+        event_fingerprint=event["fingerprint"],
+        tournament_id="rvv-1",
+        note="host confirmed the actual booking",
+        actor="tester",
+    )
+
+    assert result["interval_alignment"]["accepted_calendar_interval"]["start_time"] == "10:00"
+    assert result["ice_time_override"]["minutes"] == 80
+    assert result["ice_time_override"]["minimum_minutes"] == 120
+    assert [w["code"] for w in result["booking_feasibility_warnings"]] == [
+        "ice_time_governing_minimum"
+    ]
+
+    loaded = service.load("2026-2027")
+    tournament = next(t for t in loaded.schedule["plan"]["tournaments"] if t["id"] == "rvv-1")
+    assert tournament["start_time"] == "10:00"
+    assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
+
+
 def test_sealed_ice_time_override_reconciles_and_keeps_maintenance_open(tmp_path: Path) -> None:
     """A recorded per-tournament override must not block later sealed-season maintenance.
 
