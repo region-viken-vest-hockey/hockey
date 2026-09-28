@@ -1130,7 +1130,7 @@
       }
     }
   ],
-  "canonical_state_revision": "1d1944e902abd0b0058ffbfe7e12885dae34142cf085a074662ad8a748236add",
+  "canonical_state_revision": "cf66fa9bad7a061d18d7173d2379d8c250cc173fe8a242ecbf183d4d68e0f674",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -4192,9 +4192,12 @@
       "id": "change:d46c4ba8c8f26f25",
       "kind": "placement_field",
       "note": "Match Frisk Asker calendar times reported by club/team managers; retimed Frisk-Asker-hosted tournaments to their published Serierunde slots",
+      "release_reason": "Superseded by frisk-asker:2026-09-28-xlsx-confirmation: Frisk Asker's authoritative worksheet states a different host-confirmed Askerhallen start time than the earlier calendar-match retime",
+      "released_at": "2026-09-28T20:33:09.324729+00:00",
+      "released_by": "niclasl",
       "request_id": "frisk-asker:2026-09-27-calendar-match",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -4390,9 +4393,12 @@
       "id": "change:253f6cfa8d3a9bad",
       "kind": "placement_field",
       "note": "Match Frisk Asker calendar times reported by club/team managers; retimed Frisk-Asker-hosted tournaments to their published Serierunde slots",
+      "release_reason": "Superseded by frisk-asker:2026-09-28-xlsx-confirmation: Frisk Asker's authoritative worksheet states a different host-confirmed Askerhallen start time than the earlier calendar-match retime",
+      "released_at": "2026-09-28T20:33:10.335597+00:00",
+      "released_by": "niclasl",
       "request_id": "frisk-asker:2026-09-27-calendar-match",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -4408,9 +4414,12 @@
       "id": "change:3364399ed732a24a",
       "kind": "placement_field",
       "note": "Match Frisk Asker calendar times reported by club/team managers; retimed Frisk-Asker-hosted tournaments to their published Serierunde slots",
+      "release_reason": "Superseded by frisk-asker:2026-09-28-xlsx-confirmation: Frisk Asker's authoritative worksheet states a different host-confirmed Askerhallen start time than the earlier calendar-match retime",
+      "released_at": "2026-09-28T20:33:10.815649+00:00",
+      "released_by": "niclasl",
       "request_id": "frisk-asker:2026-09-27-calendar-match",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -4537,9 +4546,12 @@
       "id": "change:da666c919985a2b1",
       "kind": "placement_field",
       "note": "Match Frisk Asker calendar times reported by club/team managers; retimed Frisk-Asker-hosted tournaments to their published Serierunde slots",
+      "release_reason": "Superseded by frisk-asker:2026-09-28-xlsx-confirmation: Frisk Asker's authoritative worksheet states a different host-confirmed Askerhallen start time than the earlier calendar-match retime",
+      "released_at": "2026-09-28T20:33:12.248687+00:00",
+      "released_by": "niclasl",
       "request_id": "frisk-asker:2026-09-27-calendar-match",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -4609,9 +4621,12 @@
       "id": "change:93f21d7c77ea55eb",
       "kind": "placement_field",
       "note": "Move remaining Frisk Asker tournaments to real calendar times now that host-confirmed ice-time overrides remove the false arena conflicts",
+      "release_reason": "Superseded by frisk-asker:2026-09-28-xlsx-confirmation: Frisk Asker's authoritative worksheet states a different host-confirmed Askerhallen start time than the earlier calendar-match retime",
+      "released_at": "2026-09-28T20:33:11.288791+00:00",
+      "released_by": "niclasl",
       "request_id": "frisk-asker:2026-09-27-calendar-match",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -4645,9 +4660,12 @@
       "id": "change:16d5001c87c2b48f",
       "kind": "placement_field",
       "note": "Move remaining Frisk Asker tournaments to real calendar times now that host-confirmed ice-time overrides remove the false arena conflicts",
+      "release_reason": "Superseded by frisk-asker:2026-09-28-xlsx-confirmation: Frisk Asker's authoritative worksheet states a different host-confirmed Askerhallen start time than the earlier calendar-match retime",
+      "released_at": "2026-09-28T20:33:11.767538+00:00",
+      "released_by": "niclasl",
       "request_id": "frisk-asker:2026-09-27-calendar-match",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -5499,9 +5517,12 @@
       "id": "change:21415a7619dddaa6",
       "kind": "placement_field",
       "note": "Retime to match Frisk Asker published ice calendar (Serierunde) event",
+      "release_reason": "Superseded by frisk-asker:2026-09-28-xlsx-confirmation: Frisk Asker's authoritative worksheet states a different host-confirmed Askerhallen start time than the earlier calendar-match retime",
+      "released_at": "2026-09-28T20:33:09.818520+00:00",
+      "released_by": "niclasl",
       "request_id": "frisk-asker:2026-09-28-calendar-match",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -5707,6 +5728,168 @@
       },
       "tournament_id": "rvv-0024",
       "value": "15:30"
+    },
+    {
+      "created_at": "2026-09-28T20:30:08.574657+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:aa54e44fa0799ee2",
+      "kind": "placement_field",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 13:00 (was 11:50)",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0121:start_time"
+      },
+      "tournament_id": "rvv-0121",
+      "value": "13:00"
+    },
+    {
+      "created_at": "2026-09-28T20:31:53.843165+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:6ab85c0f6e793dff",
+      "kind": "placement_field",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 14:30 (was 15:00)",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0191:start_time"
+      },
+      "tournament_id": "rvv-0191",
+      "value": "14:30"
+    },
+    {
+      "created_at": "2026-09-28T20:33:21.157948+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:3de1b1c9bc44ba4f",
+      "kind": "placement_field",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 12:00 (was 12:30); supersedes earlier calendar-match retime",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0002:start_time"
+      },
+      "tournament_id": "rvv-0002",
+      "value": "12:00"
+    },
+    {
+      "created_at": "2026-09-28T20:33:21.809829+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:6af1482a8e1a7598",
+      "kind": "placement_field",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 12:00 (was 12:30); supersedes earlier calendar-match retime",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0042:start_time"
+      },
+      "tournament_id": "rvv-0042",
+      "value": "12:00"
+    },
+    {
+      "created_at": "2026-09-28T20:33:22.449372+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:b12db6c51ca03f6f",
+      "kind": "placement_field",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 12:00 (was 12:30); supersedes earlier calendar-match retime",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0097:start_time"
+      },
+      "tournament_id": "rvv-0097",
+      "value": "12:00"
+    },
+    {
+      "created_at": "2026-09-28T20:33:23.074660+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:6fab44bcabfebf8e",
+      "kind": "placement_field",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 15:00 (was 15:30); supersedes earlier calendar-match retime",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0100:start_time"
+      },
+      "tournament_id": "rvv-0100",
+      "value": "15:00"
+    },
+    {
+      "created_at": "2026-09-28T20:33:23.712163+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:ed47d641ff3fb22e",
+      "kind": "placement_field",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 12:00 (was 12:30); supersedes earlier calendar-match retime",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0104:start_time"
+      },
+      "tournament_id": "rvv-0104",
+      "value": "12:00"
+    },
+    {
+      "created_at": "2026-09-28T20:33:24.356692+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:6ba87acddcb7533d",
+      "kind": "placement_field",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 13:30 (was 13:00); supersedes earlier calendar-match retime",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0134:start_time"
+      },
+      "tournament_id": "rvv-0134",
+      "value": "13:30"
+    },
+    {
+      "created_at": "2026-09-28T20:33:24.988940+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:5f9d6452ba6cb946",
+      "kind": "placement_field",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 12:00 (was 12:30); supersedes earlier calendar-match retime",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0174:start_time"
+      },
+      "tournament_id": "rvv-0174",
+      "value": "12:00"
     }
   ],
   "club_booking_source_assertions": [
@@ -5758,6 +5941,23 @@
       "source_revision": "0db8aed2815c570140060591ba59eda06b1814305edb72defc9122d37674a9c5",
       "source_scope": "club_wide",
       "source_version": "2026-09 club note: U11 will be changed, not confirmed; others implicitly confirmed",
+      "status": "active",
+      "supersedes": null
+    },
+    {
+      "asserted_at": "2026-09-28T20:18:28.504624+00:00",
+      "asserted_by": "niclasl",
+      "authority": "manual_club_confirmation_interpretation",
+      "host_club": "Frisk Asker",
+      "id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "note": "Frisk Asker's authoritative season overview: confirms actual booked Askerhallen start/end for all 38 hosted tournaments, superseding earlier calendar-refresh-based retimes",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source_document": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "source_fingerprint": "5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "1d1944e902abd0b0058ffbfe7e12885dae34142cf085a074662ad8a748236add",
+      "source_scope": "club_wide",
+      "source_version": "commit 41435cac, 2026-09-28 season overview with host-confirmed Askerhallen times",
       "status": "active",
       "supersedes": null
     }
@@ -7422,10 +7622,10 @@
   },
   "export_state": {
     "calendar_fingerprint": "7b3066fbf575e0dea7fcb7f7cd90e723f069bb2728367a4fbb039f6c184d610c",
-    "export_dir": "export/2026-09-28T2002",
-    "fresh_at": "2026-09-28T20:02:50.559417+00:00",
+    "export_dir": "export/2026-09-28T2035",
+    "fresh_at": "2026-09-28T20:35:37.427730+00:00",
     "fresh_by": "niclasl",
-    "fresh_canonical_revision": "a7e22968ac7890d0a812fb8a09afe76a6b039cff0ea0afd620302f3f91b5195d",
+    "fresh_canonical_revision": "cf66fa9bad7a061d18d7173d2379d8c250cc173fe8a242ecbf183d4d68e0f674",
     "requires_fresh_audit": true,
     "requires_fresh_export": false,
     "stale_at": "2026-09-28T18:46:20.990280+00:00",
@@ -40299,6 +40499,2138 @@
       "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:18:28.504624+00:00",
+      "details": {
+        "club": "Frisk Asker",
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+        "source_document": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_fingerprint": "5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+        "source_version": "commit 41435cac, 2026-09-28 season overview with host-confirmed Askerhallen times",
+        "supersedes": ""
+      },
+      "event": "set_club_booking_source",
+      "note": "Frisk Asker's authoritative season overview: confirms actual booked Askerhallen start/end for all 38 hosted tournaments, superseding earlier calendar-refresh-based retimes",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:27:56.114919+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2026-10-10",
+          "duration_minutes": "140",
+          "end_time": "15:20",
+          "round_count": "5",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "14:50",
+          "start": "13:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0001"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:28:04.981823+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U9",
+          "date": "2026-10-18",
+          "duration_minutes": "155",
+          "end_time": "18:35",
+          "round_count": "5",
+          "start_time": "16:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "17:50",
+          "start": "16:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U9, canonical occupancy kept at 155min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0019"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:28:13.159964+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-10-11",
+          "duration_minutes": "80",
+          "end_time": "17:20",
+          "round_count": "3",
+          "start_time": "16:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_duration_minutes_changed",
+          "tournament_end_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "80",
+          "end": "17:20",
+          "start": "16:00"
+        },
+        "supersedes": "manual_booking:rvv-0023:2026-09-28T07:50:46.550927+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0023"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:28:21.153281+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2026-11-07",
+          "duration_minutes": "140",
+          "end_time": "15:20",
+          "round_count": "5",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "14:50",
+          "start": "13:00"
+        },
+        "supersedes": "manual_booking:rvv-0038:2026-09-28T07:51:02.713018+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0038"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:28:29.555528+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2026-11-14",
+          "duration_minutes": "140",
+          "end_time": "15:20",
+          "round_count": "5",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "14:50",
+          "start": "13:00"
+        },
+        "supersedes": "manual_booking:rvv-0046:2026-09-28T07:51:29.100638+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0046"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:28:37.469663+00:00",
+      "details": {
+        "authority": "operator",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 80,
+        "override_id": "ice-time-override:09a8295b21de44de",
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Frisk Asker host-confirmed occupied duration 80min (was 100min); changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0048"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:28:37.935376+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-11-14",
+          "duration_minutes": "80",
+          "end_time": "18:50",
+          "round_count": "3",
+          "start_time": "17:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "80",
+          "end": "18:50",
+          "start": "17:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0048"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:28:45.807285+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "JU12",
+          "date": "2026-11-28",
+          "duration_minutes": "80",
+          "end_time": "14:20",
+          "round_count": "3",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_duration_minutes_changed",
+          "tournament_end_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "80",
+          "end": "14:20",
+          "start": "13:00"
+        },
+        "supersedes": "manual_booking:rvv-0063:2026-09-28T07:51:57.286063+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0063"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:28:53.811936+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2026-11-28",
+          "duration_minutes": "140",
+          "end_time": "17:20",
+          "round_count": "5",
+          "start_time": "15:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "16:50",
+          "start": "15:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 140min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0065"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:29:01.755733+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2026-11-29",
+          "duration_minutes": "120",
+          "end_time": "17:00",
+          "round_count": "5",
+          "start_time": "15:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "16:50",
+          "start": "15:00"
+        },
+        "supersedes": "manual_booking:rvv-0070:2026-09-28T07:52:05.586741+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 120min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0070"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:29:09.943838+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-11-01",
+          "duration_minutes": "80",
+          "end_time": "16:20",
+          "round_count": "3",
+          "start_time": "15:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_duration_minutes_changed",
+          "tournament_end_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "80",
+          "end": "16:20",
+          "start": "15:00"
+        },
+        "supersedes": "manual_booking:rvv-0075:2026-09-28T07:50:54.639896+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0075"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:29:17.940686+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2026-11-08",
+          "duration_minutes": "140",
+          "end_time": "18:20",
+          "round_count": "5",
+          "start_time": "16:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "17:50",
+          "start": "16:00"
+        },
+        "supersedes": "manual_booking:rvv-0078:2026-09-28T07:51:19.808688+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0078"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:29:25.913016+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U8",
+          "date": "2026-11-21",
+          "duration_minutes": "155",
+          "end_time": "18:05",
+          "round_count": "5",
+          "start_time": "15:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "17:20",
+          "start": "15:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U8, canonical occupancy kept at 155min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0087"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:29:33.953822+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "JU12",
+          "date": "2026-11-21",
+          "duration_minutes": "80",
+          "end_time": "14:20",
+          "round_count": "3",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_duration_minutes_changed",
+          "tournament_end_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "80",
+          "end": "14:20",
+          "start": "13:00"
+        },
+        "supersedes": "manual_booking:rvv-0088:2026-09-28T07:51:40.258798+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0088"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:29:42.025842+00:00",
+      "details": {
+        "authority": "operator",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 80,
+        "override_id": "ice-time-override:b094c090e0b637c7",
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Frisk Asker host-confirmed occupied duration 80min (was 100min); changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0095"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:29:42.510361+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2027-01-09",
+          "duration_minutes": "80",
+          "end_time": "16:50",
+          "round_count": "3",
+          "start_time": "15:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "80",
+          "end": "16:50",
+          "start": "15:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0095"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:29:51.775071+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2027-01-24",
+          "duration_minutes": "140",
+          "end_time": "14:20",
+          "round_count": "5",
+          "start_time": "12:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "13:50",
+          "start": "12:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0117"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:29:59.870319+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U8",
+          "date": "2027-01-30",
+          "duration_minutes": "155",
+          "end_time": "19:35",
+          "round_count": "5",
+          "start_time": "17:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "18:50",
+          "start": "17:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U8, canonical occupancy kept at 155min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0120"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:30:07.973660+00:00",
+      "details": {
+        "authority": "operator",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 80,
+        "override_id": "ice-time-override:1363f2c45f05a91e",
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Frisk Asker host-confirmed occupied duration 80min (was 100min); changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0121"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:30:08.574657+00:00",
+      "details": {
+        "after_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+        "before_canonical_revision": "ce060a714d59584b33716866704ca7b5e6aa9fd631e8cbcf631c5c4fb3953f1a",
+        "before_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+        "new_placement": {
+          "arena": "Askerhallen",
+          "date": "2027-01-30",
+          "host_club": "Frisk Asker",
+          "start_time": "13:00"
+        },
+        "old_placement": {
+          "arena": "Askerhallen",
+          "date": "2027-01-30",
+          "host_club": "Frisk Asker",
+          "start_time": "11:50"
+        },
+        "operational_acceptability": {
+          "after_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "before_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "ok": true,
+          "regressions": [],
+          "schema_version": 1
+        },
+        "run_id": "20260918T135604Z-8d38f146",
+        "verification_summary": {
+          "counts": {
+            "hosting_balance_imbalances": 14,
+            "input_constrained_shapes": 5,
+            "manual_calendar_placements": 93,
+            "manual_external_conflict_placements": 78,
+            "manual_participation_placements": 120,
+            "movable_allocations_used": 0,
+            "orphaned_approvals": 0,
+            "participation_club_pool_shortfalls": 113,
+            "participation_club_pools": 183,
+            "participation_deviations": 235,
+            "stale_approvals": 0,
+            "unresolved_hosting_obligations": 0,
+            "violations": 0,
+            "waived_violations": 0
+          },
+          "ok": true,
+          "schema_version": 1,
+          "tournament_external_conflicts": [
+            "rvv-0121"
+          ],
+          "tournament_manual_calendar_placements": [],
+          "tournament_violations": [],
+          "verification_hash": "8f6fcfd3ab00c7bed3f559c21f77e645bdb481329cbee6d79fc09dbe1e1ddd8b"
+        }
+      },
+      "event": "move",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 13:00 (was 11:50)",
+      "previous_fingerprint": "60c05e196121ea772846fae40d8c09bbfc78ef20e1723e83460ad7922f4a51e3",
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": "390ecad3c9b9bef86d90fc24e53542bbe7df50ed1c8932939ffa33e14fbf9fe6",
+      "tournament_id": "rvv-0121"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:30:09.087711+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "JU12",
+          "date": "2027-01-30",
+          "duration_minutes": "80",
+          "end_time": "14:20",
+          "round_count": "3",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "80",
+          "end": "14:20",
+          "start": "13:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0121"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:30:16.954658+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "JU10",
+          "date": "2027-01-31",
+          "duration_minutes": "140",
+          "end_time": "16:50",
+          "round_count": "5",
+          "start_time": "14:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "16:20",
+          "start": "14:30"
+        },
+        "supersedes": "manual_booking:rvv-0125:2026-09-28T07:52:47.571243+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for JU10, canonical occupancy kept at 140min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0125"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:30:24.841393+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2027-02-06",
+          "duration_minutes": "120",
+          "end_time": "17:30",
+          "round_count": "5",
+          "start_time": "15:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "17:20",
+          "start": "15:30"
+        },
+        "supersedes": "manual_booking:rvv-0127:2026-09-28T07:53:04.365363+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 120min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0127"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:30:32.738891+00:00",
+      "details": {
+        "authority": "operator",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 80,
+        "override_id": "ice-time-override:914470027202d887",
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Frisk Asker host-confirmed occupied duration 80min (was 100min); changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0128"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:30:33.202829+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2027-01-10",
+          "duration_minutes": "80",
+          "end_time": "16:50",
+          "round_count": "3",
+          "start_time": "15:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "80",
+          "end": "16:50",
+          "start": "15:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0128"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:30:41.572408+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2027-01-23",
+          "duration_minutes": "140",
+          "end_time": "19:20",
+          "round_count": "5",
+          "start_time": "17:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "18:50",
+          "start": "17:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0135"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:30:49.419228+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U9",
+          "date": "2027-03-06",
+          "duration_minutes": "155",
+          "end_time": "15:35",
+          "round_count": "5",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "14:50",
+          "start": "13:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U9, canonical occupancy kept at 155min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0142"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:30:57.223593+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2027-02-20",
+          "duration_minutes": "140",
+          "end_time": "16:50",
+          "round_count": "5",
+          "start_time": "14:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "16:20",
+          "start": "14:30"
+        },
+        "supersedes": "manual_booking:rvv-0147:2026-09-28T07:53:12.785179+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0147"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:31:05.140959+00:00",
+      "details": {
+        "authority": "operator",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 80,
+        "override_id": "ice-time-override:9826a7ef215fa49b",
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Frisk Asker host-confirmed occupied duration 80min (was 100min); changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0155"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:31:05.597392+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2027-02-21",
+          "duration_minutes": "80",
+          "end_time": "16:50",
+          "round_count": "3",
+          "start_time": "15:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "80",
+          "end": "16:50",
+          "start": "15:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0155"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:31:13.376519+00:00",
+      "details": {
+        "authority": "operator",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 80,
+        "override_id": "ice-time-override:ef8bd88f4de8faeb",
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Frisk Asker host-confirmed occupied duration 80min (was 100min); changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0157"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:31:13.839070+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "JU12",
+          "date": "2027-03-14",
+          "duration_minutes": "80",
+          "end_time": "18:50",
+          "round_count": "3",
+          "start_time": "17:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "80",
+          "end": "18:50",
+          "start": "17:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0157"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:31:22.049307+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "JU8",
+          "date": "2027-03-13",
+          "duration_minutes": "120",
+          "end_time": "15:00",
+          "round_count": "3",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "80",
+          "end": "14:50",
+          "start": "13:30"
+        },
+        "supersedes": "manual_booking:rvv-0179:2026-09-28T07:53:37.486687+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 80min window is below the 120-minute governing floor for JU8, canonical occupancy kept at 120min; worksheet requests start 13:30 but that overlaps rvv-0181 given the governing-floor duration, kept at canonical start 13:00 pending operator resolution",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0179"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:31:29.905716+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2027-03-13",
+          "duration_minutes": "120",
+          "end_time": "17:00",
+          "round_count": "5",
+          "start_time": "15:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "16:50",
+          "start": "15:00"
+        },
+        "supersedes": "manual_booking:rvv-0181:2026-09-28T07:53:45.677033+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 120min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0181"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:31:37.735837+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2027-01-30",
+          "duration_minutes": "80",
+          "end_time": "15:50",
+          "round_count": "3",
+          "start_time": "14:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "80",
+          "end": "15:50",
+          "start": "14:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0187"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:31:45.861589+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U8",
+          "date": "2027-01-23",
+          "duration_minutes": "155",
+          "end_time": "15:35",
+          "round_count": "5",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "14:50",
+          "start": "13:00"
+        },
+        "supersedes": "manual_booking:rvv-0190:2026-09-28T07:52:38.850604+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U8, canonical occupancy kept at 155min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0190"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:31:53.843165+00:00",
+      "details": {
+        "after_fingerprint": "f4a2170cde0a1b100d1df730066875eda0977c4c864d82758640006dae0e46ed",
+        "before_canonical_revision": "1f559c6e2267413e999dcc3aa1123acab4653d786566b4f01aee9de237a5d54f",
+        "before_fingerprint": "af6b1070a2420cb956caba828c9f7386822d69a0606a1a2ca8b1768c5a06402f",
+        "new_placement": {
+          "arena": "Askerhallen",
+          "date": "2027-01-17",
+          "host_club": "Frisk Asker",
+          "start_time": "14:30"
+        },
+        "old_placement": {
+          "arena": "Askerhallen",
+          "date": "2027-01-17",
+          "host_club": "Frisk Asker",
+          "start_time": "15:00"
+        },
+        "operational_acceptability": {
+          "after_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "before_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "ok": true,
+          "regressions": [],
+          "schema_version": 1
+        },
+        "run_id": "20260918T135604Z-8d38f146",
+        "verification_summary": {
+          "counts": {
+            "hosting_balance_imbalances": 14,
+            "input_constrained_shapes": 5,
+            "manual_calendar_placements": 93,
+            "manual_external_conflict_placements": 78,
+            "manual_participation_placements": 120,
+            "movable_allocations_used": 0,
+            "orphaned_approvals": 0,
+            "participation_club_pool_shortfalls": 113,
+            "participation_club_pools": 183,
+            "participation_deviations": 235,
+            "stale_approvals": 0,
+            "unresolved_hosting_obligations": 0,
+            "violations": 0,
+            "waived_violations": 0
+          },
+          "ok": true,
+          "schema_version": 1,
+          "tournament_external_conflicts": [
+            "rvv-0191"
+          ],
+          "tournament_manual_calendar_placements": [],
+          "tournament_violations": [],
+          "verification_hash": "8f6fcfd3ab00c7bed3f559c21f77e645bdb481329cbee6d79fc09dbe1e1ddd8b"
+        }
+      },
+      "event": "move",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 14:30 (was 15:00)",
+      "previous_fingerprint": "2c7085df5645818f7449e38dff86fd342103019df1b9de7aceab3ba0378d8bb8",
+      "schedule_fingerprint": "f4a2170cde0a1b100d1df730066875eda0977c4c864d82758640006dae0e46ed",
+      "tournament_fingerprint": "fc76350700973c2026ca5535b8f68ed0a4dd1f6ca0e7a9d7c99186c330c06e94",
+      "tournament_id": "rvv-0191"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:31:54.339333+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U9",
+          "date": "2027-01-17",
+          "duration_minutes": "120",
+          "end_time": "16:30",
+          "round_count": "5",
+          "start_time": "14:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "16:20",
+          "start": "14:30"
+        },
+        "supersedes": "manual_booking:rvv-0191:2026-09-28T07:52:30.623856+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U9, canonical occupancy kept at 120min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f4a2170cde0a1b100d1df730066875eda0977c4c864d82758640006dae0e46ed",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0191"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:09.324729+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:d46c4ba8c8f26f25"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "Superseded by frisk-asker:2026-09-28-xlsx-confirmation: Frisk Asker's authoritative worksheet states a different host-confirmed Askerhallen start time than the earlier calendar-match retime",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f4a2170cde0a1b100d1df730066875eda0977c4c864d82758640006dae0e46ed",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:09.818520+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:21415a7619dddaa6"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "Superseded by frisk-asker:2026-09-28-xlsx-confirmation: Frisk Asker's authoritative worksheet states a different host-confirmed Askerhallen start time than the earlier calendar-match retime",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f4a2170cde0a1b100d1df730066875eda0977c4c864d82758640006dae0e46ed",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:10.335597+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:253f6cfa8d3a9bad"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "Superseded by frisk-asker:2026-09-28-xlsx-confirmation: Frisk Asker's authoritative worksheet states a different host-confirmed Askerhallen start time than the earlier calendar-match retime",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f4a2170cde0a1b100d1df730066875eda0977c4c864d82758640006dae0e46ed",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:10.815649+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:3364399ed732a24a"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "Superseded by frisk-asker:2026-09-28-xlsx-confirmation: Frisk Asker's authoritative worksheet states a different host-confirmed Askerhallen start time than the earlier calendar-match retime",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f4a2170cde0a1b100d1df730066875eda0977c4c864d82758640006dae0e46ed",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:11.288791+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:93f21d7c77ea55eb"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "Superseded by frisk-asker:2026-09-28-xlsx-confirmation: Frisk Asker's authoritative worksheet states a different host-confirmed Askerhallen start time than the earlier calendar-match retime",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f4a2170cde0a1b100d1df730066875eda0977c4c864d82758640006dae0e46ed",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:11.767538+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:16d5001c87c2b48f"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "Superseded by frisk-asker:2026-09-28-xlsx-confirmation: Frisk Asker's authoritative worksheet states a different host-confirmed Askerhallen start time than the earlier calendar-match retime",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f4a2170cde0a1b100d1df730066875eda0977c4c864d82758640006dae0e46ed",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:12.248687+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:da666c919985a2b1"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "Superseded by frisk-asker:2026-09-28-xlsx-confirmation: Frisk Asker's authoritative worksheet states a different host-confirmed Askerhallen start time than the earlier calendar-match retime",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f4a2170cde0a1b100d1df730066875eda0977c4c864d82758640006dae0e46ed",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:21.157948+00:00",
+      "details": {
+        "after_fingerprint": "67a2cefda2546b41c736a58ee84daf3085d87c7510cbe3deab531ffd38284cd3",
+        "before_canonical_revision": "8f94852724914c6a71c2f47e4b616e543e3ac07510bfc12966ba9e3d1745f074",
+        "before_fingerprint": "f4a2170cde0a1b100d1df730066875eda0977c4c864d82758640006dae0e46ed",
+        "new_placement": {
+          "arena": "Askerhallen",
+          "date": "2026-11-22",
+          "host_club": "Frisk Asker",
+          "start_time": "12:00"
+        },
+        "old_placement": {
+          "arena": "Askerhallen",
+          "date": "2026-11-22",
+          "host_club": "Frisk Asker",
+          "start_time": "12:30"
+        },
+        "operational_acceptability": {
+          "after_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "before_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "ok": true,
+          "regressions": [],
+          "schema_version": 1
+        },
+        "run_id": "20260918T135604Z-8d38f146",
+        "verification_summary": {
+          "counts": {
+            "hosting_balance_imbalances": 14,
+            "input_constrained_shapes": 5,
+            "manual_calendar_placements": 93,
+            "manual_external_conflict_placements": 78,
+            "manual_participation_placements": 120,
+            "movable_allocations_used": 0,
+            "orphaned_approvals": 0,
+            "participation_club_pool_shortfalls": 113,
+            "participation_club_pools": 183,
+            "participation_deviations": 235,
+            "stale_approvals": 0,
+            "unresolved_hosting_obligations": 0,
+            "violations": 0,
+            "waived_violations": 0
+          },
+          "ok": true,
+          "schema_version": 1,
+          "tournament_external_conflicts": [
+            "rvv-0002"
+          ],
+          "tournament_manual_calendar_placements": [],
+          "tournament_violations": [],
+          "verification_hash": "8f6fcfd3ab00c7bed3f559c21f77e645bdb481329cbee6d79fc09dbe1e1ddd8b"
+        }
+      },
+      "event": "move",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 12:00 (was 12:30); supersedes earlier calendar-match retime",
+      "previous_fingerprint": "655759373046e8ce71e38c64b43f0df21cf67e6c590461e5243e4e358bff13a8",
+      "schedule_fingerprint": "67a2cefda2546b41c736a58ee84daf3085d87c7510cbe3deab531ffd38284cd3",
+      "tournament_fingerprint": "957131fb39e50f7cfee6c0cc1413cbb7580f12e73e3677d1e00319b1007c40de",
+      "tournament_id": "rvv-0002"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:21.809829+00:00",
+      "details": {
+        "after_fingerprint": "c37b0c1971d02066db82becefedc65c5a33bea24265a2ccd66cc6659520f0dec",
+        "before_canonical_revision": "f61a38e1b4272ffbf8ec53ca03163d76a78f1b26fa508812a2bd7e6b45e11a23",
+        "before_fingerprint": "67a2cefda2546b41c736a58ee84daf3085d87c7510cbe3deab531ffd38284cd3",
+        "new_placement": {
+          "arena": "Askerhallen",
+          "date": "2026-11-08",
+          "host_club": "Frisk Asker",
+          "start_time": "12:00"
+        },
+        "old_placement": {
+          "arena": "Askerhallen",
+          "date": "2026-11-08",
+          "host_club": "Frisk Asker",
+          "start_time": "12:30"
+        },
+        "operational_acceptability": {
+          "after_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "before_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "ok": true,
+          "regressions": [],
+          "schema_version": 1
+        },
+        "run_id": "20260918T135604Z-8d38f146",
+        "verification_summary": {
+          "counts": {
+            "hosting_balance_imbalances": 14,
+            "input_constrained_shapes": 5,
+            "manual_calendar_placements": 93,
+            "manual_external_conflict_placements": 78,
+            "manual_participation_placements": 120,
+            "movable_allocations_used": 0,
+            "orphaned_approvals": 0,
+            "participation_club_pool_shortfalls": 113,
+            "participation_club_pools": 183,
+            "participation_deviations": 235,
+            "stale_approvals": 0,
+            "unresolved_hosting_obligations": 0,
+            "violations": 0,
+            "waived_violations": 0
+          },
+          "ok": true,
+          "schema_version": 1,
+          "tournament_external_conflicts": [
+            "rvv-0042"
+          ],
+          "tournament_manual_calendar_placements": [],
+          "tournament_violations": [],
+          "verification_hash": "8f6fcfd3ab00c7bed3f559c21f77e645bdb481329cbee6d79fc09dbe1e1ddd8b"
+        }
+      },
+      "event": "move",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 12:00 (was 12:30); supersedes earlier calendar-match retime",
+      "previous_fingerprint": "9ebc28e64175db429be9d574a330ed461274ae99d825db26b21e2fa6f669346c",
+      "schedule_fingerprint": "c37b0c1971d02066db82becefedc65c5a33bea24265a2ccd66cc6659520f0dec",
+      "tournament_fingerprint": "b4beb7db92a1f625125aff867acb24f13f34512e89b2b83ad4392607e9621e3b",
+      "tournament_id": "rvv-0042"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:22.449372+00:00",
+      "details": {
+        "after_fingerprint": "6804401baa9229c4c927e4dce8d40f4d67c55b848c4427e8f4797879c14c3783",
+        "before_canonical_revision": "f47f64f430d5c89d460276eb42eb5a08e50f0b939f5141d14df526ec92750a0f",
+        "before_fingerprint": "c37b0c1971d02066db82becefedc65c5a33bea24265a2ccd66cc6659520f0dec",
+        "new_placement": {
+          "arena": "Askerhallen",
+          "date": "2027-01-10",
+          "host_club": "Frisk Asker",
+          "start_time": "12:00"
+        },
+        "old_placement": {
+          "arena": "Askerhallen",
+          "date": "2027-01-10",
+          "host_club": "Frisk Asker",
+          "start_time": "12:30"
+        },
+        "operational_acceptability": {
+          "after_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "before_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "ok": true,
+          "regressions": [],
+          "schema_version": 1
+        },
+        "run_id": "20260918T135604Z-8d38f146",
+        "verification_summary": {
+          "counts": {
+            "hosting_balance_imbalances": 14,
+            "input_constrained_shapes": 5,
+            "manual_calendar_placements": 93,
+            "manual_external_conflict_placements": 78,
+            "manual_participation_placements": 120,
+            "movable_allocations_used": 0,
+            "orphaned_approvals": 0,
+            "participation_club_pool_shortfalls": 113,
+            "participation_club_pools": 183,
+            "participation_deviations": 235,
+            "stale_approvals": 0,
+            "unresolved_hosting_obligations": 0,
+            "violations": 0,
+            "waived_violations": 0
+          },
+          "ok": true,
+          "schema_version": 1,
+          "tournament_external_conflicts": [
+            "rvv-0097"
+          ],
+          "tournament_manual_calendar_placements": [],
+          "tournament_violations": [],
+          "verification_hash": "8f6fcfd3ab00c7bed3f559c21f77e645bdb481329cbee6d79fc09dbe1e1ddd8b"
+        }
+      },
+      "event": "move",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 12:00 (was 12:30); supersedes earlier calendar-match retime",
+      "previous_fingerprint": "1820c7406b80aec605372173e6ff13f6fc5f5fde9d2ce64bc5a8c91a86c2b933",
+      "schedule_fingerprint": "6804401baa9229c4c927e4dce8d40f4d67c55b848c4427e8f4797879c14c3783",
+      "tournament_fingerprint": "e34b32bd81f714ba0c1546c6a2ee135f465f3adf6063070a6917d7f2ec911ede",
+      "tournament_id": "rvv-0097"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:23.074660+00:00",
+      "details": {
+        "after_fingerprint": "221820e28b96ccfde9df632bb362c56c9cbf87db1990e00f5870302726b3379e",
+        "before_canonical_revision": "79155cdd6bb5fa8f349e0a2032208a043c33f7bc304474a63246c0a399802767",
+        "before_fingerprint": "6804401baa9229c4c927e4dce8d40f4d67c55b848c4427e8f4797879c14c3783",
+        "new_placement": {
+          "arena": "Askerhallen",
+          "date": "2027-03-07",
+          "host_club": "Frisk Asker",
+          "start_time": "15:00"
+        },
+        "old_placement": {
+          "arena": "Askerhallen",
+          "date": "2027-03-07",
+          "host_club": "Frisk Asker",
+          "start_time": "15:30"
+        },
+        "operational_acceptability": {
+          "after_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "before_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "ok": true,
+          "regressions": [],
+          "schema_version": 1
+        },
+        "run_id": "20260918T135604Z-8d38f146",
+        "verification_summary": {
+          "counts": {
+            "hosting_balance_imbalances": 14,
+            "input_constrained_shapes": 5,
+            "manual_calendar_placements": 93,
+            "manual_external_conflict_placements": 78,
+            "manual_participation_placements": 120,
+            "movable_allocations_used": 0,
+            "orphaned_approvals": 0,
+            "participation_club_pool_shortfalls": 113,
+            "participation_club_pools": 183,
+            "participation_deviations": 235,
+            "stale_approvals": 0,
+            "unresolved_hosting_obligations": 0,
+            "violations": 0,
+            "waived_violations": 0
+          },
+          "ok": true,
+          "schema_version": 1,
+          "tournament_external_conflicts": [
+            "rvv-0100"
+          ],
+          "tournament_manual_calendar_placements": [],
+          "tournament_violations": [],
+          "verification_hash": "8f6fcfd3ab00c7bed3f559c21f77e645bdb481329cbee6d79fc09dbe1e1ddd8b"
+        }
+      },
+      "event": "move",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 15:00 (was 15:30); supersedes earlier calendar-match retime",
+      "previous_fingerprint": "4b2d9552b37efb374603580e727eb19d9e0eedfcd0dabb59a091abadee7dd270",
+      "schedule_fingerprint": "221820e28b96ccfde9df632bb362c56c9cbf87db1990e00f5870302726b3379e",
+      "tournament_fingerprint": "903cd9eca0a6c6d5d9a1372706a6c3e8bbd1b0ca0181a98210e1d1a1bc4b182a",
+      "tournament_id": "rvv-0100"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:23.712163+00:00",
+      "details": {
+        "after_fingerprint": "c8f65953313119878542d013ce3a7c6ee1f890cf72921925447dd0c3c72287e3",
+        "before_canonical_revision": "8d42ccc140764d292336e8f777deac38d14b2e0dff22c67fcfd0852ca69f4d29",
+        "before_fingerprint": "221820e28b96ccfde9df632bb362c56c9cbf87db1990e00f5870302726b3379e",
+        "new_placement": {
+          "arena": "Askerhallen",
+          "date": "2027-01-17",
+          "host_club": "Frisk Asker",
+          "start_time": "12:00"
+        },
+        "old_placement": {
+          "arena": "Askerhallen",
+          "date": "2027-01-17",
+          "host_club": "Frisk Asker",
+          "start_time": "12:30"
+        },
+        "operational_acceptability": {
+          "after_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "before_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "ok": true,
+          "regressions": [],
+          "schema_version": 1
+        },
+        "run_id": "20260918T135604Z-8d38f146",
+        "verification_summary": {
+          "counts": {
+            "hosting_balance_imbalances": 14,
+            "input_constrained_shapes": 5,
+            "manual_calendar_placements": 93,
+            "manual_external_conflict_placements": 78,
+            "manual_participation_placements": 120,
+            "movable_allocations_used": 0,
+            "orphaned_approvals": 0,
+            "participation_club_pool_shortfalls": 113,
+            "participation_club_pools": 183,
+            "participation_deviations": 235,
+            "stale_approvals": 0,
+            "unresolved_hosting_obligations": 0,
+            "violations": 0,
+            "waived_violations": 0
+          },
+          "ok": true,
+          "schema_version": 1,
+          "tournament_external_conflicts": [
+            "rvv-0104"
+          ],
+          "tournament_manual_calendar_placements": [],
+          "tournament_violations": [],
+          "verification_hash": "8f6fcfd3ab00c7bed3f559c21f77e645bdb481329cbee6d79fc09dbe1e1ddd8b"
+        }
+      },
+      "event": "move",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 12:00 (was 12:30); supersedes earlier calendar-match retime",
+      "previous_fingerprint": "85daf56d375de5d31017658c08a6da769109dcef2f32767799ad374b78f22aff",
+      "schedule_fingerprint": "c8f65953313119878542d013ce3a7c6ee1f890cf72921925447dd0c3c72287e3",
+      "tournament_fingerprint": "5ced91e6f09a50590d2fcf3ed543b129562206abe722cfc61f2596bbdcdc72ce",
+      "tournament_id": "rvv-0104"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:24.356692+00:00",
+      "details": {
+        "after_fingerprint": "0bf41c790605e88e5e95983ac227333ca76683fe2f2b7000d1142b48134e8fdf",
+        "before_canonical_revision": "2ebbb0e34771d6f86572e9cc75cde4901b7ca6d600e6e63565721ff25bded3ac",
+        "before_fingerprint": "c8f65953313119878542d013ce3a7c6ee1f890cf72921925447dd0c3c72287e3",
+        "new_placement": {
+          "arena": "Askerhallen",
+          "date": "2027-02-06",
+          "host_club": "Frisk Asker",
+          "start_time": "13:30"
+        },
+        "old_placement": {
+          "arena": "Askerhallen",
+          "date": "2027-02-06",
+          "host_club": "Frisk Asker",
+          "start_time": "13:00"
+        },
+        "operational_acceptability": {
+          "after_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "before_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "ok": true,
+          "regressions": [],
+          "schema_version": 1
+        },
+        "run_id": "20260918T135604Z-8d38f146",
+        "verification_summary": {
+          "counts": {
+            "hosting_balance_imbalances": 14,
+            "input_constrained_shapes": 5,
+            "manual_calendar_placements": 93,
+            "manual_external_conflict_placements": 78,
+            "manual_participation_placements": 120,
+            "movable_allocations_used": 0,
+            "orphaned_approvals": 0,
+            "participation_club_pool_shortfalls": 113,
+            "participation_club_pools": 183,
+            "participation_deviations": 235,
+            "stale_approvals": 0,
+            "unresolved_hosting_obligations": 0,
+            "violations": 0,
+            "waived_violations": 0
+          },
+          "ok": true,
+          "schema_version": 1,
+          "tournament_external_conflicts": [
+            "rvv-0134"
+          ],
+          "tournament_manual_calendar_placements": [],
+          "tournament_violations": [],
+          "verification_hash": "8f6fcfd3ab00c7bed3f559c21f77e645bdb481329cbee6d79fc09dbe1e1ddd8b"
+        }
+      },
+      "event": "move",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 13:30 (was 13:00); supersedes earlier calendar-match retime",
+      "previous_fingerprint": "4bbd1fe67aeda334f7e810d5819d3683a08ac8e6ea51b3b8a9666d0e410e4019",
+      "schedule_fingerprint": "0bf41c790605e88e5e95983ac227333ca76683fe2f2b7000d1142b48134e8fdf",
+      "tournament_fingerprint": "0e3069ee4ee8e307b761275e8dffc64510e799acdd08e44e7527666b819886dc",
+      "tournament_id": "rvv-0134"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:24.988940+00:00",
+      "details": {
+        "after_fingerprint": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
+        "before_canonical_revision": "f703587e652dff1ff4be76baa056e1af7383cd30aea48082d911eab801d7bbeb",
+        "before_fingerprint": "0bf41c790605e88e5e95983ac227333ca76683fe2f2b7000d1142b48134e8fdf",
+        "new_placement": {
+          "arena": "Askerhallen",
+          "date": "2027-03-07",
+          "host_club": "Frisk Asker",
+          "start_time": "12:00"
+        },
+        "old_placement": {
+          "arena": "Askerhallen",
+          "date": "2027-03-07",
+          "host_club": "Frisk Asker",
+          "start_time": "12:30"
+        },
+        "operational_acceptability": {
+          "after_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "before_counts": {
+            "fixed_busy_placement": 78,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 93,
+            "unresolved_placement_obligation": 9
+          },
+          "ok": true,
+          "regressions": [],
+          "schema_version": 1
+        },
+        "run_id": "20260918T135604Z-8d38f146",
+        "verification_summary": {
+          "counts": {
+            "hosting_balance_imbalances": 14,
+            "input_constrained_shapes": 5,
+            "manual_calendar_placements": 93,
+            "manual_external_conflict_placements": 78,
+            "manual_participation_placements": 120,
+            "movable_allocations_used": 0,
+            "orphaned_approvals": 0,
+            "participation_club_pool_shortfalls": 113,
+            "participation_club_pools": 183,
+            "participation_deviations": 235,
+            "stale_approvals": 0,
+            "unresolved_hosting_obligations": 0,
+            "violations": 0,
+            "waived_violations": 0
+          },
+          "ok": true,
+          "schema_version": 1,
+          "tournament_external_conflicts": [
+            "rvv-0174"
+          ],
+          "tournament_manual_calendar_placements": [],
+          "tournament_violations": [],
+          "verification_hash": "8f6fcfd3ab00c7bed3f559c21f77e645bdb481329cbee6d79fc09dbe1e1ddd8b"
+        }
+      },
+      "event": "move",
+      "note": "Frisk Asker worksheet (changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx): host-confirmed Askerhallen start 12:00 (was 12:30); supersedes earlier calendar-match retime",
+      "previous_fingerprint": "1a10d3e6f1b4323fd4184d332c4ddbec188bdd24a9c7b17839ad505ffc38eeed",
+      "schedule_fingerprint": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
+      "tournament_fingerprint": "65ddc6c08a71e436c072055afe0822ac0dc33a4d3d6062a68661628c686e2e94",
+      "tournament_id": "rvv-0174"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:42.198523+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2026-11-22",
+          "duration_minutes": "140",
+          "end_time": "14:20",
+          "round_count": "5",
+          "start_time": "12:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "13:50",
+          "start": "12:00"
+        },
+        "supersedes": "manual_booking:rvv-0002:2026-09-28T07:51:48.890285+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 140min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0002"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:49.952995+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "JU10",
+          "date": "2026-11-08",
+          "duration_minutes": "140",
+          "end_time": "14:20",
+          "round_count": "5",
+          "start_time": "12:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "13:50",
+          "start": "12:00"
+        },
+        "supersedes": "manual_booking:rvv-0042:2026-09-28T07:51:10.791128+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for JU10, canonical occupancy kept at 140min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0042"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:33:57.771538+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U9",
+          "date": "2027-01-10",
+          "duration_minutes": "155",
+          "end_time": "14:35",
+          "round_count": "5",
+          "start_time": "12:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "13:50",
+          "start": "12:00"
+        },
+        "supersedes": "manual_booking:rvv-0097:2026-09-28T07:52:13.808121+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U9, canonical occupancy kept at 155min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0097"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:34:05.570617+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2027-03-07",
+          "duration_minutes": "140",
+          "end_time": "17:20",
+          "round_count": "5",
+          "start_time": "15:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "16:50",
+          "start": "15:00"
+        },
+        "supersedes": "manual_booking:rvv-0100:2026-09-28T07:53:29.194557+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 140min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0100"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:34:13.647245+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "JU8",
+          "date": "2027-01-17",
+          "duration_minutes": "120",
+          "end_time": "14:00",
+          "round_count": "3",
+          "start_time": "12:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "80",
+          "end": "13:20",
+          "start": "12:00"
+        },
+        "supersedes": "manual_booking:rvv-0104:2026-09-28T07:52:22.090916+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 80min window is below the 120-minute governing floor for JU8, canonical occupancy kept at 120min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0104"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:34:21.569851+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U7",
+          "date": "2027-02-06",
+          "duration_minutes": "120",
+          "end_time": "15:30",
+          "round_count": "5",
+          "start_time": "13:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "15:20",
+          "start": "13:30"
+        },
+        "supersedes": "manual_booking:rvv-0134:2026-09-28T07:52:55.995862+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U7, canonical occupancy kept at 120min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0134"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:34:29.535356+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2027-03-07",
+          "duration_minutes": "140",
+          "end_time": "14:20",
+          "round_count": "5",
+          "start_time": "12:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_status": "booked",
+        "reconfirms_stale_reasons": [
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "",
+          "duration_minutes": "110",
+          "end": "13:50",
+          "start": "12:00"
+        },
+        "supersedes": "manual_booking:rvv-0174:2026-09-28T07:53:20.910069+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0174"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-28T20:35:37.427730+00:00",
+      "details": {
+        "canonical_state_revision": "cf66fa9bad7a061d18d7173d2379d8c250cc173fe8a242ecbf183d4d68e0f674",
+        "export_dir": "export/2026-09-28T2035",
+        "previous_export_status": "fresh",
+        "previous_requires_fresh_export": false
+      },
+      "event": "mark_export_fresh",
+      "note": "canonical export",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ],
   "holiday_date_exceptions": [
@@ -40594,6 +42926,96 @@
       "request_id": "frisk-asker-calendar-authoritative",
       "status": "active",
       "tournament_id": "rvv-0063",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U12",
+      "created_at": "2026-09-28T20:28:37.469663+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:09a8295b21de44de",
+      "minimum_minutes": 60,
+      "minutes": 80,
+      "note": "Frisk Asker host-confirmed occupied duration 80min (was 100min); changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "status": "active",
+      "tournament_id": "rvv-0048",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U12",
+      "created_at": "2026-09-28T20:29:42.025842+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:b094c090e0b637c7",
+      "minimum_minutes": 60,
+      "minutes": 80,
+      "note": "Frisk Asker host-confirmed occupied duration 80min (was 100min); changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "status": "active",
+      "tournament_id": "rvv-0095",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "JU12",
+      "created_at": "2026-09-28T20:30:07.973660+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:1363f2c45f05a91e",
+      "minimum_minutes": 60,
+      "minutes": 80,
+      "note": "Frisk Asker host-confirmed occupied duration 80min (was 100min); changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "status": "active",
+      "tournament_id": "rvv-0121",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U12",
+      "created_at": "2026-09-28T20:30:32.738891+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:914470027202d887",
+      "minimum_minutes": 60,
+      "minutes": 80,
+      "note": "Frisk Asker host-confirmed occupied duration 80min (was 100min); changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "status": "active",
+      "tournament_id": "rvv-0128",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U12",
+      "created_at": "2026-09-28T20:31:05.140959+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:9826a7ef215fa49b",
+      "minimum_minutes": 60,
+      "minutes": 80,
+      "note": "Frisk Asker host-confirmed occupied duration 80min (was 100min); changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "status": "active",
+      "tournament_id": "rvv-0155",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "JU12",
+      "created_at": "2026-09-28T20:31:13.376519+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:ef8bd88f4de8faeb",
+      "minimum_minutes": 60,
+      "minutes": 80,
+      "note": "Frisk Asker host-confirmed occupied duration 80min (was 100min); changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "request_id": "frisk-asker:2026-09-28-xlsx-confirmation",
+      "status": "active",
+      "tournament_id": "rvv-0157",
       "type": "tournament_ice_time_override"
     }
   ],
@@ -42584,7 +45006,14 @@
         "end": "17:20",
         "start": "16:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "superseded_at": "2026-09-28T20:28:13.159964+00:00",
+      "superseded_by": "manual_booking:rvv-0023:2026-09-28T20:28:13.159964+00:00",
+      "superseded_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U12",
@@ -42626,7 +45055,14 @@
         "end": "16:20",
         "start": "15:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "superseded_at": "2026-09-28T20:29:09.943838+00:00",
+      "superseded_by": "manual_booking:rvv-0075:2026-09-28T20:29:09.943838+00:00",
+      "superseded_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U12",
@@ -42668,7 +45104,10 @@
         "end": "14:50",
         "start": "13:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "superseded_at": "2026-09-28T20:28:21.153281+00:00",
+      "superseded_by": "manual_booking:rvv-0038:2026-09-28T20:28:21.153281+00:00",
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U10",
@@ -42710,7 +45149,14 @@
         "end": "14:20",
         "start": "12:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for JU10, canonical occupancy kept at 140min",
+      "superseded_at": "2026-09-28T20:33:49.952995+00:00",
+      "superseded_by": "manual_booking:rvv-0042:2026-09-28T20:33:49.952995+00:00",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "JU10",
@@ -42752,7 +45198,10 @@
         "end": "17:50",
         "start": "16:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "superseded_at": "2026-09-28T20:29:17.940686+00:00",
+      "superseded_by": "manual_booking:rvv-0078:2026-09-28T20:29:17.940686+00:00",
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U10",
@@ -42794,7 +45243,10 @@
         "end": "14:50",
         "start": "13:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "superseded_at": "2026-09-28T20:28:29.555528+00:00",
+      "superseded_by": "manual_booking:rvv-0046:2026-09-28T20:28:29.555528+00:00",
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U10",
@@ -42836,7 +45288,14 @@
         "end": "14:20",
         "start": "13:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "superseded_at": "2026-09-28T20:29:33.953822+00:00",
+      "superseded_by": "manual_booking:rvv-0088:2026-09-28T20:29:33.953822+00:00",
+      "superseded_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "JU12",
@@ -42878,7 +45337,14 @@
         "end": "14:20",
         "start": "12:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 140min",
+      "superseded_at": "2026-09-28T20:33:42.198523+00:00",
+      "superseded_by": "manual_booking:rvv-0002:2026-09-28T20:33:42.198523+00:00",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U11",
@@ -42920,7 +45386,14 @@
         "end": "14:20",
         "start": "13:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "superseded_at": "2026-09-28T20:28:45.807285+00:00",
+      "superseded_by": "manual_booking:rvv-0063:2026-09-28T20:28:45.807285+00:00",
+      "superseded_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "JU12",
@@ -42962,7 +45435,10 @@
         "end": "16:50",
         "start": "15:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 120min",
+      "superseded_at": "2026-09-28T20:29:01.755733+00:00",
+      "superseded_by": "manual_booking:rvv-0070:2026-09-28T20:29:01.755733+00:00",
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U11",
@@ -43004,7 +45480,14 @@
         "end": "14:20",
         "start": "12:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U9, canonical occupancy kept at 155min",
+      "superseded_at": "2026-09-28T20:33:57.771538+00:00",
+      "superseded_by": "manual_booking:rvv-0097:2026-09-28T20:33:57.771538+00:00",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U9",
@@ -43046,7 +45529,14 @@
         "end": "13:50",
         "start": "12:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 80min window is below the 120-minute governing floor for JU8, canonical occupancy kept at 120min",
+      "superseded_at": "2026-09-28T20:34:13.647245+00:00",
+      "superseded_by": "manual_booking:rvv-0104:2026-09-28T20:34:13.647245+00:00",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "JU8",
@@ -43088,7 +45578,14 @@
         "end": "16:50",
         "start": "15:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U9, canonical occupancy kept at 120min",
+      "superseded_at": "2026-09-28T20:31:54.339333+00:00",
+      "superseded_by": "manual_booking:rvv-0191:2026-09-28T20:31:54.339333+00:00",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U9",
@@ -43130,7 +45627,10 @@
         "end": "14:50",
         "start": "13:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U8, canonical occupancy kept at 155min",
+      "superseded_at": "2026-09-28T20:31:45.861589+00:00",
+      "superseded_by": "manual_booking:rvv-0190:2026-09-28T20:31:45.861589+00:00",
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U8",
@@ -43172,7 +45672,14 @@
         "end": "16:20",
         "start": "14:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for JU10, canonical occupancy kept at 140min",
+      "superseded_at": "2026-09-28T20:30:16.954658+00:00",
+      "superseded_by": "manual_booking:rvv-0125:2026-09-28T20:30:16.954658+00:00",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "JU10",
@@ -43214,7 +45721,14 @@
         "end": "14:50",
         "start": "13:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U7, canonical occupancy kept at 120min",
+      "superseded_at": "2026-09-28T20:34:21.569851+00:00",
+      "superseded_by": "manual_booking:rvv-0134:2026-09-28T20:34:21.569851+00:00",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U7",
@@ -43256,7 +45770,10 @@
         "end": "17:20",
         "start": "15:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 120min",
+      "superseded_at": "2026-09-28T20:30:24.841393+00:00",
+      "superseded_by": "manual_booking:rvv-0127:2026-09-28T20:30:24.841393+00:00",
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U11",
@@ -43298,7 +45815,14 @@
         "end": "16:20",
         "start": "14:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "superseded_at": "2026-09-28T20:30:57.223593+00:00",
+      "superseded_by": "manual_booking:rvv-0147:2026-09-28T20:30:57.223593+00:00",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U10",
@@ -43340,7 +45864,14 @@
         "end": "14:20",
         "start": "12:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "superseded_at": "2026-09-28T20:34:29.535356+00:00",
+      "superseded_by": "manual_booking:rvv-0174:2026-09-28T20:34:29.535356+00:00",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U10",
@@ -43382,7 +45913,14 @@
         "end": "17:20",
         "start": "15:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 140min",
+      "superseded_at": "2026-09-28T20:34:05.570617+00:00",
+      "superseded_by": "manual_booking:rvv-0100:2026-09-28T20:34:05.570617+00:00",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U11",
@@ -43424,7 +45962,10 @@
         "end": "14:20",
         "start": "13:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 80min window is below the 120-minute governing floor for JU8, canonical occupancy kept at 120min; worksheet requests start 13:30 but that overlaps rvv-0181 given the governing-floor duration, kept at canonical start 13:00 pending operator resolution",
+      "superseded_at": "2026-09-28T20:31:22.049307+00:00",
+      "superseded_by": "manual_booking:rvv-0179:2026-09-28T20:31:22.049307+00:00",
       "supersedes": null,
       "tournament_facts": {
         "age_group": "JU8",
@@ -43466,7 +46007,10 @@
         "end": "16:50",
         "start": "15:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 120min",
+      "superseded_at": "2026-09-28T20:31:29.905716+00:00",
+      "superseded_by": "manual_booking:rvv-0181:2026-09-28T20:31:29.905716+00:00",
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U11",
@@ -43674,6 +46218,1624 @@
         "start_time": "15:30"
       },
       "tournament_id": "rvv-0118"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:27:56.114919+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2026-10-10",
+        "duration_minutes": "140",
+        "end_time": "15:20",
+        "round_count": "5",
+        "start_time": "13:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-10-10",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0001:2026-09-28T20:27:56.114919+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "a95b1bebe2e37603db977c2d1bb7c6724142ea49da5844981dc92ae6383a9d4c",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "14:50",
+        "start": "13:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Askerhallen",
+        "date": "2026-10-10",
+        "host_club": "Frisk Asker",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0001"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:28:04.981823+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U9",
+        "date": "2026-10-18",
+        "duration_minutes": "155",
+        "end_time": "18:35",
+        "round_count": "5",
+        "start_time": "16:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-10-18",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0019:2026-09-28T20:28:04.981823+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U9, canonical occupancy kept at 155min",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "3e474f9fcf0efa8cf496b91dd41732e4f922dc51f56c97072051fbd4a200caef",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "16:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "17:50",
+        "start": "16:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Askerhallen",
+        "date": "2026-10-18",
+        "host_club": "Frisk Asker",
+        "start_time": "16:00"
+      },
+      "tournament_id": "rvv-0019"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:28:13.159964+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-10-11",
+        "duration_minutes": "80",
+        "end_time": "17:20",
+        "round_count": "3",
+        "start_time": "16:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-10-11",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0023:2026-09-28T20:28:13.159964+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "reconfirms_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "1fc9ebce65827b1bf522a1f4f100b8ebe11a3891dd475ceb350d57926c171a2f",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "16:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "80",
+        "end": "17:20",
+        "start": "16:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0023:2026-09-28T07:50:46.550927+00:00",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Askerhallen",
+        "date": "2026-10-11",
+        "host_club": "Frisk Asker",
+        "start_time": "16:00"
+      },
+      "tournament_id": "rvv-0023"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:28:21.153281+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2026-11-07",
+        "duration_minutes": "140",
+        "end_time": "15:20",
+        "round_count": "5",
+        "start_time": "13:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-07",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0038:2026-09-28T20:28:21.153281+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "reconfirms_stale_reasons": [],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "e89ff905967f0831af7f4deb4fa665eb61ee16a38e53b08906d0205402de5007",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "14:50",
+        "start": "13:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0038:2026-09-28T07:51:02.713018+00:00",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Askerhallen",
+        "date": "2026-11-07",
+        "host_club": "Frisk Asker",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0038"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:28:29.555528+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2026-11-14",
+        "duration_minutes": "140",
+        "end_time": "15:20",
+        "round_count": "5",
+        "start_time": "13:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-14",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0046:2026-09-28T20:28:29.555528+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "reconfirms_stale_reasons": [],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "a1a5fe9f903574e4925f33bcdc79ef5a90e2d0bb7a808f9dcc95d6e958966827",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "14:50",
+        "start": "13:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0046:2026-09-28T07:51:29.100638+00:00",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Askerhallen",
+        "date": "2026-11-14",
+        "host_club": "Frisk Asker",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0046"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:28:37.935376+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-11-14",
+        "duration_minutes": "80",
+        "end_time": "18:50",
+        "round_count": "3",
+        "start_time": "17:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-14",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0048:2026-09-28T20:28:37.935376+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "29b16ea8fed584d567f3fa4b304474e6d9ccd9a05320d3022ff392f10fa7ce0d",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "17:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "80",
+        "end": "18:50",
+        "start": "17:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Askerhallen",
+        "date": "2026-11-14",
+        "host_club": "Frisk Asker",
+        "start_time": "17:30"
+      },
+      "tournament_id": "rvv-0048"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:28:45.807285+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "JU12",
+        "date": "2026-11-28",
+        "duration_minutes": "80",
+        "end_time": "14:20",
+        "round_count": "3",
+        "start_time": "13:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-28",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0063:2026-09-28T20:28:45.807285+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "reconfirms_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "a05234d542e3db7a0115755cc80d7d2f47760b4d5bbd0e69b933e9da226d2806",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "80",
+        "end": "14:20",
+        "start": "13:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0063:2026-09-28T07:51:57.286063+00:00",
+      "tournament_facts": {
+        "age_group": "JU12",
+        "arena": "Askerhallen",
+        "date": "2026-11-28",
+        "host_club": "Frisk Asker",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0063"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:28:53.811936+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2026-11-28",
+        "duration_minutes": "140",
+        "end_time": "17:20",
+        "round_count": "5",
+        "start_time": "15:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-28",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0065:2026-09-28T20:28:53.811936+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 140min",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "b6fc8ce9e625a664a9644dbfa622b53920a8c17ae8f6269b6ec146238dab5e9e",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "15:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "16:50",
+        "start": "15:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Askerhallen",
+        "date": "2026-11-28",
+        "host_club": "Frisk Asker",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0065"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:29:01.755733+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2026-11-29",
+        "duration_minutes": "120",
+        "end_time": "17:00",
+        "round_count": "5",
+        "start_time": "15:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-29",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0070:2026-09-28T20:29:01.755733+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 120min",
+      "reconfirms_stale_reasons": [],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "912ec7b5cd410505ce8464ac0ea25a480792ea9b72e6380e051ce3a593a99a85",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "15:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "16:50",
+        "start": "15:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0070:2026-09-28T07:52:05.586741+00:00",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Askerhallen",
+        "date": "2026-11-29",
+        "host_club": "Frisk Asker",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0070"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:29:09.943838+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-11-01",
+        "duration_minutes": "80",
+        "end_time": "16:20",
+        "round_count": "3",
+        "start_time": "15:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-01",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0075:2026-09-28T20:29:09.943838+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "reconfirms_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "3062e80a3f0c04dd4647b32da760917bb5635a560a2775d198f2b2adf3fb0412",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "15:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "80",
+        "end": "16:20",
+        "start": "15:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0075:2026-09-28T07:50:54.639896+00:00",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Askerhallen",
+        "date": "2026-11-01",
+        "host_club": "Frisk Asker",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0075"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:29:17.940686+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2026-11-08",
+        "duration_minutes": "140",
+        "end_time": "18:20",
+        "round_count": "5",
+        "start_time": "16:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-08",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0078:2026-09-28T20:29:17.940686+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "reconfirms_stale_reasons": [],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "4e1176816be899725fc79eed217d7ba3e0054317589381a5722fb6931c383403",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "16:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "17:50",
+        "start": "16:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0078:2026-09-28T07:51:19.808688+00:00",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Askerhallen",
+        "date": "2026-11-08",
+        "host_club": "Frisk Asker",
+        "start_time": "16:00"
+      },
+      "tournament_id": "rvv-0078"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:29:25.913016+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U8",
+        "date": "2026-11-21",
+        "duration_minutes": "155",
+        "end_time": "18:05",
+        "round_count": "5",
+        "start_time": "15:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-21",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0087:2026-09-28T20:29:25.913016+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U8, canonical occupancy kept at 155min",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "eb05c2a03048a7d853072e5f8fffc0e3191b07963a37a0095633e767616b3ae1",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "15:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "17:20",
+        "start": "15:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Askerhallen",
+        "date": "2026-11-21",
+        "host_club": "Frisk Asker",
+        "start_time": "15:30"
+      },
+      "tournament_id": "rvv-0087"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:29:33.953822+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "JU12",
+        "date": "2026-11-21",
+        "duration_minutes": "80",
+        "end_time": "14:20",
+        "round_count": "3",
+        "start_time": "13:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-21",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0088:2026-09-28T20:29:33.953822+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "reconfirms_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "c91d63477c6bc415c3ec97097af687f8ca4790093c62cf9307ab489a5824d865",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "80",
+        "end": "14:20",
+        "start": "13:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0088:2026-09-28T07:51:40.258798+00:00",
+      "tournament_facts": {
+        "age_group": "JU12",
+        "arena": "Askerhallen",
+        "date": "2026-11-21",
+        "host_club": "Frisk Asker",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0088"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:29:42.510361+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2027-01-09",
+        "duration_minutes": "80",
+        "end_time": "16:50",
+        "round_count": "3",
+        "start_time": "15:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-09",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0095:2026-09-28T20:29:42.510361+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "72483ceaa53a9fc2e6591260fcd84bb0d97f8026216fa543dd4bbb56423003ab",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "15:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "80",
+        "end": "16:50",
+        "start": "15:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Askerhallen",
+        "date": "2027-01-09",
+        "host_club": "Frisk Asker",
+        "start_time": "15:30"
+      },
+      "tournament_id": "rvv-0095"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:29:51.775071+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2027-01-24",
+        "duration_minutes": "140",
+        "end_time": "14:20",
+        "round_count": "5",
+        "start_time": "12:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-24",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0117:2026-09-28T20:29:51.775071+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "1c2cfcd94906e3c8521936a9ed1a3c3231c1cbd58fda6dfd0ba747729af98836",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "12:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "13:50",
+        "start": "12:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Askerhallen",
+        "date": "2027-01-24",
+        "host_club": "Frisk Asker",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0117"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:29:59.870319+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U8",
+        "date": "2027-01-30",
+        "duration_minutes": "155",
+        "end_time": "19:35",
+        "round_count": "5",
+        "start_time": "17:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-30",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0120:2026-09-28T20:29:59.870319+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U8, canonical occupancy kept at 155min",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "7393d85d1bade1d1867c908a8bc9aeecbcc395c0e7f608c946129c02331aa56a",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "17:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "18:50",
+        "start": "17:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Askerhallen",
+        "date": "2027-01-30",
+        "host_club": "Frisk Asker",
+        "start_time": "17:00"
+      },
+      "tournament_id": "rvv-0120"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:30:09.087711+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "JU12",
+        "date": "2027-01-30",
+        "duration_minutes": "80",
+        "end_time": "14:20",
+        "round_count": "3",
+        "start_time": "13:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-30",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0121:2026-09-28T20:30:09.087711+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "6a5e371bb1f20bf36aebb55824423f36c98aea82869900084b6eb110ef8cc7dd",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "80",
+        "end": "14:20",
+        "start": "13:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "JU12",
+        "arena": "Askerhallen",
+        "date": "2027-01-30",
+        "host_club": "Frisk Asker",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0121"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:30:16.954658+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "JU10",
+        "date": "2027-01-31",
+        "duration_minutes": "140",
+        "end_time": "16:50",
+        "round_count": "5",
+        "start_time": "14:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-31",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0125:2026-09-28T20:30:16.954658+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for JU10, canonical occupancy kept at 140min",
+      "reconfirms_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "c1b1ba4016e8e8028b17565643d3bc32cbe92e71ac7828219df9aca2aadfb693",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "14:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "16:20",
+        "start": "14:30"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0125:2026-09-28T07:52:47.571243+00:00",
+      "tournament_facts": {
+        "age_group": "JU10",
+        "arena": "Askerhallen",
+        "date": "2027-01-31",
+        "host_club": "Frisk Asker",
+        "start_time": "14:30"
+      },
+      "tournament_id": "rvv-0125"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:30:24.841393+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2027-02-06",
+        "duration_minutes": "120",
+        "end_time": "17:30",
+        "round_count": "5",
+        "start_time": "15:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-02-06",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0127:2026-09-28T20:30:24.841393+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 120min",
+      "reconfirms_stale_reasons": [],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "d5cf2d37d665a13ec3a62e17aab147f6cafb923f99f321e46da03fe875ea10e2",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "15:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "17:20",
+        "start": "15:30"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0127:2026-09-28T07:53:04.365363+00:00",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Askerhallen",
+        "date": "2027-02-06",
+        "host_club": "Frisk Asker",
+        "start_time": "15:30"
+      },
+      "tournament_id": "rvv-0127"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:30:33.202829+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2027-01-10",
+        "duration_minutes": "80",
+        "end_time": "16:50",
+        "round_count": "3",
+        "start_time": "15:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-10",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0128:2026-09-28T20:30:33.202829+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "f797d89b5a671605ddf3ea46cd6adb9c51caa829de7c2339d2a8ec9d1e4d7d55",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "15:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "80",
+        "end": "16:50",
+        "start": "15:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Askerhallen",
+        "date": "2027-01-10",
+        "host_club": "Frisk Asker",
+        "start_time": "15:30"
+      },
+      "tournament_id": "rvv-0128"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:30:41.572408+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2027-01-23",
+        "duration_minutes": "140",
+        "end_time": "19:20",
+        "round_count": "5",
+        "start_time": "17:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-23",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0135:2026-09-28T20:30:41.572408+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "567b0aa1f1ff79cfa469278ab17156b9ad949fdbdf3d27c2d9ee09741cea255e",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "17:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "18:50",
+        "start": "17:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Askerhallen",
+        "date": "2027-01-23",
+        "host_club": "Frisk Asker",
+        "start_time": "17:00"
+      },
+      "tournament_id": "rvv-0135"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:30:49.419228+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U9",
+        "date": "2027-03-06",
+        "duration_minutes": "155",
+        "end_time": "15:35",
+        "round_count": "5",
+        "start_time": "13:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-03-06",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0142:2026-09-28T20:30:49.419228+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U9, canonical occupancy kept at 155min",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "60d2d4603053f19c435742e5190c81fd5833511e7ede719704a2d476a9de7c24",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "14:50",
+        "start": "13:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Askerhallen",
+        "date": "2027-03-06",
+        "host_club": "Frisk Asker",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0142"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:30:57.223593+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2027-02-20",
+        "duration_minutes": "140",
+        "end_time": "16:50",
+        "round_count": "5",
+        "start_time": "14:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-02-20",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0147:2026-09-28T20:30:57.223593+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "reconfirms_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "593eccf750573ab06231b26e88d3e6d33e5d0b13adf58220fd0c4b016a95cc37",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "14:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "16:20",
+        "start": "14:30"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0147:2026-09-28T07:53:12.785179+00:00",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Askerhallen",
+        "date": "2027-02-20",
+        "host_club": "Frisk Asker",
+        "start_time": "14:30"
+      },
+      "tournament_id": "rvv-0147"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:31:05.597392+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2027-02-21",
+        "duration_minutes": "80",
+        "end_time": "16:50",
+        "round_count": "3",
+        "start_time": "15:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-02-21",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0155:2026-09-28T20:31:05.597392+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "8d64a45b5b8c4bf365904a936220009eae2235c05d8496540204084b036ec892",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "15:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "80",
+        "end": "16:50",
+        "start": "15:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Askerhallen",
+        "date": "2027-02-21",
+        "host_club": "Frisk Asker",
+        "start_time": "15:30"
+      },
+      "tournament_id": "rvv-0155"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:31:13.839070+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "JU12",
+        "date": "2027-03-14",
+        "duration_minutes": "80",
+        "end_time": "18:50",
+        "round_count": "3",
+        "start_time": "17:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-03-14",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0157:2026-09-28T20:31:13.839070+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "9852b09136b671af1e8e0182cc40ea16b843c878bff8862727dff976e0adb4ae",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "17:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "80",
+        "end": "18:50",
+        "start": "17:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "JU12",
+        "arena": "Askerhallen",
+        "date": "2027-03-14",
+        "host_club": "Frisk Asker",
+        "start_time": "17:30"
+      },
+      "tournament_id": "rvv-0157"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:31:22.049307+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "JU8",
+        "date": "2027-03-13",
+        "duration_minutes": "120",
+        "end_time": "15:00",
+        "round_count": "3",
+        "start_time": "13:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-03-13",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0179:2026-09-28T20:31:22.049307+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 80min window is below the 120-minute governing floor for JU8, canonical occupancy kept at 120min; worksheet requests start 13:30 but that overlaps rvv-0181 given the governing-floor duration, kept at canonical start 13:00 pending operator resolution",
+      "reconfirms_stale_reasons": [],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "9efa255a3a9cc42dcd193cb4e1c7e998bcf3493a4c7e96d835b774458a7ce248",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "80",
+        "end": "14:50",
+        "start": "13:30"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0179:2026-09-28T07:53:37.486687+00:00",
+      "tournament_facts": {
+        "age_group": "JU8",
+        "arena": "Askerhallen",
+        "date": "2027-03-13",
+        "host_club": "Frisk Asker",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0179"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:31:29.905716+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2027-03-13",
+        "duration_minutes": "120",
+        "end_time": "17:00",
+        "round_count": "5",
+        "start_time": "15:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-03-13",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0181:2026-09-28T20:31:29.905716+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 120min",
+      "reconfirms_stale_reasons": [],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "7efa0f2ebcb94cb06fd867f7c5eba33179e7046e7f758acefda7a6b87a1b4bae",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "15:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "16:50",
+        "start": "15:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0181:2026-09-28T07:53:45.677033+00:00",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Askerhallen",
+        "date": "2027-03-13",
+        "host_club": "Frisk Asker",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0181"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:31:37.735837+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2027-01-30",
+        "duration_minutes": "80",
+        "end_time": "15:50",
+        "round_count": "3",
+        "start_time": "14:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-30",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0187:2026-09-28T20:31:37.735837+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet",
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "4f9bde7d96d3480ec32c1209f75f2f4df8ea471d0082ecf31b63811cf7645c23",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "14:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "80",
+        "end": "15:50",
+        "start": "14:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Askerhallen",
+        "date": "2027-01-30",
+        "host_club": "Frisk Asker",
+        "start_time": "14:30"
+      },
+      "tournament_id": "rvv-0187"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:31:45.861589+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U8",
+        "date": "2027-01-23",
+        "duration_minutes": "155",
+        "end_time": "15:35",
+        "round_count": "5",
+        "start_time": "13:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-23",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0190:2026-09-28T20:31:45.861589+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U8, canonical occupancy kept at 155min",
+      "reconfirms_stale_reasons": [],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "7c8c3dc3883b9dcf6f97cc0f51f977eb3248d1ec58a867b84a8a6985dec10399",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "14:50",
+        "start": "13:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0190:2026-09-28T07:52:38.850604+00:00",
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Askerhallen",
+        "date": "2027-01-23",
+        "host_club": "Frisk Asker",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0190"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:31:54.339333+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U9",
+        "date": "2027-01-17",
+        "duration_minutes": "120",
+        "end_time": "16:30",
+        "round_count": "5",
+        "start_time": "14:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-17",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0191:2026-09-28T20:31:54.339333+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U9, canonical occupancy kept at 120min",
+      "reconfirms_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "ff1eeafc0724fdde16f5f03f31c430e06285ede2cebe31afea2a4b08b7e2b998",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "14:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "16:20",
+        "start": "14:30"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0191:2026-09-28T07:52:30.623856+00:00",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Askerhallen",
+        "date": "2027-01-17",
+        "host_club": "Frisk Asker",
+        "start_time": "14:30"
+      },
+      "tournament_id": "rvv-0191"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:33:42.198523+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2026-11-22",
+        "duration_minutes": "140",
+        "end_time": "14:20",
+        "round_count": "5",
+        "start_time": "12:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-22",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0002:2026-09-28T20:33:42.198523+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 140min",
+      "reconfirms_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "525491bd6cba6dfc3bdbcae0a067e968658f6288a94d2c0e09133531f5cab756",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "12:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "13:50",
+        "start": "12:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0002:2026-09-28T07:51:48.890285+00:00",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Askerhallen",
+        "date": "2026-11-22",
+        "host_club": "Frisk Asker",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0002"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:33:49.952995+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "JU10",
+        "date": "2026-11-08",
+        "duration_minutes": "140",
+        "end_time": "14:20",
+        "round_count": "5",
+        "start_time": "12:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2026-11-08",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0042:2026-09-28T20:33:49.952995+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for JU10, canonical occupancy kept at 140min",
+      "reconfirms_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "8ff9ac91b227c57944c77d0197e43c70f235370c224fee56dcf65327d4c99a54",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "12:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "13:50",
+        "start": "12:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0042:2026-09-28T07:51:10.791128+00:00",
+      "tournament_facts": {
+        "age_group": "JU10",
+        "arena": "Askerhallen",
+        "date": "2026-11-08",
+        "host_club": "Frisk Asker",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0042"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:33:57.771538+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U9",
+        "date": "2027-01-10",
+        "duration_minutes": "155",
+        "end_time": "14:35",
+        "round_count": "5",
+        "start_time": "12:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-10",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0097:2026-09-28T20:33:57.771538+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U9, canonical occupancy kept at 155min",
+      "reconfirms_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "90a7241dc240019a36aaa50c776bd8c198b807b5d72b43b5a4002c929a326bbc",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "12:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "13:50",
+        "start": "12:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0097:2026-09-28T07:52:13.808121+00:00",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Askerhallen",
+        "date": "2027-01-10",
+        "host_club": "Frisk Asker",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0097"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:34:05.570617+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2027-03-07",
+        "duration_minutes": "140",
+        "end_time": "17:20",
+        "round_count": "5",
+        "start_time": "15:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-03-07",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0100:2026-09-28T20:34:05.570617+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U11, canonical occupancy kept at 140min",
+      "reconfirms_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "120921a0d44fd245d6aada8ba4808e5b4ac1f984a19349fe205311a39e955c50",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "15:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "16:50",
+        "start": "15:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0100:2026-09-28T07:53:29.194557+00:00",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Askerhallen",
+        "date": "2027-03-07",
+        "host_club": "Frisk Asker",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0100"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:34:13.647245+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "JU8",
+        "date": "2027-01-17",
+        "duration_minutes": "120",
+        "end_time": "14:00",
+        "round_count": "3",
+        "start_time": "12:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-01-17",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0104:2026-09-28T20:34:13.647245+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 80min window is below the 120-minute governing floor for JU8, canonical occupancy kept at 120min",
+      "reconfirms_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "ad8561ea1cc2d4b848792556a09cbed0c07cf017e40b2baae8aefa30d04d14b4",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "12:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "80",
+        "end": "13:20",
+        "start": "12:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0104:2026-09-28T07:52:22.090916+00:00",
+      "tournament_facts": {
+        "age_group": "JU8",
+        "arena": "Askerhallen",
+        "date": "2027-01-17",
+        "host_club": "Frisk Asker",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0104"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:34:21.569851+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U7",
+        "date": "2027-02-06",
+        "duration_minutes": "120",
+        "end_time": "15:30",
+        "round_count": "5",
+        "start_time": "13:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-02-06",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0134:2026-09-28T20:34:21.569851+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U7, canonical occupancy kept at 120min",
+      "reconfirms_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "686376b7251efb167b343a2a1144d36bd84ccddcd6bd7454e320399c09ada522",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:30",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "15:20",
+        "start": "13:30"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0134:2026-09-28T07:52:55.995862+00:00",
+      "tournament_facts": {
+        "age_group": "U7",
+        "arena": "Askerhallen",
+        "date": "2027-02-06",
+        "host_club": "Frisk Asker",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0134"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-09-28T20:34:29.535356+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2027-03-07",
+        "duration_minutes": "140",
+        "end_time": "14:20",
+        "round_count": "5",
+        "start_time": "12:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_status": "booked",
+      "date": "2027-03-07",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0174:2026-09-28T20:34:29.535356+00:00",
+      "note": "Confirmed booked per Frisk Asker authoritative season overview worksheet; stated 110min window is below the 120-minute governing floor for U10, canonical occupancy kept at 140min",
+      "reconfirms_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "500efc0cb2d6869a1182febd1bb409ee7d4ea0d890d5c7149414fa673df46a4a",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "12:00",
+      "stated_interval": {
+        "date": "",
+        "duration_minutes": "110",
+        "end": "13:50",
+        "start": "12:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0174:2026-09-28T07:53:20.910069+00:00",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Askerhallen",
+        "date": "2027-03-07",
+        "host_club": "Frisk Asker",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0174"
     }
   ],
   "participation_withdrawals": [
@@ -43766,7 +47928,7 @@
       "type": "team_unavailable"
     }
   ],
-  "schedule_fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+  "schedule_fingerprint": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
   "schema_version": 1,
   "season": "2026-2027",
   "season_lifecycle": {
@@ -93444,5 +97606,5 @@
       "tournament_id": "rvv-0187"
     }
   ],
-  "updated_at": "2026-09-28T20:06:33.834026+00:00"
+  "updated_at": "2026-09-28T20:35:37.427730+00:00"
 }

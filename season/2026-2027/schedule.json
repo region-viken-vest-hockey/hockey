@@ -309,7 +309,7 @@
     ]
   },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+  "fingerprint": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -15207,7 +15207,7 @@
         ],
         "host_club": "Frisk Asker",
         "id": "rvv-0042",
-        "start_time": "12:30",
+        "start_time": "12:00",
         "teams": [
           {
             "age_group": "JU10",
@@ -19050,7 +19050,7 @@
         ],
         "host_club": "Frisk Asker",
         "id": "rvv-0097",
-        "start_time": "12:30",
+        "start_time": "12:00",
         "teams": [
           {
             "age_group": "U9",
@@ -19578,7 +19578,7 @@
         ],
         "host_club": "Frisk Asker",
         "id": "rvv-0104",
-        "start_time": "12:30",
+        "start_time": "12:00",
         "teams": [
           {
             "age_group": "JU8",
@@ -21266,7 +21266,7 @@
         ],
         "host_club": "Frisk Asker",
         "id": "rvv-0121",
-        "start_time": "11:50",
+        "start_time": "13:00",
         "teams": [
           {
             "age_group": "JU12",
@@ -22444,7 +22444,7 @@
         ],
         "host_club": "Frisk Asker",
         "id": "rvv-0134",
-        "start_time": "13:00",
+        "start_time": "13:30",
         "teams": [
           {
             "age_group": "U7",
@@ -25830,7 +25830,7 @@
         ],
         "host_club": "Frisk Asker",
         "id": "rvv-0174",
-        "start_time": "12:30",
+        "start_time": "12:00",
         "teams": [
           {
             "age_group": "U10",
@@ -28846,7 +28846,7 @@
         ],
         "host_club": "Frisk Asker",
         "id": "rvv-0002",
-        "start_time": "12:30",
+        "start_time": "12:00",
         "teams": [
           {
             "age_group": "U11",
@@ -29506,7 +29506,7 @@
         ],
         "host_club": "Frisk Asker",
         "id": "rvv-0100",
-        "start_time": "15:30",
+        "start_time": "15:00",
         "teams": [
           {
             "age_group": "U11",
@@ -32670,7 +32670,7 @@
         ],
         "host_club": "Frisk Asker",
         "id": "rvv-0191",
-        "start_time": "15:00",
+        "start_time": "14:30",
         "teams": [
           {
             "age_group": "U9",
@@ -40682,8 +40682,8 @@
   },
   "plan_schema_version": 1,
   "promoted_from": {
-    "export_fresh_at": "2026-09-28T20:02:50.559417+00:00",
-    "export_fresh_revision": "a7e22968ac7890d0a812fb8a09afe76a6b039cff0ea0afd620302f3f91b5195d",
+    "export_fresh_at": "2026-09-28T20:35:37.427730+00:00",
+    "export_fresh_revision": "cf66fa9bad7a061d18d7173d2379d8c250cc173fe8a242ecbf183d4d68e0f674",
     "public_export_context_fingerprint": "f5ac564e3b0f7eac33196110185cb082556676d5fe9f8bbd33ea0be77bbfc415",
     "run_id": "20260918T135604Z-8d38f146",
     "stage3_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
@@ -40695,10 +40695,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "03fe196ac0c45c094d859cd4ad3ba6549eb6ea448929cbf24b41255bc784acb2",
+  "revision": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-28T19:49:29.177324+00:00",
+  "updated_at": "2026-09-28T20:33:24.988940+00:00",
   "verification_context": {
     "calendar_evidence": {
       "blocked_sources": [],
