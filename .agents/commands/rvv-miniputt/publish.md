@@ -2,7 +2,7 @@
 
 Publish the most recent successful Stage 4 export already on disk. This procedure does **not** run or rerun the planning pipeline.
 
-Read the publication and semantic-audit sections in `.agents/skills/rvv/SKILL.md` first. They are the canonical policy; this file only describes the shared command procedure.
+Read `audit-publication.md` and the publication and semantic-audit sections in `.agents/skills/rvv/SKILL.md` first. They are the canonical policy; this file only describes the shared command procedure.
 
 ## Preconditions
 
