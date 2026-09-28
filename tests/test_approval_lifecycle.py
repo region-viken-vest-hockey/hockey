@@ -1763,8 +1763,8 @@ def test_manual_assertion_stales_when_slot_changes(tmp_path):
     assert row["evidence"]["booking_status"] == "booked"
 
 
-def test_manual_assertion_stated_duration_is_follow_up_not_occupancy_change(tmp_path):
-    """A source-stated 45-minute window against a 120-minute block stays a follow-up."""
+def test_manual_assertion_stated_duration_updates_canonical_occupancy(tmp_path):
+    """A source-stated booked window becomes the canonical occupied interval."""
 
     root = _promote(tmp_path, [_tournament("t1")])
     problem = _host_a_problem([])
@@ -1775,23 +1775,20 @@ def test_manual_assertion_stated_duration_is_follow_up_not_occupancy_change(tmp_
         stated_start="10:00",
         stated_end="10:45",
     )
-    assert result["assertion"]["asserted_interval"]["duration_minutes"] == "120"
+    assert result["assertion"]["asserted_interval"]["duration_minutes"] == "45"
+    assert result["interval_alignment"]["accepted_source_interval"]["end_time"] == "10:45"
+    assert result["booking_feasibility_warnings"]
     report = booking_status_report(season="2026-2027", root=root, problem=problem)
     row = _booking_row(report, "t1")
     assert row["status"] == "manually_booked"
-    assert "manual_booking_stated_end_differs_from_canonical" in row["follow_up_reasons"]
-    assert row["needs_attention"] is True
-    assert load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]["start_time"] == "10:00"
+    assert "manual_booking_stated_end_differs_from_canonical" not in row["follow_up_reasons"]
+    assert "ice_time_governing_minimum" in row["follow_up_reasons"]
+    tournament = load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]
+    assert tournament["start_time"] == "10:00"
 
 
-def test_manual_assertion_stated_duration_discrepancy_is_visible_in_exported_html(tmp_path):
-    """A duration follow-up must survive into the HTML export, not just the report.
-
-    A ``ba`` badge alone renders an apparently confirmed booking with no
-    indication that the source-stated interval disagrees with canonical
-    occupancy; the follow-up reason and both intervals must be present in
-    the exported payload so an operator sees the discrepancy on the card.
-    """
+def test_manual_assertion_stated_duration_is_exported_as_canonical_html(tmp_path):
+    """The HTML export must render the accepted source interval, not the default."""
 
     root = _promote(tmp_path, [_tournament("t1")])
     problem = _host_a_problem([])
@@ -1803,9 +1800,9 @@ def test_manual_assertion_stated_duration_discrepancy_is_visible_in_exported_htm
         stated_end="10:45",
     )
     html = _export_html_with_booking_report(root, problem, tmp_path)
-    assert "manual_booking_stated_end_differs_from_canonical" in html
     assert '"s": "10:00"' in html
     assert '"e": "10:45"' in html
+    assert "ice_time_governing_minimum" in html
 
 
 def test_manual_assertion_clear_revokes_and_is_idempotent(tmp_path):
