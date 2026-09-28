@@ -1776,6 +1776,82 @@ class TestSourceIntegrityWindowAndAuthority:
         assert second["club_calendar_status"]["Kongsberg"] == "known"
         assert second["club_coverage_proven"]["Kongsberg"] is True
 
+    def test_jutul_styledcalendar_scrape_is_coverage_proven_and_known(self, tmp_path):
+        """The original #528 failure path: a complete Jutul scrape must be `known`.
+
+        Jutul's Stage 1 source type is the generic `outlook`, but the concrete
+        StyledCalendar strategy proves the requested window. Coverage must
+        survive the Stage 2 checkpoint and the unified scrape cache.
+        """
+        import json
+
+        from tournament_scheduler.utils.lzstring import compress_to_utf16
+
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources(
+            [{"name": "Jutul", "type": SOURCE_OUTLOOK, "url": "https://baerumishall.no/kalender/"}]
+        )
+        raw_events = [
+            {
+                "id": f"evt-{day}",
+                "title": f"Jutul U10 #{day}",
+                "start": f"2025-09-{day:02d}T15:00:00+02:00",
+                "end": f"2025-09-{day:02d}T16:00:00+02:00",
+                "allDay": False,
+            }
+            for day in range(1, 11)
+        ]
+        response = MagicMock()
+        response.raise_for_status = MagicMock()
+        response.json.return_value = {
+            "compressedEventsAndIds": [
+                {"compressedEvents": compress_to_utf16(json.dumps(raw_events))},
+            ],
+        }
+
+        with patch(
+            "tournament_scheduler.pipeline.scraper_styledcalendar.requests.get",
+            return_value=response,
+        ):
+            first = run(cfg, state, datetime(2025, 9, 1), datetime(2025, 12, 1))
+
+        first_source = first["sources"][0]
+        assert first_source["coverage"]["strategy"] == "styledcalendar"
+        assert first_source["coverage"]["requested_end"] == "2025-12-01"
+        assert first_source["integrity"]["status"] == "complete"
+        assert first_source["integrity"]["coverage_proven"] is True
+        assert first["club_calendar_status"]["Jutul"] == "known"
+        assert first["club_coverage_proven"]["Jutul"] is True
+
+        with patch(
+            "tournament_scheduler.pipeline.scraper_styledcalendar.requests.get",
+            side_effect=AssertionError("cache hit should not scrape"),
+        ):
+            second = run(cfg, state, datetime(2025, 9, 1), datetime(2025, 12, 1))
+
+        second_source = second["sources"][0]
+        assert second_source["from_cache"] is True
+        assert second_source["coverage"] == first_source["coverage"]
+        assert second_source["integrity"]["coverage_proven"] is True
+        assert second["club_calendar_status"]["Jutul"] == "known"
+        assert second["club_coverage_proven"]["Jutul"] is True
+
+    def test_jutul_styledcalendar_failure_stays_failed_closed(self, tmp_path):
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources(
+            [{"name": "Jutul", "type": SOURCE_OUTLOOK, "url": "https://baerumishall.no/kalender/"}]
+        )
+
+        with patch(
+            "tournament_scheduler.pipeline.scraper_styledcalendar.requests.get",
+            side_effect=ConnectionError("boom"),
+        ):
+            result = run(cfg, state, datetime(2025, 9, 1), datetime(2025, 12, 1), strict=False)
+
+        assert result["club_coverage_proven"]["Jutul"] is False
+        assert result["club_calendar_status"]["Jutul"] != "known"
+        assert result["sources"][0]["coverage"]["status"] == "failed"
+
     def test_operator_confirmed_authority_does_not_imply_coverage(self, tmp_path):
         from tournament_scheduler.pipeline.source_integrity import (
             INTEGRITY_PARTIAL,
