@@ -23,9 +23,9 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
 )
 from tournament_scheduler.published_baseline import (
     active_baseline,
+    effective_projection_from_canonical_schedule,
     is_published_sealed,
     projection_fingerprint,
-    projection_from_canonical_schedule,
 )
 
 from .export_lifecycle import read_export_manifest
@@ -182,7 +182,12 @@ def _publication_context(
         )
 
     published_projection = _require_projection(manifest.get("schedule_projection"))
-    current_projection = projection_from_canonical_schedule(schedule)
+    # Compare against the revision-bound *effective* operational projection the
+    # canonical export is generated from (promoted problem plus live canonical
+    # overlays such as host-confirmed per-tournament ice-time overrides). A
+    # schedule-only projection would report an already accepted override as
+    # stale export drift.
+    current_projection = effective_projection_from_canonical_schedule(schedule, decisions)
     delta = diff_tournament_projection(published_projection, current_projection)
     if delta["changed"]:
         raise RuntimeError(

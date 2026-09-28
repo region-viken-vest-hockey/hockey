@@ -166,11 +166,66 @@ def projection_from_canonical_plan(
 
 
 def projection_from_canonical_schedule(schedule: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
-    """Stable-id projection of a durable canonical schedule payload."""
+    """Stable-id projection of a durable canonical schedule payload.
+
+    This deliberately uses only the promoted verification-context problem, so
+    the projection is the *schedule* state without decision-only overlays. The
+    effective operational projection (with live canonical overlays) is
+    :func:`effective_projection_from_canonical_schedule`; publication
+    freshness/seal-defense must compare an export against that one.
+    """
 
     return projection_from_canonical_plan(
         schedule.get("plan") or {},
         projection_problem_from_schedule(schedule),
+    )
+
+
+def effective_projection_problem_from_schedule(
+    schedule: Mapping[str, Any] | None,
+    decisions: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Return the promoted problem with every live canonical overlay projected.
+
+    The export path verifies and serializes against the promoted problem with
+    the current canonical decisions projected into it (per-tournament
+    ice-time overrides, banned dates, calendar-booking associations,
+    participation withdrawals, ...). A publication freshness comparison that
+    used the raw schedule-only problem would therefore see a false duration
+    drift for any active per-tournament override. This helper binds the one
+    shared overlay facade (:func:`project_canonical_overlays`) to a schedule
+    plus its durable decisions; callers must not re-derive a subset.
+    """
+
+    problem = projection_problem_from_schedule(schedule)
+    if problem is None:
+        return None
+    # Imported lazily: ``season_maintenance`` reaches this module through the
+    # canonical application layer, so a top-level import would cycle.
+    from tournament_scheduler.season_maintenance import project_canonical_overlays
+
+    return project_canonical_overlays(
+        problem,
+        decisions=decisions or {},
+        plan=(schedule or {}).get("plan") or {},
+    )
+
+
+def effective_projection_from_canonical_schedule(
+    schedule: Mapping[str, Any],
+    decisions: Mapping[str, Any] | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Stable-id operational projection of a canonical schedule under live overlays.
+
+    This is the revision-bound projection the canonical export actually
+    produces, so it is the reference for publication freshness and sealed
+    reconciliation. The historical published baseline is never recomputed with
+    it; it only describes current canonical state.
+    """
+
+    return projection_from_canonical_plan(
+        schedule.get("plan") or {},
+        effective_projection_problem_from_schedule(schedule, decisions),
     )
 
 
@@ -369,5 +424,7 @@ __all__ = [
     "projection_from_canonical_plan",
     "projection_from_canonical_schedule",
     "projection_problem_from_schedule",
+    "effective_projection_from_canonical_schedule",
+    "effective_projection_problem_from_schedule",
     "publication_history",
 ]

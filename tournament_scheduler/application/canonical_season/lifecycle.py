@@ -20,10 +20,11 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     CanonicalSeasonSnapshot,
     SeasonStateError,
 )
+from tournament_scheduler.canonical_ice_time_overrides import active_overrides
 from tournament_scheduler.published_baseline import (
     active_baseline,
+    effective_projection_from_canonical_schedule,
     is_published_sealed,
-    projection_from_canonical_schedule,
 )
 from tournament_scheduler.published_mutation_history import reconcile_published_baseline
 
@@ -120,7 +121,9 @@ def _assert_published_sealed_reconciliation(
     baseline = active_baseline(snapshot.decisions)
     if baseline is None:
         return
-    current_projection = projection_from_canonical_schedule(snapshot.schedule)
+    current_projection = effective_projection_from_canonical_schedule(
+        snapshot.schedule, snapshot.decisions
+    )
     published_projection, attested_additions = published_baseline_reconciliation(
         service,
         baseline,
@@ -131,6 +134,7 @@ def _assert_published_sealed_reconciliation(
         current_projection=current_projection,
         history=snapshot.decisions.get("history") or [],
         attested_additions=attested_additions,
+        occupancy_overrides=active_overrides(snapshot.decisions),
     )
     if report.get("ok"):
         return

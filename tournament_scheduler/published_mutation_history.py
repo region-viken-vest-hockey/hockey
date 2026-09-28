@@ -9,15 +9,17 @@ The invariant owned here is:
 
 Only operations that can change the stable-id schedule projection used for
 baseline reconciliation are replayed. Approval, booking evidence, request
-constraints, banned/holiday dates, per-tournament ice-time overrides, calendar
-refresh, export-freshness metadata, season baseline and audit metadata are
-decision-only: they advance the canonical revision but are never replayed as
-schedule mutations. A per-tournament ice-time override does change the rendered
-occupied interval, but the reconciliation projection is built from the
-canonical schedule without decision-only overlays, so the replay must recognize
-and skip the event rather than fail on it. The ``mark_export_fresh`` event
-records that an export artifact covered a canonical revision; it describes
-export provenance, not a schedule change, so replay treats it as decision-only.
+constraints, banned/holiday dates, calendar refresh, export-freshness metadata,
+season baseline and audit metadata are decision-only: they advance the canonical
+revision but are never replayed as schedule mutations. A per-tournament ice-time
+override does change the rendered occupied interval, so it is not ignored: the
+current active override set is applied to the reconciled projection after
+schedule replay (and reported as a decision-backed occupancy change), while a
+release event restores the recorded age-group default. This is what lets
+reconciliation converge on the same revision-bound effective projection the
+export/render path produces. The ``mark_export_fresh`` event records that an
+export artifact covered a canonical revision; it describes export provenance,
+not a schedule change, so replay treats it as decision-only.
 Pre-publication mutations are safe to replay because a publication
 baseline already reflects them, so re-applying the same placement is a no-op.
 
@@ -52,7 +54,6 @@ _DECISION_ONLY_EVENTS = {
     "allow_holiday_date",
     "approve",
     "ban_date",
-    "clear_ice_time_minutes",
     "clear_manual_booking_assertion",
     "disallow_holiday_date",
     "mark_export_fresh",
@@ -232,6 +233,20 @@ def replay_recorded_mutations(
         kind = str(event.get("event") or "")
         details = event.get("details") if isinstance(event.get("details"), Mapping) else {}
         if kind in _DECISION_ONLY_EVENTS:
+            continue
+        if kind == "clear_ice_time_minutes":
+            # Releasing an override restores the age-group default. The default
+            # is recorded with the release event so a replay that had already
+            # captured the overridden duration (through a later repair's
+            # after_records) still converges on current canonical state.
+            default_minutes = details.get("default_minutes")
+            if default_minutes is not None:
+                entry = projection.get(str(event.get("tournament_id") or ""))
+                if entry is not None:
+                    _set_duration(entry, default_minutes)
+                    applied.append(
+                        {"event": "clear_ice_time_minutes", "tournament_id": entry.get("id")}
+                    )
             continue
         if kind == "move":
             tournament_id = str(event.get("tournament_id") or "")
@@ -456,20 +471,72 @@ def replay_recorded_mutations(
     return projection, applied
 
 
+def _apply_occupancy_overrides(
+    projection: dict[str, dict[str, Any]],
+    overrides: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Apply the current active per-tournament duration overrides to a projection.
+
+    A host-confirmed ice-time override is a decision-backed occupancy change:
+    it never edits schedule placement, but it *is* the authoritative occupied
+    duration for its tournament. Applying the current active set after schedule
+    replay makes reconciliation converge on the same effective projection the
+    export/render path produces, and is idempotent when an earlier replayed
+    record already captured the override. Every applied value is reported with
+    its before/after duration so the change is identified with provenance
+    instead of silently ignored.
+    """
+
+    changes: list[dict[str, Any]] = []
+    for tournament_id, minutes in sorted((overrides or {}).items()):
+        entry = projection.get(str(tournament_id))
+        if entry is None:
+            continue
+        try:
+            value = int(minutes)
+        except (TypeError, ValueError) as exc:
+            raise PublishedMutationHistoryError(
+                "occupancy override history contains an invalid duration"
+            ) from exc
+        if value <= 0:
+            continue
+        before = entry.get("duration_minutes")
+        try:
+            before_minutes = int(before) if before is not None else before
+        except (TypeError, ValueError):
+            before_minutes = before
+        if before_minutes == value:
+            continue
+        _set_duration(entry, value)
+        changes.append(
+            {
+                "tournament_id": str(entry.get("id") or tournament_id),
+                "before_minutes": before_minutes,
+                "after_minutes": value,
+            }
+        )
+    return changes
+
+
 def reconcile_published_baseline(
     *,
     published_projection: Mapping[str, Mapping[str, Any]],
     current_projection: Mapping[str, Mapping[str, Any]],
     history: Iterable[Mapping[str, Any]],
     attested_additions: Mapping[str, Mapping[str, Any]] | None = None,
+    occupancy_overrides: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Reconcile published baseline + attested additions + mutations to canonical.
 
     ``attested_additions`` are stable-id projections of tournaments that are part
     of the published/canonical truth but were not part of the actual published
     artifact: publication *omissions* and explicitly attested post-publication
-    *materializations*. The result is ``ok`` only when the reconciled projection
-    equals the current canonical projection exactly.
+    *materializations*. ``occupancy_overrides`` is the current active
+    per-tournament duration set; it is applied after schedule replay so a
+    decision-backed occupancy change reconciles against the effective current
+    projection instead of appearing as unexplained drift. The result is ``ok``
+    only when the reconciled projection equals the current canonical projection
+    exactly.
     """
 
     seed: dict[str, dict[str, Any]] = {
@@ -481,6 +548,7 @@ def reconcile_published_baseline(
 
     try:
         reconciled, applied = replay_recorded_mutations(seed, history)
+        occupancy_changes = _apply_occupancy_overrides(reconciled, occupancy_overrides)
     except PublishedMutationHistoryError as exc:
         return {
             "ok": False,
@@ -488,6 +556,7 @@ def reconcile_published_baseline(
             "current_tournament_count": len(current_projection),
             "attested_addition_count": len(attested_additions or {}),
             "applied_mutation_count": 0,
+            "decision_backed_occupancy_changes": [],
             "unexplained_delta": {
                 "removed_tournament_ids": [],
                 "added_tournament_ids": [],
@@ -504,6 +573,7 @@ def reconcile_published_baseline(
         "current_tournament_count": len(current_projection),
         "attested_addition_count": len(attested_additions or {}),
         "applied_mutation_count": len(applied),
+        "decision_backed_occupancy_changes": occupancy_changes,
         "unexplained_delta": delta,
     }
 

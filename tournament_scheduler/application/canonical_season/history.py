@@ -48,10 +48,11 @@ from tournament_scheduler.infrastructure.canonical_evidence_archive import (
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
+from tournament_scheduler.canonical_ice_time_overrides import active_overrides
 from tournament_scheduler.published_baseline import (
     active_baseline,
+    effective_projection_from_canonical_schedule,
     is_published_sealed,
-    projection_from_canonical_schedule,
 )
 from tournament_scheduler.published_mutation_history import reconcile_published_baseline
 
@@ -161,12 +162,15 @@ def _published_replay_parity(
     baseline = active_baseline(before_decisions)
     if baseline is None:
         return None
-    current_projection = projection_from_canonical_schedule(schedule)
+    current_projection = effective_projection_from_canonical_schedule(
+        schedule, before_decisions
+    )
     published_projection, attested_additions = published_baseline_reconciliation(
         service,
         baseline,
         current_projection=current_projection,
     )
+    occupancy_overrides = active_overrides(before_decisions)
 
     def reconcile(decisions: Mapping[str, Any]) -> dict[str, Any]:
         return reconcile_published_baseline(
@@ -174,6 +178,7 @@ def _published_replay_parity(
             current_projection=current_projection,
             history=decisions.get("history") or [],
             attested_additions=attested_additions,
+            occupancy_overrides=occupancy_overrides,
         )
 
     before_report = reconcile(before_decisions)
