@@ -53,6 +53,7 @@ from tournament_scheduler.published_baseline import (
 )
 from tournament_scheduler.published_mutation_history import (
     reconcile_published_baseline,
+    replayed_occupancy_overrides,
 )
 from tournament_scheduler.application.canonical_season.scoped_mutation import (
     ScopedMutationAuthorization,
@@ -232,6 +233,58 @@ def test_reconciliation_replays_generic_repair_after_records() -> None:
         attested_additions={},
     )
     assert report["ok"] is True
+
+
+def test_reconciliation_override_chain_survives_repair_carry_forward_and_clear() -> None:
+    """A repair's captured duration must not defeat a later recorded clear.
+
+    A bounded repair can persist the overridden occupied duration into its
+    ``after_records``. When the operator later releases the override, the clear
+    event's recorded default has to win during replay so sealed reconciliation
+    converges on the age-group default rather than the stale carried-forward
+    duration.
+    """
+
+    baseline = _tp({"tournaments": [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha")]})
+    report = reconcile_published_baseline(
+        published_projection=baseline,
+        current_projection=baseline,
+        history=[
+            {
+                "event": "set_ice_time_minutes",
+                "tournament_id": "rvv-1",
+                "details": {"minutes": 60, "default_minutes": 120},
+            },
+            {
+                "event": "repair_option_applied",
+                "tournament_id": "rvv-1",
+                "details": {
+                    "option_id": "repair-1",
+                    "after_records": {
+                        "rvv-1": {
+                            "id": "rvv-1",
+                            "date": "2026-10-11",
+                            "start_time": "10:00",
+                            "arena": "A",
+                            "host_club": "Alpha",
+                            "age_group": "U10",
+                            "participants": baseline["rvv-1"]["participants"],
+                            "duration_minutes": 60,
+                        }
+                    },
+                },
+            },
+            {
+                "event": "clear_ice_time_minutes",
+                "tournament_id": "rvv-1",
+                "details": {"override_id": "ice-time-override:deadbeef", "default_minutes": 120},
+            },
+        ],
+        attested_additions={},
+        occupancy_overrides={},
+    )
+    assert report["ok"] is True
+    assert report["unexplained_delta"]["changed"] is False
 
 
 def test_reconciliation_fails_closed_on_unknown_history_event() -> None:
@@ -1290,6 +1343,102 @@ def test_sealed_confirm_calendar_booking_reconciles_shorter_authoritative_interv
     loaded = service.load("2026-2027")
     tournament = next(t for t in loaded.schedule["plan"]["tournaments"] if t["id"] == "rvv-1")
     assert tournament["start_time"] == "10:00"
+    assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
+
+
+def test_sealed_confirm_calendar_booking_batch_replays_mixed_override_history(
+    tmp_path: Path,
+) -> None:
+    """Production-shaped Frisk Asker batch: correct matches are not refused.
+
+    Two host-calendar matches are bound on a sealed season. One tournament has
+    no prior override (the zero-override shape); the other carries a
+    set -> supersede -> clear chain before its match. The calendar description
+    is authoritative for the booked interval, so every occupancy change must be
+    recorded through the canonical override-decision chain and the active map
+    must equal that replayed chain instead of failing as phantom drift.
+    """
+
+    from tournament_scheduler.calendar_bookings import iter_events
+    from tournament_scheduler.canonical_ice_time_overrides import active_overrides
+
+    root = tmp_path / "season"
+    tournaments = [
+        _tournament("rvv-0001", "2026-10-11", "10:00", "Alpha Arena", "Alpha"),
+        _tournament("rvv-0002", "2026-10-18", "10:00", "Alpha Arena", "Alpha"),
+    ]
+    problem = _problem({"tournaments": tournaments})
+    problem["clubs"] = {"Alpha": "Alpha Arena"}
+    problem["club_calendar_status"] = {"Alpha": "known"}
+    problem["club_busy_intervals"] = {
+        "Alpha": [
+            {
+                "date": "2026-10-11",
+                "start": "10:00",
+                "end": "11:20",
+                "availability": "fixed_busy",
+                "calendar_event": "JU10 Serierunde 11",
+            },
+            {
+                "date": "2026-10-18",
+                "start": "10:00",
+                "end": "11:20",
+                "availability": "fixed_busy",
+                "calendar_event": "JU10 Serierunde 18",
+            },
+        ]
+    }
+    _write_canonical(root, tournaments, problem=problem)
+    service = CanonicalSeasonService(root=root)
+    snapshot = service.load("2026-2027")
+    projection = tournament_projection(snapshot.schedule["plan"], problem)
+    service.seal_published_season(
+        season="2026-2027",
+        publication_id="2026-09-21T0908",
+        canonical_revision="rev-published",
+        published_at="2026-09-21T09:14:53+00:00",
+        published_projection=projection,
+        publication_canonical_projection=projection,
+        materializations=[],
+        actor="tester",
+    )
+
+    # The rvv-0002 shape: set, supersede and clear before the match is bound.
+    service.set_ice_time_minutes(
+        season="2026-2027", tournament_id="rvv-0002", minutes=130,
+        request_id="host:first", note="host window", actor="tester",
+    )
+    service.set_ice_time_minutes(
+        season="2026-2027", tournament_id="rvv-0002", minutes=140,
+        request_id="host:second", note="host revised window", actor="tester",
+    )
+    assert service.clear_ice_time_minutes(
+        season="2026-2027", tournament_id="rvv-0002", note="window reverted", actor="tester",
+    )["changed"] is True
+    assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
+
+    events = {str(event["calendar_event"]): event for event in iter_events(problem)}
+    results = {
+        tournament_id: service.confirm_calendar_booking(
+            season="2026-2027",
+            event_fingerprint=events[event_name]["fingerprint"],
+            tournament_id=tournament_id,
+            note="host confirmed the actual booking",
+            actor="tester",
+        )
+        for tournament_id, event_name in (
+            ("rvv-0001", "JU10 Serierunde 11"),
+            ("rvv-0002", "JU10 Serierunde 18"),
+        )
+    }
+
+    for result in results.values():
+        assert result["ice_time_override"]["minutes"] == 80
+        assert result["interval_alignment"]["changed"] is True
+    decisions = service.load("2026-2027").decisions
+    active = active_overrides(decisions)
+    assert active == replayed_occupancy_overrides(decisions["history"])
+    assert active == {"rvv-0001": 80, "rvv-0002": 80}
     assert service.season_lifecycle_report("2026-2027")["reconciliation"]["ok"] is True
 
 
