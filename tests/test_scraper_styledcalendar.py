@@ -359,6 +359,76 @@ class TestStyledCalendarCoverage:
         assert events.coverage["status"] == INTEGRITY_PARTIAL
         assert any("start/slutt" in problem for problem in events.coverage["exceptions"])
 
+    def test_recurrence_expansion_failure_fails_closed(self):
+        """A lazy expansion error must not escape past the guarded fetch block."""
+        class _ExplodingOccurrences:
+            def __iter__(self):
+                raise RuntimeError("recurrence expansion failed")
+
+        class _FakeRecurringIcalEvents:
+            def of(self, calendar):
+                return self
+
+            def between(self, start, end):
+                return _ExplodingOccurrences()
+
+        raw_events = [{
+            "id": "evt-recurring",
+            "title": "Jutul U9",
+            "start": "2026-10-10T15:00:00+02:00",
+            "end": "2026-10-10T16:00:00+02:00",
+            "allDay": False,
+            "recurrence": ["RRULE:FREQ=WEEKLY;BYDAY=SA"],
+        }]
+
+        with patch(
+            "tournament_scheduler.pipeline.scraper_styledcalendar.requests.get",
+            return_value=_make_api_response(raw_events),
+        ), patch(
+            "tournament_scheduler.pipeline.scraper_styledcalendar.recurring_ical_events",
+            _FakeRecurringIcalEvents(),
+        ):
+            events, _ = _run_styledcalendar_scraper(
+                "Jutul", datetime(2026, 10, 9), datetime(2027, 3, 28),
+            )
+
+        assert events == []
+        assert events.coverage["status"] == INTEGRITY_FAILED
+        assert events.coverage["navigation_complete"] is False
+
+    def test_expanded_event_without_title_fails_closed_as_partial(self):
+        raw_events = [{
+            "id": "evt-no-title",
+            "title": "",
+            "start": "2026-10-10T15:00:00+02:00",
+            "end": "2026-10-10T16:00:00+02:00",
+            "allDay": False,
+        }]
+
+        events, _ = _scrape(
+            raw_events, start=datetime(2026, 10, 9), end=datetime(2027, 3, 28),
+        )
+
+        assert events.coverage["status"] == INTEGRITY_PARTIAL
+        assert any("tittel" in problem for problem in events.coverage["exceptions"])
+
+    def test_expanded_event_with_zero_duration_fails_closed_as_partial(self):
+        raw_events = [{
+            "id": "evt-zero-duration",
+            "title": "Jutul U9",
+            "start": "2026-10-10T15:00:00+02:00",
+            "end": "2026-10-10T15:00:00+02:00",
+            "allDay": False,
+        }]
+
+        events, _ = _scrape(
+            raw_events, start=datetime(2026, 10, 9), end=datetime(2027, 3, 28),
+        )
+
+        assert events == []
+        assert events.coverage["status"] == INTEGRITY_PARTIAL
+        assert any("varighet" in problem for problem in events.coverage["exceptions"])
+
     def test_coverage_proven_survives_the_source_integrity_gate(self):
         """The owner boundary: a complete Jutul scrape is trustworthy evidence."""
         raw_events = [{

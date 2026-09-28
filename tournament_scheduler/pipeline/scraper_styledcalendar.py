@@ -100,7 +100,12 @@ def _run_styledcalendar_scraper(
         raw_events, payload_problems = _extract_raw_events(payload)
         calendar, build_problems = _build_icalendar(raw_events)
         problems = [*payload_problems, *build_problems]
-        occurrences = recurring_ical_events.of(calendar).between(window_start, window_end)
+        # Materialize inside the guarded block: ``between`` is lazy, so an
+        # iteration-time recurrence failure must still fail the scrape closed
+        # instead of escaping past the ``except`` below.
+        occurrences = list(
+            recurring_ical_events.of(calendar).between(window_start, window_end)
+        )
     except Exception as exc:  # noqa: BLE001 -- fail closed, report as coverage
         return with_coverage(
             [],
@@ -118,15 +123,35 @@ def _run_styledcalendar_scraper(
         title = str(occurrence.get("summary", "")).strip()
         dtstart = occurrence.get("dtstart")
         dtend = occurrence.get("dtend")
-        if not title or dtstart is None:
+        if not title:
+            problems.append("En utvidet forekomst manglet tittel og ble forkastet.")
+            continue
+        if dtstart is None:
+            problems.append(f"Hendelsen '{title}' manglet starttidspunkt og ble forkastet.")
             continue
         start_dt = _as_naive_datetime(dtstart.dt)
         if start_dt is None:
+            problems.append(
+                f"Hendelsen '{title}' hadde et utolkbart starttidspunkt og ble forkastet."
+            )
             continue
-        if dtend is not None and (end_dt := _as_naive_datetime(dtend.dt)) is not None:
-            duration_hours = max((end_dt - start_dt).total_seconds() / 3600.0, 0.0)
-        else:
-            duration_hours = 0.0
+        if dtend is None:
+            problems.append(f"Hendelsen '{title}' manglet sluttidspunkt og ble forkastet.")
+            continue
+        end_dt = _as_naive_datetime(dtend.dt)
+        if end_dt is None:
+            problems.append(
+                f"Hendelsen '{title}' hadde et utolkbart sluttidspunkt og ble forkastet."
+            )
+            continue
+        duration_hours = (end_dt - start_dt).total_seconds() / 3600.0
+        if duration_hours <= 0:
+            # A nonpositive occupancy interval is unusable evidence and must
+            # never be silently read as a real zero-length booking.
+            problems.append(
+                f"Hendelsen '{title}' hadde ikke-positiv varighet og ble forkastet."
+            )
+            continue
 
         events.append(CalendarEvent(
             date=start_dt.strftime("%d.%m.%Y"),
