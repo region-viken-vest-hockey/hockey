@@ -1526,27 +1526,43 @@ def _cmd_season(args: argparse.Namespace) -> int:
             )
             # A stale result means canonical state advanced after the exported
             # snapshot (or the freshness marker could not be cleared). The
-            # artifacts are still recorded, but this export is not publishable
-            # and must not be presented as a clean success.
+            # artifacts are still written and retained for diagnosis, but the
+            # export is not publishable, so the stage is FAILED and the command
+            # exits nonzero instead of advancing as a clean success.
             result["stale_export"] = not bool(
                 result["export_freshness"].get("cleared")
             )
+            stale_export = bool(result["stale_export"])
+            if stale_export:
+                result["errors"] = [
+                    *(result.get("errors") or []),
+                    "stale_export: "
+                    + str(
+                        result["export_freshness"].get("reason")
+                        or "canonical state changed during export"
+                    ),
+                ]
             from ..pipeline.state import StageName, StageStatus
-            state.write_stage(StageName.EXPORT, result, status=StageStatus.DONE)
+            state.write_stage(
+                StageName.EXPORT,
+                result,
+                status=StageStatus.FAILED if stale_export else StageStatus.DONE,
+            )
             _write_canonical_export_evidence(schedule, result)
-            # Mark audit-required explicitly rather than relying only on lazy
-            # export-fingerprint reconciliation: a re-export of unchanged
-            # canonical state produces the same content fingerprint, which
-            # would otherwise leave a workflow recorded before this export
-            # (e.g. one predating the canonical-season scoping above) stale
-            # and un-rescoped forever.
-            from ..application.audit_lifecycle import mark_audit_required
+            if not stale_export:
+                # Mark audit-required explicitly rather than relying only on lazy
+                # export-fingerprint reconciliation: a re-export of unchanged
+                # canonical state produces the same content fingerprint, which
+                # would otherwise leave a workflow recorded before this export
+                # (e.g. one predating the canonical-season scoping above) stale
+                # and un-rescoped forever.
+                from ..application.audit_lifecycle import mark_audit_required
 
-            mark_audit_required(args.work_dir)
+                mark_audit_required(args.work_dir)
             if args.json:
                 print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
             else:
-                if result["stale_export"]:
+                if stale_export:
                     _console.print(
                         f"[yellow]⚠[/yellow] Exported canonical season {args.season} "
                         f"revision {result.get('canonical_revision')}, but the canonical "
@@ -1561,7 +1577,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     )
                 for label, path in result.get("output_files", {}).items():
                     _console.print(f"  {label}: {path}")
-            return 0
+            return 1 if stale_export else 0
 
         if args.season_command == "status":
             schedule = load_schedule(args.season, root=args.root)

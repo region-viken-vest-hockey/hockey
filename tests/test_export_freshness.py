@@ -177,10 +177,10 @@ def test_mark_export_fresh_cas_preserves_latch_on_interleaving_write(
     assert decisions["canonical_state_revision"] == current_revision
 
 
-def test_season_export_surfaces_stale_export_when_latch_not_cleared(
+def test_season_export_fails_closed_when_latch_not_cleared(
     tmp_path: Path, monkeypatch, capsys
 ) -> None:
-    """A not-cleared export must warn and flag itself as not publishable."""
+    """A not-cleared export must fail the command/stage contract, keep artifacts."""
 
     root = _promote(tmp_path)
     export_dir = tmp_path / "canonical-export"
@@ -210,10 +210,17 @@ def test_season_export_surfaces_stale_export_when_latch_not_cleared(
             "--flat",
         ]
     )
-    assert rc == 0
+    assert rc == 1
     output = capsys.readouterr().out
     assert "NOT publishable" in output
 
-    stage = PipelineState(tmp_path / ".pipeline").read_stage(StageName.EXPORT)
+    state = PipelineState(tmp_path / ".pipeline")
+    envelope = state.read_envelope(StageName.EXPORT)
+    assert envelope["status"] == "failed"
+    stage = envelope["data"]
     assert stage["stale_export"] is True
     assert stage["export_freshness"]["cleared"] is False
+    assert any(str(error).startswith("stale_export:") for error in stage["errors"])
+    # Artifacts are retained for diagnosis even though the stage failed.
+    assert (export_dir / "season_plan.xlsx").exists()
+    assert (export_dir / "season_plan.html").exists()
