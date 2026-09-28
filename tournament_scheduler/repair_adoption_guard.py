@@ -974,13 +974,16 @@ def _check_rule(
     elif entry.id in finding_rule_ids:
         status = "finding"
         evidence.append("finding")
-    elif verifier_codes and (
+    elif (verifier_codes or finding_codes_owned) and (
         entry.verifier_owner.endswith("verify_candidate")
         or entry.verifier_owner in covered_verifier_owners
     ):
         # The owning verifier ran and reported no code for this rule, so the
-        # rule itself is clear. Overall verification success is a separate gate
-        # and a different rule's violation must not be attributed to this one.
+        # rule itself is clear. A rule owned by a verifier that emits findings
+        # (rather than verifier codes) is clear once its owner is explicitly
+        # covered and no finding with one of its codes was surfaced. Overall
+        # verification success is a separate gate and a different rule's
+        # violation must not be attributed to this one.
         status = "clear"
     elif verifier_codes or finding_codes_owned or entry.verifier_owner:
         # The catalog names a verifier/finding owner this audit surface was not
@@ -1015,13 +1018,16 @@ def season_wide_audit(
     current_revision: str = "",
     catalog: Optional[Iterable[Any]] = None,
     covered_verifier_owners: Iterable[str] = (),
+    incomplete_reasons: Optional[Mapping[str, str]] = None,
 ) -> Dict[str, Any]:
     """Catalog-driven, exhaustive season-wide audit and completion gate.
 
     It enumerates every catalogued hard/obligation check and resolves each one
     against the verification and finding evidence it is handed. Checks whose
     evidence is unavailable are reported ``incomplete`` -- a skipped check is
-    never a pass. The gate is green only when there are no hard violations, no
+    never a pass. ``incomplete_reasons`` maps a rule ID to the actionable
+    reason its owner's evidence is missing or failed, overriding the generic
+    message. The gate is green only when there are no hard violations, no
     incomplete mandatory checks, an explicit successful reconciliation, and the
     audited plan still matches the canonical revision re-read after the audit.
     """
@@ -1056,6 +1062,14 @@ def season_wide_audit(
             covered_verifier_owners=covered_owners,
         )
         if result is not None:
+            reason = (incomplete_reasons or {}).get(result["rule_id"])
+            if reason:
+                # A failed or unevaluable owner is incomplete coverage even when
+                # another source (for example the findings projection) emitted a
+                # same-rule finding: the gate must not report complete coverage
+                # for a check whose owner did not run.
+                result["status"] = "incomplete"
+                result["incomplete_reason"] = str(reason)
             checks.append(result)
 
     incomplete = [check for check in checks if check["status"] == "incomplete" and check["mandatory"]]

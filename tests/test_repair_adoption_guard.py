@@ -585,3 +585,49 @@ def test_travel_measurement_unavailable_blocks_adoption(monkeypatch) -> None:
 
     assert result["adoptable"] is False
     assert result["measurement_incomplete"] == ["travel"]
+
+
+def test_covered_finding_owner_resolves_clear_and_reason_override() -> None:
+    entry = CATALOG_BY_ID["hosting_responsibility"]
+    plan, problem = _wide_gap_season()
+    verification = verify_candidate(plan, problem)
+
+    clear = season_wide_audit(
+        plan=plan,
+        findings=[],
+        verification=verification,
+        reconciliation={"ok": True},
+        catalog=[entry],
+        covered_verifier_owners=(
+            "tournament_scheduler.hosting_responsibility.hosting_responsibility_facts",
+        ),
+    )
+    assert clear["checks"][0]["status"] == "clear"
+    assert clear["ok"] is True
+
+    incomplete = season_wide_audit(
+        plan=plan,
+        findings=[],
+        verification=verification,
+        reconciliation={"ok": True},
+        catalog=[entry],
+        incomplete_reasons={"hosting_responsibility": "owner failed: boom"},
+    )
+    assert incomplete["checks"][0]["status"] == "incomplete"
+    assert incomplete["checks"][0]["incomplete_reason"] == "owner failed: boom"
+    assert incomplete["ok"] is False
+
+    # A failed owner stays incomplete even when the findings projection already
+    # emitted a same-rule finding; complete coverage is never claimed for a
+    # check whose owner did not run.
+    failed_owner_with_finding = season_wide_audit(
+        plan=plan,
+        findings=[{"finding_id": "hosting_responsibility:U10:A", "code": "unexplained_hosting_responsibility_transfer"}],
+        verification=verification,
+        reconciliation={"ok": True},
+        catalog=[entry],
+        incomplete_reasons={"hosting_responsibility": "owner failed: boom"},
+    )
+    assert failed_owner_with_finding["checks"][0]["status"] == "incomplete"
+    assert failed_owner_with_finding["coverage_ok"] is False
+    assert failed_owner_with_finding["ok"] is False

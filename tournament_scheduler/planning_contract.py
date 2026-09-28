@@ -54,6 +54,7 @@ from tournament_scheduler.date_policy import (
 from tournament_scheduler.host_representation import host_eligible_teams as _host_eligible_teams, host_represented_in as _host_represented_in
 from tournament_scheduler.guest_slots import (
     capacity_places as _capacity_places,
+    guest_reservation_integrity_violations as _guest_reservation_integrity_violations,
     has_open_guest_slots as _has_open_guest_slots,
     is_guest_team as _is_guest_team,
     rvv_teams as _rvv_teams,
@@ -770,6 +771,10 @@ def verify_candidate(
 
     tournaments = [t for t in candidate.get("tournaments", []) if not t.get("cancelled")]
     violations.extend(validate_tournament_identity(candidate))
+    # A reserved guest place is first-class capacity; a plan whose filled/open
+    # lifecycle records no longer match its guest participants changed the
+    # reservation outside reserve/fill/release and must not verify as valid.
+    violations.extend(_guest_reservation_integrity_violations(tournaments))
 
     # Deterministic approval diagnostics: an approval whose
     # protected-fields fingerprint no longer matches the tournament is a

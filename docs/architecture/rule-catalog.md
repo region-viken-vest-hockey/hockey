@@ -220,6 +220,7 @@ candidate regresses a higher-priority operational obligation.
 | `team_unavailable` (verifier) | `request_team_unavailable` |
 | `minimum_gap` (verifier) | `request_minimum_gap` |
 | `opponent_avoidance` (verifier) | `request_opponent_avoidance` |
+| `guest_reservation_integrity` (verifier) | `guest_reservation_integrity` |
 | `stale_approval` (verifier) | `approval_lifecycle` |
 | `orphaned_approval` (verifier) | `approval_lifecycle` |
 | `input_constrained_shape` (finding) | `tournament_roster_shape` |
@@ -772,7 +773,7 @@ candidate regresses a higher-priority operational obligation.
 **Canonical owner:** `tournament_scheduler.guest_slots`  
 **Input / fact source:** canonical tournament guest_slot records  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.verify_candidate`  
-**Codes:** verifier — · finding — · score —  
+**Codes:** verifier `guest_reservation_integrity` · finding — · score —  
 **Providers:** mutation `guest-fill`, `guest-release` · search —  
 **Evidence / report:** `season_plan.html guest places`, `semantic audit guest_reservations`  
 **Tests:** `tests/test_guest_slots.py`  

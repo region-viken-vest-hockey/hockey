@@ -32,12 +32,17 @@ about what a reservation means.
 from __future__ import annotations
 
 import uuid
+from collections import Counter
 from typing import Any, Iterable, List, Mapping, Optional
 
 GUEST_SLOT_OPEN = "open"
 GUEST_SLOT_FILLED = "filled"
 GUEST_SLOT_RELEASED = "released"
 ACTIVE_GUEST_SLOT_STATUSES = (GUEST_SLOT_OPEN, GUEST_SLOT_FILLED)
+
+# Stable verifier code for a plan whose reservation lifecycle was corrupted or
+# consumed outside the reserve/fill/release boundary.
+GUEST_RESERVATION_INTEGRITY = "guest_reservation_integrity"
 
 # The immediate production requirement is JU10/JU12 guest opportunities, but
 # the model is deliberately age-group-agnostic: nothing below special-cases an
@@ -57,6 +62,16 @@ def _field(container: Any, name: str, default: Any = None) -> Any:
     else:
         value = getattr(container, name, None)
     return default if value is None else value
+
+
+def _has_raw_field(container: Any, name: str) -> bool:
+    """True when *name* is explicitly present, even if its value is ``None``."""
+
+    if container is None:
+        return False
+    if _is_mapping(container):
+        return name in container
+    return name in getattr(container, "__dict__", {})
 
 
 def _raw_field(container: Any, name: str, default: Any = None) -> Any:
@@ -269,9 +284,205 @@ def total_reserved_across(tournaments: Iterable[Any]) -> int:
     return sum(active_guest_slot_count(tournament) for tournament in tournaments)
 
 
+def _guest_reservation_identity(
+    record: Mapping[str, Any], fallback_age_group: str
+) -> tuple[str, str, str] | None:
+    """Canonical ``(club, label, age_group)`` an accepted reservation names.
+
+    Canonical fills persist ``external_team``; older review fixtures carry the
+    readable ``external_club``/``external_label`` pair instead. A record with
+    neither names no external team and is rejected rather than guessed at.
+    """
+
+    external = record.get("external_team")
+    if _is_mapping(external):
+        return (
+            str(external.get("club") or ""),
+            str(external.get("label") or ""),
+            str(external.get("age_group") or fallback_age_group),
+        )
+    if "external_club" in record or "external_label" in record:
+        return (
+            str(record.get("external_club") or ""),
+            str(record.get("external_label") or ""),
+            fallback_age_group,
+        )
+    return None
+
+
+def _participant_identity(team: Any, fallback_age_group: str) -> tuple[str, str, str]:
+    return (
+        str(_field(team, "club") or ""),
+        str(_field(team, "label") or ""),
+        str(_field(team, "age_group") or fallback_age_group),
+    )
+
+
+def guest_reservation_integrity_violations(
+    tournaments: Iterable[Any],
+) -> List[dict]:
+    """Return reserved-guest lifecycle violations for a candidate's tournaments.
+
+    The record list is authoritative: every active place occupies capacity, and
+    each ``filled`` reservation names exactly the external team that appears as
+    its one ``guest`` participant. A plan that drops a reservation, invents or
+    mismatches a guest participant, duplicates a reservation, or carries a
+    malformed/unknown record changed the reservation outside
+    ``reserve``/``fill``/``release`` -- evidence the ordinary capacity/shape
+    checks cannot distinguish from an intentional place that was consumed by
+    participant optimization.
+
+    Explicit ``guest_slots`` entries are validated before normalizing: a
+    non-object entry or a record missing its persisted id/status is rejected
+    rather than silently repaired, while the legacy integer-only payload stays
+    supported.
+    """
+
+    violations: List[dict] = []
+    valid_statuses = {GUEST_SLOT_OPEN, GUEST_SLOT_FILLED, GUEST_SLOT_RELEASED}
+    for tournament in tournaments:
+        if not _is_mapping(tournament) or tournament.get("cancelled"):
+            continue
+        tournament_id = str(tournament.get("id") or "")
+        age_group = str(tournament.get("age_group") or "")
+        if _has_raw_field(tournament, "guest_slots"):
+            raw_records = _raw_field(tournament, "guest_slots", None)
+            if not isinstance(raw_records, list):
+                # A present-but-non-list value is malformed: it must not be
+                # silently reinterpreted as the legacy integer-only payload.
+                violations.append(
+                    {
+                        "code": GUEST_RESERVATION_INTEGRITY,
+                        "tournament_id": tournament_id,
+                        "message": (
+                            f"Tournament {tournament_id} has a non-list guest_slots value "
+                            f"({type(raw_records).__name__}); it must be omitted or a list"
+                        ),
+                    }
+                )
+            else:
+                for index, entry in enumerate(raw_records):
+                    if not _is_mapping(entry):
+                        violations.append(
+                            {
+                                "code": GUEST_RESERVATION_INTEGRITY,
+                                "tournament_id": tournament_id,
+                                "slot_index": index,
+                                "message": (
+                                    f"Tournament {tournament_id} guest_slots[{index}] is not a "
+                                    "reservation object"
+                                ),
+                            }
+                        )
+                        continue
+                    if not str(entry.get("id") or "").strip():
+                        violations.append(
+                            {
+                                "code": GUEST_RESERVATION_INTEGRITY,
+                                "tournament_id": tournament_id,
+                                "slot_index": index,
+                                "message": (
+                                    f"Tournament {tournament_id} guest_slots[{index}] has no "
+                                    "persisted id"
+                                ),
+                            }
+                        )
+                    status = entry.get("status")
+                    if str(status or "") not in valid_statuses:
+                        violations.append(
+                            {
+                                "code": GUEST_RESERVATION_INTEGRITY,
+                                "tournament_id": tournament_id,
+                                "slot_index": index,
+                                "status": status,
+                                "message": (
+                                    f"Tournament {tournament_id} guest_slots[{index}] has no "
+                                    f"valid lifecycle status (got {status!r})"
+                                ),
+                            }
+                        )
+        seen_ids: set[str] = set()
+        filled_identities: List[tuple[str, str, str]] = []
+        for record in guest_slot_records(tournament):
+            slot_id = str(record.get("id") or "")
+            status = str(record.get("status") or GUEST_SLOT_OPEN)
+            if status not in valid_statuses:
+                violations.append(
+                    {
+                        "code": GUEST_RESERVATION_INTEGRITY,
+                        "tournament_id": tournament_id,
+                        "slot_id": slot_id,
+                        "message": (
+                            f"Guest reservation {slot_id!r} in {tournament_id} has unknown "
+                            f"status {status!r}"
+                        ),
+                    }
+                )
+            if slot_id and slot_id in seen_ids:
+                violations.append(
+                    {
+                        "code": GUEST_RESERVATION_INTEGRITY,
+                        "tournament_id": tournament_id,
+                        "slot_id": slot_id,
+                        "message": f"Guest reservation id {slot_id!r} is duplicated in {tournament_id}",
+                    }
+                )
+            seen_ids.add(slot_id)
+            if status != GUEST_SLOT_FILLED:
+                continue
+            identity = _guest_reservation_identity(record, age_group)
+            if identity is None or not identity[1]:
+                violations.append(
+                    {
+                        "code": GUEST_RESERVATION_INTEGRITY,
+                        "tournament_id": tournament_id,
+                        "slot_id": slot_id,
+                        "message": (
+                            f"Filled guest reservation {slot_id!r} in {tournament_id} names no "
+                            "external team"
+                        ),
+                    }
+                )
+                continue
+            filled_identities.append(identity)
+
+        guest_identities = [_participant_identity(team, age_group) for team in guest_teams(tournament)]
+        if Counter(filled_identities) != Counter(guest_identities):
+            violations.append(
+                {
+                    "code": GUEST_RESERVATION_INTEGRITY,
+                    "tournament_id": tournament_id,
+                    "filled_reservations": len(filled_identities),
+                    "guest_participants": len(guest_identities),
+                    "message": (
+                        f"Tournament {tournament_id} has {len(filled_identities)} filled guest "
+                        f"reservation(s) naming {sorted(filled_identities)} but "
+                        f"{len(guest_identities)} guest participant(s) "
+                        f"{sorted(guest_identities)}; a reserved place was consumed, mismatched "
+                        "or added outside the guest reserve/fill/release lifecycle"
+                    ),
+                }
+            )
+        for identity, count in Counter(filled_identities).items():
+            if count > 1:
+                violations.append(
+                    {
+                        "code": GUEST_RESERVATION_INTEGRITY,
+                        "tournament_id": tournament_id,
+                        "external_team": list(identity),
+                        "message": (
+                            f"Tournament {tournament_id} has {count} filled guest reservations "
+                            f"naming the same external team {identity[1]!r}"
+                        ),
+                    }
+                )
+    return violations
+
+
 __all__ = [
     "ACTIVE_GUEST_SLOT_STATUSES",
     "DEFAULT_GUEST_AGE_GROUPS",
+    "GUEST_RESERVATION_INTEGRITY",
     "GUEST_SLOT_FILLED",
     "GUEST_SLOT_OPEN",
     "GUEST_SLOT_RELEASED",
@@ -279,6 +490,7 @@ __all__ = [
     "active_guest_slots",
     "capacity_places",
     "filled_guest_slots",
+    "guest_reservation_integrity_violations",
     "guest_slot_records",
     "guest_slot_summary",
     "guest_teams",
