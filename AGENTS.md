@@ -107,6 +107,19 @@ A persistent scheduling invariant must not live only in a baseline generator, on
 
 For obligations such as hosting, keep **responsibility** separate from **automatic placement**. If the fair/intended host has no trustworthy/legal slot, preserve that host responsibility and surface manual placement; do not silently move the burden to another club merely because its calendar is easier.
 
+### Design for agent locality and safe change
+
+Before adding a feature or modifying an existing one, briefly identify the **canonical owner, stable caller-facing boundary, adjacent responsibilities, and tests**. Ask whether the proposed change can be understood and verified by reading a small, cohesive set of complete modules. This is a design check, not a requirement to refactor every touched file.
+
+- Prefer one responsibility and one reason to change per module. If a file mixes unrelated use cases (for example source policy, evidence refresh, booking decisions and persistence), consider extracting focused internal modules behind the existing public facade before adding more behavior. Preserve one implementation of each rule and one persistence/authority owner.
+- Keep public CLI, service, schema and adapter contracts stable where practical. New internal modules should depend on shared domain/pure helpers, not each other cyclically; avoid generic dumping-ground helpers, duplicated policy and unnecessary one-function files.
+- For a narrow change, inspect the entry point, canonical owner and directly relevant dependencies/tests first; use symbol search and targeted reads rather than loading unrelated large files. Update the compact architecture/navigation map when an owner moves so future agents can find it.
+- Do not turn a behavioral fix into a broad structural rewrite. If extraction is needed for a safe change, characterize current behavior first, extract in small reviewable steps, and keep any discovered behavior defect in a separately scoped change.
+- For a structural refactor, compare before/after observable behavior (including failures, deterministic outputs, fingerprints, revisions, evidence provenance and write ordering where relevant), preserve monkeypatch/import seams, and run targeted plus broader tests. Never use live season refresh, export or publication as a refactor test, and do not include incidental tracked season/generated-artifact changes.
+- If the module is already cohesive and the change is localized, leave it alone even if it is long. Optimize for accuracy, explicit ownership and ease of review—not arbitrary file-size or abstraction targets.
+
+Apply this check in Claude, Pi, Codex, ChatGPT and future harnesses through this shared file; do not copy it into harness-specific adapters.
+
 ### Direct cleanup vs tracked feature work
 
 - Routine non-critical cleanup, refactoring, documentation/test hygiene, and planner-internal cleanup that **does not intentionally change planning semantics** may be implemented directly on `main` when direct-main work is authorized. Do not create a GitHub issue merely as bookkeeping for that cleanup.
