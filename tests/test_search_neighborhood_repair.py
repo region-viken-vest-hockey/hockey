@@ -120,6 +120,73 @@ def test_bounded_search_exposes_only_a_verified_participant_swap():
     assert repair_set["repair_neighborhood"]["tournament_ids"] == ["t1", "t2"]
 
 
+def test_bounded_search_ignores_unrelated_accepted_short_booking():
+    candidate = _candidate()
+    accepted_teams = [
+        _team("Jar", "Jar 1", "U11"),
+        _team("Jar", "Jar 2", "U11"),
+        _team("Jar", "Jar 3", "U11"),
+    ]
+    candidate["tournaments"].append(
+        _tournament(
+            "accepted-short",
+            "Jar",
+            accepted_teams,
+            date="2026-09-12",
+            arena="Jar Arena",
+            age="U11",
+        )
+    )
+    problem = _problem(
+        teams=_problem()["teams"] + accepted_teams,
+        parallel_games={"U10": 2, "U11": 2},
+        ice_time_minutes={"U11": 120},
+        ice_time_minutes_overrides={"accepted-short": 110},
+        calendar_booking_associations=[
+            {
+                "id": "calendar_booking:event:accepted-short",
+                "status": "active",
+                "event_fingerprint": "event",
+                "tournament_id": "accepted-short",
+                "club": "Jar",
+                "date": "2026-09-12",
+                "start": "10:00",
+                "end": "11:50",
+                "tournament_facts": {
+                    "host_club": "Jar",
+                    "arena": "Jar Arena",
+                    "date": "2026-09-12",
+                    "start_time": "10:00",
+                    "age_group": "U11",
+                },
+                "tournament_interval": {
+                    "date": "2026-09-12",
+                    "start_time": "10:00",
+                    "duration_minutes": "110",
+                    "end_time": "11:50",
+                },
+            }
+        ],
+    )
+
+    repair_set = enumerate_search_neighborhood_repairs(candidate, problem, run_id="r1")
+
+    assert repair_set["applicable"] is True
+    assert repair_set["options"], repair_set["rejected_candidates"]
+    option = repair_set["options"][0]
+    assert option["hard_feasible"] is True
+    assert option["effects"]["hard_violation_delta_by_code"] == {"host_team_missing": -1}
+    assert repair_set["repair_neighborhood"]["age_groups"] == ["U10"]
+    assert "accepted-short" not in repair_set["repair_neighborhood"]["tournament_ids"]
+    result_candidate = repair_set["result_candidates"][option["option_id"]]
+    accepted_after = next(
+        tournament
+        for tournament in result_candidate["tournaments"]
+        if tournament["id"] == "accepted-short"
+    )
+    assert accepted_after == candidate["tournaments"][-1]
+
+
 def test_apply_moves_the_host_team_and_preserves_participation_totals():
     candidate = _candidate()
     original = deepcopy(candidate)

@@ -37,6 +37,7 @@ from tournament_scheduler.operational_acceptability import (
     required_opt_in_flags,
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
+from tournament_scheduler.final_verification import verify_canonical_candidate
 from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
 from tournament_scheduler.published_baseline import (
     assert_season_allows_global_regeneration,
@@ -405,9 +406,13 @@ def apply_candidate(
         else problem
     )
     result = (
-        verify_candidate(normalized_candidate, verification_problem)
+        verify_canonical_candidate(
+            normalized_candidate,
+            verification_problem,
+            base_verifier=verify_candidate,
+        )
         if verification_problem
-        else verify_candidate(normalized_candidate)
+        else verify_canonical_candidate(normalized_candidate, base_verifier=verify_candidate)
     )
     if not result.get("ok", True):
         messages = "; ".join(
@@ -419,9 +424,13 @@ def apply_candidate(
 
     before_plan = schedule.get("plan") or {}
     before_verification = (
-        verify_candidate(dict(before_plan), verification_problem)
+        verify_canonical_candidate(
+            dict(before_plan),
+            verification_problem,
+            base_verifier=verify_candidate,
+        )
         if verification_problem
-        else verify_candidate(dict(before_plan))
+        else verify_canonical_candidate(dict(before_plan), base_verifier=verify_candidate)
     )
     operational_acceptability = check_operational_acceptability(
         before_plan,

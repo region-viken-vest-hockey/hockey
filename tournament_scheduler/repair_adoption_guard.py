@@ -46,7 +46,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 from .pipeline.fingerprints import stable_payload_sha256
-from .planning_contract import score_candidate, verify_candidate
+from .final_verification import verify_canonical_candidate
+from .planning_contract import score_candidate
 from .quality_objectives import compare_quality_scores, with_unresolved_obligations_count
 from .rule_catalog import (
     CATALOG_BY_ID,
@@ -786,8 +787,8 @@ def evaluate_adoption(
     after_score = with_unresolved_obligations_count(
         score_candidate(dict(candidate_plan), problem=dict(problem) if problem is not None else None)
     )
-    before_verification = verify_candidate(dict(before_plan), dict(problem) if problem is not None else None)
-    after_verification = verify_candidate(dict(candidate_plan), dict(problem) if problem is not None else None)
+    before_verification = verify_canonical_candidate(dict(before_plan), dict(problem) if problem is not None else None)
+    after_verification = verify_canonical_candidate(dict(candidate_plan), dict(problem) if problem is not None else None)
     before_travel = compute_travel(before_plan)
     after_travel = compute_travel(candidate_plan)
 

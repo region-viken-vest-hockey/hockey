@@ -23,7 +23,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.final_verification import verify_canonical_candidate
 
 from .shared import (
     _operator_identity,
@@ -279,7 +279,7 @@ def replace_participant(
             f"Refusing canonical participant replacement: candidate violates canonical locks: {messages}"
         )
 
-    result = verify_candidate(plan, resolved_problem)
+    result = verify_canonical_candidate(plan, resolved_problem)
     if not result.get("ok", True):
         messages = "; ".join(
             str(v.get("message") or v.get("code"))

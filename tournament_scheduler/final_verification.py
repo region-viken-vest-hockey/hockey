@@ -416,3 +416,36 @@ def verify_final_candidate(
     result["publication_readiness"] = readiness
     result["publishable"] = readiness["publishable"]
     return result
+
+
+def verify_canonical_candidate(
+    candidate: dict[str, Any],
+    problem: dict[str, Any] | None = None,
+    *,
+    base_verifier: Any | None = None,
+) -> dict[str, Any]:
+    """Verify a promoted-season candidate against effective canonical evidence.
+
+    Canonical maintenance/search evaluates changes relative to a state that may
+    already contain explicitly accepted, source-backed booking intervals.  Those
+    unchanged exact intervals must be classified the same way as findings and
+    export: as booking-feasibility follow-up, not as newly introduced hard
+    placement failures.  New, stale or materially changed intervals remain hard
+    failures because :func:`accepted_booking_interval_evidence` requires an
+    exact current interval and tournament-facts match.
+    """
+
+    verifier = base_verifier or _verify_candidate
+    result = dict(verifier(candidate, problem))
+    violations = [dict(item) for item in (result.get("violations") or [])]
+    accepted_floor_findings, violations = _reclassify_accepted_booking_floor(
+        problem, candidate, violations
+    )
+    result["booking_feasibility_warnings"] = accepted_floor_findings
+    result["violations"] = violations
+    annotate_violations(result["violations"])
+    result["ok"] = not violations
+    readiness = publication_readiness(result)
+    result["publication_readiness"] = readiness
+    result["publishable"] = readiness["publishable"]
+    return result

@@ -29,7 +29,7 @@ from tournament_scheduler.operational_acceptability import (
     required_opt_in_flags,
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.final_verification import verify_canonical_candidate
 
 from .shared import (
     _operator_identity,
@@ -204,7 +204,11 @@ def move_tournament(
     original_placement = move_result["original_placement"]
     original_tournament_fingerprint = move_result["original_fingerprint"]
 
-    result = verify_candidate(plan, resolved_problem) if resolved_problem else verify_candidate(plan)
+    result = (
+        verify_canonical_candidate(plan, resolved_problem)
+        if resolved_problem
+        else verify_canonical_candidate(plan)
+    )
     if not result.get("ok", True):
         messages = "; ".join(
             str(v.get("message") or v.get("code")) for v in result.get("violations", [])
@@ -213,9 +217,9 @@ def move_tournament(
             f"Refusing canonical mutation: candidate fails hard verification: {messages}"
         )
     before_verification = (
-        verify_candidate(dict(schedule.get("plan") or {}), resolved_problem)
+        verify_canonical_candidate(dict(schedule.get("plan") or {}), resolved_problem)
         if resolved_problem
-        else verify_candidate(dict(schedule.get("plan") or {}))
+        else verify_canonical_candidate(dict(schedule.get("plan") or {}))
     )
     operational_acceptability = check_operational_acceptability(
         schedule.get("plan") or {},

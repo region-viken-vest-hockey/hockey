@@ -39,7 +39,7 @@ from .hosting_responsibility import (
     responsibility_regression_reason,
     unexplained_responsibility_transfers,
 )
-from .planning_contract import verify_candidate
+from .final_verification import verify_canonical_candidate
 from .stage3_optimizer import optimize_candidate
 
 SEARCH_ENGINE = "local_search"
@@ -73,6 +73,12 @@ SEARCHABLE_VIOLATION_CODES = frozenset(
 # date rather than reshuffling existing dates, so the search must enable the
 # within-half date-move dimension for them.
 DATE_MOVE_VIOLATION_CODES = frozenset({"holiday_date_used"})
+
+
+def verify_candidate(candidate: Mapping[str, Any], problem: Mapping[str, Any] | None = None) -> Dict[str, Any]:
+    """Module-local hard-validity seam for bounded canonical search."""
+
+    return verify_canonical_candidate(dict(candidate), dict(problem) if problem is not None else None)
 
 
 def findings_are_locally_searchable(codes: Iterable[str]) -> bool:
