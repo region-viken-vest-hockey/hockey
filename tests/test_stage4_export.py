@@ -513,12 +513,19 @@ class TestRunStage4:
             "plan": plan,
             "canonical_state": {"season": "fixture-2026", "revision": "fixture-revision"},
         }
+        # issue #504: the Stage 4 export gate now runs the full final verifier
+        # (not just the planning-time self-consistency checks). Leave
+        # `rounds_per_tournament` unset for U10 here -- this fixture is about
+        # the canonical projection boundary keeping frozen booking-assessment
+        # diagnostics out of schedule artifacts, not round-shape validation,
+        # and a configured round count would require a complete registered
+        # Stage-1 team pool (unrelated to what this test checks) to avoid a
+        # spurious `configured_round_count_mismatch`/`bye_team_not_allowed`.
         verification_problem = {
             "start_date": "2026-10-01",
             "end_date": "2026-11-15",
             "round_length_minutes": {"U10": 15},
             "ice_time_minutes": {"U10": 120},
-            "rounds_per_tournament": {"U10": 1},
         }
         effective_config = {
             **verification_problem,
@@ -2316,6 +2323,85 @@ class TestHardVerificationBeforeExport:
         assert result["verify_result"]["ok"] is True
         assert result["verify_result"]["violations"] == []
         assert isinstance(result["export_fingerprint"], str) and result["export_fingerprint"]
+
+    def test_accepted_below_floor_booking_exports_as_warning_not_violation(self, tmp_path):
+        """issue #504: a source-confirmed accepted booking interval below the
+        governing floor must reach export as a non-blocking feasibility
+        warning, not re-block the pre-serialization hard gate -- the gate must
+        route through ``verify_final_candidate`` (which reclassifies) rather
+        than the strict planning-time ``verify_candidate``."""
+        state = PipelineState(tmp_path / "pipeline")
+        plan_checkpoint = _make_plan_dict()
+        problem = {
+            "start_date": "2025-09-01",
+            "end_date": "2025-12-01",
+            "ice_time_minutes": {"U10": 120},
+            "ice_time_minutes_overrides": {"rvv-0001": 110},
+            "calendar_booking_associations": [
+                {
+                    "id": "calendar_booking:event:rvv-0001",
+                    "status": "active",
+                    "event_fingerprint": "event",
+                    "tournament_id": "rvv-0001",
+                    "club": "Kongsberg",
+                    "date": "2025-10-05",
+                    "start": "09:00",
+                    "end": "10:50",
+                    "tournament_facts": {
+                        "host_club": "Kongsberg",
+                        "arena": "Kongsberghallen",
+                        "date": "2025-10-05",
+                        "start_time": "09:00",
+                        "age_group": "U10",
+                    },
+                    "tournament_interval": {
+                        "date": "2025-10-05",
+                        "start_time": "09:00",
+                        "duration_minutes": "110",
+                        "end_time": "10:50",
+                    },
+                }
+            ],
+        }
+
+        result = run(
+            plan_checkpoint,
+            state,
+            export_dir=str(tmp_path / "export"),
+            timestamped_export=False,
+            verification_problem=problem,
+        )
+
+        assert result["verify_result"]["ok"] is True, result["verify_result"]["violations"]
+        warnings = result["verify_result"].get("booking_feasibility_warnings") or []
+        assert [w["code"] for w in warnings] == ["ice_time_governing_minimum"]
+        assert all(w.get("accepted_booking_interval") for w in warnings)
+
+    def test_unsupported_below_floor_booking_still_blocks_export(self, tmp_path):
+        """The same below-floor override with no accepted booking evidence for
+        the exact interval must still hard-fail export -- the reclassification
+        may never apply to an unconfirmed/proposed placement."""
+        state = PipelineState(tmp_path / "pipeline")
+        plan_checkpoint = _make_plan_dict()
+        problem = {
+            "start_date": "2025-09-01",
+            "end_date": "2025-12-01",
+            "ice_time_minutes": {"U10": 120},
+            "ice_time_minutes_overrides": {"rvv-0001": 110},
+        }
+
+        with pytest.raises(Stage4Error, match="ice_time_governing_minimum"):
+            run(
+                plan_checkpoint,
+                state,
+                export_dir=str(tmp_path / "export"),
+                timestamped_export=False,
+                verification_problem=problem,
+            )
+
+        envelope = state.read_envelope(StageName.EXPORT)
+        assert envelope["status"] == StageStatus.FAILED.value
+        assert envelope["data"]["verify_result"]["ok"] is False
 
     def test_export_fingerprint_is_stable_for_identical_candidates(self, tmp_path):
         from tournament_scheduler.planning_contract import extract_candidate

@@ -9,7 +9,6 @@ run's config/calendar evidence could silently change what "verified" meant.
 
 from __future__ import annotations
 
-import itertools
 import json
 import shutil
 from pathlib import Path
@@ -61,10 +60,23 @@ def _write_input_workbook(path: Path, raw: dict) -> None:
 
 
 def _round_robin_games(labels: list[str]) -> list[dict]:
-    return [
-        {"home": home, "away": away, "parallel_slot": 0, "round_number": 1 + index // 2}
-        for index, (home, away) in enumerate(itertools.combinations(labels, 2))
-    ]
+    """Real single round-robin schedule (circle method) that never schedules
+    the same team twice within a round -- an odd pool gets a per-round bye,
+    matching what issue #504's final verifier now also checks at export."""
+    rotation: list[str | None] = list(labels)
+    if len(rotation) % 2 == 1:
+        rotation.append(None)
+    n = len(rotation)
+    games: list[dict] = []
+    for round_number in range(1, n):
+        for i in range(n // 2):
+            home, away = rotation[i], rotation[n - 1 - i]
+            if home is not None and away is not None:
+                games.append(
+                    {"home": home, "away": away, "parallel_slot": 0, "round_number": round_number}
+                )
+        rotation.insert(1, rotation.pop())
+    return games
 
 
 def _odd_team_plan() -> dict:

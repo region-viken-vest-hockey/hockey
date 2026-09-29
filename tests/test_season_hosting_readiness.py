@@ -9,7 +9,6 @@ fresh deterministic verifier result, not the pre-mutation snapshot.
 
 from __future__ import annotations
 
-import itertools
 from pathlib import Path
 
 from tournament_scheduler.pipeline.audit_context import build_audit_context, build_audit_evidence
@@ -19,10 +18,22 @@ from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_e
 
 
 def _round_robin(labels: list[str]) -> list[dict]:
-    return [
-        {"home": home, "away": away, "parallel_slot": 0, "round_number": 1 + index // 2}
-        for index, (home, away) in enumerate(itertools.combinations(labels, 2))
-    ]
+    """Circle-method round robin: never schedules the same team twice within
+    a round (issue #504's export gate now checks this)."""
+    rotation: list[str | None] = list(labels)
+    if len(rotation) % 2 == 1:
+        rotation.append(None)
+    n = len(rotation)
+    games: list[dict] = []
+    for round_number in range(1, n):
+        for i in range(n // 2):
+            home, away = rotation[i], rotation[n - 1 - i]
+            if home is not None and away is not None:
+                games.append(
+                    {"home": home, "away": away, "parallel_slot": 0, "round_number": round_number}
+                )
+        rotation.insert(1, rotation.pop())
+    return games
 
 
 def _teams() -> list[dict]:
