@@ -26,7 +26,6 @@ from tournament_scheduler.calendar_bookings import (
     MANUAL_BOOKING_STATUS_CHOICES,
     TOURNAMENT_BOOKING_EVIDENCE_KEY,
     active_club_booking_source_for_club,
-    associated_tournament_for_event,
     association_findings,
     booking_assessment,
     booking_status_report as _booking_status_report,
@@ -1158,16 +1157,23 @@ def _auto_associate_own_calendar_event(
     misread as a third-party ``manual_external_conflict_placements`` conflict
     once the interval is aligned (issue #556 follow-up). Only ever link when
     exactly one fixed-busy event on that date carries this tournament's exact
-    age-group token and is not already claimed by a different tournament; a
-    genuinely ambiguous day (several same-age events, or none) is left for the
-    operator rather than guessed at.
+    age-group token, the club's calendar evidence is trustworthy enough to
+    support a positive claim (mirrors ``confirm_calendar_booking``'s own gate),
+    the event's arena/location does not contradict the tournament's arena when
+    the event actually states one, and the event is not already claimed by a
+    different tournament. A genuinely ambiguous day (several same-age events,
+    an untrusted source, a venue mismatch, or none) is left for the operator
+    rather than guessed at.
     """
 
     club = str(tournament.get("host_club") or "")
     date = str(tournament.get("date") or "")
+    arena = str(tournament.get("arena") or "")
     age_group = str(tournament.get("age_group") or "").upper()
     tournament_id = str(tournament.get("id") or "")
     if not club or not date or not age_group or not tournament_id or problem is None:
+        return decisions
+    if not club_calendar_positive_evidence_usable(problem, club):
         return decisions
     busy = ((problem.get("club_busy_intervals") or {}).get(club)) or []
     candidates = []
@@ -1176,6 +1182,9 @@ def _auto_associate_own_calendar_event(
             continue
         if interval_availability(entry) != CalendarAvailability.FIXED_BUSY:
             continue
+        event_venue = str(entry.get("arena") or entry.get("location") or "").strip()
+        if event_venue and arena and event_venue.lower() != arena.strip().lower():
+            continue
         if age_group in _calendar_event_age_tokens(entry.get("calendar_event") or entry.get("title")):
             candidates.append(entry)
     if len(candidates) != 1:
@@ -1183,8 +1192,17 @@ def _auto_associate_own_calendar_event(
     event = dict(candidates[0])
     event["club"] = club
     event["fingerprint"] = event_fingerprint(event)
-    if associated_tournament_for_event(problem, event) is not None:
-        return decisions
+    # Raw, unfiltered ownership check: a staleness-projected "valid
+    # associations" view can omit a still-active record held by a different
+    # tournament (issue #558 review), which must never be silently reclaimed.
+    for record in decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []:
+        if not isinstance(record, Mapping) or str(record.get("status") or "active") != "active":
+            continue
+        if str(record.get("event_fingerprint") or "") != event["fingerprint"]:
+            continue
+        owner = str(record.get("tournament_id") or "")
+        if owner:
+            return decisions
     updated = dict(decisions)
     records = [
         dict(record)
