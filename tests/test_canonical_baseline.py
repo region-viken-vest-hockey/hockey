@@ -448,6 +448,100 @@ def test_export_verification_problem_carries_canonical_locks(tmp_path):
     assert not verify_candidate(moved, problem)["ok"]
 
 
+def test_export_verification_problem_prefers_canonical_calendar_evidence(tmp_path):
+    """A promoted season's export gate must use canonical, refreshed calendar
+    evidence, not a stale ``.pipeline`` Stage 2 checkpoint.
+
+    ``season refresh-calendars`` writes live evidence into canonical
+    ``schedule.json``'s ``verification_context`` -- the same source every
+    ordinary ``season`` command (``load_context``/``_problem_from_schedule``)
+    verifies against. The Stage 4 export gate historically rebuilt its
+    calendar evidence from the mutable ``.pipeline/stage2_scraping.json``
+    checkpoint instead, which ``refresh-calendars`` never touches, so an
+    already-confirmed booking could look stale/unconfirmed at export/publish
+    time while ``season findings`` correctly reported it as fine.
+    """
+
+    from tournament_scheduler.pipeline.stage4_export_verification import (
+        _build_export_verification_problem,
+    )
+
+    root = _promote(tmp_path, [_tournament("t1")])
+
+    fresh_event = {
+        "availability": "fixed_busy",
+        "calendar_event": "U10 Serierunde",
+        "date": "2026-09-12",
+        "start": "10:00",
+        "end": "11:50",
+        "club": "A",
+    }
+    schedule_path = root / "2026-2027" / "schedule.json"
+    schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+    schedule["verification_context"]["problem"]["club_busy_intervals"] = {"A": [fresh_event]}
+    schedule["verification_context"]["problem"]["club_calendar_status"] = {"A": "known"}
+    schedule_path.write_text(json.dumps(schedule), encoding="utf-8")
+
+    state = PipelineState(tmp_path / ".pipeline")
+    state.write_stage(
+        StageName.CONFIG,
+        {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "teams": _teams(),
+            "canonical_season_root": str(root),
+        },
+        status=StageStatus.DONE,
+    )
+    # A stale Stage 2 pipeline checkpoint that predates the refresh above --
+    # this must not shadow the canonical evidence for a promoted season.
+    state.write_stage(
+        StageName.SCRAPING,
+        {"events_by_club": {}, "club_calendar_status": {"A": "unknown"}},
+        status=StageStatus.DONE,
+    )
+
+    problem = _build_export_verification_problem(
+        {"start_date": "2026-09-01", "end_date": "2027-04-30", "teams": _teams(), "canonical_season_root": str(root)},
+        state,
+    )
+
+    assert problem is not None
+    assert problem["club_busy_intervals"]["A"] == [fresh_event]
+    assert problem["club_calendar_status"]["A"] == "known"
+
+
+def test_export_verification_problem_uses_stage2_checkpoint_when_not_canonical(tmp_path):
+    """The from-scratch Stage 1-4 pipeline path (no promoted season) is unchanged:
+    calendar evidence still comes from the Stage 2 checkpoint on disk."""
+
+    from tournament_scheduler.pipeline.stage4_export_verification import (
+        _build_export_verification_problem,
+    )
+
+    state = PipelineState(tmp_path / ".pipeline")
+    stage2_event = {
+        "date": "2026-09-12",
+        "name": "Stage 2 event",
+        "datetime": "2026-09-12T10:00:00",
+        "duration_hours": 1.5,
+    }
+    state.write_stage(
+        StageName.SCRAPING,
+        {"events_by_club": {"A": [stage2_event]}, "club_calendar_status": {"A": "known"}},
+        status=StageStatus.DONE,
+    )
+
+    problem = _build_export_verification_problem(
+        {"start_date": "2026-09-01", "end_date": "2027-04-30", "teams": _teams()},
+        state,
+    )
+
+    assert problem is not None
+    assert problem["club_busy_intervals"].get("A")
+    assert problem["club_calendar_status"]["A"] == "known"
+
+
 def _team(club, label, age_group="U10"):
     return {"club": club, "label": label, "age_group": age_group}
 
