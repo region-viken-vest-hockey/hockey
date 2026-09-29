@@ -1130,7 +1130,7 @@
       }
     }
   ],
-  "canonical_state_revision": "cf66fa9bad7a061d18d7173d2379d8c250cc173fe8a242ecbf183d4d68e0f674",
+  "canonical_state_revision": "0a599d776a404da58f591d48727e5ae9814affadd6482b3c8841409bb6fb036f",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -7621,16 +7621,12 @@
     }
   },
   "export_state": {
-    "calendar_fingerprint": "7b3066fbf575e0dea7fcb7f7cd90e723f069bb2728367a4fbb039f6c184d610c",
-    "export_dir": "export/2026-09-28T2035",
-    "fresh_at": "2026-09-28T20:35:37.427730+00:00",
-    "fresh_by": "niclasl",
-    "fresh_canonical_revision": "cf66fa9bad7a061d18d7173d2379d8c250cc173fe8a242ecbf183d4d68e0f674",
+    "calendar_fingerprint": "937827ba5e13fdbbc9e9363ea5782c107f2b33e902a58007a4c41ed72c30dc05",
     "requires_fresh_audit": true,
-    "requires_fresh_export": false,
-    "stale_at": "2026-09-28T18:46:20.990280+00:00",
+    "requires_fresh_export": true,
+    "stale_at": "2026-09-29T06:09:55.210438+00:00",
     "stale_reason": "calendar_evidence_refreshed",
-    "status": "fresh"
+    "status": "stale"
   },
   "history": [
     {
@@ -42627,6 +42623,44 @@
       },
       "event": "mark_export_fresh",
       "note": "canonical export",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T06:09:55.210438+00:00",
+      "details": {
+        "blocked_sources": [],
+        "calendar_fingerprint": "937827ba5e13fdbbc9e9363ea5782c107f2b33e902a58007a4c41ed72c30dc05",
+        "planned_tournament_reconciliation": {
+          "Kongsberg": {
+            "count": 10,
+            "requires_review_count": 10
+          },
+          "Ringerike": {
+            "count": 23,
+            "requires_review_count": 23
+          }
+        },
+        "previous_calendar_fingerprint": "7b3066fbf575e0dea7fcb7f7cd90e723f069bb2728367a4fbb039f6c184d610c",
+        "previous_snapshot": {
+          "calendar_fingerprint": "7b3066fbf575e0dea7fcb7f7cd90e723f069bb2728367a4fbb039f6c184d610c",
+          "captured_at": "2026-09-29T06:09:55.210438+00:00",
+          "had_prior_calendar_evidence": true,
+          "had_prior_source_policy": true,
+          "path": "evidence/calendar/357e814a46bbc69b144a9d4f55d241e8fdae6f28e54728bce392420270a12b60.json",
+          "sha256": "357e814a46bbc69b144a9d4f55d241e8fdae6f28e54728bce392420270a12b60",
+          "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0"
+        },
+        "source_count": 9,
+        "source_policy_changes": [],
+        "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0",
+        "stage2_fingerprint": "06893f80b7dd9c9aeed6a4a0eb197dfaec28b821df1bedfd4969cc9efa47c82d"
+      },
+      "event": "refresh_calendar_evidence",
+      "note": "Refresh Frisk Asker (and other) calendar evidence before re-checking worksheet reconciliation against live calendars",
       "previous_fingerprint": null,
       "schedule_fingerprint": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141",
       "tournament_fingerprint": null,
@@ -97606,5 +97640,5 @@
       "tournament_id": "rvv-0187"
     }
   ],
-  "updated_at": "2026-09-28T20:35:37.427730+00:00"
+  "updated_at": "2026-09-29T06:09:55.210438+00:00"
 }
