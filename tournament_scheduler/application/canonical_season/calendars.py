@@ -1451,9 +1451,13 @@ def confirm_calendar_booking(
     verification = verify_candidate(updated_schedule["plan"], verification_problem) if verification_problem else verify_candidate(updated_schedule["plan"])
     hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
     booking_feasibility_warnings = [
+        warning
+        for warning in (verification.get("booking_feasibility_warnings") or [])
+        if str(warning.get("tournament_id") or "") == tournament_id
+    ] + [
         blocker
         for blocker in hard_blockers
-        if str(blocker.get("code") or "") in {"ice_time_playing_minimum", "ice_time_governing_minimum"}
+        if str(blocker.get("code") or "") == "ice_time_governing_minimum"
     ]
     # An event-authoritative interval is accepted even when it is shorter than a
     # planning minimum, but the deviation must stay durably attached to the
@@ -1733,10 +1737,13 @@ def set_manual_booking_assertion(
         verification = verify_candidate(updated_schedule["plan"], verification_problem) if verification_problem else verify_candidate(updated_schedule["plan"])
         hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
         booking_feasibility_warnings = [
+            warning
+            for warning in (verification.get("booking_feasibility_warnings") or [])
+            if str(warning.get("tournament_id") or "") == tournament_id
+        ] + [
             blocker
             for blocker in hard_blockers
-            if str(blocker.get("code") or "")
-            in {"ice_time_playing_minimum", "ice_time_governing_minimum", "arena_interval_conflict"}
+            if str(blocker.get("code") or "") == "ice_time_governing_minimum"
         ]
         blockers = [blocker for blocker in hard_blockers if blocker not in booking_feasibility_warnings] + unresolved_blockers
         if blockers:

@@ -243,7 +243,7 @@ def test_booked_source_interval_updates_canonical_occupancy(tmp_path):
     assert item["interval_follow_up"] == ["ice_time_governing_minimum"]
 
 
-def test_real_overlapping_source_intervals_are_recorded_with_blocking_follow_up(tmp_path):
+def test_real_overlapping_source_intervals_are_rejected_as_hard_conflicts(tmp_path):
     t2_teams = [
         {"club": "A", "label": "A2", "age_group": "U10"},
         *_teams(("E", "F", "G")),
@@ -257,41 +257,20 @@ def test_real_overlapping_source_intervals_are_recorded_with_blocking_follow_up(
     )
     problem = {**_host_a_problem([]), "teams": _teams(("A", "B", "C", "D", "E", "F", "G")) + [t2_teams[0]]}
     source = _source_set(root)["source"]
-    _interpretation(
-        root,
-        tournament_id="t1",
-        source_id=source["id"],
-        problem=problem,
-        stated_date="2026-09-13",
-        stated_start="12:30",
-        stated_end="14:30",
-    )
-    result = _interpretation(
-        root,
-        tournament_id="t2",
-        source_id=source["id"],
-        problem=problem,
-        stated_date="2026-09-13",
-        stated_start="14:00",
-        stated_end="16:00",
-    )
+    with pytest.raises(Exception, match="Arena conflict"):
+        _interpretation(
+            root,
+            tournament_id="t1",
+            source_id=source["id"],
+            problem=problem,
+            stated_date="2026-09-13",
+            stated_start="12:30",
+            stated_end="14:30",
+        )
 
-    assert [warning["code"] for warning in result["booking_feasibility_warnings"]] == [
-        "arena_interval_conflict"
-    ]
     report = booking_status_report(season="2026-2027", root=root, problem=problem)
-    row = next(row for row in report["tournaments"] if row["tournament_id"] == "t2")
-    assert row["status"] == "manually_booked"
-    assert "arena_interval_conflict" in row["follow_up_reasons"]
-    sources = club_booking_sources(season="2026-2027", root=root, problem=problem)
-    t2 = next(item for item in sources["sources"][0]["tournaments"] if item["tournament_id"] == "t2")
-    assert "arena_interval_conflict" in t2["interval_follow_up"]
-
-    from tournament_scheduler.final_verification import verify_final_candidate
-
-    publication_gate = verify_final_candidate(load_schedule("2026-2027", root=root)["plan"], problem)
-    assert publication_gate["publication_readiness"]["status"] == "INVALID"
-    assert "arena_interval_conflict" in {item["code"] for item in publication_gate["violations"]}
+    row = next(row for row in report["tournaments"] if row["tournament_id"] == "t1")
+    assert row["status"] != "manually_booked"
 
 
 def test_adjacent_booked_source_intervals_use_actual_duration_for_conflicts(tmp_path):

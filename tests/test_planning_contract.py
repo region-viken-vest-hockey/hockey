@@ -110,6 +110,181 @@ class TestVerifyCandidateSelfConsistency:
 
         assert "ice_time_governing_minimum" in {v["code"] for v in result["violations"]}
 
+    def test_existing_calendar_booking_below_governing_floor_is_warning_not_hard_invalid(self):
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        tournament = _tournament(
+            "t1", "2026-01-10", "Jar Isforum", "U10", teams, start_time="10:00"
+        )
+        candidate = {"tournaments": [tournament]}
+        problem = {
+            "teams": teams,
+            "round_length_minutes": {"U10": 15},
+            "ice_time_minutes": {"U10": 120},
+            "ice_time_minutes_overrides": {"t1": 110},
+            "calendar_booking_associations": [
+                {
+                    "id": "calendar_booking:event:t1",
+                    "status": "active",
+                    "event_fingerprint": "event",
+                    "tournament_id": "t1",
+                    "club": "Jar",
+                    "date": "2026-01-10",
+                    "start": "10:00",
+                    "end": "11:50",
+                    "tournament_facts": {
+                        "host_club": "Jar",
+                        "arena": "Jar Isforum",
+                        "date": "2026-01-10",
+                        "start_time": "10:00",
+                        "age_group": "U10",
+                    },
+                    "tournament_interval": {
+                        "date": "2026-01-10",
+                        "start_time": "10:00",
+                        "duration_minutes": "110",
+                        "end_time": "11:50",
+                    },
+                }
+            ],
+        }
+
+        result = verify_candidate(candidate, problem)
+
+        assert result["ok"], result["violations"]
+        assert [w["code"] for w in result["booking_feasibility_warnings"]] == [
+            "ice_time_governing_minimum"
+        ]
+
+    def test_existing_ju8_80_minute_manual_booking_below_governing_floor_is_warning(self):
+        teams = [_team("Jar", "Jar 1", "JU8"), _team("Kongsberg", "Kongsberg 1", "JU8")]
+        tournament = _tournament(
+            "t1", "2026-01-10", "Jar Isforum", "JU8", teams, start_time="10:00"
+        )
+        result = verify_candidate(
+            {"tournaments": [tournament]},
+            {
+                "teams": teams,
+                "round_length_minutes": {"JU8": 15},
+                "ice_time_minutes": {"JU8": 120},
+                "ice_time_minutes_overrides": {"t1": 80},
+                "manual_booking_assertions": [
+                    {
+                        "id": "manual_booking:t1",
+                        "status": "active",
+                        "booking_status": "booked",
+                        "authority": "manual_club_confirmation_interpretation",
+                        "source_assertion_id": "club_booking_source:jar",
+                        "tournament_id": "t1",
+                        "tournament_facts": {
+                            "host_club": "Jar",
+                            "arena": "Jar Isforum",
+                            "date": "2026-01-10",
+                            "start_time": "10:00",
+                            "age_group": "JU8",
+                        },
+                        "asserted_interval": {
+                            "date": "2026-01-10",
+                            "start_time": "10:00",
+                            "duration_minutes": "80",
+                            "end_time": "11:20",
+                        },
+                    }
+                ],
+            },
+        )
+
+        assert result["ok"], result["violations"]
+        assert "ice_time_governing_minimum" in {
+            w["code"] for w in result["booking_feasibility_warnings"]
+        }
+
+    def test_mismatching_booking_evidence_does_not_bypass_governing_floor(self):
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        tournament = _tournament(
+            "t1", "2026-01-10", "Jar Isforum", "U10", teams, start_time="10:00"
+        )
+        problem = {
+            "teams": teams,
+            "round_length_minutes": {"U10": 15},
+            "ice_time_minutes": {"U10": 120},
+            "ice_time_minutes_overrides": {"t1": 110},
+            "calendar_booking_associations": [
+                {
+                    "id": "calendar_booking:event:t1",
+                    "status": "active",
+                    "event_fingerprint": "event",
+                    "tournament_id": "t1",
+                    "club": "Wrong club",
+                    "date": "2026-01-10",
+                    "start": "10:00",
+                    "end": "11:50",
+                    "tournament_facts": {
+                        "host_club": "Jar",
+                        "arena": "Wrong arena",
+                        "date": "2026-01-10",
+                        "start_time": "10:00",
+                        "age_group": "U10",
+                    },
+                    "tournament_interval": {
+                        "date": "2026-01-10",
+                        "start_time": "10:00",
+                        "duration_minutes": "110",
+                        "end_time": "11:50",
+                    },
+                }
+            ],
+        }
+
+        result = verify_candidate({"tournaments": [tournament]}, problem)
+
+        assert "ice_time_governing_minimum" in {v["code"] for v in result["violations"]}
+        assert result["booking_feasibility_warnings"] == []
+
+    def test_existing_booking_does_not_hide_playing_minimum_failure(self):
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        games = [
+            {"home": teams[0]["label"], "away": teams[1]["label"], "parallel_slot": 0, "round_number": n}
+            for n in range(1, 9)
+        ]
+        tournament = _tournament(
+            "t1", "2026-01-10", "Jar Isforum", "U10", teams, start_time="10:00", games=games
+        )
+        problem = {
+            "teams": teams,
+            "round_length_minutes": {"U10": 15},
+            "ice_time_minutes": {"U10": 120},
+            "ice_time_minutes_overrides": {"t1": 110},
+            "calendar_booking_associations": [
+                {
+                    "id": "calendar_booking:event:t1",
+                    "status": "active",
+                    "event_fingerprint": "event",
+                    "tournament_id": "t1",
+                    "club": "Jar",
+                    "date": "2026-01-10",
+                    "start": "10:00",
+                    "end": "11:50",
+                    "tournament_facts": {
+                        "host_club": "Jar",
+                        "arena": "Jar Isforum",
+                        "date": "2026-01-10",
+                        "start_time": "10:00",
+                        "age_group": "U10",
+                    },
+                    "tournament_interval": {
+                        "date": "2026-01-10",
+                        "start_time": "10:00",
+                        "duration_minutes": "110",
+                        "end_time": "11:50",
+                    },
+                }
+            ],
+        }
+
+        result = verify_candidate({"tournaments": [tournament]}, problem)
+
+        assert "ice_time_playing_minimum" in {v["code"] for v in result["violations"]}
+
     def test_even_sized_tournament_passes_no_bye_rule(self):
         teams = [
             _team("Jar", "Jar 1", "U10"),

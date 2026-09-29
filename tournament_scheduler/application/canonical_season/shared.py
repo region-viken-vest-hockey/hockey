@@ -6,7 +6,7 @@ import os
 from datetime import date as _date, datetime, timezone
 from typing import Any, Mapping
 
-from tournament_scheduler.calendar_bookings import project_associations_into_problem
+from tournament_scheduler.calendar_bookings import project_associations_into_problem, project_manual_assertions_into_problem
 from tournament_scheduler.canonical_baseline import approval_fingerprint
 from tournament_scheduler.canonical_banned_dates import project_banned_dates_into_problem
 from tournament_scheduler.canonical_holiday_exceptions import project_exceptions_into_problem
@@ -305,6 +305,7 @@ def _resolve_plan_problem(
         resolved = project_banned_dates_into_problem(resolved, decisions)
         resolved = project_overrides_into_problem(resolved, decisions)
         resolved = project_associations_into_problem(resolved, decisions, schedule.get("plan") or {})
+        resolved = project_manual_assertions_into_problem(resolved, decisions, schedule.get("plan") or {})
         resolved = project_into_problem(
             resolved, decisions=decisions, plan=schedule.get("plan") or {}
         )

@@ -299,6 +299,11 @@ def publication_readiness(result: dict[str, Any]) -> dict[str, Any]:
         informational_reasons.append(
             {"code": "intra_club_participation_distribution", "count": len(intra_club_distribution)}
         )
+    booking_warnings = list(result.get("booking_feasibility_warnings") or [])
+    if booking_warnings:
+        informational_reasons.append(
+            {"code": "booking_feasibility_warnings", "count": len(booking_warnings)}
+        )
 
     # Over-target participation is never a hard failure (a target is a strong
     # goal, not a ceiling), but a candidate that exceeds its configured targets

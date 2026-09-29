@@ -40,7 +40,11 @@ from tournament_scheduler.calendar_availability import (
     interval_availability,
     unclassified_intervals,
 )
-from tournament_scheduler.calendar_bookings import associated_tournament_for_event, event_fingerprint
+from tournament_scheduler.calendar_bookings import (
+    associated_tournament_for_event,
+    event_fingerprint,
+    existing_booking_governing_floor_evidence,
+)
 from tournament_scheduler.canonical_baseline import (
     locked_dates as _canonical_locked_dates,
     pinned_tournament_ids as _canonical_pinned_tournament_ids,
@@ -746,6 +750,11 @@ def verify_candidate(
     # Kept separate from `violations` so they never block export, but never
     # silently disappear either -- they are surfaced in the audit/evidence.
     waived_violations: List[Dict[str, Any]] = []
+    # Existing source-confirmed bookings may retain their exact occupied
+    # interval even when it is shorter than a governing planning floor. The
+    # shortfall is non-blocking only with exact, currently-valid booking
+    # evidence and remains visible for follow-up.
+    booking_feasibility_warnings: List[Dict[str, Any]] = []
     skipped: List[str] = []
     # issue #264: non-blocking record of tournaments placed inside a
     # host-controlled ``movable_busy`` interval rather than an
@@ -1279,15 +1288,23 @@ def verify_candidate(
         if isinstance(configured_ice_time, int) and configured_ice_time > 0:
             governing_floor = governing_minimum_ice_time_minutes(shape_age_group)
             if governing_floor is not None and configured_ice_time < governing_floor:
-                _violate(
-                    "ice_time_governing_minimum",
-                    f"Tournament {t_id} ({shape_age_group}) has ice_time_minutes={configured_ice_time}, "
-                    f"below the governing minimum booking window of {governing_floor} minutes",
-                    t_id,
-                    age_group=shape_age_group,
-                    configured_ice_time_minutes=configured_ice_time,
-                    minimum_required_minutes=governing_floor,
-                )
+                booking_evidence = existing_booking_governing_floor_evidence(problem, t)
+                entry = {
+                    "code": "ice_time_governing_minimum",
+                    "message": (
+                        f"Tournament {t_id} ({shape_age_group}) has ice_time_minutes={configured_ice_time}, "
+                        f"below the governing minimum booking window of {governing_floor} minutes"
+                    ),
+                    "tournament_id": t_id,
+                    "age_group": shape_age_group,
+                    "configured_ice_time_minutes": configured_ice_time,
+                    "minimum_required_minutes": governing_floor,
+                }
+                if booking_evidence is not None:
+                    entry["existing_booking_evidence"] = booking_evidence
+                    booking_feasibility_warnings.append(entry)
+                else:
+                    violations.append(entry)
             minimum_playing = minimum_playing_requirement_minutes(configured_round_length, actual_round_count)
             if minimum_playing > 0 and configured_ice_time < minimum_playing:
                 _violate(
@@ -1537,10 +1554,12 @@ def verify_candidate(
 
     annotate_violations(violations)
     annotate_violations(waived_violations)
+    annotate_violations(booking_feasibility_warnings)
     return {
         "ok": not violations,
         "violations": violations,
         "waived_violations": waived_violations,
+        "booking_feasibility_warnings": booking_feasibility_warnings,
         "skipped": skipped,
         "club_controlled_allocations_used": movable_allocations_used,
         "movable_allocations_used": movable_allocations_used,

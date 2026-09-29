@@ -281,7 +281,7 @@ def project_canonical_overlays(
     The overlay projections may return the same mapping or a copy; every call
     is written back explicitly so ordering and equality are preserved.
     """
-    from .calendar_bookings import project_associations_into_problem
+    from .calendar_bookings import project_associations_into_problem, project_manual_assertions_into_problem
     from .canonical_banned_dates import project_banned_dates_into_problem
     from .canonical_holiday_exceptions import project_exceptions_into_problem
     from .canonical_ice_time_overrides import project_overrides_into_problem
@@ -290,11 +290,12 @@ def project_canonical_overlays(
     projected: Dict[str, Any] = dict(problem)
     projected = project_exceptions_into_problem(projected, decisions)
     projected = project_banned_dates_into_problem(projected, decisions)
-    projected = project_associations_into_problem(projected, decisions, plan) or projected
     # A host-confirmed per-tournament ice-time override must reach every
-    # duration consumer (verification, findings, repair/search, export) through
-    # the same projected problem, exactly like the other canonical overlays.
+    # duration consumer before booking evidence is revalidated, otherwise the
+    # evidence can look stale against the age-group default it superseded.
     projected = project_overrides_into_problem(projected, decisions)
+    projected = project_associations_into_problem(projected, decisions, plan) or projected
+    projected = project_manual_assertions_into_problem(projected, decisions, plan) or projected
     # A durable participation withdrawal reduces the eligible shape pool. Every
     # shape/round-count verifier must see the same reduced pool the apply-time
     # candidate was verified against, or a committed withdrawal looks
