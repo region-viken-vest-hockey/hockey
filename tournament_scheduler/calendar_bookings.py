@@ -1788,14 +1788,14 @@ def booking_status_report(
     # Durable rejected source evidence stays visible as an actionable unresolved
     # conflict on the affected tournament row, without ever mutating the active
     # placement, approval/lock or reconciliation state (ADR 0005).
-    rejected_by_tournament: dict[str, dict[str, Any]] = {}
+    rejected_by_tournament: dict[str, list[dict[str, Any]]] = {}
     for record in unresolved_rejected_booking_evidence(decisions):
         tid = str(record.get("tournament_id") or "")
         if tid:
-            rejected_by_tournament[tid] = record
+            rejected_by_tournament.setdefault(tid, []).append(record)
     for row in rows:
         rejected = rejected_by_tournament.get(str(row.get("tournament_id") or ""))
-        if rejected is None:
+        if not rejected:
             continue
         row["rejected_booking_evidence"] = rejected
         follow_up = list(row.get("follow_up_reasons") or [])
@@ -1804,7 +1804,8 @@ def booking_status_report(
         row["follow_up_reasons"] = follow_up
         row["needs_attention"] = True
     rejected_evidence = sorted(
-        rejected_by_tournament.values(), key=lambda record: str(record.get("rejected_at") or "")
+        (record for records in rejected_by_tournament.values() for record in records),
+        key=lambda record: str(record.get("rejected_at") or ""),
     )
     counts["rejected_bookings"] = len(rejected_evidence)
     return {

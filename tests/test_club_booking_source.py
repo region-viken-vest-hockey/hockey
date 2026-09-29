@@ -284,7 +284,7 @@ def test_real_overlapping_source_intervals_are_rejected_as_hard_conflicts(tmp_pa
     assert {c["code"] for c in rejected[0]["conflicts"]} == {"arena_interval_conflict"}
     assert rejected[0]["source_assertion_id"] == source["id"]
     # The rejected evidence is surfaced as an actionable conflict on the row.
-    assert row["rejected_booking_evidence"]["tournament_id"] == "t1"
+    assert [r["tournament_id"] for r in row["rejected_booking_evidence"]] == ["t1"]
     assert "rejected_booking_requires_resolution" in row["follow_up_reasons"]
     assert row["needs_attention"] is True
     assert report["rejected_booking_evidence"][0]["tournament_id"] == "t1"
@@ -297,6 +297,72 @@ def test_real_overlapping_source_intervals_are_rejected_as_hard_conflicts(tmp_pa
     record = decisions["decisions"]["t1"]
     assert record["status"] == "pending_review"
     assert record["placement_locked"] is False
+
+
+def test_multiple_rejected_assertions_for_one_tournament_all_remain_actionable(tmp_path):
+    """Two distinct rejected source assertions for one tournament are both
+    retained as actionable unresolved conflicts, never collapsed to the latest."""
+
+    t2_teams = [
+        {"club": "A", "label": "A2", "age_group": "U10"},
+        *_teams(("E", "F", "G")),
+    ]
+    root = _promote(
+        tmp_path,
+        [
+            _tournament("t1", date_str="2026-09-13"),
+            {**_tournament("t2", date_str="2026-09-13", teams=t2_teams), "start_time": "14:00"},
+        ],
+    )
+    problem = {**_host_a_problem([]), "teams": _teams(("A", "B", "C", "D", "E", "F", "G")) + [t2_teams[0]]}
+    source = _source_set(root)["source"]
+
+    # Two distinct source assertions for the same tournament, each overlapping
+    # t2's arena window and therefore each rejected as a hard conflict.
+    with pytest.raises(Exception, match="Arena conflict"):
+        _interpretation(
+            root,
+            tournament_id="t1",
+            source_id=source["id"],
+            problem=problem,
+            stated_date="2026-09-13",
+            stated_start="12:30",
+            stated_end="14:30",
+        )
+    with pytest.raises(Exception, match="Arena conflict"):
+        _interpretation(
+            root,
+            tournament_id="t1",
+            source_id=source["id"],
+            problem=problem,
+            stated_date="2026-09-13",
+            stated_start="13:00",
+            stated_end="15:00",
+        )
+
+    decisions = load_decisions("2026-2027", root=root)
+    rejected = decisions.get(REJECTED_BOOKING_EVIDENCE_KEY) or []
+    assert len(rejected) == 2
+    assert all(r["tournament_id"] == "t1" for r in rejected)
+    assert all(r["status"] == "unresolved" for r in rejected)
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = next(row for row in report["tournaments"] if row["tournament_id"] == "t1")
+    # Both distinct records stay actionable on the row and in the report/count.
+    assert sorted(
+        r["proposed_interval"]["start_time"] for r in row["rejected_booking_evidence"]
+    ) == ["12:30", "13:00"]
+    assert "rejected_booking_requires_resolution" in row["follow_up_reasons"]
+    assert row["needs_attention"] is True
+    assert sorted(
+        r["proposed_interval"]["start_time"] for r in report["rejected_booking_evidence"]
+    ) == ["12:30", "13:00"]
+    assert report["counts"]["rejected_bookings"] == 2
+    # The active placement was never mutated by either refused change.
+    schedule = load_schedule("2026-2027", root=root)["plan"]
+    t1 = next(t for t in schedule["tournaments"] if t["id"] == "t1")
+    assert t1["start_time"] == "10:00"
+    assert t1["date"] == "2026-09-13"
 
 
 def test_source_confirmed_moved_day_double_booked_team_is_rejected_and_evidence_retained(tmp_path):
