@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import os
+import re
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -45,8 +46,10 @@ from tournament_scheduler.calendar_bookings import (
     valid_active_associations,
     validate_stated_interval,
 )
+from tournament_scheduler.calendar_availability import CalendarAvailability, interval_availability
 from tournament_scheduler.canonical_baseline import approval_fingerprint
 from tournament_scheduler.canonical_ice_time_overrides import (
+    project_overrides_into_problem,
     override_for_tournament,
     overrides_from_problem,
     validate_and_normalize as validate_ice_time_override,
@@ -1128,6 +1131,100 @@ def reconcile_calendar_bookings(
     return result
 
 
+_CALENDAR_EVENT_AGE_TOKEN_RE = re.compile(r"\b(J?U\d{1,2})\b", re.IGNORECASE)
+
+
+def _calendar_event_age_tokens(title: str) -> set[str]:
+    """Extract age-group tokens (``U10``, ``JU12``, ...) from a calendar title."""
+
+    return {match.upper() for match in _CALENDAR_EVENT_AGE_TOKEN_RE.findall(str(title or ""))}
+
+
+def _auto_associate_own_calendar_event(
+    *,
+    decisions: dict[str, Any],
+    problem: Mapping[str, Any] | None,
+    tournament: Mapping[str, Any],
+    actor: str,
+    note: str,
+    source_revision: str,
+) -> dict[str, Any]:
+    """Link an unambiguous same-club/date/age-group calendar event to *tournament*.
+
+    A manual/worksheet-confirmed interval has no calendar event of its own, so a
+    still-unassociated scraped event for the same host on the same date -- almost
+    always this tournament's own real Askerhallen block -- would otherwise be
+    misread as a third-party ``manual_external_conflict_placements`` conflict
+    once the interval is aligned (issue #556 follow-up). Only ever link when
+    exactly one fixed-busy event on that date carries this tournament's exact
+    age-group token, the club's calendar evidence is trustworthy enough to
+    support a positive claim (mirrors ``confirm_calendar_booking``'s own gate),
+    the event's arena/location does not contradict the tournament's arena when
+    the event actually states one, and the event is not already claimed by a
+    different tournament. A genuinely ambiguous day (several same-age events,
+    an untrusted source, a venue mismatch, or none) is left for the operator
+    rather than guessed at.
+    """
+
+    club = str(tournament.get("host_club") or "")
+    date = str(tournament.get("date") or "")
+    arena = str(tournament.get("arena") or "")
+    age_group = str(tournament.get("age_group") or "").upper()
+    tournament_id = str(tournament.get("id") or "")
+    if not club or not date or not age_group or not tournament_id or problem is None:
+        return decisions
+    if not club_calendar_positive_evidence_usable(problem, club):
+        return decisions
+    busy = ((problem.get("club_busy_intervals") or {}).get(club)) or []
+    candidates = []
+    for entry in busy:
+        if not isinstance(entry, Mapping) or str(entry.get("date") or "") != date:
+            continue
+        if interval_availability(entry) != CalendarAvailability.FIXED_BUSY:
+            continue
+        event_venue = str(entry.get("arena") or entry.get("location") or "").strip()
+        if event_venue and arena and event_venue.lower() != arena.strip().lower():
+            continue
+        if age_group in _calendar_event_age_tokens(entry.get("calendar_event") or entry.get("title")):
+            candidates.append(entry)
+    if len(candidates) != 1:
+        return decisions
+    event = dict(candidates[0])
+    event["club"] = club
+    event["fingerprint"] = event_fingerprint(event)
+    # Raw, unfiltered ownership check: a staleness-projected "valid
+    # associations" view can omit a still-active record held by a different
+    # tournament (issue #558 review), which must never be silently reclaimed.
+    for record in decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []:
+        if not isinstance(record, Mapping) or str(record.get("status") or "active") != "active":
+            continue
+        if str(record.get("event_fingerprint") or "") != event["fingerprint"]:
+            continue
+        owner = str(record.get("tournament_id") or "")
+        if owner:
+            return decisions
+    updated = dict(decisions)
+    records = [
+        dict(record)
+        for record in updated.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []
+        if isinstance(record, Mapping)
+    ]
+    records.append(
+        new_association_record(
+            event=event,
+            tournament=tournament,
+            actor=actor,
+            note=note
+            or "Auto-linked: unambiguous same-club/date/age-group calendar event "
+            "matches this manually confirmed booking",
+            source_revision=source_revision,
+            problem=problem,
+        )
+    )
+    updated[CALENDAR_BOOKING_ASSOCIATIONS_KEY] = records
+    return updated
+
+
 def _align_tournament_to_authoritative_interval(
     *,
     schedule: Mapping[str, Any],
@@ -1214,6 +1311,15 @@ def _align_tournament_to_authoritative_interval(
         or override_record is not None,
     }
     updated_decisions["schedule_fingerprint"] = schedule_fingerprint(updated_plan)
+    if authority == "manual_club_confirmation_interval":
+        updated_decisions = _auto_associate_own_calendar_event(
+            decisions=updated_decisions,
+            problem=project_overrides_into_problem(problem, updated_decisions) if problem is not None else None,
+            tournament=target,
+            actor=actor,
+            note=note,
+            source_revision=canonical_state_revision(schedule, decisions),
+        )
     return updated_schedule, updated_decisions, target, alignment, override_record
 
 
