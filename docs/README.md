@@ -33,6 +33,8 @@ External federation policy is different: the NIHF Kampveileder is authoritative 
 
 Shared agent operating policy lives in [`../.agents/skills/rvv/SKILL.md`](../.agents/skills/rvv/SKILL.md), not in harness-specific command files.
 
+See [ADR 0005: reconciliation is not planning](adr/0005-reconciliation-is-not-planning.md) for the binding workflow, evidence, hard-check and effective-projection boundaries. Its implementation is tracked by #504; do not assume current code already conforms.
+
 ## Architecture decisions
 
 [`adr/`](adr/) contains accepted ADRs. ADRs explain durable decisions and rationale; they are not a backlog or runbook.
