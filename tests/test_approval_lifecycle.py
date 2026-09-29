@@ -1938,6 +1938,108 @@ def test_below_floor_booking_findings_and_export_preflight_parity(tmp_path):
     assert "booking_feasibility_warnings" in informational
 
 
+def test_below_floor_booking_stage4_export_builder_stays_hard_valid(tmp_path):
+    """The real Stage 4 export builder agrees with apply-time projection.
+
+    The PR's central failure mode is apply-time and export-time disagreement
+    for a source-confirmed below-floor interval. This exercises the actual
+    ``stage4_export_verification._build_export_verification_problem`` entry
+    point (a promoted canonical root plus a Stage 2 scraping checkpoint), and
+    asserts the rebuilt export problem carries the exact accepted override and
+    association so final verification stays hard-valid with the same warning.
+    """
+
+    from tournament_scheduler.final_verification import verify_final_candidate
+    from tournament_scheduler.pipeline.stage4_export_verification import (
+        _build_export_verification_problem,
+    )
+    from tournament_scheduler.planning_contract import extract_candidate
+
+    event = {
+        "date": "2026-09-12",
+        "start": "11:00",
+        "end": "12:30",
+        "availability": "fixed_busy",
+        "calendar_event": "Miniputt U10 bekreftet",
+        "club": "A",
+    }
+    teams = [
+        {"club": club, "label": f"{club}1", "age_group": "U10"}
+        for club in ("A", "B", "C", "D")
+    ]
+    labels = [team["label"] for team in teams]
+    games = [
+        {"home": labels[0], "away": labels[1], "parallel_slot": 0, "round_number": 1},
+        {"home": labels[2], "away": labels[3], "parallel_slot": 1, "round_number": 1},
+        {"home": labels[0], "away": labels[2], "parallel_slot": 0, "round_number": 2},
+        {"home": labels[1], "away": labels[3], "parallel_slot": 1, "round_number": 2},
+        {"home": labels[0], "away": labels[3], "parallel_slot": 0, "round_number": 3},
+        {"home": labels[1], "away": labels[2], "parallel_slot": 1, "round_number": 3},
+    ]
+    tournament = _tournament("t1", teams=teams)
+    tournament["games"] = games
+    problem = _host_a_problem([event])
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    state.write_stage(StageName.PLANNING, {"plan": _plan([tournament])}, status=StageStatus.DONE)
+    write_reviewed_stage4_export(state, problem=problem)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    result = confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint(event),
+        tournament_id="t1",
+        actor="tester",
+        note="host confirmed a 90-minute window",
+        problem=problem,
+    )
+    assert [warning["code"] for warning in result["booking_feasibility_warnings"]] == [
+        "ice_time_governing_minimum"
+    ]
+
+    # The Stage 2 checkpoint is what Stage 4 uses to rebuild the export
+    # problem: the same event as a ``CalendarEvent`` serialization.
+    state.write_stage(
+        StageName.SCRAPING,
+        {
+            "events_by_club": {
+                "A": [
+                    {
+                        "date": "12.09.2026",
+                        "name": "Miniputt U10 bekreftet",
+                        "datetime": "2026-09-12T11:00:00",
+                        "duration_hours": 1.5,
+                    }
+                ]
+            },
+            "club_calendar_status": {"A": "known"},
+        },
+        status=StageStatus.DONE,
+    )
+    config = dict(problem)
+    config["canonical_season_root"] = str(root)
+    config["start_date"] = "2026-09-01"
+    config["end_date"] = "2027-04-30"
+    state.write_stage(StageName.CONFIG, config, status=StageStatus.DONE)
+
+    built = _build_export_verification_problem(config, state)
+    assert built is not None
+    assert built["ice_time_minutes_overrides"] == {"t1": 90}
+    assert built["club_busy_intervals"]["A"][0]["start"] == "11:00"
+    assert built["club_busy_intervals"]["A"][0]["end"] == "12:30"
+
+    canonical_plan = dict(load_schedule("2026-2027", root=root)["plan"])
+    candidate = extract_candidate({"plan": canonical_plan})
+    verification = verify_final_candidate(candidate, built)
+    assert verification["ok"] is True, verification["violations"]
+    assert [warning["code"] for warning in verification["booking_feasibility_warnings"]] == [
+        "ice_time_governing_minimum"
+    ]
+    assert verification["publication_readiness"]["status"] == "REVIEW_REQUIRED"
+
+
 def test_manual_assertion_stated_duration_is_exported_as_canonical_html(tmp_path):
     """The HTML export must render the accepted source interval, not the default."""
 
