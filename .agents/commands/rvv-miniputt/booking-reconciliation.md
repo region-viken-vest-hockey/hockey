@@ -1,0 +1,30 @@
+# Booking reconciliation and evidence freshness (lazy-loaded)
+
+Load from `booking-management.md` for a club worksheet, booking email, calendar comparison, missing booking, source refresh, or reconciliation before export/publication. This is shared operational orchestration for every harness, not a new CLI, evidence authority, cancellation power, or publication bypass. Read the current canonical command contract in `season.md`, relevant `calendars.md`, `tournament-maintenance.md`, `season-delivery.md`, and current repository code/tests as needed.
+
+## Establish evidence before interpreting disagreement
+
+1. Identify the canonical season revision, source document/version and row-to-tournament mapping, accepted assertions, active raw calendar associations, current verification-context source fingerprint/timestamp, export and publication revision. Separate proposal, booking, cancellation and public status.
+2. When a worksheet/email and canonical calendar disagree, independently inspect the actual host source and its event details. Compare source document, live source, raw scrape, normalized event, persisted canonical evidence, effective canonical interval and export. A successful scrape or `known` integrity status alone does not prove event-level correctness. Check freshness/cache, event identity, venue, date, start/end and source provenance.
+3. If live source and worksheet agree but canonical evidence is stale, use the normal `season refresh-calendars` workflow, inspect source health and re-evaluate. If extraction itself is wrong, reproduce and fix via normal code/test workflow. Never alter canonical/generated JSON by hand or ask the club to resolve an artifact of our stale evidence.
+4. Absence in a partial, failed or untrusted feed is not proof of no booking or free ice. An exact, accepted host assertion may be authoritative even if a calendar is not current; preserve and disclose independent source conflicts rather than guessing.
+
+## Reconcile accepted bookings
+
+- Match each source assertion to exactly one durable tournament, host, arena and interval; detect duplicates, missing rows, changed dates and cancelled records. Inspect existing decisions/protections before applying.
+- Use the repository-owned source registration and `season booking-set` assertion path with concrete stated date/start/end, source/version/reference and stable request identity. Do not use a planning-floor mutation to replace an accepted shorter booked window with a default duration. Preserve real effective occupancy; retain below-floor feasibility warnings independently.
+- Check calendar association trust, venue, event coverage and **raw active ownership**, including stale active associations. Auto-link only a single unambiguous supported event; otherwise use explicit release/rebind with evidence and authorization. A cancelled tournament must not silently donate or retain a booking for another tournament. Do not invent an event or conceal a real overlap.
+- Re-verify worksheet/live source -> accepted assertion -> effective canonical date/start/end/duration -> booking status -> export/rendered HTML. Export matching canonical is insufficient if canonical disagrees with accepted source facts. Recheck idempotency and affected neighboring tournaments.
+
+## Planned tournaments without booking
+
+A planned tournament absent from a worksheet or calendar is a **follow-up**, not automatically cancelled. Check source coverage, other booking evidence, club response, approval/lock, accepted constraints, and whether the tournament is merely proposed. Do not label it booked. When reliable host/operator evidence explicitly establishes that ice is unavailable and the event will not occur, classify as cancellation rather than postponement; load `tournament-maintenance.md`, preview participant/host/distribution consequences, and use the supported canonical cancel/removal lifecycle. Preserve durable ID, reason, evidence and history; remove from active/public upcoming plan through the canonical projection, not file deletion. If no supported action exists, report the capability gap. A proposed event may otherwise remain visibly proposed under the actual publication policy.
+
+## Conflict and completion boundary
+
+- Separate stale evidence, extraction error, ambiguous event ownership, genuine source disagreement, impossible ice, cancelled event and actual arena overlap. Resolve only with supported evidence and actions; request a human fact/decision when genuinely missing.
+- After supported mutations, refresh findings and calendar evidence where needed, run hard verification, lifecycle/publication-delta reconciliation, export and semantic audit. Inspect the actual rendered public payload, cancellation/proposal labels and exact intervals; run publication-evidence and the current deterministic gate. Do not modify facts to make a gate pass.
+- Publication is separately authorized by the operator and follows `publish.md`/`republish.md` and `audit-publication.md`. Never infer publication permission from an ordinary reconciliation request. If authorized and all gates pass, publish and verify deployed latest against the audited revision; otherwise stop with exact blockers.
+- Report per-source and per-ID already-matching/corrected/cancelled/unresolved counts, before/after intervals, evidence timestamps/fingerprints, canonical/export/publication identities, warnings and actual public delta. Never call the task complete based only on successful commands or an export that repeats incorrect canonical data.
+
+Incident example (not a hardcoded rule): Frisk Asker's worksheet and live Teamup feed agreed after a calendar update, while the canonical snapshot was older. Refreshing canonical evidence eliminated apparent 30-minute disagreements. Planning-only tournaments explicitly confirmed impossible were cancellation candidates; mere worksheet absence would not have been enough.
