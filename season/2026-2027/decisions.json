@@ -2593,7 +2593,7 @@
       }
     }
   ],
-  "canonical_state_revision": "0691d5086b18cfdcfe50e39cdadf7588d47bd38228d33bc9502e9a5b86bd809e",
+  "canonical_state_revision": "928e9ab5fa53364623040bd71142d91c03f9a91fb1e2ebb84125e3404763f2b7",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -9087,10 +9087,10 @@
   },
   "export_state": {
     "calendar_fingerprint": "c2ad140610e03846c33570456e0759f6108d16f18589983a15954f9715a49e56",
-    "export_dir": "export/2026-09-29T1713",
-    "fresh_at": "2026-09-29T17:13:53.827666+00:00",
+    "export_dir": "export/2026-09-29T1740",
+    "fresh_at": "2026-09-29T17:40:51.256158+00:00",
     "fresh_by": "niclasl",
-    "fresh_canonical_revision": "0691d5086b18cfdcfe50e39cdadf7588d47bd38228d33bc9502e9a5b86bd809e",
+    "fresh_canonical_revision": "928e9ab5fa53364623040bd71142d91c03f9a91fb1e2ebb84125e3404763f2b7",
     "requires_fresh_audit": true,
     "requires_fresh_export": false,
     "stale_at": "2026-09-29T15:46:36.080945+00:00",
@@ -48255,6 +48255,87 @@
       "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-09-29T17:40:21.404583+00:00",
+      "details": {
+        "assertion_id": "manual_booking:rvv-0010:2026-09-29T17:05:40.946489+00:00"
+      },
+      "event": "clear_manual_booking_assertion",
+      "note": "Superseded by calendar-booking association bound to Ringerike's own calendar posting; stale manual assertion no longer matches corrected interval",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0010"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-09-29T17:40:21.932048+00:00",
+      "details": {
+        "assertion_id": "manual_booking:rvv-0085:2026-09-29T17:06:42.374568+00:00"
+      },
+      "event": "clear_manual_booking_assertion",
+      "note": "Superseded by calendar-booking association bound to Ringerike's own calendar posting; stale manual assertion no longer matches corrected interval",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0085"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-09-29T17:40:22.565449+00:00",
+      "details": {
+        "assertion_id": "manual_booking:rvv-0114:2026-09-29T17:06:57.692069+00:00"
+      },
+      "event": "clear_manual_booking_assertion",
+      "note": "Superseded by calendar-booking association bound to Ringerike's own calendar posting; stale manual assertion no longer matches corrected interval",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0114"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-09-29T17:40:23.101066+00:00",
+      "details": {
+        "assertion_id": "manual_booking:rvv-0170:2026-09-29T17:07:44.580360+00:00"
+      },
+      "event": "clear_manual_booking_assertion",
+      "note": "Superseded by calendar-booking association bound to Ringerike's own calendar posting; stale manual assertion no longer matches corrected interval",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0170"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-09-29T17:40:23.638414+00:00",
+      "details": {
+        "assertion_id": "manual_booking:rvv-0182:2026-09-29T17:08:00.293934+00:00"
+      },
+      "event": "clear_manual_booking_assertion",
+      "note": "Superseded by calendar-booking association bound to Ringerike's own calendar posting; stale manual assertion no longer matches corrected interval",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0182"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T17:40:51.256158+00:00",
+      "details": {
+        "canonical_state_revision": "928e9ab5fa53364623040bd71142d91c03f9a91fb1e2ebb84125e3404763f2b7",
+        "export_dir": "export/2026-09-29T1740",
+        "previous_export_status": "fresh",
+        "previous_requires_fresh_export": false
+      },
+      "event": "mark_export_fresh",
+      "note": "canonical export",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ],
   "holiday_date_exceptions": [
@@ -55657,6 +55738,9 @@
       "id": "manual_booking:rvv-0010:2026-09-29T17:05:40.946489+00:00",
       "note": "Operator confirmed all Ringerike tournaments as booked",
       "reference": "",
+      "revoke_reason": "Superseded by calendar-booking association bound to Ringerike's own calendar posting; stale manual assertion no longer matches corrected interval",
+      "revoked_at": "2026-09-29T17:40:21.404583+00:00",
+      "revoked_by": "Niclas Lindgren",
       "schema_version": 1,
       "source": "manual_club_confirmation",
       "source_assertion_id": null,
@@ -55664,7 +55748,7 @@
       "source_scope": "tournament",
       "start_time": "12:20",
       "stated_interval": {},
-      "status": "active",
+      "status": "revoked",
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U12",
@@ -55961,6 +56045,9 @@
       "id": "manual_booking:rvv-0085:2026-09-29T17:06:42.374568+00:00",
       "note": "Operator confirmed all Ringerike tournaments as booked",
       "reference": "",
+      "revoke_reason": "Superseded by calendar-booking association bound to Ringerike's own calendar posting; stale manual assertion no longer matches corrected interval",
+      "revoked_at": "2026-09-29T17:40:21.932048+00:00",
+      "revoked_by": "Niclas Lindgren",
       "schema_version": 1,
       "source": "manual_club_confirmation",
       "source_assertion_id": null,
@@ -55968,7 +56055,7 @@
       "source_scope": "tournament",
       "start_time": "12:25",
       "stated_interval": {},
-      "status": "active",
+      "status": "revoked",
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U11",
@@ -56037,6 +56124,9 @@
       "id": "manual_booking:rvv-0114:2026-09-29T17:06:57.692069+00:00",
       "note": "Operator confirmed all Ringerike tournaments as booked",
       "reference": "",
+      "revoke_reason": "Superseded by calendar-booking association bound to Ringerike's own calendar posting; stale manual assertion no longer matches corrected interval",
+      "revoked_at": "2026-09-29T17:40:22.565449+00:00",
+      "revoked_by": "Niclas Lindgren",
       "schema_version": 1,
       "source": "manual_club_confirmation",
       "source_assertion_id": null,
@@ -56044,7 +56134,7 @@
       "source_scope": "tournament",
       "start_time": "11:45",
       "stated_interval": {},
-      "status": "active",
+      "status": "revoked",
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U12",
@@ -56265,6 +56355,9 @@
       "id": "manual_booking:rvv-0170:2026-09-29T17:07:44.580360+00:00",
       "note": "Operator confirmed all Ringerike tournaments as booked",
       "reference": "",
+      "revoke_reason": "Superseded by calendar-booking association bound to Ringerike's own calendar posting; stale manual assertion no longer matches corrected interval",
+      "revoked_at": "2026-09-29T17:40:23.101066+00:00",
+      "revoked_by": "Niclas Lindgren",
       "schema_version": 1,
       "source": "manual_club_confirmation",
       "source_assertion_id": null,
@@ -56272,7 +56365,7 @@
       "source_scope": "tournament",
       "start_time": "11:45",
       "stated_interval": {},
-      "status": "active",
+      "status": "revoked",
       "supersedes": null,
       "tournament_facts": {
         "age_group": "JU12",
@@ -56341,6 +56434,9 @@
       "id": "manual_booking:rvv-0182:2026-09-29T17:08:00.293934+00:00",
       "note": "Operator confirmed all Ringerike tournaments as booked",
       "reference": "",
+      "revoke_reason": "Superseded by calendar-booking association bound to Ringerike's own calendar posting; stale manual assertion no longer matches corrected interval",
+      "revoked_at": "2026-09-29T17:40:23.638414+00:00",
+      "revoked_by": "Niclas Lindgren",
       "schema_version": 1,
       "source": "manual_club_confirmation",
       "source_assertion_id": null,
@@ -56348,7 +56444,7 @@
       "source_scope": "tournament",
       "start_time": "11:45",
       "stated_interval": {},
-      "status": "active",
+      "status": "revoked",
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U12",
@@ -114935,5 +115031,5 @@
       "tournament_id": "rvv-0032"
     }
   ],
-  "updated_at": "2026-09-29T17:13:53.827666+00:00"
+  "updated_at": "2026-09-29T17:40:51.256158+00:00"
 }
