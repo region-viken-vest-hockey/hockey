@@ -19,6 +19,7 @@ from tournament_scheduler.calendar_bookings import (
     CALENDAR_BOOKING_ASSOCIATIONS_KEY,
     CLUB_BOOKING_SOURCE_ASSERTIONS_KEY,
     MANUAL_BOOKING_ASSERTIONS_KEY,
+    REJECTED_BOOKING_EVIDENCE_KEY,
     _club_booking_source_projection,
     event_fingerprint,
 )
@@ -271,6 +272,98 @@ def test_real_overlapping_source_intervals_are_rejected_as_hard_conflicts(tmp_pa
     report = booking_status_report(season="2026-2027", root=root, problem=problem)
     row = next(row for row in report["tournaments"] if row["tournament_id"] == "t1")
     assert row["status"] != "manually_booked"
+
+    # ADR 0005: the rejected source evidence is durably retained as an
+    # actionable unresolved conflict, while the active placement, approval/lock
+    # and reconciliation state are untouched.
+    decisions = load_decisions("2026-2027", root=root)
+    rejected = decisions.get(REJECTED_BOOKING_EVIDENCE_KEY) or []
+    assert len(rejected) == 1
+    assert rejected[0]["tournament_id"] == "t1"
+    assert rejected[0]["status"] == "unresolved"
+    assert {c["code"] for c in rejected[0]["conflicts"]} == {"arena_interval_conflict"}
+    assert rejected[0]["source_assertion_id"] == source["id"]
+    # The rejected evidence is surfaced as an actionable conflict on the row.
+    assert row["rejected_booking_evidence"]["tournament_id"] == "t1"
+    assert "rejected_booking_requires_resolution" in row["follow_up_reasons"]
+    assert row["needs_attention"] is True
+    assert report["rejected_booking_evidence"][0]["tournament_id"] == "t1"
+    # The active placement was not mutated by the refused change.
+    schedule = load_schedule("2026-2027", root=root)["plan"]
+    t1 = next(t for t in schedule["tournaments"] if t["id"] == "t1")
+    assert t1["start_time"] == "10:00"
+    assert t1["date"] == "2026-09-13"
+    # No approval/lock was granted by the refused change.
+    record = decisions["decisions"]["t1"]
+    assert record["status"] == "pending_review"
+    assert record["placement_locked"] is False
+
+
+def test_source_confirmed_moved_day_double_booked_team_is_rejected_and_evidence_retained(tmp_path):
+    """A source-confirmed day move is refused when a participant is already
+    scheduled elsewhere that day, without repairing or mutating the season."""
+
+    root = _promote(
+        tmp_path,
+        [
+            _tournament("t1", date_str="2026-09-12"),
+            _tournament("t2", date_str="2026-09-19", arena="Arena B", teams=_teams(("A", "E", "F", "G"))),
+        ],
+    )
+    problem = {**_host_a_problem([]), "teams": _teams(("A", "B", "C", "D", "E", "F", "G"))}
+    source = _source_set(root)["source"]
+    with pytest.raises(Exception, match="scheduled in 2 tournaments"):
+        _interpretation(
+            root,
+            tournament_id="t1",
+            source_id=source["id"],
+            problem=problem,
+            stated_date="2026-09-19",
+            stated_start="10:00",
+            stated_end="12:00",
+        )
+
+    # The exact change is rejected without planner repair and the source
+    # evidence is retained as an unresolved conflict; nothing else mutated.
+    decisions = load_decisions("2026-2027", root=root)
+    rejected = decisions.get(REJECTED_BOOKING_EVIDENCE_KEY) or []
+    assert rejected and rejected[-1]["tournament_id"] == "t1"
+    assert "duplicate_participation_same_date" in {c["code"] for c in rejected[-1]["conflicts"]}
+    schedule = load_schedule("2026-2027", root=root)["plan"]
+    t1 = next(t for t in schedule["tournaments"] if t["id"] == "t1")
+    assert t1["date"] == "2026-09-12"
+    assert decisions["decisions"]["t1"]["status"] == "pending_review"
+    assert decisions["decisions"]["t1"]["placement_locked"] is False
+
+
+def test_source_confirmed_playing_shortfall_stays_hard_and_evidence_retained(tmp_path):
+    """Insufficient actual playing time stays a hard conflict even with exact
+    source evidence; the governing-floor downgrade never waives it."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = {**_host_a_problem([]), "round_length_minutes": {"U10": 15}}
+    source = _source_set(root)["source"]
+    with pytest.raises(Exception, match="minimum 20 minutes"):
+        _interpretation(
+            root,
+            tournament_id="t1",
+            source_id=source["id"],
+            problem=problem,
+            stated_date="2026-09-12",
+            stated_start="10:00",
+            stated_end="10:10",
+        )
+
+    decisions = load_decisions("2026-2027", root=root)
+    rejected = decisions.get(REJECTED_BOOKING_EVIDENCE_KEY) or []
+    assert rejected and rejected[-1]["tournament_id"] == "t1"
+    codes = {c["code"] for c in rejected[-1]["conflicts"]}
+    assert "ice_time_playing_minimum" in codes
+    # The governing-floor shortfall was reclassified as a feasibility finding,
+    # not used as a blanket waiver of the independent playing minimum.
+    assert "ice_time_governing_minimum" not in codes
+    schedule = load_schedule("2026-2027", root=root)["plan"]
+    assert schedule["tournaments"][0]["start_time"] == "10:00"
 
 
 def test_adjacent_booked_source_intervals_use_actual_duration_for_conflicts(tmp_path):

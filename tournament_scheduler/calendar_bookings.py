@@ -17,6 +17,13 @@ from tournament_scheduler.pipeline.source_integrity import fabricated_interval_s
 
 CALENDAR_BOOKING_ASSOCIATIONS_KEY = "calendar_booking_associations"
 TOURNAMENT_BOOKING_EVIDENCE_KEY = "tournament_booking_evidence"
+# A source-confirmed booking whose exact canonical change was refused by a hard
+# operational check is preserved as durable evidence here, together with the
+# specific conflict that refused it, so a genuine observed booking is never
+# silently lost (ADR 0005: evidence acceptance and active placement acceptance
+# are separate outcomes). The rejected record never moves, approves, locks or
+# reconciles the tournament; it is an unresolved conflict for operator review.
+REJECTED_BOOKING_EVIDENCE_KEY = "rejected_booking_evidence"
 # Explicit operator/club assertions live in their own durable decisions key so a
 # routine calendar reconcile/refresh that rewrites ``TOURNAMENT_BOOKING_EVIDENCE_KEY``
 # can never erase or demote them.  A manual assertion is a statement about the
@@ -36,6 +43,8 @@ MANUAL_SOURCE_CLUB_CONFIRMATION = "manual_club_confirmation"
 MANUAL_ASSERTION_ACTIVE = "active"
 MANUAL_ASSERTION_SUPERSEDED = "superseded"
 MANUAL_ASSERTION_REVOKED = "revoked"
+REJECTED_BOOKING_UNRESOLVED = "unresolved"
+REJECTED_BOOKING_RESOLVED = "resolved"
 MANUAL_ASSERTION_SCOPES = ("tournament", "club_wide_interpretation")
 BOOKING_AUTHORITY_MANUAL = MANUAL_SOURCE_CLUB_CONFIRMATION
 BOOKING_AUTHORITY_MANUAL_INTERPRETATION = "manual_club_confirmation_interpretation"
@@ -1009,6 +1018,79 @@ def new_association_record(
     }
 
 
+def new_rejected_booking_evidence_record(
+    *,
+    tournament: Mapping[str, Any],
+    authority: str,
+    reference: str,
+    source_assertion_id: str | None,
+    proposed_interval: Mapping[str, Any],
+    conflicts: Iterable[Mapping[str, Any]],
+    rejected_at: str,
+    rejected_by: str,
+    canonical_state_revision: str,
+) -> dict[str, Any]:
+    """Build one durable unresolved rejected-booking-evidence record.
+
+    The record is decision-only audit evidence: it captures the exact source
+    statement (authority, reference, linked source assertion) and the exact
+    proposed interval plus the hard conflicts that refused it. It is surfaced
+    as an actionable unresolved conflict by the booking-status projection and
+    must never be mistaken for an accepted placement, approval/lock or
+    reconciled state.
+    """
+
+    tournament_id = str(tournament.get("id") or "")
+    return {
+        "id": f"rejected_booking:{tournament_id}:{rejected_at}",
+        "schema_version": 1,
+        "status": REJECTED_BOOKING_UNRESOLVED,
+        "tournament_id": tournament_id,
+        "host_club": str(tournament.get("host_club") or ""),
+        "arena": str(tournament.get("arena") or ""),
+        "age_group": str(tournament.get("age_group") or ""),
+        "authority": authority,
+        "source_assertion_id": str(source_assertion_id or "") or None,
+        "reference": str(reference or ""),
+        "proposed_interval": dict(proposed_interval or {}),
+        "conflicts": [
+            {
+                "code": str(conflict.get("code") or ""),
+                "message": str(conflict.get("message") or ""),
+            }
+            for conflict in conflicts
+            if isinstance(conflict, Mapping)
+        ],
+        "rejected_at": rejected_at,
+        "rejected_by": rejected_by,
+        "canonical_state_revision": canonical_state_revision,
+    }
+
+
+def rejected_booking_evidence_records(
+    decisions: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Return every persisted rejected-booking-evidence record."""
+
+    return [
+        dict(record)
+        for record in ((decisions or {}).get(REJECTED_BOOKING_EVIDENCE_KEY) or [])
+        if isinstance(record, Mapping)
+    ]
+
+
+def unresolved_rejected_booking_evidence(
+    decisions: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Return the rejected-booking-evidence records still awaiting resolution."""
+
+    return [
+        record
+        for record in rejected_booking_evidence_records(decisions)
+        if str(record.get("status") or "") == REJECTED_BOOKING_UNRESOLVED
+    ]
+
+
 def new_booking_evidence_record(
     *,
     tournament: Mapping[str, Any],
@@ -1703,9 +1785,32 @@ def booking_status_report(
         counts[operational_state] = counts.get(operational_state, 0) + 1
         if row["needs_attention"]:
             counts["needs_attention"] += 1
+    # Durable rejected source evidence stays visible as an actionable unresolved
+    # conflict on the affected tournament row, without ever mutating the active
+    # placement, approval/lock or reconciliation state (ADR 0005).
+    rejected_by_tournament: dict[str, dict[str, Any]] = {}
+    for record in unresolved_rejected_booking_evidence(decisions):
+        tid = str(record.get("tournament_id") or "")
+        if tid:
+            rejected_by_tournament[tid] = record
+    for row in rows:
+        rejected = rejected_by_tournament.get(str(row.get("tournament_id") or ""))
+        if rejected is None:
+            continue
+        row["rejected_booking_evidence"] = rejected
+        follow_up = list(row.get("follow_up_reasons") or [])
+        if "rejected_booking_requires_resolution" not in follow_up:
+            follow_up.append("rejected_booking_requires_resolution")
+        row["follow_up_reasons"] = follow_up
+        row["needs_attention"] = True
+    rejected_evidence = sorted(
+        rejected_by_tournament.values(), key=lambda record: str(record.get("rejected_at") or "")
+    )
+    counts["rejected_bookings"] = len(rejected_evidence)
     return {
         "tournaments": rows,
         "counts": counts,
+        "rejected_booking_evidence": rejected_evidence,
         # One structured work item per ``action_required`` tournament; the
         # per-row copy keeps consumers that iterate tournaments able to render
         # the reason/source/alternatives without recomputing the projection.

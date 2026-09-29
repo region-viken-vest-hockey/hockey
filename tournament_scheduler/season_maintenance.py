@@ -127,6 +127,10 @@ HOME_REPRESENTATION = "home_representation"
 # participation but uneven sibling labels. This is the actionable counterpart
 # of the informational ``intra_club_participation_distribution`` rule.
 CLUB_DISTRIBUTION = "club_distribution"
+# A source-confirmed accepted booking interval below the governing planning
+# floor: a durable audit/follow-up finding, never a hard planning violation
+# (ADR 0005). It has no search/repair dimensions of its own.
+BOOKING_FEASIBILITY = "booking_feasibility"
 
 # Canonical search-coverage vocabulary shared by every finding family. A
 # finding always carries ``search_coverage`` so a caller can tell apart
@@ -162,6 +166,7 @@ SUPPORTED_DIMENSIONS_BY_CATEGORY: Dict[str, Tuple[str, ...]] = {
     TEMPORAL_CLUSTERING: ("date", "participants"),
     HOME_REPRESENTATION: ("participants",),
     CLUB_DISTRIBUTION: ("participants",),
+    BOOKING_FEASIBILITY: (),
 }
 
 
@@ -361,7 +366,34 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
     schedule, decisions, plan, problem = load_context(season, root=root)
     verification = verify_candidate(plan, problem)
     revision = canonical_state_revision(schedule, decisions)
+    # ADR 0005: a source-confirmed accepted booking below the governing planning
+    # floor is a durable follow-up finding at the audit boundary, not a
+    # new-placement hard violation. Use the same revision-bound classification
+    # the export/preflight path applies so findings/audit and export agree.
+    from .final_verification import _reclassify_accepted_booking_floor
+
+    accepted_floor_findings, remaining_violations = _reclassify_accepted_booking_floor(
+        problem, plan, list(verification.get("violations") or [])
+    )
+    verification = dict(verification)
+    verification["violations"] = remaining_violations
+    verification["ok"] = not remaining_violations
+    verification["booking_feasibility_warnings"] = accepted_floor_findings
     findings = _findings(plan, problem, verification)
+    for warning in accepted_floor_findings:
+        tournament_id = str(warning.get("tournament_id") or "")
+        findings.append(
+            {
+                "finding_id": f"ice_time_governing_minimum:{tournament_id or 'booking'}",
+                "code": "ice_time_governing_minimum",
+                "category": BOOKING_FEASIBILITY,
+                "severity": "follow_up",
+                "tournament_id": tournament_id or None,
+                "age_group": warning.get("age_group"),
+                "accepted_booking_interval": True,
+                "message": warning.get("message") or "accepted booking interval below the governing floor",
+            }
+        )
     from .calendar_bookings import association_findings
 
     findings.extend(association_findings(problem=problem, plan=plan, decisions=decisions))

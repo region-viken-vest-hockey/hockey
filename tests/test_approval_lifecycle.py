@@ -1847,6 +1847,97 @@ def test_manual_assertion_reconfirms_stale_below_floor_slot_with_fresh_evidence(
     assert _booking_row(report, "t1")["status"] == "manually_booked"
 
 
+def test_below_floor_booking_findings_and_export_preflight_parity(tmp_path):
+    """Apply-time confirmation, findings/audit and export/preflight agree on a
+    source-confirmed exact short interval for the same revision (ADR 0005)."""
+
+    from tournament_scheduler.final_verification import verify_final_candidate
+    from tournament_scheduler.season_maintenance import list_findings, load_context
+
+    event = {
+        "date": "2026-09-12",
+        "start": "11:00",
+        "end": "12:30",
+        "availability": "fixed_busy",
+        "calendar_event": "Miniputt U10 bekreftet",
+        "club": "A",
+    }
+    # A valid 4-team round-robin (3 rounds, 2 parallel games each) so the final
+    # verifier's game-integrity checks pass and only the below-floor booking is
+    # under test.
+    teams = [
+        {"club": club, "label": f"{club}1", "age_group": "U10"}
+        for club in ("A", "B", "C", "D")
+    ]
+    labels = [team["label"] for team in teams]
+    games = [
+        {"home": labels[0], "away": labels[1], "parallel_slot": 0, "round_number": 1},
+        {"home": labels[2], "away": labels[3], "parallel_slot": 1, "round_number": 1},
+        {"home": labels[0], "away": labels[2], "parallel_slot": 0, "round_number": 2},
+        {"home": labels[1], "away": labels[3], "parallel_slot": 1, "round_number": 2},
+        {"home": labels[0], "away": labels[3], "parallel_slot": 0, "round_number": 3},
+        {"home": labels[1], "away": labels[2], "parallel_slot": 1, "round_number": 3},
+    ]
+    tournament = _tournament("t1", teams=teams)
+    tournament["games"] = games
+    problem = _host_a_problem([event])
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    state.write_stage(StageName.PLANNING, {"plan": _plan([tournament])}, status=StageStatus.DONE)
+    write_reviewed_stage4_export(state, problem=problem)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    result = confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint(event),
+        tournament_id="t1",
+        actor="tester",
+        note="host confirmed a 90-minute window",
+        problem=problem,
+    )
+    assert [warning["code"] for warning in result["booking_feasibility_warnings"]] == [
+        "ice_time_governing_minimum"
+    ]
+
+    # Reload canonical state fresh (same revision, projected overlays).
+    schedule, decisions, plan, reloaded_problem = load_context("2026-2027", root=root)
+    assert reloaded_problem.get("ice_time_minutes_overrides") == {"t1": 90}
+
+    # Findings/audit classify the accepted short interval as follow-up, not hard.
+    findings = list_findings("2026-2027", root=root)
+    assert findings["verification_ok"] is True
+    hard_codes = {
+        finding["code"]
+        for finding in findings["findings"]
+        if finding.get("category") == "hard_violation"
+    }
+    assert "ice_time_governing_minimum" not in hard_codes
+    booking_findings = [
+        finding
+        for finding in findings["findings"]
+        if finding["code"] == "ice_time_governing_minimum"
+    ]
+    assert booking_findings and all(
+        finding.get("accepted_booking_interval") for finding in booking_findings
+    )
+
+    # Export/preflight: the same revision-bound projection is hard-valid and
+    # preserves the exact short interval as a durable feasibility warning.
+    verification = verify_final_candidate(plan, reloaded_problem)
+    assert verification["ok"] is True, verification["violations"]
+    warnings = verification["booking_feasibility_warnings"]
+    assert [warning["code"] for warning in warnings] == ["ice_time_governing_minimum"]
+    assert warnings[0]["configured_ice_time_minutes"] == 90
+    assert warnings[0]["minimum_required_minutes"] == 120
+    assert verification["publication_readiness"]["status"] == "REVIEW_REQUIRED"
+    informational = {
+        item["code"] for item in verification["publication_readiness"]["informational_reasons"]
+    }
+    assert "booking_feasibility_warnings" in informational
+
+
 def test_manual_assertion_stated_duration_is_exported_as_canonical_html(tmp_path):
     """The HTML export must render the accepted source interval, not the default."""
 
