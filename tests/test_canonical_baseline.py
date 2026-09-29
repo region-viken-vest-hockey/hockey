@@ -511,6 +511,147 @@ def test_export_verification_problem_prefers_canonical_calendar_evidence(tmp_pat
     assert problem["club_calendar_status"]["A"] == "known"
 
 
+def test_export_verification_problem_respects_genuinely_empty_canonical_calendar(tmp_path):
+    """A canonical calendar that legitimately proves a club is fully free must
+    not be backfilled with a stale Stage 2 scrape's busy events.
+
+    ``verification_context.problem`` existing at all (even with an empty
+    ``club_busy_intervals``) is itself the canonical refresh's authoritative
+    answer for this club -- proven by its own ``club_calendar_status``/
+    ``club_coverage_proven`` markers, not inferred from list emptiness.
+    """
+
+    from tournament_scheduler.pipeline.stage4_export_verification import (
+        _build_export_verification_problem,
+    )
+
+    root = _promote(tmp_path, [_tournament("t1")])
+
+    schedule_path = root / "2026-2027" / "schedule.json"
+    schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+    canonical_problem = schedule["verification_context"]["problem"]
+    # The refresh genuinely found nothing for club A -- a fully cleared
+    # calendar, proven current, not "we never checked".
+    canonical_problem["club_busy_intervals"] = {}
+    canonical_problem["club_calendar_status"] = {"A": "known"}
+    canonical_problem["club_coverage_proven"] = {"A": True}
+    schedule_path.write_text(json.dumps(schedule), encoding="utf-8")
+
+    state = PipelineState(tmp_path / ".pipeline")
+    state.write_stage(
+        StageName.CONFIG,
+        {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "teams": _teams(),
+            "canonical_season_root": str(root),
+        },
+        status=StageStatus.DONE,
+    )
+    # A stale Stage 2 checkpoint that (incorrectly, from an older scrape)
+    # still shows club A as busy -- this must never leak through once
+    # canonical evidence exists for the season, even though canonical's own
+    # club_busy_intervals is empty.
+    stale_event = {
+        "date": "2026-09-12",
+        "name": "Stale stage2 event",
+        "datetime": "2026-09-12T10:00:00",
+        "duration_hours": 1.5,
+    }
+    state.write_stage(
+        StageName.SCRAPING,
+        {"events_by_club": {"A": [stale_event]}, "club_calendar_status": {"A": "known"}},
+        status=StageStatus.DONE,
+    )
+
+    problem = _build_export_verification_problem(
+        {"start_date": "2026-09-01", "end_date": "2027-04-30", "teams": _teams(), "canonical_season_root": str(root)},
+        state,
+    )
+
+    assert problem is not None
+    assert problem["club_busy_intervals"].get("A", []) == []
+    assert problem["club_coverage_proven"]["A"] is True
+
+
+def test_export_verification_problem_takes_all_calendar_fields_atomically(tmp_path):
+    """Canonical vs. pipeline calendar evidence is an all-or-nothing choice.
+
+    Construct canonical and Stage 2 evidence that disagree on two different
+    fields (``club_busy_intervals`` and ``club_source_integrity``) with
+    distinct markers, and assert the result is 100% one source or the other
+    -- never a hybrid of canonical for one field and pipeline for another.
+    """
+
+    from tournament_scheduler.pipeline.stage4_export_verification import (
+        _build_export_verification_problem,
+    )
+
+    root = _promote(tmp_path, [_tournament("t1")])
+
+    canonical_event = {
+        "availability": "fixed_busy",
+        "calendar_event": "canonical event",
+        "date": "2026-09-12",
+        "start": "10:00",
+        "end": "11:50",
+        "club": "A",
+    }
+    schedule_path = root / "2026-2027" / "schedule.json"
+    schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+    canonical_problem = schedule["verification_context"]["problem"]
+    canonical_problem["club_busy_intervals"] = {"A": [canonical_event]}
+    canonical_problem["club_source_integrity"] = {"A": "canonical_marker"}
+    schedule_path.write_text(json.dumps(schedule), encoding="utf-8")
+
+    state = PipelineState(tmp_path / ".pipeline")
+    state.write_stage(
+        StageName.CONFIG,
+        {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "teams": _teams(),
+            "canonical_season_root": str(root),
+        },
+        status=StageStatus.DONE,
+    )
+    stage2_event = {
+        "date": "2026-09-19",
+        "name": "pipeline event",
+        "datetime": "2026-09-19T14:00:00",
+        "duration_hours": 1.0,
+    }
+    state.write_stage(
+        StageName.SCRAPING,
+        {
+            "events_by_club": {"A": [stage2_event]},
+            "club_source_integrity": {"A": "pipeline_marker"},
+        },
+        status=StageStatus.DONE,
+    )
+
+    problem = _build_export_verification_problem(
+        {"start_date": "2026-09-01", "end_date": "2027-04-30", "teams": _teams(), "canonical_season_root": str(root)},
+        state,
+    )
+
+    assert problem is not None
+    # Both fields must come from the same source. Either fully canonical...
+    is_canonical = (
+        problem["club_busy_intervals"].get("A") == [canonical_event]
+        and problem["club_source_integrity"].get("A") == "canonical_marker"
+    )
+    # ...or fully pipeline -- but never one field from each.
+    is_pipeline = (
+        problem["club_source_integrity"].get("A") == "pipeline_marker"
+        and problem["club_busy_intervals"].get("A") != [canonical_event]
+    )
+    assert is_canonical and not is_pipeline
+    # A promoted season with resolvable canonical evidence always wins here.
+    assert problem["club_busy_intervals"]["A"] == [canonical_event]
+    assert problem["club_source_integrity"]["A"] == "canonical_marker"
+
+
 def test_export_verification_problem_uses_stage2_checkpoint_when_not_canonical(tmp_path):
     """The from-scratch Stage 1-4 pipeline path (no promoted season) is unchanged:
     calendar evidence still comes from the Stage 2 checkpoint on disk."""

@@ -41,6 +41,23 @@ def _prefer_canonical_calendar_evidence(
     whatever the pipeline checkpoint happens to hold, without touching any of
     the other effective_config-derived contract (window bounds, waivers,
     participation targets, etc.) built from the current run's config.
+
+    The only question this function answers is whether canonical calendar
+    evidence *exists at all* for this promoted season (``verification_context
+    .problem`` is present and a mapping) -- never whether any individual
+    field or club within it happens to be empty. A club whose refreshed
+    calendar is genuinely clear is real, confirmed evidence (backed by its
+    own ``club_calendar_status``/``club_coverage_proven`` markers, carried
+    over unchanged as part of the same snapshot); it must not be silently
+    reinstated as busy from an older Stage 2 scrape just because the fresh
+    list is shorter or empty. Likewise all five evidence keys are always
+    taken from the same canonical snapshot together, never a per-field or
+    per-club mixture of canonical and pipeline data -- pairing one club's
+    fresh interval list with another source's stale integrity verdict would
+    misattribute trust that was never jointly proven. Only fall back to the
+    pipeline checkpoint wholesale when canonical verification_context itself
+    cannot be resolved (a from-scratch season, or a promoted season whose
+    schedule predates this contract).
     """
 
     canonical_problem = (
@@ -48,14 +65,11 @@ def _prefer_canonical_calendar_evidence(
     ).get("problem")
     if not isinstance(canonical_problem, Mapping):
         return problem
-    if not canonical_problem.get("club_busy_intervals"):
-        return problem
     from tournament_scheduler.calendar_availability import unclassified_intervals
 
     updated = dict(problem)
     for key in _CALENDAR_EVIDENCE_KEYS:
-        if key in canonical_problem:
-            updated[key] = canonical_problem[key]
+        updated[key] = canonical_problem.get(key) or {}
     updated["unclassified_calendar_events"] = unclassified_intervals(
         updated.get("club_busy_intervals") or {}
     )
