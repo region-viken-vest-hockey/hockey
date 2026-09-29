@@ -2,6 +2,10 @@
 
 This document defines the current application-layer dependency rules. It is intentionally structural; operational policy belongs in `.agents/skills/rvv/SKILL.md`, while the higher-level ownership boundary is documented in ADR 0002. For system/data flow, rule semantics, search/Pareto decisions and promoted-season authority, use the focused [planning and decision diagrams](architecture/planning-model.md); do not duplicate those semantics in a dependency diagram.
 
+## Reconciliation application boundary (target contract)
+
+[ADR 0005](adr/0005-reconciliation-is-not-planning.md) governs #504. Reconciliation is a distinct use case from candidate planning: share deterministic facts and hard-rule calculations, but do not make planning verification depend on provisional booking assertions or introduce a second evidence/verifier engine. Retain rejected authoritative evidence separately from committing an invalid active placement. The canonical application/store remains the only mutation authority. One revision-bound effective canonical projection must serve verification, findings, audit, export and publication; adapters must not reconstruct partial overlays. This describes required direction, not verified current implementation.
+
 ## Dependency rules
 
 The dependency direction is:
