@@ -1450,11 +1450,12 @@ def confirm_calendar_booking(
     verification_problem = _resolve_plan_problem(updated_schedule, base_problem, updated)
     verification = verify_candidate(updated_schedule["plan"], verification_problem) if verification_problem else verify_candidate(updated_schedule["plan"])
     hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
-    # Only ``verify_candidate`` may reclassify an ``ice_time_governing_minimum``
-    # shortfall as a non-blocking booking feasibility warning, and it does so
-    # only when exact, currently-valid booking evidence matches the candidate
-    # interval. A floor shortfall that remains in ``hard_blockers`` has no such
-    # evidence and must stay blocking.
+    # A source-authoritative interval below the governing *planning* floor is
+    # recorded exactly and surfaced as a durable feasibility finding (the
+    # verifier reports it in ``booking_feasibility_warnings`` because the
+    # effective occupancy comes from the accepted interval override), never as
+    # a new-placement planning violation. Insufficient actual playing time and
+    # genuine overlaps remain hard blockers above.
     booking_feasibility_warnings = [
         warning
         for warning in (verification.get("booking_feasibility_warnings") or [])
@@ -1733,40 +1734,15 @@ def set_manual_booking_assertion(
             accepted_key="accepted_source_interval",
             freeze_default_equal_interval=True,
         )
-        base_verification_problem = _resolve_plan_problem(updated_schedule, resolved_problem, updated_decisions_for_interval)
-        # The operator's exact stated interval is the booking evidence being
-        # recorded. Build the to-be-persisted assertion first and project it into
-        # the verification problem so ``verify_candidate`` recognises the
-        # governing-floor shortfall as currently-valid booking evidence (a
-        # non-blocking warning) instead of an unmatched hard violation.
-        provisional_assertion = new_manual_assertion_record(
-            tournament=aligned_tournament,
-            booking_status=booking_status,
-            problem=base_verification_problem,
-            actor=resolved_actor,
-            note=note,
-            reference=reference,
-            source_scope=source_scope,
-            stated_interval=stated_interval,
-            asserted_at=now,
-            source_revision=current_revision,
-            source_assertion_id=linked_source_id,
-        )
-        verification_decisions = dict(updated_decisions_for_interval)
-        prior_assertions = [
-            dict(record)
-            for record in verification_decisions.get(MANUAL_BOOKING_ASSERTIONS_KEY) or []
-            if not (isinstance(record, Mapping) and str(record.get("tournament_id") or "") == tournament_id)
-        ]
-        verification_decisions[MANUAL_BOOKING_ASSERTIONS_KEY] = prior_assertions + [provisional_assertion]
-        verification_problem = _resolve_plan_problem(updated_schedule, resolved_problem, verification_decisions)
+        verification_problem = _resolve_plan_problem(updated_schedule, resolved_problem, updated_decisions_for_interval)
         verification = verify_candidate(updated_schedule["plan"], verification_problem) if verification_problem else verify_candidate(updated_schedule["plan"])
         hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
-        # Only ``verify_candidate`` may reclassify an ``ice_time_governing_minimum``
-        # shortfall as a non-blocking booking feasibility warning, and it does so
-        # only when exact, currently-valid booking evidence matches the candidate
-        # interval. A floor shortfall that remains in ``hard_blockers`` has no such
-        # evidence and must stay blocking.
+        # A source-authoritative interval below the governing *planning* floor is
+        # recorded exactly and surfaced as a durable feasibility finding (the
+        # verifier reports it in ``booking_feasibility_warnings`` because the
+        # effective occupancy comes from the accepted interval override), never as
+        # a new-placement planning violation. Insufficient actual playing time and
+        # genuine overlaps remain hard blockers above.
         booking_feasibility_warnings = [
             warning
             for warning in (verification.get("booking_feasibility_warnings") or [])

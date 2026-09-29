@@ -200,9 +200,10 @@ _HARD: tuple[RuleEntry, ...] = (
         meaning=(
             "A tournament's configured ice_time_minutes is the complete hall occupancy window. "
             "It must be at least the actual rounds times round length plus the per-round "
-            "changeover buffer. New or unverified placements must also meet any governing "
-            "per-series-round booking floor; an exact accepted existing booking below that "
-            "floor is recorded faithfully and surfaced as a feasibility warning."
+            "changeover buffer. A proposed placement must also meet any governing "
+            "per-series-round booking floor; a host-confirmed accepted booking interval "
+            "(a per-tournament override) below that floor is recorded exactly and surfaced "
+            "as a durable feasibility finding, not a new-placement planning violation."
         ),
         canonical_owner="tournament_scheduler.occupancy",
         input_source="planning_problem ice_time_minutes + round_length_minutes + generated round count",

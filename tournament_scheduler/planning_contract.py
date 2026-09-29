@@ -43,7 +43,6 @@ from tournament_scheduler.calendar_availability import (
 from tournament_scheduler.calendar_bookings import (
     associated_tournament_for_event,
     event_fingerprint,
-    existing_booking_governing_floor_evidence,
 )
 from tournament_scheduler.canonical_baseline import (
     locked_dates as _canonical_locked_dates,
@@ -750,10 +749,11 @@ def verify_candidate(
     # Kept separate from `violations` so they never block export, but never
     # silently disappear either -- they are surfaced in the audit/evidence.
     waived_violations: List[Dict[str, Any]] = []
-    # Existing source-confirmed bookings may retain their exact occupied
-    # interval even when it is shorter than a governing planning floor. The
-    # shortfall is non-blocking only with exact, currently-valid booking
-    # evidence and remains visible for follow-up.
+    # A host-confirmed accepted booking interval (a per-tournament occupancy
+    # override) below the governing *planning* floor is recorded faithfully and
+    # surfaced as a durable feasibility finding, never a new-placement planning
+    # violation. The governing floor remains a hard planning constraint for
+    # proposed (non-overridden) placements.
     booking_feasibility_warnings: List[Dict[str, Any]] = []
     skipped: List[str] = []
     # issue #264: non-blocking record of tournaments placed inside a
@@ -1282,39 +1282,42 @@ def verify_candidate(
         # window, so the format/governing floors must be checked against it --
         # an override can never make a tournament physically impossible.
         override_ice_time = ice_time_overrides.get(t_id)
+        effective_ice_time = configured_ice_time
         if isinstance(override_ice_time, int) and override_ice_time > 0:
-            configured_ice_time = override_ice_time
+            effective_ice_time = override_ice_time
         configured_round_length = round_length_minutes_by_age.get(shape_age_group)
-        if isinstance(configured_ice_time, int) and configured_ice_time > 0:
+        if isinstance(effective_ice_time, int) and effective_ice_time > 0:
             governing_floor = governing_minimum_ice_time_minutes(shape_age_group)
-            if governing_floor is not None and configured_ice_time < governing_floor:
-                booking_evidence = existing_booking_governing_floor_evidence(problem, t)
+            if governing_floor is not None and effective_ice_time < governing_floor:
                 entry = {
                     "code": "ice_time_governing_minimum",
                     "message": (
-                        f"Tournament {t_id} ({shape_age_group}) has ice_time_minutes={configured_ice_time}, "
+                        f"Tournament {t_id} ({shape_age_group}) has ice_time_minutes={effective_ice_time}, "
                         f"below the governing minimum booking window of {governing_floor} minutes"
                     ),
                     "tournament_id": t_id,
                     "age_group": shape_age_group,
-                    "configured_ice_time_minutes": configured_ice_time,
+                    "configured_ice_time_minutes": effective_ice_time,
                     "minimum_required_minutes": governing_floor,
                 }
-                if booking_evidence is not None:
-                    entry["existing_booking_evidence"] = booking_evidence
+                if isinstance(override_ice_time, int) and override_ice_time > 0:
+                    # A confirmed booking interval is an accepted fact, not a
+                    # proposed placement: the shortfall is a durable follow-up
+                    # finding rather than a planning violation.
+                    entry["accepted_booking_interval"] = True
                     booking_feasibility_warnings.append(entry)
                 else:
                     violations.append(entry)
             minimum_playing = minimum_playing_requirement_minutes(configured_round_length, actual_round_count)
-            if minimum_playing > 0 and configured_ice_time < minimum_playing:
+            if minimum_playing > 0 and effective_ice_time < minimum_playing:
                 _violate(
                     "ice_time_playing_minimum",
-                    f"Tournament {t_id} ({shape_age_group}) has ice_time_minutes={configured_ice_time}, "
+                    f"Tournament {t_id} ({shape_age_group}) has ice_time_minutes={effective_ice_time}, "
                     f"below the minimum {minimum_playing} minutes required for {actual_round_count} "
                     f"rounds of {configured_round_length} minutes plus changeovers",
                     t_id,
                     age_group=shape_age_group,
-                    configured_ice_time_minutes=configured_ice_time,
+                    configured_ice_time_minutes=effective_ice_time,
                     minimum_required_minutes=minimum_playing,
                     round_count=actual_round_count,
                     round_length_minutes=configured_round_length,
