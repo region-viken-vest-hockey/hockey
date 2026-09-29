@@ -57,6 +57,8 @@ If browser-assisted source recovery is ever needed, any browser-capable harness 
 
 Do not invoke `tournament_scheduler.pipeline.stageN_*` modules directly from a harness when that bypasses checkpointing, resumption, structured decisions, verification, or run logging. Do not add another root scheduler CLI, interactive wizard, or harness-local orchestration implementation.
 
+For booking/reconciliation or canonical projection changes, read [ADR 0005](docs/adr/0005-reconciliation-is-not-planning.md). It defines the target boundary; #504 tracks implementation. Do not treat the ADR as evidence that existing code already conforms.
+
 ## Change ownership
 
 When changing scheduling behavior, input semantics, source validity, export content, or publication rules, update the smallest active document that owns that behavior in the same change.

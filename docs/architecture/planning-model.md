@@ -116,6 +116,12 @@ The [custom planner](../../tournament_scheduler/season_planner.py) constructs an
 
 The [score contract](../../tournament_scheduler/planning_contract.py) (`score_candidate`) feeds [planner-independent quality dimensions](../../tournament_scheduler/quality_objectives.py), whose objective vector is oriented lower-is-better. [Canonical Pareto arithmetic](../../tournament_scheduler/pareto.py) owns dominance and bounded representative selection, while [application Pareto convergence](../../tournament_scheduler/application/pareto_convergence.py) owns frontier retention, epochs, search coverage, plateau and terminal vocabulary. The [convergence driver](../../tournament_scheduler/application/convergence_refinement.py) composes those mechanics with existing repair providers and verifier; it does not invent new hockey legality or scores. A frontier covers **observed bounded candidates only**: no global optimality claim. [Stage3Session](../../tournament_scheduler/application/stage3_session.py) and [Stage3Controller](../../tournament_scheduler/application/stage3_controller.py) own revision-bound selection/adoption; selecting a retained candidate rechecks facts identity and hard validity. The [semantic audit lifecycle](../../tournament_scheduler/application/audit_lifecycle.py) offers contextual review/refinement, not an alternative hard verifier.
 
+## Separate reconciliation boundary (target architecture)
+
+[ADR 0005](../adr/0005-reconciliation-is-not-planning.md) separates an existing-booking factual correction from Stage 3 candidate planning. Reconciliation accepts traceable source evidence, evaluates only the exact proposed canonical change against hard operational facts (including teams on a changed day), and either commits a valid change or retains evidence with a specific unresolved conflict. It never invokes candidate search/repair or inflates the observed interval. The governing *planning* floor is a follow-up for an authoritative existing booking, while genuine playing infeasibility and overlap remain hard. Confirmation does not implicitly approve, lock or publish.
+
+One revision-bound effective canonical projection must feed findings, audit, export and publication. Do not add evidence-driven provisional assertions to make a planning verifier accept a reconciliation operation, or rebuild a subset of overlays in each consumer. The existing diagrams depict current code and must be updated alongside the #504 implementation when its actual control flow changes.
+
 ## Season lifecycle and authority
 
 ```mermaid
