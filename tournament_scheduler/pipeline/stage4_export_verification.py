@@ -7,18 +7,6 @@ from typing import Any, Mapping
 
 from .state import PipelineState, StageName
 
-# Calendar-evidence keys that all derive from the same scrape/refresh and must
-# move together, never partially -- mixing a fresh ``club_busy_intervals``
-# with a stale ``club_calendar_status`` can make a club look untrusted for
-# evidence that has actually been proven current, or vice versa.
-_CALENDAR_EVIDENCE_KEYS = (
-    "club_busy_intervals",
-    "club_calendar_status",
-    "club_source_integrity",
-    "club_source_integrity_details",
-    "club_coverage_proven",
-)
-
 
 def _prefer_canonical_calendar_evidence(
     problem: dict[str, Any], canonical_schedule: Mapping[str, Any] | None
@@ -50,7 +38,7 @@ def _prefer_canonical_calendar_evidence(
     own ``club_calendar_status``/``club_coverage_proven`` markers, carried
     over unchanged as part of the same snapshot); it must not be silently
     reinstated as busy from an older Stage 2 scrape just because the fresh
-    list is shorter or empty. Likewise all five evidence keys are always
+    list is shorter or empty. Likewise every evidence key is always
     taken from the same canonical snapshot together, never a per-field or
     per-club mixture of canonical and pipeline data -- pairing one club's
     fresh interval list with another source's stale integrity verdict would
@@ -58,21 +46,56 @@ def _prefer_canonical_calendar_evidence(
     pipeline checkpoint wholesale when canonical verification_context itself
     cannot be resolved (a from-scratch season, or a promoted season whose
     schedule predates this contract).
+
+    The evidence key set copied here is not hand-maintained: it imports
+    ``_CALENDAR_PROBLEM_KEYS`` from
+    ``application.canonical_season.calendars``, the same module
+    ``season refresh-calendars`` uses to decide exactly which
+    ``planning_problem`` keys constitute one coherent calendar-evidence
+    snapshot (``club_busy_dates``, ``club_busy_intervals``,
+    ``club_calendar_status``, ``club_source_integrity``,
+    ``club_source_integrity_details``, ``club_coverage_proven``,
+    ``unclassified_calendar_events``). Reusing that constant directly --
+    instead of re-listing "the same" keys here -- is what keeps this
+    chokepoint's contract identical to refresh's as both evolve, rather than
+    silently drifting apart (as happened once already: an earlier version of
+    this function hand-maintained five of the seven keys and separately
+    recomputed the sixth, missing ``club_busy_dates`` entirely).
+
+    Fallback when canonical exists but its calendar evidence does not:
+    this is a *best-effort* problem builder by design (see
+    ``_build_export_verification_problem``'s docstring -- every failure here
+    degrades rather than raises, matching every other best-effort ``problem``
+    builder in this pipeline) and a promoted season is expected to always
+    carry ``verification_context.problem`` once it exists at all, so this
+    branch is only reachable for a corrupted or pre-contract legacy
+    ``schedule.json``. It intentionally does *not* raise here, both to
+    preserve that documented best-effort contract and because it is not the
+    fail-closed gate for this condition: ``season findings``/
+    ``calendar-booking-findings`` (via ``_problem_from_schedule``, which
+    raises ``SeasonMaintenanceError`` when ``verification_context.problem``
+    is absent) and the publish preflight (via
+    ``resolve_publish_verification_context``, which raises
+    ``VerificationContextError``) are the actual fail-closed gates for a
+    promoted season with unresolvable canonical calendar evidence, and both
+    run before a plan reaches the public export. This export chokepoint
+    stays permissive here on purpose; it must not be mistaken for proof the
+    season's calendar evidence is sound.
     """
+
+    from tournament_scheduler.application.canonical_season.calendars import (
+        _CALENDAR_PROBLEM_KEYS,
+    )
 
     canonical_problem = (
         (canonical_schedule or {}).get("verification_context") or {}
     ).get("problem")
     if not isinstance(canonical_problem, Mapping):
         return problem
-    from tournament_scheduler.calendar_availability import unclassified_intervals
 
     updated = dict(problem)
-    for key in _CALENDAR_EVIDENCE_KEYS:
+    for key in _CALENDAR_PROBLEM_KEYS:
         updated[key] = canonical_problem.get(key) or {}
-    updated["unclassified_calendar_events"] = unclassified_intervals(
-        updated.get("club_busy_intervals") or {}
-    )
     return updated
 
 

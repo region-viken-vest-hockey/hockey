@@ -683,6 +683,203 @@ def test_export_verification_problem_uses_stage2_checkpoint_when_not_canonical(t
     assert problem["club_calendar_status"]["A"] == "known"
 
 
+def test_export_verification_problem_prefers_canonical_busy_dates(tmp_path):
+    """``club_busy_dates`` must move with the rest of the canonical calendar
+    snapshot, including when canonical proves a club has zero busy dates.
+
+    Regression for a review finding on the calendar-evidence source fix: the
+    overlay reused ``application.canonical_season.calendars._CALENDAR_PROBLEM_KEYS``
+    (the exact key set ``season refresh-calendars`` treats as one coherent
+    snapshot) rather than a hand-maintained subset that once omitted
+    ``club_busy_dates`` entirely, silently leaving it sourced from the stale
+    Stage 2 checkpoint even after every other calendar field had switched to
+    canonical evidence.
+    """
+
+    from tournament_scheduler.pipeline.stage4_export_verification import (
+        _build_export_verification_problem,
+    )
+
+    root = _promote(tmp_path, [_tournament("t1")])
+
+    schedule_path = root / "2026-2027" / "schedule.json"
+    schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+    canonical_problem = schedule["verification_context"]["problem"]
+    # Canonical refresh proves club A has zero busy dates -- an authoritative
+    # empty result, not "we never checked".
+    canonical_problem["club_busy_dates"] = {}
+    canonical_problem["club_calendar_status"] = {"A": "known"}
+    canonical_problem["club_coverage_proven"] = {"A": True}
+    schedule_path.write_text(json.dumps(schedule), encoding="utf-8")
+
+    state = PipelineState(tmp_path / ".pipeline")
+    state.write_stage(
+        StageName.CONFIG,
+        {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "teams": _teams(),
+            "canonical_season_root": str(root),
+        },
+        status=StageStatus.DONE,
+    )
+    # Stale Stage 2 checkpoint still claims club A is busy on a date the
+    # canonical refresh has since proven clear -- must not leak through.
+    stale_event = {
+        "date": "2026-09-19",
+        "name": "Stale stage2 busy date",
+        "datetime": "2026-09-19T09:00:00",
+        "duration_hours": 2.0,
+    }
+    state.write_stage(
+        StageName.SCRAPING,
+        {"events_by_club": {"A": [stale_event]}, "club_calendar_status": {"A": "known"}},
+        status=StageStatus.DONE,
+    )
+
+    problem = _build_export_verification_problem(
+        {"start_date": "2026-09-01", "end_date": "2027-04-30", "teams": _teams(), "canonical_season_root": str(root)},
+        state,
+    )
+
+    assert problem is not None
+    assert problem["club_busy_dates"].get("A", []) == []
+    assert "2026-09-19" not in problem["club_busy_dates"].get("A", [])
+
+
+def test_export_verification_problem_prefers_canonical_busy_dates_when_different(tmp_path):
+    """A different (not merely absent) canonical busy-dates value also wins."""
+
+    from tournament_scheduler.pipeline.stage4_export_verification import (
+        _build_export_verification_problem,
+    )
+
+    root = _promote(tmp_path, [_tournament("t1")])
+
+    schedule_path = root / "2026-2027" / "schedule.json"
+    schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+    canonical_problem = schedule["verification_context"]["problem"]
+    canonical_problem["club_busy_dates"] = {"A": ["2026-09-26"]}
+    schedule_path.write_text(json.dumps(schedule), encoding="utf-8")
+
+    state = PipelineState(tmp_path / ".pipeline")
+    state.write_stage(
+        StageName.CONFIG,
+        {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "teams": _teams(),
+            "canonical_season_root": str(root),
+        },
+        status=StageStatus.DONE,
+    )
+    stale_event = {
+        "date": "2026-09-19",
+        "name": "Stale stage2 busy date",
+        "datetime": "2026-09-19T09:00:00",
+        "duration_hours": 2.0,
+    }
+    state.write_stage(
+        StageName.SCRAPING,
+        {"events_by_club": {"A": [stale_event]}, "club_calendar_status": {"A": "known"}},
+        status=StageStatus.DONE,
+    )
+
+    problem = _build_export_verification_problem(
+        {"start_date": "2026-09-01", "end_date": "2027-04-30", "teams": _teams(), "canonical_season_root": str(root)},
+        state,
+    )
+
+    assert problem is not None
+    assert problem["club_busy_dates"]["A"] == ["2026-09-26"]
+
+
+def test_export_verification_problem_calendar_keys_match_refresh_owned_contract():
+    """Guard against the export gate's calendar-evidence key set silently
+    drifting away from the set ``season refresh-calendars`` itself owns."""
+
+    import inspect
+
+    from tournament_scheduler.application.canonical_season.calendars import (
+        _CALENDAR_PROBLEM_KEYS,
+    )
+    from tournament_scheduler.pipeline import stage4_export_verification
+
+    assert "club_busy_dates" in _CALENDAR_PROBLEM_KEYS
+    source = inspect.getsource(stage4_export_verification._prefer_canonical_calendar_evidence)
+    assert "_CALENDAR_PROBLEM_KEYS" in source
+
+
+def test_export_verification_problem_degrades_when_canonical_calendar_evidence_missing(tmp_path):
+    """A promoted season whose ``verification_context.problem`` cannot be
+    resolved falls back to the Stage 2 checkpoint rather than crashing --
+    documented, intentional best-effort degradation for this specific export
+    chokepoint. It is not the fail-closed gate for this condition: ordinary
+    ``season`` commands (``_problem_from_schedule``) raise
+    ``SeasonMaintenanceError`` and the publish preflight
+    (``resolve_publish_verification_context``) raises
+    ``VerificationContextError`` when canonical calendar evidence is
+    genuinely missing for a promoted season, and both run before export
+    output reaches the public artifact.
+    """
+
+    from tournament_scheduler.pipeline.stage4_export_verification import (
+        _build_export_verification_problem,
+    )
+
+    root = _promote(tmp_path, [_tournament("t1")])
+
+    # Simulate a legacy/corrupted promoted season whose schedule predates the
+    # verification_context.problem contract.
+    schedule_path = root / "2026-2027" / "schedule.json"
+    schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+    del schedule["verification_context"]
+    schedule_path.write_text(json.dumps(schedule), encoding="utf-8")
+
+    from tournament_scheduler.season_maintenance import (
+        SeasonMaintenanceError,
+        load_context,
+    )
+
+    # The ordinary season command path fails closed for this exact condition.
+    with pytest.raises(SeasonMaintenanceError):
+        load_context("2026-2027", root=root)
+
+    state = PipelineState(tmp_path / ".pipeline")
+    state.write_stage(
+        StageName.CONFIG,
+        {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "teams": _teams(),
+            "canonical_season_root": str(root),
+        },
+        status=StageStatus.DONE,
+    )
+    stage2_event = {
+        "date": "2026-09-12",
+        "name": "Stage 2 event",
+        "datetime": "2026-09-12T10:00:00",
+        "duration_hours": 1.5,
+    }
+    state.write_stage(
+        StageName.SCRAPING,
+        {"events_by_club": {"A": [stage2_event]}, "club_calendar_status": {"A": "known"}},
+        status=StageStatus.DONE,
+    )
+
+    # The export chokepoint instead degrades gracefully, per its documented
+    # best-effort contract -- it does not crash, and it is not itself the
+    # fail-closed gate for a corrupted canonical calendar snapshot.
+    problem = _build_export_verification_problem(
+        {"start_date": "2026-09-01", "end_date": "2027-04-30", "teams": _teams(), "canonical_season_root": str(root)},
+        state,
+    )
+
+    assert problem is not None
+    assert problem["club_busy_intervals"].get("A")
+
+
 def _team(club, label, age_group="U10"):
     return {"club": club, "label": label, "age_group": age_group}
 
