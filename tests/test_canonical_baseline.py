@@ -241,6 +241,76 @@ def test_apply_candidate_rejects_hard_verification_failure(tmp_path):
     assert load_decisions("2026-2027", root=root)["decisions"]["t1"]["status"] == "pending_review"
 
 
+def _accepted_booking_problem() -> dict:
+    return {
+        "teams": _teams(("A", "B", "C")),
+        "ice_time_minutes": {"U10": 120},
+        "ice_time_minutes_overrides": {"t1": 110},
+        "calendar_booking_associations": [
+            {
+                "id": "calendar_booking:event:t1",
+                "status": "active",
+                "event_fingerprint": "event",
+                "tournament_id": "t1",
+                "club": "A",
+                "date": "2026-09-12",
+                "start": "10:00",
+                "end": "11:50",
+                "tournament_facts": {
+                    "host_club": "A",
+                    "arena": "Arena A",
+                    "date": "2026-09-12",
+                    "start_time": "10:00",
+                    "age_group": "U10",
+                },
+                "tournament_interval": {
+                    "date": "2026-09-12",
+                    "start_time": "10:00",
+                    "duration_minutes": "110",
+                    "end_time": "11:50",
+                },
+            }
+        ],
+    }
+
+
+def test_apply_candidate_honours_unchanged_accepted_booking_floor_exception(tmp_path):
+    teams = _teams(("A", "B", "C"))
+    root = _promote(tmp_path, [_tournament("t1", teams=teams)])
+
+    candidate = _plan(
+        [
+            _tournament("t1", teams=teams),
+            _tournament("t2", date_str="2026-10-10", teams=teams),
+        ]
+    )
+    schedule, _decisions, _cost = apply_candidate(
+        season="2026-2027",
+        candidate=candidate,
+        root=root,
+        problem=_accepted_booking_problem(),
+    )
+
+    assert {t["id"] for t in schedule["plan"]["tournaments"]} == {"t1", "t2"}
+
+
+def test_apply_candidate_rejects_changed_accepted_booking_interval(tmp_path):
+    teams = _teams(("A", "B", "C"))
+    root = _promote(tmp_path, [_tournament("t1", teams=teams)])
+    before = (root / "2026-2027" / "schedule.json").read_bytes()
+
+    candidate = _plan([_tournament("t1", date_str="2026-09-19", teams=teams)])
+    with pytest.raises(SeasonStateError, match="governing minimum"):
+        apply_candidate(
+            season="2026-2027",
+            candidate=candidate,
+            root=root,
+            problem=_accepted_booking_problem(),
+        )
+
+    assert (root / "2026-2027" / "schedule.json").read_bytes() == before
+
+
 def test_apply_candidate_rejects_unexplained_hosting_responsibility_transfer(tmp_path):
     root = _promote(
         tmp_path,
