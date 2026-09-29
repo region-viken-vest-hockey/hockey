@@ -2116,6 +2116,11 @@ def build_parser() -> argparse.ArgumentParser:
     season_repair.add_argument("--finding", required=True, help="Finding id from 'season findings'")
     season_repair.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_repair.add_argument(
+        "--age-group",
+        default=None,
+        help="Age-group selector for legacy participation finding ids (for example U9)",
+    )
+    season_repair.add_argument(
         "--search",
         dest="allow_search",
         action="store_true",
@@ -2131,6 +2136,11 @@ def build_parser() -> argparse.ArgumentParser:
     season_search.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
     season_search.add_argument("--finding", required=True, help="Finding id from 'season findings'")
     season_search.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_search.add_argument(
+        "--age-group",
+        default=None,
+        help="Age-group selector for legacy participation finding ids (for example U9)",
+    )
     season_search.add_argument(
         "--dimensions",
         default="participants,host",
@@ -2151,6 +2161,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Canonical revision the option was derived from (stale revisions are rejected)",
     )
     season_apply_repair.add_argument("--finding", default=None, help="Finding id the option belongs to")
+    season_apply_repair.add_argument(
+        "--age-group",
+        default=None,
+        help="Age-group selector for legacy participation finding ids (for example U9)",
+    )
     season_apply_repair.add_argument(
         "--dimensions",
         default="participants,host",
@@ -2192,6 +2207,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--finding", required=True, help="Participation finding id from 'season findings'"
     )
     season_accept_deviation.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_accept_deviation.add_argument(
+        "--age-group",
+        default=None,
+        help="Age-group selector for legacy participation finding ids (for example U9)",
+    )
     season_accept_deviation.add_argument("--actor", default=None, help="Operator identity for the acceptance record")
     season_accept_deviation.add_argument("--note", default="", help="Why this deviation is accepted")
     season_accept_deviation.add_argument("--json", action="store_true", help="Print the acceptance result as JSON")
@@ -2205,6 +2225,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--finding", required=True, help="Participation finding id from 'season findings'"
     )
     season_revoke_acceptance.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_revoke_acceptance.add_argument(
+        "--age-group",
+        default=None,
+        help="Age-group selector for legacy participation finding ids (for example U9)",
+    )
     season_revoke_acceptance.add_argument("--actor", default=None, help="Operator identity for the revoke record")
     season_revoke_acceptance.add_argument("--note", default="", help="Why the acceptance is revoked")
     season_revoke_acceptance.add_argument("--json", action="store_true", help="Print the revoke result as JSON")

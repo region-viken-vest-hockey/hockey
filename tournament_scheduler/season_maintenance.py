@@ -34,7 +34,7 @@ from .operational_acceptability import (
     required_opt_in_flags,
 )
 from .pareto import non_dominated_indices, representative_indices
-from .participation_deviation_repair import participation_finding_id
+from .participation_deviation_repair import legacy_participation_finding_id, participation_finding_id
 from .participation_targets import INTRA_CLUB_DISTRIBUTION, search_evidence_from_acceptances
 from .planning_contract import score_candidate, verify_candidate
 from .quality_objectives import (
@@ -710,6 +710,7 @@ def repair_options(
     finding_id: str,
     *,
     root: str = DEFAULT_SEASON_ROOT,
+    age_group: str | None = None,
     allow_search: bool = False,
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
@@ -718,7 +719,7 @@ def repair_options(
     schedule, decisions, plan, problem = load_context(season, root=root)
     revision = canonical_state_revision(schedule, decisions)
     findings = _findings(plan, problem, verify_candidate(plan, problem))
-    finding = _require_finding(findings, finding_id)
+    finding = _require_finding(findings, finding_id, age_group=age_group)
     options, rejected, families = _options_for_finding(
         plan, problem, finding, allow_search=allow_search, dimensions=DEFAULT_DIMENSIONS
     )
@@ -753,6 +754,7 @@ def search(
     finding_id: str,
     *,
     root: str = DEFAULT_SEASON_ROOT,
+    age_group: str | None = None,
     dimensions: Iterable[str] = ("participants", "host"),
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
@@ -762,7 +764,7 @@ def search(
     schedule, decisions, plan, problem = load_context(season, root=root)
     revision = canonical_state_revision(schedule, decisions)
     findings = _findings(plan, problem, verify_candidate(plan, problem))
-    finding = _require_finding(findings, finding_id)
+    finding = _require_finding(findings, finding_id, age_group=age_group)
     options, rejected, families = _options_for_finding(
         plan, problem, finding, allow_search=True, dimensions=resolved_dimensions
     )
@@ -802,6 +804,7 @@ def apply_repair(
     actor: Optional[str] = None,
     dry_run: bool = False,
     finding_id: Optional[str] = None,
+    age_group: str | None = None,
     dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
@@ -836,7 +839,7 @@ def apply_repair(
         )
     findings = _findings(plan, problem, verify_candidate(plan, problem))
     if finding_id:
-        candidates = [_require_finding(findings, finding_id)]
+        candidates = [_require_finding(findings, finding_id, age_group=age_group)]
     else:
         inferred = _infer_finding_id(option_id, findings)
         candidates = [inferred] if inferred is not None else _findings_for_option(findings, option_id)
@@ -1065,6 +1068,7 @@ def accept_finding(
     finding_id: str,
     *,
     root: str = DEFAULT_SEASON_ROOT,
+    age_group: str | None = None,
     actor: Optional[str] = None,
     note: str = "",
 ) -> Dict[str, Any]:
@@ -1072,7 +1076,7 @@ def accept_finding(
     schedule, decisions, plan, problem = load_context(season, root=root)
     revision = canonical_state_revision(schedule, decisions)
     findings = _findings(plan, problem, verify_candidate(plan, problem))
-    finding = _require_finding(findings, finding_id)
+    finding = _require_finding(findings, finding_id, age_group=age_group)
     if finding["category"] != PARTICIPATION:
         raise SeasonMaintenanceError(
             f"Only participation findings can be accepted; {finding_id} is {finding['category']}"
@@ -1105,6 +1109,7 @@ def revoke_acceptance(
     finding_id: str,
     *,
     root: str = DEFAULT_SEASON_ROOT,
+    age_group: str | None = None,
     actor: Optional[str] = None,
     note: str = "",
 ) -> Dict[str, Any]:
@@ -1112,7 +1117,7 @@ def revoke_acceptance(
     schedule, decisions, plan, problem = load_context(season, root=root)
     revision = canonical_state_revision(schedule, decisions)
     findings = _findings(plan, problem, verify_candidate(plan, problem))
-    finding = _require_finding(findings, finding_id)
+    finding = _require_finding(findings, finding_id, age_group=age_group)
     if finding["category"] != PARTICIPATION:
         raise SeasonMaintenanceError(
             f"Only participation findings carry an acceptance; {finding_id} is {finding['category']}"
@@ -1175,6 +1180,7 @@ def repair_options_for_plan(
     problem: Mapping[str, Any],
     finding_id: str,
     *,
+    age_group: str | None = None,
     allow_search: bool = False,
     dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
     allow_manual_placement: bool = False,
@@ -1183,7 +1189,7 @@ def repair_options_for_plan(
     """Enumerate deterministic repair options for one finding on a bare plan."""
     resolved_dimensions = tuple(sorted({str(d) for d in dimensions}))
     findings = findings_for_plan(plan, problem)
-    finding = _require_finding(findings, finding_id)
+    finding = _require_finding(findings, finding_id, age_group=age_group)
     options, rejected, families = _options_for_finding(
         plan, problem, finding, allow_search=allow_search, dimensions=resolved_dimensions
     )
@@ -1214,6 +1220,7 @@ def apply_repair_to_plan(
     option_id: str,
     *,
     finding_id: Optional[str] = None,
+    age_group: str | None = None,
     dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
     baseline: Optional[Mapping[str, Any]] = None,
     allow_manual_placement: bool = False,
@@ -1230,7 +1237,7 @@ def apply_repair_to_plan(
     resolved_dimensions = tuple(sorted({str(d) for d in dimensions}))
     findings = findings_for_plan(plan, problem)
     if finding_id:
-        candidates = [_require_finding(findings, finding_id)]
+        candidates = [_require_finding(findings, finding_id, age_group=age_group)]
     else:
         inferred = _infer_finding_id(option_id, findings)
         candidates = [inferred] if inferred is not None else _findings_for_option(findings, option_id)
@@ -1422,7 +1429,7 @@ def _participation_findings(
         scope = str(deviation.get("scope") or "")
         avoidability = str(deviation.get("avoidability") or "")
         finding: Dict[str, Any] = {
-            "finding_id": participation_finding_id(club, team, scope),
+            "finding_id": participation_finding_id(club, team, str(deviation.get("age_group") or ""), scope),
             "code": "participation_deviation",
             "category": PARTICIPATION,
             "severity": "strong_goal",
@@ -1884,11 +1891,54 @@ def _intra_club_distribution_findings(
     return out
 
 
-def _require_finding(findings: List[Dict[str, Any]], finding_id: str) -> Dict[str, Any]:
+def _require_finding(
+    findings: List[Dict[str, Any]], finding_id: str, *, age_group: str | None = None
+) -> Dict[str, Any]:
     finding = next((entry for entry in findings if entry["finding_id"] == finding_id), None)
-    if finding is None:
-        raise SeasonMaintenanceError(f"Unknown or stale finding id: {finding_id}")
-    return finding
+    if finding is not None:
+        if age_group and str(finding.get("age_group") or "") != str(age_group):
+            raise SeasonMaintenanceError(
+                f"Finding id {finding_id} is for age group {finding.get('age_group')}; "
+                f"requested {age_group}"
+            )
+        return finding
+
+    legacy_matches = _legacy_participation_matches(findings, finding_id, age_group=age_group)
+    if len(legacy_matches) == 1:
+        return legacy_matches[0]
+    if legacy_matches:
+        alternatives = ", ".join(
+            f"--finding {entry['finding_id']} --age-group {entry.get('age_group')}"
+            for entry in legacy_matches
+        )
+        raise SeasonMaintenanceError(
+            f"Ambiguous legacy participation finding id {finding_id}; matches age groups "
+            f"{', '.join(str(entry.get('age_group') or '') for entry in legacy_matches)}. "
+            f"Use an exact selector: {alternatives}"
+        )
+    raise SeasonMaintenanceError(f"Unknown or stale finding id: {finding_id}")
+
+
+def _legacy_participation_matches(
+    findings: List[Dict[str, Any]], finding_id: str, *, age_group: str | None = None
+) -> List[Dict[str, Any]]:
+    parts = finding_id.split(":")
+    if len(parts) != 4 or parts[0] != "participation_deviation":
+        return []
+    _prefix, club, team, scope = parts
+    legacy_id = legacy_participation_finding_id(club, team, scope)
+    if legacy_id != finding_id:
+        return []
+    matches = [
+        entry
+        for entry in findings
+        if entry.get("category") == PARTICIPATION
+        and str(entry.get("club") or "") == club
+        and str(entry.get("team") or "") == team
+        and str(entry.get("scope") or "") == scope
+        and (not age_group or str(entry.get("age_group") or "") == str(age_group))
+    ]
+    return sorted(matches, key=lambda entry: (str(entry.get("age_group") or ""), entry["finding_id"]))
 
 
 def _findings_for_option(findings: List[Dict[str, Any]], option_id: str) -> List[Dict[str, Any]]:
@@ -2172,6 +2222,7 @@ def _participation_options(
         scope={
             "team": finding.get("team"),
             "club": finding.get("club"),
+            "age_group": finding.get("age_group"),
             "scope": finding.get("scope"),
         },
         dimensions=dimensions,

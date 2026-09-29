@@ -18,14 +18,17 @@ import pytest
 
 from tournament_scheduler.participation_deviation_repair import _classification
 from tournament_scheduler.pareto import non_dominated_indices
+from tournament_scheduler.season_baseline import compare_findings_to_baseline
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
 from tournament_scheduler.season_maintenance import (
     MAINTENANCE_DEFECT_DIMENSIONS,
     PARETO_DIMENSIONS,
     TRAVEL_OBJECTIVE_DIMENSIONS,
+    SeasonMaintenanceError,
     _travel_metrics,
     accept_finding,
     apply_repair,
+    apply_repair_to_plan,
     list_findings,
     load_context,
     repair_options,
@@ -169,6 +172,269 @@ def _two_club_season(tmp_path: Path, *, approved: Optional[Iterable[str]] = None
     root = tmp_path / "season"
     revision = _write_season(root, plan, problem, approved=approved)
     return root, plan, problem, revision
+
+
+def _multi_age_participation_season(tmp_path: Path):
+    def team(club: str, age_group: str) -> Dict[str, str]:
+        return {"club": club, "label": club, "age_group": age_group}
+
+    teams = [
+        team("Skien", "U9"),
+        team("Other", "U9"),
+        team("Skien", "U10"),
+        team("Other", "U10"),
+    ]
+    problem: Dict[str, Any] = {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "teams": teams,
+        "parallel_games": {"U9": 1, "U10": 1},
+        "participation_targets_by_age_group": {
+            "U9": {"before_christmas": 0, "after_christmas": 1},
+            "U10": {"before_christmas": 0, "after_christmas": 1},
+        },
+    }
+    plan = _plan(
+        [
+            {**_tournament("U9-T1", "2026-10-10", "Skien", teams[:2]), "age_group": "U9"},
+            {**_tournament("U10-T1", "2026-10-10", "Skien", teams[2:]), "age_group": "U10"},
+        ]
+    )
+    root = tmp_path / "season"
+    revision = _write_season(root, plan, problem)
+    return root, plan, problem, revision
+
+
+def test_participation_finding_ids_include_age_group_and_legacy_lookup_fails_closed(tmp_path: Path) -> None:
+    root, _plan, _problem, _revision = _multi_age_participation_season(tmp_path)
+
+    report = list_findings(YEAR, root=root)
+    skien_after = [
+        finding
+        for finding in report["findings"]
+        if finding["code"] == "participation_deviation"
+        and finding["club"] == "Skien"
+        and finding["team"] == "Skien"
+        and finding["scope"] == "after_christmas"
+    ]
+
+    assert {finding["age_group"] for finding in skien_after} == {"U9", "U10"}
+    assert {finding["finding_id"] for finding in skien_after} == {
+        "participation_deviation:Skien:Skien:U9:after_christmas",
+        "participation_deviation:Skien:Skien:U10:after_christmas",
+    }
+
+    with pytest.raises(SeasonMaintenanceError) as excinfo:
+        repair_options(
+            YEAR,
+            "participation_deviation:Skien:Skien:after_christmas",
+            root=root,
+        )
+    message = str(excinfo.value)
+    assert "Ambiguous legacy participation finding id" in message
+    assert "--finding participation_deviation:Skien:Skien:U9:after_christmas --age-group U9" in message
+    assert "--finding participation_deviation:Skien:Skien:U10:after_christmas --age-group U10" in message
+
+
+def test_legacy_participation_baseline_without_age_group_fails_closed(tmp_path: Path) -> None:
+    root, _plan, _problem, _revision = _multi_age_participation_season(tmp_path)
+    current = [
+        finding
+        for finding in list_findings(YEAR, root=root)["findings"]
+        if finding["finding_id"] == "participation_deviation:Skien:Skien:U9:after_christmas"
+    ]
+    baseline = {
+        "findings": [
+            {
+                "finding_id": "participation_deviation:Skien:Skien:after_christmas",
+                "code": "participation_deviation",
+                "category": "participation",
+                "severity": "strong_goal",
+                "severity_score": 1.0,
+                "measurements": {"actual": 0, "target": 1, "deviation": -1},
+            }
+        ]
+    }
+
+    comparison = compare_findings_to_baseline(baseline, current)
+
+    assert comparison["summary"]["BASELINE_UNRESOLVED"] == 1
+    assert comparison["summary"]["NEW"] == 1
+    assert comparison["ok_to_advance"] is False
+    unresolved = [entry for entry in comparison["entries"] if entry["status"] == "BASELINE_UNRESOLVED"][0]
+    assert unresolved["baseline"]["migration_status"] == "ambiguous_legacy_participation_id"
+    assert unresolved["baseline"]["candidate_current_ids"] == [
+        "participation_deviation:Skien:Skien:U9:after_christmas"
+    ]
+
+
+def test_ambiguous_legacy_participation_baseline_with_no_current_match_blocks_advance() -> None:
+    baseline = {
+        "findings": [
+            {
+                "finding_id": "participation_deviation:Skien:Skien:after_christmas",
+                "code": "participation_deviation",
+                "category": "participation",
+                "severity": "strong_goal",
+                "severity_score": 1.0,
+                "measurements": {"actual": 0, "target": 1, "deviation": -1},
+            }
+        ]
+    }
+
+    comparison = compare_findings_to_baseline(baseline, [])
+
+    assert comparison["summary"]["BASELINE_UNRESOLVED"] == 1
+    assert comparison["summary"]["RESOLVED"] == 0
+    assert comparison["baseline_unresolved_count"] == 1
+    assert comparison["ok_to_advance"] is False
+    entry = comparison["entries"][0]
+    assert entry["status"] == "BASELINE_UNRESOLVED"
+    assert entry["baseline"]["migration_status"] == "ambiguous_legacy_participation_id"
+    assert entry["baseline"]["candidate_current_ids"] == []
+
+
+def test_legacy_participation_baseline_with_age_group_provenance_migrates(tmp_path: Path) -> None:
+    root, _plan, _problem, _revision = _multi_age_participation_season(tmp_path)
+    current = [
+        finding
+        for finding in list_findings(YEAR, root=root)["findings"]
+        if finding["finding_id"] == "participation_deviation:Skien:Skien:U9:after_christmas"
+    ]
+    baseline = {
+        "findings": [
+            {
+                "finding_id": "participation_deviation:Skien:Skien:after_christmas",
+                "code": "participation_deviation",
+                "category": "participation",
+                "age_group": "U9",
+                "severity": "strong_goal",
+                "severity_score": 1.0,
+                "measurements": {"actual": 0, "target": 1, "deviation": -1},
+            }
+        ]
+    }
+
+    comparison = compare_findings_to_baseline(baseline, current)
+
+    assert comparison["summary"]["KNOWN"] == 1
+    assert comparison["summary"]["NEW"] == 0
+    entry = comparison["entries"][0]
+    assert entry["finding_id"] == "participation_deviation:Skien:Skien:U9:after_christmas"
+    assert entry["baseline"]["legacy_finding_id"] == "participation_deviation:Skien:Skien:after_christmas"
+    assert entry["baseline"]["migration_status"] == "migrated_from_legacy_participation_id"
+
+
+def test_duplicate_legacy_participation_baseline_records_are_preserved(tmp_path: Path) -> None:
+    root, _plan, _problem, _revision = _multi_age_participation_season(tmp_path)
+    current = [
+        finding
+        for finding in list_findings(YEAR, root=root)["findings"]
+        if finding["club"] == "Skien" and finding["team"] == "Skien" and finding["scope"] == "after_christmas"
+    ]
+    baseline = {
+        "findings": [
+            {
+                "finding_id": "participation_deviation:Skien:Skien:after_christmas",
+                "code": "participation_deviation",
+                "category": "participation",
+                "age_group": age_group,
+                "severity": "strong_goal",
+                "severity_score": 1.0,
+                "measurements": {"actual": 0, "target": 1, "deviation": -1},
+            }
+            for age_group in ("U9", "U10")
+        ]
+    }
+
+    comparison = compare_findings_to_baseline(baseline, current)
+
+    assert comparison["summary"]["KNOWN"] == 2
+    assert comparison["summary"]["NEW"] == 0
+    assert {entry["finding_id"] for entry in comparison["entries"]} == {
+        "participation_deviation:Skien:Skien:U9:after_christmas",
+        "participation_deviation:Skien:Skien:U10:after_christmas",
+    }
+
+
+def test_duplicate_legacy_participation_baseline_same_age_blocks_advance(tmp_path: Path) -> None:
+    root, _plan, _problem, _revision = _multi_age_participation_season(tmp_path)
+    current = [
+        finding
+        for finding in list_findings(YEAR, root=root)["findings"]
+        if finding["finding_id"] == "participation_deviation:Skien:Skien:U9:after_christmas"
+    ]
+    baseline = {
+        "findings": [
+            {
+                "finding_id": "participation_deviation:Skien:Skien:after_christmas",
+                "code": "participation_deviation",
+                "category": "participation",
+                "age_group": "U9",
+                "severity": "strong_goal",
+                "severity_score": 1.0,
+                "measurements": {"actual": 0, "target": 1, "deviation": -1},
+            }
+            for _ in range(2)
+        ]
+    }
+
+    comparison = compare_findings_to_baseline(baseline, current)
+
+    assert comparison["summary"]["KNOWN"] == 1
+    assert comparison["summary"]["BASELINE_UNRESOLVED"] == 1
+    assert comparison["ok_to_advance"] is False
+    duplicate = [entry for entry in comparison["entries"] if entry["status"] == "BASELINE_UNRESOLVED"][0]
+    assert duplicate["baseline"]["migration_status"] == "duplicate_baseline_identity"
+    assert duplicate["baseline"]["matched_current_id"] == "participation_deviation:Skien:Skien:U9:after_christmas"
+
+
+def test_legacy_participation_selector_with_age_group_resolves_only_that_age(tmp_path: Path) -> None:
+    root, _plan, _problem, _revision = _multi_age_participation_season(tmp_path)
+
+    report = search(
+        YEAR,
+        "participation_deviation:Skien:Skien:after_christmas",
+        root=root,
+        age_group="U9",
+        dimensions=("participants",),
+    )
+
+    assert report["finding"]["finding_id"] == "participation_deviation:Skien:Skien:U9:after_christmas"
+    assert report["finding"]["age_group"] == "U9"
+    rejected_ids = {entry["finding_id"] for entry in report["rejected_candidates"]}
+    assert rejected_ids
+    assert rejected_ids <= {"participation_deviation:Skien:Skien:U9:after_christmas"}
+    assert "participation_deviation:Skien:Skien:U10:after_christmas" not in rejected_ids
+
+
+def test_legacy_participation_option_only_apply_is_rejected_without_mutation(tmp_path: Path) -> None:
+    root, plan, _problem, revision = _multi_age_participation_season(tmp_path)
+    legacy_option_id = (
+        f"{schedule_fingerprint(plan)[:12]}:participation_deviation:"
+        "Skien:Skien:after_christmas:search:0:participants"
+    )
+
+    canonical = apply_repair(
+        YEAR,
+        legacy_option_id,
+        revision,
+        root=root,
+        age_group="U9",
+        dry_run=True,
+    )
+    bare = apply_repair_to_plan(
+        plan,
+        _problem,
+        legacy_option_id,
+        age_group="U9",
+    )
+
+    assert canonical["ok"] is False
+    assert canonical["reason"] == "unknown_or_stale_option"
+    assert canonical["revision_before"] == revision
+    assert canonical_state_revision(load_schedule(YEAR, root=root), load_decisions(YEAR, root=root)) == revision
+    assert bare == {"ok": False, "reason": "unknown_or_stale_option", "option_id": legacy_option_id}
 
 
 def test_season_audit_reports_catalog_coverage_and_reconciliation(tmp_path: Path) -> None:
