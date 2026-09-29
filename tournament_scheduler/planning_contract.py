@@ -40,7 +40,10 @@ from tournament_scheduler.calendar_availability import (
     interval_availability,
     unclassified_intervals,
 )
-from tournament_scheduler.calendar_bookings import associated_tournament_for_event, event_fingerprint
+from tournament_scheduler.calendar_bookings import (
+    associated_tournament_for_event,
+    event_fingerprint,
+)
 from tournament_scheduler.canonical_baseline import (
     locked_dates as _canonical_locked_dates,
     pinned_tournament_ids as _canonical_pinned_tournament_ids,
@@ -1270,34 +1273,41 @@ def verify_candidate(
         actual_round_count = max((int(game.get("round_number") or 0) for game in t.get("games") or []), default=0)
         configured_ice_time = configured_ice_time_minutes.get(shape_age_group)
         # A host-confirmed per-tournament override is the effective booked
-        # window, so the format/governing floors must be checked against it --
-        # an override can never make a tournament physically impossible.
+        # window; the actual-playing-requirement floor must be checked against
+        # it so an override can never make a tournament physically impossible.
         override_ice_time = ice_time_overrides.get(t_id)
+        effective_ice_time = configured_ice_time
         if isinstance(override_ice_time, int) and override_ice_time > 0:
-            configured_ice_time = override_ice_time
+            effective_ice_time = override_ice_time
         configured_round_length = round_length_minutes_by_age.get(shape_age_group)
-        if isinstance(configured_ice_time, int) and configured_ice_time > 0:
+        # The governing booking floor stays a hard planning constraint on the
+        # effective occupancy. The reconciliation/audit boundary (never this
+        # verifier) reclassifies a source-confirmed accepted interval below the
+        # floor as a durable feasibility finding using canonical evidence and
+        # an exact interval match.
+        if isinstance(effective_ice_time, int) and effective_ice_time > 0:
             governing_floor = governing_minimum_ice_time_minutes(shape_age_group)
-            if governing_floor is not None and configured_ice_time < governing_floor:
+            if governing_floor is not None and effective_ice_time < governing_floor:
                 _violate(
                     "ice_time_governing_minimum",
-                    f"Tournament {t_id} ({shape_age_group}) has ice_time_minutes={configured_ice_time}, "
+                    f"Tournament {t_id} ({shape_age_group}) has ice_time_minutes={effective_ice_time}, "
                     f"below the governing minimum booking window of {governing_floor} minutes",
                     t_id,
                     age_group=shape_age_group,
-                    configured_ice_time_minutes=configured_ice_time,
+                    configured_ice_time_minutes=effective_ice_time,
                     minimum_required_minutes=governing_floor,
                 )
+        if isinstance(effective_ice_time, int) and effective_ice_time > 0:
             minimum_playing = minimum_playing_requirement_minutes(configured_round_length, actual_round_count)
-            if minimum_playing > 0 and configured_ice_time < minimum_playing:
+            if minimum_playing > 0 and effective_ice_time < minimum_playing:
                 _violate(
                     "ice_time_playing_minimum",
-                    f"Tournament {t_id} ({shape_age_group}) has ice_time_minutes={configured_ice_time}, "
+                    f"Tournament {t_id} ({shape_age_group}) has ice_time_minutes={effective_ice_time}, "
                     f"below the minimum {minimum_playing} minutes required for {actual_round_count} "
                     f"rounds of {configured_round_length} minutes plus changeovers",
                     t_id,
                     age_group=shape_age_group,
-                    configured_ice_time_minutes=configured_ice_time,
+                    configured_ice_time_minutes=effective_ice_time,
                     minimum_required_minutes=minimum_playing,
                     round_count=actual_round_count,
                     round_length_minutes=configured_round_length,

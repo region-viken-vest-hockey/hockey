@@ -56,6 +56,107 @@ def test_clean_final_candidate_is_publishable():
     assert result["publishable"] is True
 
 
+def test_source_confirmed_below_floor_booking_reclassifies_to_finding():
+    # A source-confirmed accepted booking interval below the governing floor is
+    # a durable finding at the audit boundary, not a hard planning violation.
+    problem = {
+        **_problem(),
+        "ice_time_minutes": {"U10": 120},
+        "ice_time_minutes_overrides": {"t1": 110},
+        "calendar_booking_associations": [
+            {
+                "id": "calendar_booking:event:t1",
+                "status": "active",
+                "event_fingerprint": "event",
+                "tournament_id": "t1",
+                "club": "Jar",
+                "date": "2026-02-01",
+                "start": "10:00",
+                "end": "11:50",
+                "tournament_facts": {
+                    "host_club": "Jar",
+                    "arena": "Jarahallen",
+                    "date": "2026-02-01",
+                    "start_time": "10:00",
+                    "age_group": "U10",
+                },
+                "tournament_interval": {
+                    "date": "2026-02-01",
+                    "start_time": "10:00",
+                    "duration_minutes": "110",
+                    "end_time": "11:50",
+                },
+            }
+        ],
+    }
+
+    result = verify_final_candidate(_candidate(), problem)
+
+    assert result["ok"], result["violations"]
+    assert [w["code"] for w in result["booking_feasibility_warnings"]] == [
+        "ice_time_governing_minimum"
+    ]
+    assert all(w.get("accepted_booking_interval") for w in result["booking_feasibility_warnings"])
+    informational = result["publication_readiness"]["informational_reasons"]
+    assert any(item["code"] == "booking_feasibility_warnings" for item in informational)
+
+
+def test_stale_or_wrong_source_authority_does_not_reclassify_below_floor():
+    # Exact source evidence is required: an association whose recorded date no
+    # longer matches the candidate interval (stale/wrong authority) must not
+    # downgrade a below-floor override to a feasibility finding.
+    problem = {
+        **_problem(),
+        "ice_time_minutes": {"U10": 120},
+        "ice_time_minutes_overrides": {"t1": 110},
+        "calendar_booking_associations": [
+            {
+                "id": "calendar_booking:event:t1",
+                "status": "active",
+                "event_fingerprint": "event",
+                "tournament_id": "t1",
+                "club": "Jar",
+                "date": "2026-02-02",
+                "start": "10:00",
+                "end": "11:50",
+                "tournament_facts": {
+                    "host_club": "Jar",
+                    "arena": "Jarahallen",
+                    "date": "2026-02-01",
+                    "start_time": "10:00",
+                    "age_group": "U10",
+                },
+                "tournament_interval": {
+                    "date": "2026-02-01",
+                    "start_time": "10:00",
+                    "duration_minutes": "110",
+                    "end_time": "11:50",
+                },
+            }
+        ],
+    }
+
+    result = verify_final_candidate(_candidate(), problem)
+
+    assert "ice_time_governing_minimum" in {v["code"] for v in result["violations"]}
+    assert result["booking_feasibility_warnings"] == []
+
+
+def test_unverified_below_floor_override_remains_hard_invalid():
+    # Without source-confirmed evidence matching the exact interval, a below-
+    # floor override stays a hard planning violation (no blanket bypass).
+    problem = {
+        **_problem(),
+        "ice_time_minutes": {"U10": 120},
+        "ice_time_minutes_overrides": {"t1": 110},
+    }
+
+    result = verify_final_candidate(_candidate(), problem)
+
+    assert "ice_time_governing_minimum" in {v["code"] for v in result["violations"]}
+    assert result["booking_feasibility_warnings"] == []
+
+
 def test_tournament_below_minimum_is_invalid():
     result = verify_final_candidate(
         _candidate(

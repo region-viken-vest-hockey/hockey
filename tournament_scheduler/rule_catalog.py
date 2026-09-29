@@ -200,12 +200,15 @@ _HARD: tuple[RuleEntry, ...] = (
         meaning=(
             "A tournament's configured ice_time_minutes is the complete hall occupancy window. "
             "It must be at least the actual rounds times round length plus the per-round "
-            "changeover buffer, and any governing per-series-round booking floor."
+            "changeover buffer. A proposed placement must also meet any governing "
+            "per-series-round booking floor; a source-confirmed accepted booking interval "
+            "below that floor is recorded exactly at the reconciliation boundary and surfaced "
+            "as a durable feasibility finding, not a new-placement planning violation."
         ),
         canonical_owner="tournament_scheduler.occupancy",
         input_source="planning_problem ice_time_minutes + round_length_minutes + generated round count",
         verifier_owner="tournament_scheduler.planning_contract.verify_candidate",
-        evidence_projection=("verify_candidate.violations", "rules_model tournament_duration"),
+        evidence_projection=("verify_candidate.violations", "verify_final_candidate.booking_feasibility_warnings", "calendar_bookings governing_floor_finding"),
         tests=("tests/test_occupancy.py", "tests/test_planning_contract.py", "tests/test_stage1_config.py"),
         verifier_codes=("ice_time_playing_minimum", "ice_time_governing_minimum"),
         waivable=False,

@@ -12,6 +12,9 @@ from typing import Any, Mapping
 
 from tournament_scheduler.calendar_bookings import (
     BOOKING_AMBIGUOUS,
+    BOOKING_AUTHORITY_CALENDAR,
+    BOOKING_AUTHORITY_MANUAL,
+    BOOKING_AUTHORITY_MANUAL_INTERPRETATION,
     BOOKING_CONFIRMED_BOOKED,
     BOOKING_CONFIRMED_NOT_BOOKED,
     BOOKING_MANUALLY_BOOKED,
@@ -24,6 +27,7 @@ from tournament_scheduler.calendar_bookings import (
     MANUAL_ASSERTION_SUPERSEDED,
     MANUAL_BOOKING_ASSERTIONS_KEY,
     MANUAL_BOOKING_STATUS_CHOICES,
+    REJECTED_BOOKING_EVIDENCE_KEY,
     TOURNAMENT_BOOKING_EVIDENCE_KEY,
     active_club_booking_source_for_club,
     association_findings,
@@ -34,6 +38,7 @@ from tournament_scheduler.calendar_bookings import (
     club_calendar_positive_evidence_usable,
     event_fingerprint,
     find_event,
+    governing_floor_finding,
     iter_events,
     manual_assertion_for_tournament,
     manual_assertion_projection_status,
@@ -42,6 +47,7 @@ from tournament_scheduler.calendar_bookings import (
     new_booking_evidence_record,
     new_club_booking_source_record,
     new_manual_assertion_record,
+    new_rejected_booking_evidence_record,
     tournament_occupancy_interval_facts,
     valid_active_associations,
     validate_stated_interval,
@@ -97,6 +103,71 @@ _CALENDAR_PROBLEM_KEYS = (
     "club_coverage_proven",
     "unclassified_calendar_events",
 )
+
+
+def _record_rejected_booking_evidence(
+    service,
+    *,
+    snapshot,
+    tournament: Mapping[str, Any],
+    authority: str,
+    reference: str,
+    source_assertion_id: str | None,
+    proposed_interval: Mapping[str, Any] | None,
+    blockers: list[dict[str, Any]],
+    actor: str,
+    now: str,
+    source_revision: str,
+    dry_run: bool,
+) -> None:
+    """Persist refused source evidence before the operation raises (ADR 0005).
+
+    Evidence acceptance and active placement acceptance are separate outcomes:
+    a source-confirmed booking whose exact change fails a hard operational check
+    is retained as an unresolved conflict for operator resolution, without
+    mutating the active placement, approval/lock or reconciliation state. The
+    rejected record is decision-only, so the canonical schedule is untouched.
+    """
+
+    if dry_run:
+        return
+    updated = dict(snapshot.decisions)
+    records = [
+        dict(record)
+        for record in updated.get(REJECTED_BOOKING_EVIDENCE_KEY) or []
+        if isinstance(record, Mapping)
+    ]
+    records.append(
+        new_rejected_booking_evidence_record(
+            tournament=tournament,
+            authority=authority,
+            reference=reference,
+            source_assertion_id=source_assertion_id,
+            proposed_interval=proposed_interval or {},
+            conflicts=blockers,
+            rejected_at=now,
+            rejected_by=actor,
+            canonical_state_revision=source_revision,
+        )
+    )
+    updated[REJECTED_BOOKING_EVIDENCE_KEY] = records
+    updated["updated_at"] = now
+    _append_decision_history(
+        updated,
+        event="reject_booking_evidence",
+        tournament_id=str(tournament.get("id") or ""),
+        actor=actor,
+        now=now,
+        note="source-confirmed booking rejected by a hard operational check",
+        details={
+            "authority": authority,
+            "reference": reference,
+            "source_assertion_id": source_assertion_id or "",
+            "proposed_interval": dict(proposed_interval or {}),
+            "conflicts": [str(blocker.get("code") or "") for blocker in blockers],
+        },
+    )
+    service._commit(snapshot.with_decisions(updated))
 
 
 def _calendar_problem_payload(problem: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -1450,22 +1521,50 @@ def confirm_calendar_booking(
     verification_problem = _resolve_plan_problem(updated_schedule, base_problem, updated)
     verification = verify_candidate(updated_schedule["plan"], verification_problem) if verification_problem else verify_candidate(updated_schedule["plan"])
     hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
-    booking_feasibility_warnings = [
-        blocker
-        for blocker in hard_blockers
-        if str(blocker.get("code") or "") in {"ice_time_playing_minimum", "ice_time_governing_minimum"}
-    ]
-    # An event-authoritative interval is accepted even when it is shorter than a
-    # planning minimum, but the deviation must stay durably attached to the
-    # booking evidence as independent follow-up rather than being silently
-    # absorbed. The persisted override already records its `minimum_minutes`.
+    # A source-authoritative interval below the governing *planning* floor is
+    # recorded exactly and surfaced as a durable feasibility finding, never a
+    # new-placement planning violation. This classification happens here at the
+    # reconciliation boundary, not in the planning verifier, so the verifier
+    # stays strict for proposals. Insufficient actual playing time and genuine
+    # overlaps remain hard blockers above.
+    accepted_minutes = (interval_alignment.get("accepted_calendar_interval") or {}).get(
+        "duration_minutes"
+    )
+    floor_finding = governing_floor_finding(tournament, accepted_minutes)
+    booking_feasibility_warnings = [floor_finding] if floor_finding else []
+    if floor_finding:
+        # The governing-floor shortfall for this exact accepted booking is a
+        # durable finding, so drop the verifier's hard violation for it while
+        # keeping every other hard blocker (playing minimum, arena overlap).
+        hard_blockers = [
+            blocker
+            for blocker in hard_blockers
+            if str(blocker.get("code") or "") != "ice_time_governing_minimum"
+        ]
+    # The deviation must stay durably attached to the booking evidence as
+    # independent follow-up rather than being silently absorbed. The persisted
+    # override already records its `minimum_minutes`.
     if booking_feasibility_warnings:
         warning_codes = [str(blocker.get("code") or "") for blocker in booking_feasibility_warnings]
         assoc["booking_feasibility_warnings"] = warning_codes
         evidence["booking_feasibility_warnings"] = warning_codes
-    blockers = [blocker for blocker in hard_blockers if blocker not in booking_feasibility_warnings] + unresolved_blockers
+    blockers = hard_blockers + unresolved_blockers
     if blockers:
         messages = "; ".join(str(blocker.get("message") or blocker.get("code")) for blocker in blockers)
+        _record_rejected_booking_evidence(
+            service,
+            snapshot=snapshot,
+            tournament=tournament,
+            authority=BOOKING_AUTHORITY_CALENDAR,
+            reference=str(event.get("calendar_event") or event.get("title") or "calendar event"),
+            source_assertion_id=None,
+            proposed_interval=(interval_alignment or {}).get("accepted_calendar_interval"),
+            blockers=blockers,
+            actor=resolved_actor,
+            now=checked_at,
+            source_revision=canonical_state_revision(schedule, decisions),
+            dry_run=dry_run,
+        )
         raise SeasonStateError(f"Refusing to confirm booking for {tournament_id}: {messages}")
 
     approved_at = checked_at
@@ -1732,15 +1831,47 @@ def set_manual_booking_assertion(
         verification_problem = _resolve_plan_problem(updated_schedule, resolved_problem, updated_decisions_for_interval)
         verification = verify_candidate(updated_schedule["plan"], verification_problem) if verification_problem else verify_candidate(updated_schedule["plan"])
         hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
-        booking_feasibility_warnings = [
-            blocker
-            for blocker in hard_blockers
-            if str(blocker.get("code") or "")
-            in {"ice_time_playing_minimum", "ice_time_governing_minimum", "arena_interval_conflict"}
-        ]
-        blockers = [blocker for blocker in hard_blockers if blocker not in booking_feasibility_warnings] + unresolved_blockers
+        # A source-authoritative interval below the governing *planning* floor is
+        # recorded exactly and surfaced as a durable feasibility finding, never a
+        # new-placement planning violation. This classification happens here at the
+        # reconciliation boundary, not in the planning verifier, so the verifier
+        # stays strict for proposals. Insufficient actual playing time and genuine
+        # overlaps remain hard blockers above.
+        accepted_minutes = (source_interval_alignment.get("accepted_source_interval") or {}).get(
+            "duration_minutes"
+        )
+        floor_finding = governing_floor_finding(aligned_tournament, accepted_minutes)
+        booking_feasibility_warnings = [floor_finding] if floor_finding else []
+        if floor_finding:
+            # The governing-floor shortfall for this exact accepted booking is a
+            # durable finding, so drop the verifier's hard violation for it while
+            # keeping every other hard blocker (playing minimum, arena overlap).
+            hard_blockers = [
+                blocker
+                for blocker in hard_blockers
+                if str(blocker.get("code") or "") != "ice_time_governing_minimum"
+            ]
+        blockers = hard_blockers + unresolved_blockers
         if blockers:
             messages = "; ".join(str(blocker.get("message") or blocker.get("code")) for blocker in blockers)
+            _record_rejected_booking_evidence(
+                service,
+                snapshot=snapshot,
+                tournament=tournament,
+                authority=(
+                    BOOKING_AUTHORITY_MANUAL_INTERPRETATION
+                    if source_scope == "club_wide_interpretation"
+                    else BOOKING_AUTHORITY_MANUAL
+                ),
+                reference=reference or note,
+                source_assertion_id=linked_source_id,
+                proposed_interval=(source_interval_alignment or {}).get("accepted_source_interval"),
+                blockers=blockers,
+                actor=resolved_actor,
+                now=now,
+                source_revision=current_revision,
+                dry_run=dry_run,
+            )
             raise SeasonStateError(f"Refusing to record booking assertion for {tournament_id}: {messages}")
         schedule = updated_schedule
         decisions = updated_decisions_for_interval

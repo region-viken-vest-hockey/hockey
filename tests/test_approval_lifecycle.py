@@ -731,6 +731,13 @@ def test_confirm_calendar_booking_aligns_canonical_interval_to_authoritative_eve
     assert [warning["code"] for warning in result["booking_feasibility_warnings"]] == [
         "ice_time_governing_minimum"
     ]
+    # The warning must originate from ``verify_candidate``'s accepted-interval
+    # path (the effective occupancy comes from the accepted interval override),
+    # not an apply-time fallback that reclassifies an unmatched hard blocker.
+    assert all(
+        warning.get("accepted_booking_interval")
+        for warning in result["booking_feasibility_warnings"]
+    )
 
     schedule = load_schedule("2026-2027", root=root)["plan"]
     tournament = next(t for t in schedule["tournaments"] if t["id"] == "t1")
@@ -1785,6 +1792,252 @@ def test_manual_assertion_stated_duration_updates_canonical_occupancy(tmp_path):
     assert "ice_time_governing_minimum" in row["follow_up_reasons"]
     tournament = load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]
     assert tournament["start_time"] == "10:00"
+
+
+def test_manual_assertion_below_floor_warning_carries_exact_evidence(tmp_path):
+    """A governing-floor shortfall is a finding for an accepted interval.
+
+    The warning must originate from ``verify_candidate``'s accepted-interval
+    path (the effective occupancy comes from the accepted interval override)
+    rather than an apply-time fallback that reclassifies an unmatched hard
+    blocker.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    result = _manual_set(
+        root,
+        problem=problem,
+        note="email states a shorter window than the canonical block",
+        stated_start="10:00",
+        stated_end="10:45",
+    )
+    warnings = result["booking_feasibility_warnings"]
+    assert [warning["code"] for warning in warnings] == ["ice_time_governing_minimum"]
+    assert all(warning.get("accepted_booking_interval") for warning in warnings)
+
+
+def test_manual_assertion_reconfirms_stale_below_floor_slot_with_fresh_evidence(tmp_path):
+    """A stale assertion is not evidence for a newly stated below-floor interval.
+
+    Re-confirming a moved slot with a fresh below-floor stated interval records
+    a new accepted interval override, so the governing-floor shortfall stays a
+    non-blocking finding instead of an unmatched hard violation.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(root, problem=problem, note="confirmed at the original slot", reference="email-1")
+    move_tournament(season="2026-2027", tournament_id="t1", root=root, date="2026-09-19")
+
+    result = _manual_set(
+        root,
+        problem=problem,
+        note="club re-confirmed the moved slot with a shorter window",
+        reference="email-2",
+        stated_start="10:00",
+        stated_end="10:45",
+    )
+    assert result["changed"] is True
+    warnings = result["booking_feasibility_warnings"]
+    assert [warning["code"] for warning in warnings] == ["ice_time_governing_minimum"]
+    assert all(warning.get("accepted_booking_interval") for warning in warnings)
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assert _booking_row(report, "t1")["status"] == "manually_booked"
+
+
+def test_below_floor_booking_findings_and_export_preflight_parity(tmp_path):
+    """Apply-time confirmation, findings/audit and export/preflight agree on a
+    source-confirmed exact short interval for the same revision (ADR 0005)."""
+
+    from tournament_scheduler.final_verification import verify_final_candidate
+    from tournament_scheduler.season_maintenance import list_findings, load_context
+
+    event = {
+        "date": "2026-09-12",
+        "start": "11:00",
+        "end": "12:30",
+        "availability": "fixed_busy",
+        "calendar_event": "Miniputt U10 bekreftet",
+        "club": "A",
+    }
+    # A valid 4-team round-robin (3 rounds, 2 parallel games each) so the final
+    # verifier's game-integrity checks pass and only the below-floor booking is
+    # under test.
+    teams = [
+        {"club": club, "label": f"{club}1", "age_group": "U10"}
+        for club in ("A", "B", "C", "D")
+    ]
+    labels = [team["label"] for team in teams]
+    games = [
+        {"home": labels[0], "away": labels[1], "parallel_slot": 0, "round_number": 1},
+        {"home": labels[2], "away": labels[3], "parallel_slot": 1, "round_number": 1},
+        {"home": labels[0], "away": labels[2], "parallel_slot": 0, "round_number": 2},
+        {"home": labels[1], "away": labels[3], "parallel_slot": 1, "round_number": 2},
+        {"home": labels[0], "away": labels[3], "parallel_slot": 0, "round_number": 3},
+        {"home": labels[1], "away": labels[2], "parallel_slot": 1, "round_number": 3},
+    ]
+    tournament = _tournament("t1", teams=teams)
+    tournament["games"] = games
+    problem = _host_a_problem([event])
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    state.write_stage(StageName.PLANNING, {"plan": _plan([tournament])}, status=StageStatus.DONE)
+    write_reviewed_stage4_export(state, problem=problem)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    result = confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint(event),
+        tournament_id="t1",
+        actor="tester",
+        note="host confirmed a 90-minute window",
+        problem=problem,
+    )
+    assert [warning["code"] for warning in result["booking_feasibility_warnings"]] == [
+        "ice_time_governing_minimum"
+    ]
+
+    # Reload canonical state fresh (same revision, projected overlays).
+    schedule, decisions, plan, reloaded_problem = load_context("2026-2027", root=root)
+    assert reloaded_problem.get("ice_time_minutes_overrides") == {"t1": 90}
+
+    # Findings/audit classify the accepted short interval as follow-up, not hard.
+    findings = list_findings("2026-2027", root=root)
+    assert findings["verification_ok"] is True
+    hard_codes = {
+        finding["code"]
+        for finding in findings["findings"]
+        if finding.get("category") == "hard_violation"
+    }
+    assert "ice_time_governing_minimum" not in hard_codes
+    booking_findings = [
+        finding
+        for finding in findings["findings"]
+        if finding["code"] == "ice_time_governing_minimum"
+    ]
+    assert booking_findings and all(
+        finding.get("accepted_booking_interval") for finding in booking_findings
+    )
+
+    # Export/preflight: the same revision-bound projection is hard-valid and
+    # preserves the exact short interval as a durable feasibility warning.
+    verification = verify_final_candidate(plan, reloaded_problem)
+    assert verification["ok"] is True, verification["violations"]
+    warnings = verification["booking_feasibility_warnings"]
+    assert [warning["code"] for warning in warnings] == ["ice_time_governing_minimum"]
+    assert warnings[0]["configured_ice_time_minutes"] == 90
+    assert warnings[0]["minimum_required_minutes"] == 120
+    assert verification["publication_readiness"]["status"] == "REVIEW_REQUIRED"
+    informational = {
+        item["code"] for item in verification["publication_readiness"]["informational_reasons"]
+    }
+    assert "booking_feasibility_warnings" in informational
+
+
+def test_below_floor_booking_stage4_export_builder_stays_hard_valid(tmp_path):
+    """The real Stage 4 export builder agrees with apply-time projection.
+
+    The PR's central failure mode is apply-time and export-time disagreement
+    for a source-confirmed below-floor interval. This exercises the actual
+    ``stage4_export_verification._build_export_verification_problem`` entry
+    point (a promoted canonical root plus a Stage 2 scraping checkpoint), and
+    asserts the rebuilt export problem carries the exact accepted override and
+    association so final verification stays hard-valid with the same warning.
+    """
+
+    from tournament_scheduler.final_verification import verify_final_candidate
+    from tournament_scheduler.pipeline.stage4_export_verification import (
+        _build_export_verification_problem,
+    )
+    from tournament_scheduler.planning_contract import extract_candidate
+
+    event = {
+        "date": "2026-09-12",
+        "start": "11:00",
+        "end": "12:30",
+        "availability": "fixed_busy",
+        "calendar_event": "Miniputt U10 bekreftet",
+        "club": "A",
+    }
+    teams = [
+        {"club": club, "label": f"{club}1", "age_group": "U10"}
+        for club in ("A", "B", "C", "D")
+    ]
+    labels = [team["label"] for team in teams]
+    games = [
+        {"home": labels[0], "away": labels[1], "parallel_slot": 0, "round_number": 1},
+        {"home": labels[2], "away": labels[3], "parallel_slot": 1, "round_number": 1},
+        {"home": labels[0], "away": labels[2], "parallel_slot": 0, "round_number": 2},
+        {"home": labels[1], "away": labels[3], "parallel_slot": 1, "round_number": 2},
+        {"home": labels[0], "away": labels[3], "parallel_slot": 0, "round_number": 3},
+        {"home": labels[1], "away": labels[2], "parallel_slot": 1, "round_number": 3},
+    ]
+    tournament = _tournament("t1", teams=teams)
+    tournament["games"] = games
+    problem = _host_a_problem([event])
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    state.write_stage(StageName.PLANNING, {"plan": _plan([tournament])}, status=StageStatus.DONE)
+    write_reviewed_stage4_export(state, problem=problem)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    result = confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint(event),
+        tournament_id="t1",
+        actor="tester",
+        note="host confirmed a 90-minute window",
+        problem=problem,
+    )
+    assert [warning["code"] for warning in result["booking_feasibility_warnings"]] == [
+        "ice_time_governing_minimum"
+    ]
+
+    # The Stage 2 checkpoint is what Stage 4 uses to rebuild the export
+    # problem: the same event as a ``CalendarEvent`` serialization.
+    state.write_stage(
+        StageName.SCRAPING,
+        {
+            "events_by_club": {
+                "A": [
+                    {
+                        "date": "12.09.2026",
+                        "name": "Miniputt U10 bekreftet",
+                        "datetime": "2026-09-12T11:00:00",
+                        "duration_hours": 1.5,
+                    }
+                ]
+            },
+            "club_calendar_status": {"A": "known"},
+        },
+        status=StageStatus.DONE,
+    )
+    config = dict(problem)
+    config["canonical_season_root"] = str(root)
+    config["start_date"] = "2026-09-01"
+    config["end_date"] = "2027-04-30"
+    state.write_stage(StageName.CONFIG, config, status=StageStatus.DONE)
+
+    built = _build_export_verification_problem(config, state)
+    assert built is not None
+    assert built["ice_time_minutes_overrides"] == {"t1": 90}
+    assert built["club_busy_intervals"]["A"][0]["start"] == "11:00"
+    assert built["club_busy_intervals"]["A"][0]["end"] == "12:30"
+
+    canonical_plan = dict(load_schedule("2026-2027", root=root)["plan"])
+    candidate = extract_candidate({"plan": canonical_plan})
+    verification = verify_final_candidate(candidate, built)
+    assert verification["ok"] is True, verification["violations"]
+    assert [warning["code"] for warning in verification["booking_feasibility_warnings"]] == [
+        "ice_time_governing_minimum"
+    ]
+    assert verification["publication_readiness"]["status"] == "REVIEW_REQUIRED"
 
 
 def test_manual_assertion_stated_duration_is_exported_as_canonical_html(tmp_path):

@@ -127,6 +127,10 @@ HOME_REPRESENTATION = "home_representation"
 # participation but uneven sibling labels. This is the actionable counterpart
 # of the informational ``intra_club_participation_distribution`` rule.
 CLUB_DISTRIBUTION = "club_distribution"
+# A source-confirmed accepted booking interval below the governing planning
+# floor: a durable audit/follow-up finding, never a hard planning violation
+# (ADR 0005). It has no search/repair dimensions of its own.
+BOOKING_FEASIBILITY = "booking_feasibility"
 
 # Canonical search-coverage vocabulary shared by every finding family. A
 # finding always carries ``search_coverage`` so a caller can tell apart
@@ -162,6 +166,7 @@ SUPPORTED_DIMENSIONS_BY_CATEGORY: Dict[str, Tuple[str, ...]] = {
     TEMPORAL_CLUSTERING: ("date", "participants"),
     HOME_REPRESENTATION: ("participants",),
     CLUB_DISTRIBUTION: ("participants",),
+    BOOKING_FEASIBILITY: (),
 }
 
 
@@ -281,7 +286,10 @@ def project_canonical_overlays(
     The overlay projections may return the same mapping or a copy; every call
     is written back explicitly so ordering and equality are preserved.
     """
-    from .calendar_bookings import project_associations_into_problem
+    from .calendar_bookings import (
+        project_associations_into_problem,
+        project_manual_assertions_into_problem,
+    )
     from .canonical_banned_dates import project_banned_dates_into_problem
     from .canonical_holiday_exceptions import project_exceptions_into_problem
     from .canonical_ice_time_overrides import project_overrides_into_problem
@@ -290,11 +298,12 @@ def project_canonical_overlays(
     projected: Dict[str, Any] = dict(problem)
     projected = project_exceptions_into_problem(projected, decisions)
     projected = project_banned_dates_into_problem(projected, decisions)
-    projected = project_associations_into_problem(projected, decisions, plan) or projected
     # A host-confirmed per-tournament ice-time override must reach every
-    # duration consumer (verification, findings, repair/search, export) through
-    # the same projected problem, exactly like the other canonical overlays.
+    # duration consumer before booking evidence is revalidated, otherwise the
+    # evidence can look stale against the age-group default it superseded.
     projected = project_overrides_into_problem(projected, decisions)
+    projected = project_associations_into_problem(projected, decisions, plan) or projected
+    projected = project_manual_assertions_into_problem(projected, decisions, plan) or projected
     # A durable participation withdrawal reduces the eligible shape pool. Every
     # shape/round-count verifier must see the same reduced pool the apply-time
     # candidate was verified against, or a committed withdrawal looks
@@ -357,7 +366,34 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
     schedule, decisions, plan, problem = load_context(season, root=root)
     verification = verify_candidate(plan, problem)
     revision = canonical_state_revision(schedule, decisions)
+    # ADR 0005: a source-confirmed accepted booking below the governing planning
+    # floor is a durable follow-up finding at the audit boundary, not a
+    # new-placement hard violation. Use the same revision-bound classification
+    # the export/preflight path applies so findings/audit and export agree.
+    from .final_verification import _reclassify_accepted_booking_floor
+
+    accepted_floor_findings, remaining_violations = _reclassify_accepted_booking_floor(
+        problem, plan, list(verification.get("violations") or [])
+    )
+    verification = dict(verification)
+    verification["violations"] = remaining_violations
+    verification["ok"] = not remaining_violations
+    verification["booking_feasibility_warnings"] = accepted_floor_findings
     findings = _findings(plan, problem, verification)
+    for warning in accepted_floor_findings:
+        tournament_id = str(warning.get("tournament_id") or "")
+        findings.append(
+            {
+                "finding_id": f"ice_time_governing_minimum:{tournament_id or 'booking'}",
+                "code": "ice_time_governing_minimum",
+                "category": BOOKING_FEASIBILITY,
+                "severity": "follow_up",
+                "tournament_id": tournament_id or None,
+                "age_group": warning.get("age_group"),
+                "accepted_booking_interval": True,
+                "message": warning.get("message") or "accepted booking interval below the governing floor",
+            }
+        )
     from .calendar_bookings import association_findings
 
     findings.extend(association_findings(problem=problem, plan=plan, decisions=decisions))

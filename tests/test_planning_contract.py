@@ -110,6 +110,89 @@ class TestVerifyCandidateSelfConsistency:
 
         assert "ice_time_governing_minimum" in {v["code"] for v in result["violations"]}
 
+    def test_override_below_governing_floor_is_hard_in_planning_verifier(self):
+        # The governing floor is a hard planning constraint on the effective
+        # occupancy, so even an override below the floor is a hard violation
+        # here. The reclassification of a source-confirmed accepted booking as
+        # a durable finding happens at the reconciliation/audit boundary
+        # (``verify_final_candidate``), never inside this verifier.
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        tournament = _tournament(
+            "t1", "2026-01-10", "Jar Isforum", "U10", teams, start_time="10:00"
+        )
+        result = verify_candidate(
+            {"tournaments": [tournament]},
+            {
+                "teams": teams,
+                "round_length_minutes": {"U10": 15},
+                "ice_time_minutes": {"U10": 120},
+                "ice_time_minutes_overrides": {"t1": 110},
+            },
+        )
+
+        assert "ice_time_governing_minimum" in {v["code"] for v in result["violations"]}
+        assert "booking_feasibility_warnings" not in result
+
+    def test_ju8_override_below_floor_is_hard_in_planning_verifier(self):
+        teams = [_team("Jar", "Jar 1", "JU8"), _team("Kongsberg", "Kongsberg 1", "JU8")]
+        tournament = _tournament(
+            "t1", "2026-01-10", "Jar Isforum", "JU8", teams, start_time="10:00"
+        )
+        result = verify_candidate(
+            {"tournaments": [tournament]},
+            {
+                "teams": teams,
+                "round_length_minutes": {"JU8": 15},
+                "ice_time_minutes": {"JU8": 120},
+                "ice_time_minutes_overrides": {"t1": 80},
+            },
+        )
+
+        assert "ice_time_governing_minimum" in {v["code"] for v in result["violations"]}
+        assert "booking_feasibility_warnings" not in result
+
+    def test_proposed_placement_below_floor_without_override_remains_hard_invalid(self):
+        # A proposed placement uses the age-group default. Below the governing
+        # floor it is hard-invalid: there is no accepted interval decision and
+        # no blanket bypass.
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        tournament = _tournament(
+            "t1", "2026-01-10", "Jar Isforum", "U10", teams, start_time="10:00"
+        )
+        result = verify_candidate(
+            {"tournaments": [tournament]},
+            {
+                "teams": teams,
+                "round_length_minutes": {"U10": 15},
+                "ice_time_minutes": {"U10": 110},
+            },
+        )
+
+        assert "ice_time_governing_minimum" in {v["code"] for v in result["violations"]}
+
+    def test_accepted_booking_does_not_hide_playing_minimum_failure(self):
+        # Insufficient actual playing time stays hard even for an accepted
+        # booking interval.
+        teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
+        games = [
+            {"home": teams[0]["label"], "away": teams[1]["label"], "parallel_slot": 0, "round_number": n}
+            for n in range(1, 9)
+        ]
+        tournament = _tournament(
+            "t1", "2026-01-10", "Jar Isforum", "U10", teams, start_time="10:00", games=games
+        )
+        result = verify_candidate(
+            {"tournaments": [tournament]},
+            {
+                "teams": teams,
+                "round_length_minutes": {"U10": 15},
+                "ice_time_minutes": {"U10": 120},
+                "ice_time_minutes_overrides": {"t1": 110},
+            },
+        )
+
+        assert "ice_time_playing_minimum" in {v["code"] for v in result["violations"]}
+
     def test_even_sized_tournament_passes_no_bye_rule(self):
         teams = [
             _team("Jar", "Jar 1", "U10"),
