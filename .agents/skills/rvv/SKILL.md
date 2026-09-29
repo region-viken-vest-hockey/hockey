@@ -24,6 +24,10 @@ When investigating or changing canonical-season behavior, keep agent context loc
 
 This locality rule is about agent comprehension as well as code structure: a single architectural owner may delegate to several focused implementation modules without weakening the canonical boundary.
 
+## Reconciliation architecture guard
+
+Read [ADR 0005](../../../docs/adr/0005-reconciliation-is-not-planning.md) and #504 for the target contract: existing-booking reconciliation records exact reality without planning/search/repair, but validates the exact changed date/time/arena against hard team availability, overlap, protections and playing feasibility. Preserve source evidence when canonical application is blocked. A governing planning-floor shortfall is a finding, not a fabricated duration or automatic waiver. Do not infer approval, lock or publication from evidence. Findings, export, audit and preflight must use equivalent revision-bound effective canonical facts. Current code may not yet conform; report gaps instead of bypassing checks.
+
 ## Booking evidence authority and reconciliation
 
 For promoted-season maintenance, distinguish **real-world reservation evidence**, **accepted tournament attribution**, **canonical operational state**, and **published/exported projections**. Canonical is the durable internal state, but its planned interval is not proof of what the host actually reserved. Published HTML/Excel is a historical projection, never authority to restore an older slot.
