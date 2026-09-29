@@ -20,6 +20,12 @@ The focused [planning and decision architecture](architecture/planning-model.md)
 
 **Authority boundary:** Stage 3 builds, measures and adopts candidates; Stage 4 creates the exact-candidate review/audit handoff; deliberate promotion makes Git-backed season state authoritative. After publication the sealed season is maintained through scoped verified canonical mutations, not implicitly replanned using today's inputs or optimizer.
 
+## Booking reconciliation versus planning (target contract)
+
+[ADR 0005](adr/0005-reconciliation-is-not-planning.md) governs the implementation target in #504. Planning proposes candidate placements and applies planning minima; reconciliation records exact authoritative existing-booking evidence and checks the operational consequences of the exact proposed change without planner search or repair. A source fact may be retained when its proposed canonical placement fails hard team/date/arena/playing checks; rejection must not approve, lock or mutate the active placement. A short real booking is not extended to satisfy a planning floor. Booking evidence alone does not grant publication authority.
+
+The effective canonical state must have one revision-bound projection owner for schedule, decisions and overlays. Findings, audit, export, publication preflight and seal must consume equivalent effective facts, rather than rebuilding partial overlays. This is a target architecture, not a claim that the current implementation already satisfies it.
+
 ## Sources of truth
 
 - **SharePoint List** is the reviewed source for registration-workflow data.
