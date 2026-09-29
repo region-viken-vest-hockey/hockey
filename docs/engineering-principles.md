@@ -118,6 +118,12 @@ Use Clean Code and SOLID principles as pragmatic design heuristics, not as reaso
 - Refactor incrementally around behavior-preserving seams. Prefer extracting a clear responsibility over broad rewrites.
 - Do not introduce speculative abstractions, one-class-per-file ceremony, needless indirection, or "clean code" refactors that make the execution path harder to follow.
 
+### Change-locality check for new code and refactors
+
+For each nontrivial change, identify the authoritative implementation and the smallest complete set of modules needed to understand it. Before adding code to a large module, check whether it combines unrelated responsibilities or forces a narrow edit to load unrelated workflows. Prefer focused internal modules behind a stable facade when that materially improves testability, navigation and review. Do not create abstractions merely to reduce line counts.
+
+Keep structural extraction separate from policy/behavior changes. Characterize current success and failure behavior first; preserve public imports/signatures, deterministic serialization and lifecycle/write boundaries. Extract incrementally, update the architecture owner map, and compare before/after fixture outputs and targeted/full regression results. For operational calendar/season code, use hermetic fixtures rather than mutating live season data or publishing to validate a refactor.
+
 ### File size
 
 There is no hard per-file line limit. Split modules along responsibility boundaries when it genuinely improves clarity, rather than to satisfy an arbitrary length budget.
