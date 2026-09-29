@@ -2,6 +2,10 @@
 
 Load from `booking-management.md` for a club worksheet, booking email, calendar comparison, missing booking, source refresh, or reconciliation before export/publication. This is shared operational orchestration for every harness, not a new CLI, evidence authority, cancellation power, or publication bypass. Read the current canonical command contract in `season.md`, relevant `calendars.md`, `tournament-maintenance.md`, `season-delivery.md`, and current repository code/tests as needed.
 
+## Architectural guard (ADR 0005; implementation #504)
+
+Reconciliation records authoritative existing-booking facts; it is not a planning/repair workflow. Evaluate only the exact asserted change, including team availability and same-day conflicts when the date moves, arena occupancy, restrictions, accepted protections and actual playing feasibility. Do not search alternatives, move neighbors, change participants, inflate booked duration or auto-waive. A governing planning-floor shortfall in a real booking is a visible finding, not permission to fabricate ice; genuine playing or overlap failures remain hard. Retain conflicting evidence without committing invalid active placement or marking fully reconciled. Rejected operations must not leave approvals/locks. Confirmation is not publication authority. See [ADR](../../../docs/adr/0005-reconciliation-is-not-planning.md). These are target safeguards; check current code for gaps before acting.
+
 ## Establish evidence before interpreting disagreement
 
 1. Identify the canonical season revision, source document/version and row-to-tournament mapping, accepted assertions, active raw calendar associations, current verification-context source fingerprint/timestamp, export and publication revision. Separate proposal, booking, cancellation and public status.
