@@ -21,7 +21,7 @@ Load only the relevant family, then the required sections of the canonical proce
 | Operator intent | Load first | Compose when needed |
 | --- | --- | --- |
 | Move, postpone, cancel, add/materialize, repair or swap tournament roster | `tournament-maintenance.md` | `schedule-quality.md`, `booking-management.md`, `governance.md` |
-| Club booking confirmation/rejection, source/calendar correction | `booking-management.md` | `tournament-maintenance.md`, `season-delivery.md` |
+| Club booking confirmation/rejection, source/calendar correction | `booking-management.md` | `booking-reconciliation.md` for evidence freshness, worksheets, missing bookings and source parity; `tournament-maintenance.md`, `season-delivery.md` |
 | Team joins, withdraws, renames, guest capacity or roster eligibility | `team-management.md` | `tournament-maintenance.md`, `schedule-quality.md` |
 | Verify distribution, compare candidates, preview consequences | `schedule-quality.md` | Relevant mutation family only if execution requested |
 | Approve/unapprove, constraints, protections, exception or undo | `governance.md` | Relevant mutation family |
