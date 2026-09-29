@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional
 
 from tournament_scheduler.date_policy import (
     holiday_excluded_dates,
@@ -76,15 +76,22 @@ def _tournament(
     tournament_id: str, day: str, host: str, teams: List[Dict[str, str]]
 ) -> Dict[str, Any]:
     labels = [team["label"] for team in teams]
-    games = [
-        {
-            "home": labels[index],
-            "away": labels[(index + 1) % len(labels)],
-            "parallel_slot": 0,
-            "round_number": 1,
-        }
-        for index in range(len(labels))
-    ]
+    # issue #504: distribute games across real rounds (circle method) so no
+    # team is scheduled twice within one round -- the export hard gate now
+    # checks this, not just self-consistency.
+    rotation: List[Optional[str]] = list(labels)
+    if len(rotation) % 2 == 1:
+        rotation.append(None)
+    n = len(rotation)
+    games: List[Dict[str, Any]] = []
+    for round_number in range(1, n):
+        for i in range(n // 2):
+            home, away = rotation[i], rotation[n - 1 - i]
+            if home is not None and away is not None:
+                games.append(
+                    {"home": home, "away": away, "parallel_slot": 0, "round_number": round_number}
+                )
+        rotation.insert(1, rotation.pop())
     return {
         "id": tournament_id,
         "date": day,

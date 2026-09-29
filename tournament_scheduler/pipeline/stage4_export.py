@@ -36,7 +36,8 @@ from pathlib import Path
 from typing import Any
 
 from ..arena_conflicts import find_arena_interval_collisions
-from ..planning_contract import extract_candidate, verify_candidate
+from ..final_verification import verify_final_candidate
+from ..planning_contract import extract_candidate
 from .export_lifecycle import EXPORT_LIFECYCLE_FILENAME, write_draft_manifest
 from .export_projection_guard import assert_export_preserves_canonical_plan, tournament_projection
 from .fingerprints import stable_payload_sha256
@@ -279,7 +280,14 @@ def run(
         export_candidate = extract_candidate(plan_checkpoint)
     except ValueError:
         export_candidate = dict(plan_dict)
-    export_verify_result = verify_candidate(export_candidate, export_problem)
+    # The pre-serialization hard gate must route through the final verifier so
+    # a source-confirmed accepted booking interval below the governing floor
+    # is reclassified into a non-blocking feasibility warning here, exactly as
+    # publish_hard_verification and the pipeline orchestrator's hard-gate
+    # already do; ``verify_candidate`` alone stays strict for new placements
+    # and would otherwise re-block an export that reconciliation/apply already
+    # accepted as valid (issue #504).
+    export_verify_result = verify_final_candidate(export_candidate, export_problem)
     if normalization_report.get("changed"):
         from ..plan_derived_state import reconcile_plan_derived_state
 

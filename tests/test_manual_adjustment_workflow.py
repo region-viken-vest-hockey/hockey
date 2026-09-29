@@ -348,8 +348,96 @@ def test_manual_adjustment_unresolved_hosting_includes_cross_age_reallocation_ev
     ]
 
 
+def _write_state_min_teams_per_tournament(tmp_path):
+    """Same as ``_write_state`` but with a third team per tournament, so the
+    real CLI `adjust` -> export path (issue #504's final verifier at the
+    export gate) does not flag `tournament_under_minimum` -- unrelated to
+    what this end-to-end test actually checks (the CLI wiring)."""
+    work_dir = tmp_path / "pipeline"
+    state = PipelineState(work_dir)
+
+    input_file = tmp_path / "input.xlsx"
+    wb = openpyxl.Workbook()
+    settings = wb.active
+    settings.title = "Innstillinger"
+    settings.append(["felt", "verdi"])
+    settings.append(["start_date", "2027-01-01"])
+    settings.append(["end_date", "2027-03-31"])
+    ages = wb.create_sheet("Aldersgrupper")
+    ages.append(["age_group", "parallel_games", "round_length_minutes"])
+    ages.append(["U10", 2, 10])
+    teams_sheet = wb.create_sheet("Lag")
+    teams_sheet.append(["club", "label", "age_group"])
+    teams_sheet.append(["Jar", "Jar 1", "U10"])
+    teams_sheet.append(["Skien", "Skien 1", "U10"])
+    teams_sheet.append(["Kongsberg", "Kongsberg 1", "U10"])
+    wb.save(input_file)
+    config_teams = [
+        {"club": "Jar", "label": "Jar 1", "age_group": "U10"},
+        {"club": "Skien", "label": "Skien 1", "age_group": "U10"},
+        {"club": "Kongsberg", "label": "Kongsberg 1", "age_group": "U10"},
+    ]
+    state.write_stage(
+        StageName.CONFIG,
+        {
+            "input_path": str(input_file),
+            "teams": config_teams,
+            "round_length_minutes": {"U10": 10},
+        },
+        status=StageStatus.DONE,
+    )
+
+    jar1 = Team(club="Jar", label="Jar 1", age_group="U10")
+    skien1 = Team(club="Skien", label="Skien 1", age_group="U10")
+    kongsberg1 = Team(club="Kongsberg", label="Kongsberg 1", age_group="U10")
+
+    # The registered U10 pool (3 teams) is odd -- an input-constrained,
+    # non-avoidable shape at capacity 4 (parallel_games=2) -- so both
+    # tournaments field the full pool instead of the original 2-team subset,
+    # which now trips `tournament_under_minimum` (issue #504's final
+    # verifier is stricter about registered-pool-vs-instance size at export).
+    t1_teams = [jar1, skien1, kongsberg1]
+    t2_teams = [jar1, kongsberg1, skien1]
+    t1 = Tournament(
+        id="pin12345",
+        date=date(2027, 1, 16),
+        arena="Jar Isforum",
+        age_group="U10",
+        host_club="Jar",
+        teams=t1_teams,
+        games=SeasonPlanner.generate_round_robin_games(t1_teams, 1),
+    )
+    t2 = Tournament(
+        id="move1234",
+        date=date(2027, 1, 23),
+        arena="Skien ishall",
+        age_group="U10",
+        host_club="Skien",
+        teams=t2_teams,
+        games=SeasonPlanner.generate_round_robin_games(t2_teams, 1),
+    )
+    plan = SeasonPlan(
+        tournaments=[t1, t2],
+        start_date=date(2027, 1, 1),
+        end_date=date(2027, 3, 31),
+        manual_adjustments={
+            "locked_dates": ["2027-01-16"],
+            "banned_dates": ["2027-01-23"],
+            "forced_host_clubs": ["Jar"],
+            "excluded_host_clubs": ["Skien"],
+            "pinned_tournament_ids": ["pin12345"],
+        },
+    )
+    state.write_stage(
+        StageName.PLANNING,
+        {"plan": season_plan_to_dict(plan), "rules_report": []},
+        status=StageStatus.DONE,
+    )
+    return state, plan
+
+
 def test_adjust_cli_runs_end_to_end(tmp_path):
-    state, _plan = _write_state(tmp_path)
+    state, _plan = _write_state_min_teams_per_tournament(tmp_path)
     export_dir = tmp_path / "export"
 
     code = rvv_main(
