@@ -2623,7 +2623,7 @@
       }
     }
   ],
-  "canonical_state_revision": "0b29298448fe07e1f9eabd9e754e89d8240b0fa7f9a5c7db54bae0ed9a002f0f",
+  "canonical_state_revision": "9b1277adb06795ab931b987cb8445b5d5ad625482510ca50c0a0ce9275a13631",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -7453,6 +7453,23 @@
       "source_version": "commit 41435cac, 2026-09-28 season overview with host-confirmed Askerhallen times",
       "status": "active",
       "supersedes": null
+    },
+    {
+      "asserted_at": "2026-09-29T19:18:16.709311+00:00",
+      "asserted_by": "niclasl",
+      "authority": "manual_club_confirmation_interpretation",
+      "host_club": "Jar",
+      "id": "club_booking_source:Jar:a3c804e756d15c13030ffa01dc8dab3f2f625095a45f7143479968ddb4cd70d6",
+      "note": "Jar club-wide worksheet: confirms all scheduled tournaments booked except 14 named exception dates with per-date availability comments",
+      "reference": "changes_and_confirmations/2026-27/Jar.txt",
+      "schema_version": 1,
+      "source_document": "changes_and_confirmations/2026-27/Jar.txt",
+      "source_fingerprint": "a3c804e756d15c13030ffa01dc8dab3f2f625095a45f7143479968ddb4cd70d6",
+      "source_revision": "0b29298448fe07e1f9eabd9e754e89d8240b0fa7f9a5c7db54bae0ed9a002f0f",
+      "source_scope": "club_wide",
+      "source_version": "2026-09-27 club written response: confirms all scheduled tournaments except 14 named conflict dates",
+      "status": "active",
+      "supersedes": null
     }
   ],
   "created_at": "2026-09-18T19:44:06.643372+00:00",
@@ -9117,10 +9134,10 @@
   },
   "export_state": {
     "calendar_fingerprint": "c2ad140610e03846c33570456e0759f6108d16f18589983a15954f9715a49e56",
-    "export_dir": "export/2026-09-29T1843",
-    "fresh_at": "2026-09-29T18:43:22.338722+00:00",
+    "export_dir": "export/2026-09-29T1919",
+    "fresh_at": "2026-09-29T19:19:58.338774+00:00",
     "fresh_by": "niclasl",
-    "fresh_canonical_revision": "0b29298448fe07e1f9eabd9e754e89d8240b0fa7f9a5c7db54bae0ed9a002f0f",
+    "fresh_canonical_revision": "9b1277adb06795ab931b987cb8445b5d5ad625482510ca50c0a0ce9275a13631",
     "requires_fresh_audit": true,
     "requires_fresh_export": false,
     "stale_at": "2026-09-29T15:46:36.080945+00:00",
@@ -49260,6 +49277,325 @@
       "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:18:16.709311+00:00",
+      "details": {
+        "club": "Jar",
+        "reference": "changes_and_confirmations/2026-27/Jar.txt",
+        "source_assertion_id": "club_booking_source:Jar:a3c804e756d15c13030ffa01dc8dab3f2f625095a45f7143479968ddb4cd70d6",
+        "source_document": "changes_and_confirmations/2026-27/Jar.txt",
+        "source_fingerprint": "a3c804e756d15c13030ffa01dc8dab3f2f625095a45f7143479968ddb4cd70d6",
+        "source_version": "2026-09-27 club written response: confirms all scheduled tournaments except 14 named conflict dates",
+        "supersedes": ""
+      },
+      "event": "set_club_booking_source",
+      "note": "Jar club-wide worksheet: confirms all scheduled tournaments booked except 14 named exception dates with per-date availability comments",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:18:55.769247+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 100,
+        "override_id": "ice-time-override:9501894ff30911d6",
+        "reference": "changes_and_confirmations/2026-27/Jar.txt",
+        "request_id": "manual-booking:rvv-0009:72cdaef18b60b6be50025b3c5e157b5b2fed974490b4c495847e3cc8665e7081",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Jar.txt: 19.12 confirmed free ice 12:00-19:30, fill with as many as possible; tournament falls within this window",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0009"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:18:55.769247+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-12-19",
+          "duration_minutes": "100",
+          "end_time": "13:40",
+          "round_count": "3",
+          "start_time": "12:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:9501894ff30911d6",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2026-12-19",
+            "duration_minutes": 100,
+            "end_time": "13:40",
+            "start_time": "12:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2026-12-19",
+            "duration_minutes": "100",
+            "end_time": "13:40",
+            "round_count": "3",
+            "start_time": "12:00"
+          }
+        },
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Jar.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "2026-12-19",
+          "duration_minutes": "100",
+          "end": "13:40",
+          "start": "12:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Jar.txt: 19.12 confirmed free ice 12:00-19:30, fill with as many as possible; tournament falls within this window",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0009"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:19:02.408937+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:ad504c5c65be44ba",
+        "reference": "changes_and_confirmations/2026-27/Jar.txt",
+        "request_id": "manual-booking:rvv-0026:a1314e57ecaf50e59b5fe47d199c7a59d5e46e09f1b7123944017d88f9920554",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Jar.txt: 19.12 confirmed free ice 12:00-19:30, fill with as many as possible; tournament falls within this window",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0026"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:19:02.408937+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2026-12-19",
+          "duration_minutes": "140",
+          "end_time": "16:20",
+          "round_count": "5",
+          "start_time": "14:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:ad504c5c65be44ba",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2026-12-19",
+            "duration_minutes": 140,
+            "end_time": "16:20",
+            "start_time": "14:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U10",
+            "date": "2026-12-19",
+            "duration_minutes": "140",
+            "end_time": "16:20",
+            "round_count": "5",
+            "start_time": "14:00"
+          }
+        },
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Jar.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "2026-12-19",
+          "duration_minutes": "140",
+          "end": "16:20",
+          "start": "14:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Jar.txt: 19.12 confirmed free ice 12:00-19:30, fill with as many as possible; tournament falls within this window",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0026"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:19:09.014244+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:22ecffbe0cc5d05d",
+        "reference": "changes_and_confirmations/2026-27/Jar.txt",
+        "request_id": "manual-booking:rvv-0031:8321930c1f4cc94378959adea5f27efdb8f65cd33c5b7640fa9dca89062fb8a9",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Jar.txt: 19.12 confirmed free ice 12:00-19:30, fill with as many as possible; tournament falls within this window",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0031"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:19:09.014244+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2026-12-19",
+          "duration_minutes": "140",
+          "end_time": "18:50",
+          "round_count": "5",
+          "start_time": "16:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:22ecffbe0cc5d05d",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2026-12-19",
+            "duration_minutes": 140,
+            "end_time": "18:50",
+            "start_time": "16:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2026-12-19",
+            "duration_minutes": "140",
+            "end_time": "18:50",
+            "round_count": "5",
+            "start_time": "16:30"
+          }
+        },
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Jar.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "2026-12-19",
+          "duration_minutes": "140",
+          "end": "18:50",
+          "start": "16:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Jar.txt: 19.12 confirmed free ice 12:00-19:30, fill with as many as possible; tournament falls within this window",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0031"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:19:15.663144+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:3a0c7da1d97a8062",
+        "reference": "changes_and_confirmations/2026-27/Jar.txt",
+        "request_id": "manual-booking:rvv-0153:9d9ac4c3eae1a9781c34c77c73940d610db3053034aeb7f98802f56a30718b2a",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Jar.txt: 20.02 confirmed free ice 17:00-19:30; tournament falls within this window (also the basis for this tournament's original move to Jar on 2026-09-27)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0153"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:19:15.663144+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2027-02-20",
+          "duration_minutes": "140",
+          "end_time": "19:20",
+          "round_count": "5",
+          "start_time": "17:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:3a0c7da1d97a8062",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2027-02-20",
+            "duration_minutes": 140,
+            "end_time": "19:20",
+            "start_time": "17:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U10",
+            "date": "2027-02-20",
+            "duration_minutes": "140",
+            "end_time": "19:20",
+            "round_count": "5",
+            "start_time": "17:00"
+          }
+        },
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Jar.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "2027-02-20",
+          "duration_minutes": "140",
+          "end": "19:20",
+          "start": "17:00"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Jar.txt: 20.02 confirmed free ice 17:00-19:30; tournament falls within this window (also the basis for this tournament's original move to Jar on 2026-09-27)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0153"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:19:58.338774+00:00",
+      "details": {
+        "canonical_state_revision": "9b1277adb06795ab931b987cb8445b5d5ad625482510ca50c0a0ce9275a13631",
+        "export_dir": "export/2026-09-29T1919",
+        "previous_export_status": "fresh",
+        "previous_requires_fresh_export": false
+      },
+      "event": "mark_export_fresh",
+      "note": "canonical export",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ],
   "holiday_date_exceptions": [
@@ -50517,6 +50853,70 @@
       "request_id": "calendar-booking:dd9292af125ab25ac6c22a35090db87e7cde7f53e8c3e66535dd040d0d9ef227",
       "status": "active",
       "tournament_id": "rvv-0136",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U12",
+      "authority": "manual_club_confirmation_interval",
+      "created_at": "2026-09-29T19:18:55.769247+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:9501894ff30911d6",
+      "minimum_minutes": 60,
+      "minutes": 100,
+      "note": "Jar.txt: 19.12 confirmed free ice 12:00-19:30, fill with as many as possible; tournament falls within this window",
+      "reference": "changes_and_confirmations/2026-27/Jar.txt",
+      "request_id": "manual-booking:rvv-0009:72cdaef18b60b6be50025b3c5e157b5b2fed974490b4c495847e3cc8665e7081",
+      "status": "active",
+      "tournament_id": "rvv-0009",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U10",
+      "authority": "manual_club_confirmation_interval",
+      "created_at": "2026-09-29T19:19:02.408937+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 140,
+      "id": "ice-time-override:ad504c5c65be44ba",
+      "minimum_minutes": 120,
+      "minutes": 140,
+      "note": "Jar.txt: 19.12 confirmed free ice 12:00-19:30, fill with as many as possible; tournament falls within this window",
+      "reference": "changes_and_confirmations/2026-27/Jar.txt",
+      "request_id": "manual-booking:rvv-0026:a1314e57ecaf50e59b5fe47d199c7a59d5e46e09f1b7123944017d88f9920554",
+      "status": "active",
+      "tournament_id": "rvv-0026",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U11",
+      "authority": "manual_club_confirmation_interval",
+      "created_at": "2026-09-29T19:19:09.014244+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 140,
+      "id": "ice-time-override:22ecffbe0cc5d05d",
+      "minimum_minutes": 120,
+      "minutes": 140,
+      "note": "Jar.txt: 19.12 confirmed free ice 12:00-19:30, fill with as many as possible; tournament falls within this window",
+      "reference": "changes_and_confirmations/2026-27/Jar.txt",
+      "request_id": "manual-booking:rvv-0031:8321930c1f4cc94378959adea5f27efdb8f65cd33c5b7640fa9dca89062fb8a9",
+      "status": "active",
+      "tournament_id": "rvv-0031",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U10",
+      "authority": "manual_club_confirmation_interval",
+      "created_at": "2026-09-29T19:19:15.663144+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 140,
+      "id": "ice-time-override:3a0c7da1d97a8062",
+      "minimum_minutes": 120,
+      "minutes": 140,
+      "note": "Jar.txt: 20.02 confirmed free ice 17:00-19:30; tournament falls within this window (also the basis for this tournament's original move to Jar on 2026-09-27)",
+      "reference": "changes_and_confirmations/2026-27/Jar.txt",
+      "request_id": "manual-booking:rvv-0153:9d9ac4c3eae1a9781c34c77c73940d610db3053034aeb7f98802f56a30718b2a",
+      "status": "active",
+      "tournament_id": "rvv-0153",
       "type": "tournament_ice_time_override"
     }
   ],
@@ -57588,6 +57988,178 @@
         "start_time": "12:30"
       },
       "tournament_id": "rvv-0032"
+    },
+    {
+      "arena": "Jar Isforum",
+      "asserted_at": "2026-09-29T19:18:55.769247+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-12-19",
+        "duration_minutes": "100",
+        "end_time": "13:40",
+        "round_count": "3",
+        "start_time": "12:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_feasibility_warnings": [],
+      "booking_status": "booked",
+      "date": "2026-12-19",
+      "host_club": "Jar",
+      "id": "manual_booking:rvv-0009:2026-09-29T19:18:55.769247+00:00",
+      "note": "Jar.txt: 19.12 confirmed free ice 12:00-19:30, fill with as many as possible; tournament falls within this window",
+      "reference": "changes_and_confirmations/2026-27/Jar.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Jar:a3c804e756d15c13030ffa01dc8dab3f2f625095a45f7143479968ddb4cd70d6",
+      "source_revision": "2820d6944edf45926bde49aba5f0eb936697109fa88b78a198c4ab91aca9354c",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "12:00",
+      "stated_interval": {
+        "date": "2026-12-19",
+        "duration_minutes": "100",
+        "end": "13:40",
+        "start": "12:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Jar Isforum",
+        "date": "2026-12-19",
+        "host_club": "Jar",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0009"
+    },
+    {
+      "arena": "Jar Isforum",
+      "asserted_at": "2026-09-29T19:19:02.408937+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2026-12-19",
+        "duration_minutes": "140",
+        "end_time": "16:20",
+        "round_count": "5",
+        "start_time": "14:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_feasibility_warnings": [],
+      "booking_status": "booked",
+      "date": "2026-12-19",
+      "host_club": "Jar",
+      "id": "manual_booking:rvv-0026:2026-09-29T19:19:02.408937+00:00",
+      "note": "Jar.txt: 19.12 confirmed free ice 12:00-19:30, fill with as many as possible; tournament falls within this window",
+      "reference": "changes_and_confirmations/2026-27/Jar.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Jar:a3c804e756d15c13030ffa01dc8dab3f2f625095a45f7143479968ddb4cd70d6",
+      "source_revision": "136653b244cf099ca432a9fb57e58b57be40dab9e30719232eb63d7b3e437be8",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "14:00",
+      "stated_interval": {
+        "date": "2026-12-19",
+        "duration_minutes": "140",
+        "end": "16:20",
+        "start": "14:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Jar Isforum",
+        "date": "2026-12-19",
+        "host_club": "Jar",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0026"
+    },
+    {
+      "arena": "Jar Isforum",
+      "asserted_at": "2026-09-29T19:19:09.014244+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U11",
+        "date": "2026-12-19",
+        "duration_minutes": "140",
+        "end_time": "18:50",
+        "round_count": "5",
+        "start_time": "16:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_feasibility_warnings": [],
+      "booking_status": "booked",
+      "date": "2026-12-19",
+      "host_club": "Jar",
+      "id": "manual_booking:rvv-0031:2026-09-29T19:19:09.014244+00:00",
+      "note": "Jar.txt: 19.12 confirmed free ice 12:00-19:30, fill with as many as possible; tournament falls within this window",
+      "reference": "changes_and_confirmations/2026-27/Jar.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Jar:a3c804e756d15c13030ffa01dc8dab3f2f625095a45f7143479968ddb4cd70d6",
+      "source_revision": "045d99d7e0e2911a50ef21c58c5e686ed1ec5588d808e474850db8e4f208480a",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "16:30",
+      "stated_interval": {
+        "date": "2026-12-19",
+        "duration_minutes": "140",
+        "end": "18:50",
+        "start": "16:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Jar Isforum",
+        "date": "2026-12-19",
+        "host_club": "Jar",
+        "start_time": "16:30"
+      },
+      "tournament_id": "rvv-0031"
+    },
+    {
+      "arena": "Jar Isforum",
+      "asserted_at": "2026-09-29T19:19:15.663144+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2027-02-20",
+        "duration_minutes": "140",
+        "end_time": "19:20",
+        "round_count": "5",
+        "start_time": "17:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_feasibility_warnings": [],
+      "booking_status": "booked",
+      "date": "2027-02-20",
+      "host_club": "Jar",
+      "id": "manual_booking:rvv-0153:2026-09-29T19:19:15.663144+00:00",
+      "note": "Jar.txt: 20.02 confirmed free ice 17:00-19:30; tournament falls within this window (also the basis for this tournament's original move to Jar on 2026-09-27)",
+      "reference": "changes_and_confirmations/2026-27/Jar.txt",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Jar:a3c804e756d15c13030ffa01dc8dab3f2f625095a45f7143479968ddb4cd70d6",
+      "source_revision": "99389afb3572cb3b15a5b2cf6c72292941efd2bed874b7f17b1fd2d723ef1d1a",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "17:00",
+      "stated_interval": {
+        "date": "2027-02-20",
+        "duration_minutes": "140",
+        "end": "19:20",
+        "start": "17:00"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Jar Isforum",
+        "date": "2027-02-20",
+        "host_club": "Jar",
+        "start_time": "17:00"
+      },
+      "tournament_id": "rvv-0153"
     }
   ],
   "participation_withdrawals": [
@@ -124469,5 +125041,5 @@
       "tournament_id": "rvv-0136"
     }
   ],
-  "updated_at": "2026-09-29T18:43:22.338722+00:00"
+  "updated_at": "2026-09-29T19:19:58.338774+00:00"
 }
