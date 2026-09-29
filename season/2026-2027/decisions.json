@@ -2623,7 +2623,7 @@
       }
     }
   ],
-  "canonical_state_revision": "fb6a66cebfcdb4359e15f5f75c51d0a763782c08c7f49b822f750da99fcd52c0",
+  "canonical_state_revision": "2986f70d6abd3665b772df38b408f69b9dee46ba3395f58d6d7b5e1927d2f8bf",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -8718,13 +8718,15 @@
       "unapproved_by": "niclasl"
     },
     "rvv-0144": {
-      "approved_at": "2026-09-22T14:08:42.399175+00:00",
-      "approved_by": "niclasl",
-      "approved_fingerprint": "ef158a31c088b5a92c5b140d857abff9af84de81f8c1bfdf44c143b48f35cd24",
-      "note": "Jar confirmed this booking in their own calendar",
-      "participants_locked": true,
-      "placement_locked": true,
-      "status": "approved"
+      "approved_at": null,
+      "approved_by": null,
+      "approved_fingerprint": null,
+      "note": "Removing Frisk Asker 5 (Warriors Cup conflict 12-14 Feb 2027); placement/booking with Jar unaffected",
+      "participants_locked": false,
+      "placement_locked": false,
+      "status": "pending_review",
+      "unapproved_at": "2026-09-29T19:44:26.561811+00:00",
+      "unapproved_by": "niclasl"
     },
     "rvv-0145": {
       "approved_at": "2026-09-22T14:40:26.645334+00:00",
@@ -49596,6 +49598,316 @@
       "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:41:06.234640+00:00",
+      "details": {
+        "constraint_id": "request:63126dc545a560b8",
+        "date_from": "2026-11-07",
+        "date_to": "2026-11-08",
+        "min_days": null,
+        "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+        "teams": [
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 1"
+          }
+        ],
+        "type": "team_unavailable"
+      },
+      "event": "add_request_constraint",
+      "note": "U10 Frisk Asker lagleder: whole U10 group at Dragons Cup 7-8 Nov 2026, cannot host/play RVV that weekend",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:41:06.747023+00:00",
+      "details": {
+        "constraint_id": "request:2b6286afebaa4ff7",
+        "date_from": "2026-11-07",
+        "date_to": "2026-11-08",
+        "min_days": null,
+        "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+        "teams": [
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 2"
+          }
+        ],
+        "type": "team_unavailable"
+      },
+      "event": "add_request_constraint",
+      "note": "U10 Frisk Asker lagleder: whole U10 group at Dragons Cup 7-8 Nov 2026, cannot host/play RVV that weekend",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:41:07.258669+00:00",
+      "details": {
+        "constraint_id": "request:22e96a3f4d8e9939",
+        "date_from": "2026-11-07",
+        "date_to": "2026-11-08",
+        "min_days": null,
+        "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+        "teams": [
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 3"
+          }
+        ],
+        "type": "team_unavailable"
+      },
+      "event": "add_request_constraint",
+      "note": "U10 Frisk Asker lagleder: whole U10 group at Dragons Cup 7-8 Nov 2026, cannot host/play RVV that weekend",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:41:07.777049+00:00",
+      "details": {
+        "constraint_id": "request:7b84db8b28113c55",
+        "date_from": "2026-11-07",
+        "date_to": "2026-11-08",
+        "min_days": null,
+        "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+        "teams": [
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 4"
+          }
+        ],
+        "type": "team_unavailable"
+      },
+      "event": "add_request_constraint",
+      "note": "U10 Frisk Asker lagleder: whole U10 group at Dragons Cup 7-8 Nov 2026, cannot host/play RVV that weekend",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:41:08.275325+00:00",
+      "details": {
+        "constraint_id": "request:65bf5f5aa298df11",
+        "date_from": "2026-11-07",
+        "date_to": "2026-11-08",
+        "min_days": null,
+        "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+        "teams": [
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 5"
+          }
+        ],
+        "type": "team_unavailable"
+      },
+      "event": "add_request_constraint",
+      "note": "U10 Frisk Asker lagleder: whole U10 group at Dragons Cup 7-8 Nov 2026, cannot host/play RVV that weekend",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:41:08.767331+00:00",
+      "details": {
+        "constraint_id": "request:11b0543005df9124",
+        "date_from": "2026-11-07",
+        "date_to": "2026-11-08",
+        "min_days": null,
+        "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+        "teams": [
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 6"
+          }
+        ],
+        "type": "team_unavailable"
+      },
+      "event": "add_request_constraint",
+      "note": "U10 Frisk Asker lagleder: whole U10 group at Dragons Cup 7-8 Nov 2026, cannot host/play RVV that weekend",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:41:14.125621+00:00",
+      "details": {
+        "constraint_id": "request:f16273300cedc28b",
+        "date_from": "2027-02-12",
+        "date_to": "2027-02-14",
+        "min_days": null,
+        "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+        "teams": [
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 1"
+          }
+        ],
+        "type": "team_unavailable"
+      },
+      "event": "add_request_constraint",
+      "note": "U10 Frisk Asker lagleder: whole U10 group registered for Warriors Cup 12-14 Feb 2027, cannot host/play RVV that weekend",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:41:14.623498+00:00",
+      "details": {
+        "constraint_id": "request:5333aea04e0c7c6f",
+        "date_from": "2027-02-12",
+        "date_to": "2027-02-14",
+        "min_days": null,
+        "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+        "teams": [
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 2"
+          }
+        ],
+        "type": "team_unavailable"
+      },
+      "event": "add_request_constraint",
+      "note": "U10 Frisk Asker lagleder: whole U10 group registered for Warriors Cup 12-14 Feb 2027, cannot host/play RVV that weekend",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:41:15.128128+00:00",
+      "details": {
+        "constraint_id": "request:51fa00515e4dc0fb",
+        "date_from": "2027-02-12",
+        "date_to": "2027-02-14",
+        "min_days": null,
+        "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+        "teams": [
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 3"
+          }
+        ],
+        "type": "team_unavailable"
+      },
+      "event": "add_request_constraint",
+      "note": "U10 Frisk Asker lagleder: whole U10 group registered for Warriors Cup 12-14 Feb 2027, cannot host/play RVV that weekend",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:41:15.629257+00:00",
+      "details": {
+        "constraint_id": "request:10d1807ebc677952",
+        "date_from": "2027-02-12",
+        "date_to": "2027-02-14",
+        "min_days": null,
+        "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+        "teams": [
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 4"
+          }
+        ],
+        "type": "team_unavailable"
+      },
+      "event": "add_request_constraint",
+      "note": "U10 Frisk Asker lagleder: whole U10 group registered for Warriors Cup 12-14 Feb 2027, cannot host/play RVV that weekend",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:41:16.113912+00:00",
+      "details": {
+        "constraint_id": "request:49a9e9442b376bb1",
+        "date_from": "2027-02-12",
+        "date_to": "2027-02-14",
+        "min_days": null,
+        "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+        "teams": [
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 5"
+          }
+        ],
+        "type": "team_unavailable"
+      },
+      "event": "add_request_constraint",
+      "note": "U10 Frisk Asker lagleder: whole U10 group registered for Warriors Cup 12-14 Feb 2027, cannot host/play RVV that weekend",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:41:16.593943+00:00",
+      "details": {
+        "constraint_id": "request:08c08b84aa75ee68",
+        "date_from": "2027-02-12",
+        "date_to": "2027-02-14",
+        "min_days": null,
+        "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+        "teams": [
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 6"
+          }
+        ],
+        "type": "team_unavailable"
+      },
+      "event": "add_request_constraint",
+      "note": "U10 Frisk Asker lagleder: whole U10 group registered for Warriors Cup 12-14 Feb 2027, cannot host/play RVV that weekend",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-29T19:44:26.561811+00:00",
+      "event": "unapprove",
+      "note": "Removing Frisk Asker 5 (Warriors Cup conflict 12-14 Feb 2027); placement/booking with Jar unaffected",
+      "previous_fingerprint": "ef158a31c088b5a92c5b140d857abff9af84de81f8c1bfdf44c143b48f35cd24",
+      "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0144"
     }
   ],
   "holiday_date_exceptions": [
@@ -58247,6 +58559,246 @@
           "age_group": "U11",
           "club": "Sandefjord Penguins",
           "label": "Sandefjord"
+        }
+      ],
+      "type": "team_unavailable"
+    },
+    {
+      "created_at": "2026-09-29T19:41:06.234640+00:00",
+      "created_by": "niclasl",
+      "date_from": "2026-11-07",
+      "date_to": "2026-11-08",
+      "id": "request:63126dc545a560b8",
+      "min_days": null,
+      "note": "U10 Frisk Asker lagleder: whole U10 group at Dragons Cup 7-8 Nov 2026, cannot host/play RVV that weekend",
+      "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+      "source_revision": "fb6a66cebfcdb4359e15f5f75c51d0a763782c08c7f49b822f750da99fcd52c0",
+      "status": "active",
+      "teams": [
+        {
+          "age_group": "U10",
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 1"
+        }
+      ],
+      "type": "team_unavailable"
+    },
+    {
+      "created_at": "2026-09-29T19:41:06.747023+00:00",
+      "created_by": "niclasl",
+      "date_from": "2026-11-07",
+      "date_to": "2026-11-08",
+      "id": "request:2b6286afebaa4ff7",
+      "min_days": null,
+      "note": "U10 Frisk Asker lagleder: whole U10 group at Dragons Cup 7-8 Nov 2026, cannot host/play RVV that weekend",
+      "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+      "source_revision": "3f7cbc33de5183d6255aad0380b3672c2c921f07b7629f511a6ec5330a547834",
+      "status": "active",
+      "teams": [
+        {
+          "age_group": "U10",
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 2"
+        }
+      ],
+      "type": "team_unavailable"
+    },
+    {
+      "created_at": "2026-09-29T19:41:07.258669+00:00",
+      "created_by": "niclasl",
+      "date_from": "2026-11-07",
+      "date_to": "2026-11-08",
+      "id": "request:22e96a3f4d8e9939",
+      "min_days": null,
+      "note": "U10 Frisk Asker lagleder: whole U10 group at Dragons Cup 7-8 Nov 2026, cannot host/play RVV that weekend",
+      "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+      "source_revision": "c110419730dd6b90ee32c601909e1b027065940cee121e0a778a6e0896321305",
+      "status": "active",
+      "teams": [
+        {
+          "age_group": "U10",
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 3"
+        }
+      ],
+      "type": "team_unavailable"
+    },
+    {
+      "created_at": "2026-09-29T19:41:07.777049+00:00",
+      "created_by": "niclasl",
+      "date_from": "2026-11-07",
+      "date_to": "2026-11-08",
+      "id": "request:7b84db8b28113c55",
+      "min_days": null,
+      "note": "U10 Frisk Asker lagleder: whole U10 group at Dragons Cup 7-8 Nov 2026, cannot host/play RVV that weekend",
+      "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+      "source_revision": "2f47fd16bb3456cc2388daa66c19c132936c348ac8a6005020211d339def9052",
+      "status": "active",
+      "teams": [
+        {
+          "age_group": "U10",
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 4"
+        }
+      ],
+      "type": "team_unavailable"
+    },
+    {
+      "created_at": "2026-09-29T19:41:08.275325+00:00",
+      "created_by": "niclasl",
+      "date_from": "2026-11-07",
+      "date_to": "2026-11-08",
+      "id": "request:65bf5f5aa298df11",
+      "min_days": null,
+      "note": "U10 Frisk Asker lagleder: whole U10 group at Dragons Cup 7-8 Nov 2026, cannot host/play RVV that weekend",
+      "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+      "source_revision": "5a04d1991950ddf09e13dd303471d9ef1f3b056752452575337f69edb8b30f88",
+      "status": "active",
+      "teams": [
+        {
+          "age_group": "U10",
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 5"
+        }
+      ],
+      "type": "team_unavailable"
+    },
+    {
+      "created_at": "2026-09-29T19:41:08.767331+00:00",
+      "created_by": "niclasl",
+      "date_from": "2026-11-07",
+      "date_to": "2026-11-08",
+      "id": "request:11b0543005df9124",
+      "min_days": null,
+      "note": "U10 Frisk Asker lagleder: whole U10 group at Dragons Cup 7-8 Nov 2026, cannot host/play RVV that weekend",
+      "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+      "source_revision": "a736715069cd5bed515466b80de28bed37e23324ed1203c5b3b7fd12d4f9564f",
+      "status": "active",
+      "teams": [
+        {
+          "age_group": "U10",
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 6"
+        }
+      ],
+      "type": "team_unavailable"
+    },
+    {
+      "created_at": "2026-09-29T19:41:14.125621+00:00",
+      "created_by": "niclasl",
+      "date_from": "2027-02-12",
+      "date_to": "2027-02-14",
+      "id": "request:f16273300cedc28b",
+      "min_days": null,
+      "note": "U10 Frisk Asker lagleder: whole U10 group registered for Warriors Cup 12-14 Feb 2027, cannot host/play RVV that weekend",
+      "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+      "source_revision": "3b16043b9af2a882aefdfbb8297b238e999eb7e7c1273d3f557b2ad825741752",
+      "status": "active",
+      "teams": [
+        {
+          "age_group": "U10",
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 1"
+        }
+      ],
+      "type": "team_unavailable"
+    },
+    {
+      "created_at": "2026-09-29T19:41:14.623498+00:00",
+      "created_by": "niclasl",
+      "date_from": "2027-02-12",
+      "date_to": "2027-02-14",
+      "id": "request:5333aea04e0c7c6f",
+      "min_days": null,
+      "note": "U10 Frisk Asker lagleder: whole U10 group registered for Warriors Cup 12-14 Feb 2027, cannot host/play RVV that weekend",
+      "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+      "source_revision": "efbacd57b32f484aa755bd2dd7d2225d05f3d8fff0be76f2c5354a4677122e22",
+      "status": "active",
+      "teams": [
+        {
+          "age_group": "U10",
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 2"
+        }
+      ],
+      "type": "team_unavailable"
+    },
+    {
+      "created_at": "2026-09-29T19:41:15.128128+00:00",
+      "created_by": "niclasl",
+      "date_from": "2027-02-12",
+      "date_to": "2027-02-14",
+      "id": "request:51fa00515e4dc0fb",
+      "min_days": null,
+      "note": "U10 Frisk Asker lagleder: whole U10 group registered for Warriors Cup 12-14 Feb 2027, cannot host/play RVV that weekend",
+      "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+      "source_revision": "d9f34bc99b32e8028a44ed262d5c62d8eb26a3b6b30db9f5cd5e7dda46f9972f",
+      "status": "active",
+      "teams": [
+        {
+          "age_group": "U10",
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 3"
+        }
+      ],
+      "type": "team_unavailable"
+    },
+    {
+      "created_at": "2026-09-29T19:41:15.629257+00:00",
+      "created_by": "niclasl",
+      "date_from": "2027-02-12",
+      "date_to": "2027-02-14",
+      "id": "request:10d1807ebc677952",
+      "min_days": null,
+      "note": "U10 Frisk Asker lagleder: whole U10 group registered for Warriors Cup 12-14 Feb 2027, cannot host/play RVV that weekend",
+      "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+      "source_revision": "2da5a4d232e78e790b240643fa4889356aded6d787dcedd0ff69e2594e20c3da",
+      "status": "active",
+      "teams": [
+        {
+          "age_group": "U10",
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 4"
+        }
+      ],
+      "type": "team_unavailable"
+    },
+    {
+      "created_at": "2026-09-29T19:41:16.113912+00:00",
+      "created_by": "niclasl",
+      "date_from": "2027-02-12",
+      "date_to": "2027-02-14",
+      "id": "request:49a9e9442b376bb1",
+      "min_days": null,
+      "note": "U10 Frisk Asker lagleder: whole U10 group registered for Warriors Cup 12-14 Feb 2027, cannot host/play RVV that weekend",
+      "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+      "source_revision": "11d4b57f22194706aa87cfc3e67f02defbfffa109e5cb4d37bc8313be8b83238",
+      "status": "active",
+      "teams": [
+        {
+          "age_group": "U10",
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 5"
+        }
+      ],
+      "type": "team_unavailable"
+    },
+    {
+      "created_at": "2026-09-29T19:41:16.593943+00:00",
+      "created_by": "niclasl",
+      "date_from": "2027-02-12",
+      "date_to": "2027-02-14",
+      "id": "request:08c08b84aa75ee68",
+      "min_days": null,
+      "note": "U10 Frisk Asker lagleder: whole U10 group registered for Warriors Cup 12-14 Feb 2027, cannot host/play RVV that weekend",
+      "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+      "source_revision": "10b016ae194073dfdc8de690a7871a5a353e95a930633047da26bf99ebd58c7a",
+      "status": "active",
+      "teams": [
+        {
+          "age_group": "U10",
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 6"
         }
       ],
       "type": "team_unavailable"
@@ -133740,5 +134292,5 @@
       "tournament_id": "rvv-0136"
     }
   ],
-  "updated_at": "2026-09-29T19:30:41.550263+00:00"
+  "updated_at": "2026-09-29T19:44:26.561811+00:00"
 }
