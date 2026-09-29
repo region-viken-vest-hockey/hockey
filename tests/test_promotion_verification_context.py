@@ -9,7 +9,6 @@ run's config/calendar evidence could silently change what "verified" meant.
 
 from __future__ import annotations
 
-import itertools
 import json
 import shutil
 from pathlib import Path

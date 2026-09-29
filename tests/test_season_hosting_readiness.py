@@ -9,7 +9,6 @@ fresh deterministic verifier result, not the pre-mutation snapshot.
 
 from __future__ import annotations
 
-import itertools
 from pathlib import Path
 
 from tournament_scheduler.pipeline.audit_context import build_audit_context, build_audit_evidence
