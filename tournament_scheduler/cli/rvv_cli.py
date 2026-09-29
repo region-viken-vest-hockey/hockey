@@ -3384,6 +3384,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     args.season,
                     args.finding,
                     root=args.root,
+                    age_group=getattr(args, "age_group", None),
                     dimensions=dimensions,
                     allow_manual_placement=bool(getattr(args, "allow_manual_placement", False)),
                     allow_host_confirmation=bool(getattr(args, "allow_host_confirmation", False)),
@@ -3393,6 +3394,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     args.season,
                     args.finding,
                     root=args.root,
+                    age_group=getattr(args, "age_group", None),
                     allow_search=bool(args.allow_search),
                     allow_manual_placement=bool(getattr(args, "allow_manual_placement", False)),
                     allow_host_confirmation=bool(getattr(args, "allow_host_confirmation", False)),
@@ -3433,6 +3435,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 actor=args.actor,
                 dry_run=args.dry_run,
                 finding_id=args.finding,
+                age_group=getattr(args, "age_group", None),
                 dimensions=[
                     part.strip()
                     for part in str(getattr(args, "dimensions", "") or "").split(",")
@@ -3468,6 +3471,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     args.season,
                     args.finding,
                     root=args.root,
+                    age_group=getattr(args, "age_group", None),
                     actor=args.actor,
                     note=args.note,
                 )
@@ -3478,6 +3482,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     args.season,
                     args.finding,
                     root=args.root,
+                    age_group=getattr(args, "age_group", None),
                     actor=args.actor,
                     note=args.note,
                 )

@@ -31,7 +31,11 @@ _DEFAULT_SEEDS: Tuple[int, ...] = (0, 1)
 _MAX_OPTIONS = 3
 
 
-def participation_finding_id(club: str, team: str, scope: str) -> str:
+def participation_finding_id(club: str, team: str, age_group: str, scope: str) -> str:
+    return f"{PARTICIPATION_FINDING_PREFIX}:{club}:{team}:{age_group}:{scope}"
+
+
+def legacy_participation_finding_id(club: str, team: str, scope: str) -> str:
     return f"{PARTICIPATION_FINDING_PREFIX}:{club}:{team}:{scope}"
 
 
@@ -73,6 +77,7 @@ def enumerate_participation_deviation_repairs(
         participation_finding_id(
             str(deviation.get("club") or ""),
             str(deviation.get("team") or ""),
+            str(deviation.get("age_group") or ""),
             str(deviation.get("scope") or ""),
         )
         for deviation in targets
@@ -86,6 +91,7 @@ def enumerate_participation_deviation_repairs(
                     "finding_id": participation_finding_id(
                         str(deviation.get("club") or ""),
                         str(deviation.get("team") or ""),
+                        str(deviation.get("age_group") or ""),
                         str(deviation.get("scope") or ""),
                     ),
                     "reason": "targeted_search_not_requested",
@@ -106,6 +112,7 @@ def enumerate_participation_deviation_repairs(
         finding_id = participation_finding_id(
             str(deviation.get("club") or ""),
             str(deviation.get("team") or ""),
+            str(deviation.get("age_group") or ""),
             str(deviation.get("scope") or ""),
         )
         key = _deviation_key(deviation)
@@ -157,7 +164,7 @@ def enumerate_participation_deviation_repairs(
             # enumeration, making the option unapplyable.
             option_id = (
                 f"{fingerprint[:12]}:{PARTICIPATION_FINDING_PREFIX}:"
-                f"{deviation.get('club')}:{deviation.get('team')}:{deviation.get('scope')}:"
+                f"{deviation.get('club')}:{deviation.get('team')}:{deviation.get('age_group')}:{deviation.get('scope')}:"
                 f"search:{int(seed)}:{search_dimension_tag(dims)}"
             )
             options.append(

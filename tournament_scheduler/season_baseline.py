@@ -23,8 +23,9 @@ IMPROVED = "IMPROVED"
 RESOLVED = "RESOLVED"
 REGRESSED = "REGRESSED"
 NEW = "NEW"
+BASELINE_UNRESOLVED = "BASELINE_UNRESOLVED"
 
-_NON_HARD_STATUSES = (KNOWN, IMPROVED, RESOLVED, REGRESSED, NEW)
+_NON_HARD_STATUSES = (KNOWN, IMPROVED, RESOLVED, REGRESSED, NEW, BASELINE_UNRESOLVED)
 
 _LOWER_IS_BETTER_KEYS = (
     "deficit",
@@ -197,6 +198,51 @@ def create_baseline_record(
     }
 
 
+def _legacy_participation_id(finding_id: str) -> str | None:
+    parts = finding_id.split(":")
+    if len(parts) == 5 and parts[0] == "participation_deviation":
+        _prefix, club, team, _age_group, scope = parts
+        return f"participation_deviation:{club}:{team}:{scope}"
+    if len(parts) == 4 and parts[0] == "participation_deviation":
+        return finding_id
+    return None
+
+
+def _resolve_baseline_entry_current_id(
+    entry: Mapping[str, Any], current_entries: Mapping[str, dict[str, Any]]
+) -> tuple[str | None, dict[str, Any] | None]:
+    finding_id = str(entry.get("finding_id") or "")
+    if finding_id in current_entries:
+        return finding_id, None
+    legacy_id = _legacy_participation_id(finding_id)
+    age_group = str(entry.get("age_group") or "")
+    if not legacy_id or legacy_id != finding_id:
+        return None, None
+    if not age_group:
+        matching = sorted(
+            current_id
+            for current_id, current in current_entries.items()
+            if _legacy_participation_id(current_id) == legacy_id
+            and str(current.get("code") or "") == "participation_deviation"
+        )
+        return None, {
+            "migration_status": "ambiguous_legacy_participation_id",
+            "candidate_current_ids": matching,
+        }
+    matching = sorted(
+        current_id
+        for current_id, current in current_entries.items()
+        if _legacy_participation_id(current_id) == legacy_id
+        and str(current.get("age_group") or "") == age_group
+    )
+    if len(matching) == 1:
+        return matching[0], {"migration_status": "migrated_from_legacy_participation_id"}
+    return None, {
+        "migration_status": "unresolved_legacy_participation_id",
+        "candidate_current_ids": matching,
+    }
+
+
 def compare_findings_to_baseline(
     baseline: Mapping[str, Any] | None,
     current_findings: list[Mapping[str, Any]],
@@ -213,11 +259,11 @@ def compare_findings_to_baseline(
             "ok_to_advance": False,
         }
 
-    baseline_entries = {
-        str(entry.get("finding_id") or ""): dict(entry)
+    baseline_entries = [
+        dict(entry)
         for entry in baseline.get("findings") or []
         if isinstance(entry, Mapping) and entry.get("finding_id")
-    }
+    ]
     current_entries = {
         str(finding.get("finding_id") or ""): finding_identity_record(finding)
         for finding in current_findings
@@ -227,12 +273,29 @@ def compare_findings_to_baseline(
     }
     entries: list[dict[str, Any]] = []
     summary = {status: 0 for status in _NON_HARD_STATUSES}
+    matched_current_ids: set[str] = set()
 
-    for finding_id, old in sorted(baseline_entries.items()):
-        current = current_entries.get(finding_id)
-        if current is None:
+    for old in sorted(baseline_entries, key=lambda item: str(item.get("finding_id") or "")):
+        original_id = str(old.get("finding_id") or "")
+        current_id, migration = _resolve_baseline_entry_current_id(old, current_entries)
+        current = current_entries.get(current_id or "") if current_id else None
+        migration_status = str((migration or {}).get("migration_status") or "")
+        if migration_status in {
+            "ambiguous_legacy_participation_id",
+            "unresolved_legacy_participation_id",
+        }:
+            status = BASELINE_UNRESOLVED
+        elif current_id and current_id in matched_current_ids:
+            status = BASELINE_UNRESOLVED
+            migration = {
+                **(migration or {}),
+                "migration_status": "duplicate_baseline_identity",
+                "matched_current_id": current_id,
+            }
+        elif current is None:
             status = RESOLVED
         else:
+            matched_current_ids.add(str(current_id))
             old_score = float(old.get("severity_score") or 0.0)
             new_score = float(current.get("severity_score") or 0.0)
             if new_score > old_score:
@@ -242,10 +305,21 @@ def compare_findings_to_baseline(
             else:
                 status = KNOWN
         summary[status] += 1
-        entries.append({"status": status, "finding_id": finding_id, "baseline": old, "current": current})
+        baseline_record = dict(old)
+        if migration:
+            baseline_record.update(migration)
+            baseline_record["legacy_finding_id"] = original_id
+        entries.append(
+            {
+                "status": status,
+                "finding_id": str(current_id or original_id),
+                "baseline": baseline_record,
+                "current": current,
+            }
+        )
 
     for finding_id, current in sorted(current_entries.items()):
-        if finding_id in baseline_entries:
+        if finding_id in matched_current_ids:
             continue
         summary[NEW] += 1
         entries.append({"status": NEW, "finding_id": finding_id, "baseline": None, "current": current})
@@ -260,5 +334,8 @@ def compare_findings_to_baseline(
         "entries": entries,
         "regression_count": summary[REGRESSED],
         "new_count": summary[NEW],
-        "ok_to_advance": summary[REGRESSED] == 0 and summary[NEW] == 0,
+        "baseline_unresolved_count": summary[BASELINE_UNRESOLVED],
+        "ok_to_advance": summary[REGRESSED] == 0
+        and summary[NEW] == 0
+        and summary[BASELINE_UNRESOLVED] == 0,
     }
