@@ -1450,24 +1450,24 @@ def confirm_calendar_booking(
     verification_problem = _resolve_plan_problem(updated_schedule, base_problem, updated)
     verification = verify_candidate(updated_schedule["plan"], verification_problem) if verification_problem else verify_candidate(updated_schedule["plan"])
     hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
+    # Only ``verify_candidate`` may reclassify an ``ice_time_governing_minimum``
+    # shortfall as a non-blocking booking feasibility warning, and it does so
+    # only when exact, currently-valid booking evidence matches the candidate
+    # interval. A floor shortfall that remains in ``hard_blockers`` has no such
+    # evidence and must stay blocking.
     booking_feasibility_warnings = [
         warning
         for warning in (verification.get("booking_feasibility_warnings") or [])
         if str(warning.get("tournament_id") or "") == tournament_id
-    ] + [
-        blocker
-        for blocker in hard_blockers
-        if str(blocker.get("code") or "") == "ice_time_governing_minimum"
     ]
-    # An event-authoritative interval is accepted even when it is shorter than a
-    # planning minimum, but the deviation must stay durably attached to the
-    # booking evidence as independent follow-up rather than being silently
-    # absorbed. The persisted override already records its `minimum_minutes`.
+    # The deviation must stay durably attached to the booking evidence as
+    # independent follow-up rather than being silently absorbed. The persisted
+    # override already records its `minimum_minutes`.
     if booking_feasibility_warnings:
         warning_codes = [str(blocker.get("code") or "") for blocker in booking_feasibility_warnings]
         assoc["booking_feasibility_warnings"] = warning_codes
         evidence["booking_feasibility_warnings"] = warning_codes
-    blockers = [blocker for blocker in hard_blockers if blocker not in booking_feasibility_warnings] + unresolved_blockers
+    blockers = hard_blockers + unresolved_blockers
     if blockers:
         messages = "; ".join(str(blocker.get("message") or blocker.get("code")) for blocker in blockers)
         raise SeasonStateError(f"Refusing to confirm booking for {tournament_id}: {messages}")
@@ -1733,19 +1733,46 @@ def set_manual_booking_assertion(
             accepted_key="accepted_source_interval",
             freeze_default_equal_interval=True,
         )
-        verification_problem = _resolve_plan_problem(updated_schedule, resolved_problem, updated_decisions_for_interval)
+        base_verification_problem = _resolve_plan_problem(updated_schedule, resolved_problem, updated_decisions_for_interval)
+        # The operator's exact stated interval is the booking evidence being
+        # recorded. Build the to-be-persisted assertion first and project it into
+        # the verification problem so ``verify_candidate`` recognises the
+        # governing-floor shortfall as currently-valid booking evidence (a
+        # non-blocking warning) instead of an unmatched hard violation.
+        provisional_assertion = new_manual_assertion_record(
+            tournament=aligned_tournament,
+            booking_status=booking_status,
+            problem=base_verification_problem,
+            actor=resolved_actor,
+            note=note,
+            reference=reference,
+            source_scope=source_scope,
+            stated_interval=stated_interval,
+            asserted_at=now,
+            source_revision=current_revision,
+            source_assertion_id=linked_source_id,
+        )
+        verification_decisions = dict(updated_decisions_for_interval)
+        prior_assertions = [
+            dict(record)
+            for record in verification_decisions.get(MANUAL_BOOKING_ASSERTIONS_KEY) or []
+            if not (isinstance(record, Mapping) and str(record.get("tournament_id") or "") == tournament_id)
+        ]
+        verification_decisions[MANUAL_BOOKING_ASSERTIONS_KEY] = prior_assertions + [provisional_assertion]
+        verification_problem = _resolve_plan_problem(updated_schedule, resolved_problem, verification_decisions)
         verification = verify_candidate(updated_schedule["plan"], verification_problem) if verification_problem else verify_candidate(updated_schedule["plan"])
         hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
+        # Only ``verify_candidate`` may reclassify an ``ice_time_governing_minimum``
+        # shortfall as a non-blocking booking feasibility warning, and it does so
+        # only when exact, currently-valid booking evidence matches the candidate
+        # interval. A floor shortfall that remains in ``hard_blockers`` has no such
+        # evidence and must stay blocking.
         booking_feasibility_warnings = [
             warning
             for warning in (verification.get("booking_feasibility_warnings") or [])
             if str(warning.get("tournament_id") or "") == tournament_id
-        ] + [
-            blocker
-            for blocker in hard_blockers
-            if str(blocker.get("code") or "") == "ice_time_governing_minimum"
         ]
-        blockers = [blocker for blocker in hard_blockers if blocker not in booking_feasibility_warnings] + unresolved_blockers
+        blockers = hard_blockers + unresolved_blockers
         if blockers:
             messages = "; ".join(str(blocker.get("message") or blocker.get("code")) for blocker in blockers)
             raise SeasonStateError(f"Refusing to record booking assertion for {tournament_id}: {messages}")

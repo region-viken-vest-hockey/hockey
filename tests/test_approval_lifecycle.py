@@ -731,6 +731,12 @@ def test_confirm_calendar_booking_aligns_canonical_interval_to_authoritative_eve
     assert [warning["code"] for warning in result["booking_feasibility_warnings"]] == [
         "ice_time_governing_minimum"
     ]
+    # The warning must originate from ``verify_candidate``'s exact-evidence path,
+    # not an apply-time fallback that reclassifies an unmatched hard blocker.
+    assert all(
+        warning.get("existing_booking_evidence")
+        for warning in result["booking_feasibility_warnings"]
+    )
 
     schedule = load_schedule("2026-2027", root=root)["plan"]
     tournament = next(t for t in schedule["tournaments"] if t["id"] == "t1")
@@ -1785,6 +1791,58 @@ def test_manual_assertion_stated_duration_updates_canonical_occupancy(tmp_path):
     assert "ice_time_governing_minimum" in row["follow_up_reasons"]
     tournament = load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]
     assert tournament["start_time"] == "10:00"
+
+
+def test_manual_assertion_below_floor_warning_carries_exact_evidence(tmp_path):
+    """A governing-floor shortfall is downgraded only by exact verifier evidence.
+
+    The warning must originate from ``verify_candidate``'s booking-feasibility
+    path (which attaches the matching assertion evidence) rather than an
+    apply-time fallback that reclassifies an unmatched hard blocker.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    result = _manual_set(
+        root,
+        problem=problem,
+        note="email states a shorter window than the canonical block",
+        stated_start="10:00",
+        stated_end="10:45",
+    )
+    warnings = result["booking_feasibility_warnings"]
+    assert [warning["code"] for warning in warnings] == ["ice_time_governing_minimum"]
+    assert all(warning.get("existing_booking_evidence") for warning in warnings)
+
+
+def test_manual_assertion_reconfirms_stale_below_floor_slot_with_fresh_evidence(tmp_path):
+    """A stale assertion is not evidence for a newly stated below-floor interval.
+
+    Re-confirming a moved slot with a fresh below-floor stated interval is its
+    own exact booking evidence, so the governing-floor shortfall stays a
+    non-blocking warning instead of an unmatched hard violation.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(root, problem=problem, note="confirmed at the original slot", reference="email-1")
+    move_tournament(season="2026-2027", tournament_id="t1", root=root, date="2026-09-19")
+
+    result = _manual_set(
+        root,
+        problem=problem,
+        note="club re-confirmed the moved slot with a shorter window",
+        reference="email-2",
+        stated_start="10:00",
+        stated_end="10:45",
+    )
+    assert result["changed"] is True
+    warnings = result["booking_feasibility_warnings"]
+    assert [warning["code"] for warning in warnings] == ["ice_time_governing_minimum"]
+    assert all(warning.get("existing_booking_evidence") for warning in warnings)
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assert _booking_row(report, "t1")["status"] == "manually_booked"
 
 
 def test_manual_assertion_stated_duration_is_exported_as_canonical_html(tmp_path):
