@@ -1,6 +1,6 @@
 # Booking management (lazy-loaded)
 
-Load for confirm, reject, correct, scrape/reconcile or verify a tournament booking. Follow the shared RVV Booking evidence authority and reconciliation contract, `calendars.md`, and the relevant booking/approval sections of `season.md`.
+Load for confirm, reject, correct, scrape/reconcile or verify a tournament booking. Follow the shared RVV Booking evidence authority and reconciliation contract, and load `booking-reconciliation.md` for worksheet/email-to-calendar reconciliation, missing bookings, stale evidence or pre-publication source parity. Also load `calendars.md` and the relevant booking/approval sections of `season.md`.
 
 Distinguish proposed placement, calendar observation, source-backed accepted booking, club confirmation, and publication. Match the exact tournament, host, arena, date and published interval; a shorter authoritative booked interval supersedes an older proposed duration when supported by the accepted evidence. Check source freshness, event identity and event-level verification separately from whole-season calendar coverage. Missing events or incomplete scraping do not prove free ice or invalidate an otherwise accepted booking. Record source provenance and use supported manual assertion/confirmation paths when appropriate; never invent evidence or silently override a conflicting accepted booking.
 
