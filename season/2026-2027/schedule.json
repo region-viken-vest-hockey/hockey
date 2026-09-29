@@ -18380,7 +18380,7 @@
         ],
         "host_club": "Ringerike",
         "id": "rvv-0085",
-        "start_time": "12:25",
+        "start_time": "12:45",
         "teams": [
           {
             "age_group": "U11",
@@ -20522,7 +20522,7 @@
         ],
         "host_club": "Ringerike",
         "id": "rvv-0114",
-        "start_time": "11:45",
+        "start_time": "11:55",
         "teams": [
           {
             "age_group": "U12",
@@ -25508,7 +25508,7 @@
         ],
         "host_club": "Ringerike",
         "id": "rvv-0170",
-        "start_time": "11:45",
+        "start_time": "11:55",
         "teams": [
           {
             "age_group": "JU12",
@@ -26520,7 +26520,7 @@
         ],
         "host_club": "Ringerike",
         "id": "rvv-0182",
-        "start_time": "11:45",
+        "start_time": "11:55",
         "teams": [
           {
             "age_group": "U12",
@@ -40682,8 +40682,8 @@
   },
   "plan_schema_version": 1,
   "promoted_from": {
-    "export_fresh_at": "2026-09-29T16:50:15.729028+00:00",
-    "export_fresh_revision": "2f027451a026de664d40f8ac73b78fe39b2bd657a9ac2046c0b776beffff2411",
+    "export_fresh_at": "2026-09-29T17:13:53.827666+00:00",
+    "export_fresh_revision": "0691d5086b18cfdcfe50e39cdadf7588d47bd38228d33bc9502e9a5b86bd809e",
     "public_export_context_fingerprint": "f5ac564e3b0f7eac33196110185cb082556676d5fe9f8bbd33ea0be77bbfc415",
     "run_id": "20260918T135604Z-8d38f146",
     "stage3_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
