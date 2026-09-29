@@ -328,6 +328,43 @@ def publication_readiness(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _reclassify_accepted_booking_floor(
+    problem: dict[str, Any] | None,
+    candidate: dict[str, Any],
+    violations: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Reclassify governing-floor violations for source-confirmed bookings.
+
+    The planning verifier stays strict (an effective occupancy below the
+    governing floor is a hard violation). At the audit/export boundary a
+    source-confirmed accepted booking interval is a durable feasibility finding,
+    not a new-placement planning violation; it is reclassified here using the
+    projected canonical evidence and an exact interval match, without a second
+    evidence engine or blanket waiver.
+    """
+
+    from tournament_scheduler.calendar_bookings import accepted_booking_interval_evidence
+
+    tournaments = {
+        str(tournament.get("id") or ""): tournament
+        for tournament in (candidate.get("tournaments") or [])
+        if isinstance(tournament, dict)
+    }
+    findings: list[dict[str, Any]] = []
+    remaining: list[dict[str, Any]] = []
+    for violation in violations:
+        if violation.get("code") == "ice_time_governing_minimum":
+            tournament_id = str(violation.get("tournament_id") or "")
+            tournament = tournaments.get(tournament_id)
+            if tournament is not None and accepted_booking_interval_evidence(problem, tournament) is not None:
+                finding = dict(violation)
+                finding["accepted_booking_interval"] = True
+                findings.append(finding)
+                continue
+        remaining.append(violation)
+    return findings, remaining
+
+
 def verify_final_candidate(
     candidate: dict[str, Any],
     problem: dict[str, Any] | None = None,
@@ -368,6 +405,10 @@ def verify_final_candidate(
             )
         violations.extend(_check_games(tournament, problem))
 
+    accepted_floor_findings, violations = _reclassify_accepted_booking_floor(
+        problem, candidate, violations
+    )
+    result["booking_feasibility_warnings"] = accepted_floor_findings
     result["violations"] = violations
     annotate_violations(result["violations"])
     result["ok"] = not violations

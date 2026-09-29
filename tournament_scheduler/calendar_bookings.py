@@ -796,6 +796,164 @@ def project_associations_into_problem(
     return projected
 
 
+def governing_floor_finding(
+    tournament: Mapping[str, Any],
+    accepted_minutes: Any,
+) -> dict[str, Any] | None:
+    """Return the governing-floor discrepancy finding for an accepted interval.
+
+    A source-confirmed booking may record an exact interval shorter than the
+    governing *planning* floor. That interval is preserved exactly and the
+    shortfall is surfaced as a durable feasibility finding -- never a
+    new-placement planning violation. Inadequate actual playing time and true
+    arena overlaps are checked separately and remain hard.
+    """
+
+    from tournament_scheduler.occupancy import governing_minimum_ice_time_minutes
+
+    try:
+        minutes = int(accepted_minutes)
+    except (TypeError, ValueError):
+        return None
+    if minutes <= 0:
+        return None
+    age_group = str(tournament.get("age_group") or "")
+    governing_floor = governing_minimum_ice_time_minutes(age_group)
+    if governing_floor is None or minutes >= governing_floor:
+        return None
+    tournament_id = str(tournament.get("id") or "")
+    return {
+        "code": "ice_time_governing_minimum",
+        "message": (
+            f"Tournament {tournament_id} ({age_group}) has an accepted booking interval of "
+            f"{minutes} minutes, below the governing minimum booking window of "
+            f"{governing_floor} minutes"
+        ),
+        "tournament_id": tournament_id,
+        "age_group": age_group,
+        "configured_ice_time_minutes": minutes,
+        "minimum_required_minutes": governing_floor,
+        "accepted_booking_interval": True,
+    }
+
+
+def valid_active_manual_assertions(
+    decisions: Mapping[str, Any] | None,
+    *,
+    problem: Mapping[str, Any] | None,
+    plan: Mapping[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Return active manual ``booked`` assertions still matching the plan slot."""
+
+    tournaments = _tournaments_by_id(plan)
+    valid: list[dict[str, Any]] = []
+    seen_tournaments: set[str] = set()
+    for record in active_manual_assertions(decisions):
+        tournament_id = str(record.get("tournament_id") or "")
+        if not tournament_id or tournament_id in seen_tournaments:
+            continue
+        if str(record.get("booking_status") or "") != _STATUS_BOOKED:
+            continue
+        if manual_assertion_stale_reasons(
+            record,
+            problem=problem,
+            tournament=tournaments.get(tournament_id),
+        ):
+            continue
+        valid.append(dict(record))
+        seen_tournaments.add(tournament_id)
+    return valid
+
+
+def project_manual_assertions_into_problem(
+    problem: Mapping[str, Any] | None,
+    decisions: Mapping[str, Any] | None,
+    plan: Mapping[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Attach currently-valid manual booking assertions to a verification input.
+
+    The planning verifier stays strict and never reads this key; the projected
+    evidence is consumed by the reconciliation/audit boundary to classify a
+    source-confirmed accepted booking against the governing planning floor.
+    """
+
+    if problem is None:
+        return None
+    projected = dict(problem)
+    projected[MANUAL_BOOKING_ASSERTIONS_KEY] = (
+        valid_active_manual_assertions(decisions, problem=projected, plan=plan)
+        if plan is not None
+        else []
+    )
+    return projected
+
+
+def accepted_booking_interval_evidence(
+    problem: Mapping[str, Any] | None,
+    tournament: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Return exact accepted-booking evidence for this tournament's interval.
+
+    This is the reconciliation/audit boundary classifier: it only accepts
+    projected, currently-valid source evidence (a calendar association or a
+    manual booked assertion) whose stored tournament facts and occupied
+    interval match the candidate's exact id, host, arena, date, start, end and
+    duration. It never proves booking authority from occupancy alone and is
+    not used by the planning verifier.
+    """
+
+    tournament_id = str(tournament.get("id") or "")
+    if not tournament_id:
+        return None
+    current_interval = tournament_occupancy_interval_facts(tournament, problem)
+    current_facts = tournament_booking_facts(tournament)
+
+    def _facts_match(record: Mapping[str, Any]) -> bool:
+        stored_facts = record.get("tournament_facts") or {}
+        if any(str(stored_facts.get(key) or "") != value for key, value in current_facts.items()):
+            return False
+        stored_interval = record.get("tournament_interval") or record.get("asserted_interval") or {}
+        return all(
+            str(stored_interval.get(key) or "") == current_interval[key]
+            for key in ("date", "start_time", "duration_minutes", "end_time")
+        )
+
+    for record in (problem or {}).get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []:
+        if not isinstance(record, Mapping) or str(record.get("status") or ACTIVE) != ACTIVE:
+            continue
+        if str(record.get("tournament_id") or "") != tournament_id or not _facts_match(record):
+            continue
+        if str(record.get("club") or "") != current_facts["host_club"]:
+            continue
+        if str(record.get("date") or "") != current_interval["date"]:
+            continue
+        if str(record.get("start") or "") != current_interval["start_time"]:
+            continue
+        if str(record.get("end") or "") != current_interval["end_time"]:
+            continue
+        return {
+            "authority": BOOKING_AUTHORITY_CALENDAR,
+            "record_id": str(record.get("id") or ""),
+            "event_fingerprint": str(record.get("event_fingerprint") or ""),
+        }
+
+    for record in (problem or {}).get(MANUAL_BOOKING_ASSERTIONS_KEY) or []:
+        if not isinstance(record, Mapping) or str(record.get("status") or "") != MANUAL_ASSERTION_ACTIVE:
+            continue
+        if str(record.get("booking_status") or "") != _STATUS_BOOKED:
+            continue
+        if str(record.get("tournament_id") or "") != tournament_id or not _facts_match(record):
+            continue
+        if not (str(record.get("source_assertion_id") or "") or str(record.get("reference") or "") or str(record.get("note") or "")):
+            continue
+        return {
+            "authority": str(record.get("authority") or BOOKING_AUTHORITY_MANUAL),
+            "record_id": str(record.get("id") or ""),
+            "source_assertion_id": str(record.get("source_assertion_id") or ""),
+        }
+    return None
+
+
 def associated_tournament_for_event(
     problem: Mapping[str, Any] | None,
     event: Mapping[str, Any],

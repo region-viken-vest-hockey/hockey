@@ -749,12 +749,6 @@ def verify_candidate(
     # Kept separate from `violations` so they never block export, but never
     # silently disappear either -- they are surfaced in the audit/evidence.
     waived_violations: List[Dict[str, Any]] = []
-    # A host-confirmed accepted booking interval (a per-tournament occupancy
-    # override) below the governing *planning* floor is recorded faithfully and
-    # surfaced as a durable feasibility finding, never a new-placement planning
-    # violation. The governing floor remains a hard planning constraint for
-    # proposed (non-overridden) placements.
-    booking_feasibility_warnings: List[Dict[str, Any]] = []
     skipped: List[str] = []
     # issue #264: non-blocking record of tournaments placed inside a
     # host-controlled ``movable_busy`` interval rather than an
@@ -1279,35 +1273,31 @@ def verify_candidate(
         actual_round_count = max((int(game.get("round_number") or 0) for game in t.get("games") or []), default=0)
         configured_ice_time = configured_ice_time_minutes.get(shape_age_group)
         # A host-confirmed per-tournament override is the effective booked
-        # window, so the format/governing floors must be checked against it --
-        # an override can never make a tournament physically impossible.
+        # window; the actual-playing-requirement floor must be checked against
+        # it so an override can never make a tournament physically impossible.
         override_ice_time = ice_time_overrides.get(t_id)
         effective_ice_time = configured_ice_time
         if isinstance(override_ice_time, int) and override_ice_time > 0:
             effective_ice_time = override_ice_time
         configured_round_length = round_length_minutes_by_age.get(shape_age_group)
+        # The governing booking floor stays a hard planning constraint on the
+        # effective occupancy. The reconciliation/audit boundary (never this
+        # verifier) reclassifies a source-confirmed accepted interval below the
+        # floor as a durable feasibility finding using canonical evidence and
+        # an exact interval match.
         if isinstance(effective_ice_time, int) and effective_ice_time > 0:
             governing_floor = governing_minimum_ice_time_minutes(shape_age_group)
             if governing_floor is not None and effective_ice_time < governing_floor:
-                entry = {
-                    "code": "ice_time_governing_minimum",
-                    "message": (
-                        f"Tournament {t_id} ({shape_age_group}) has ice_time_minutes={effective_ice_time}, "
-                        f"below the governing minimum booking window of {governing_floor} minutes"
-                    ),
-                    "tournament_id": t_id,
-                    "age_group": shape_age_group,
-                    "configured_ice_time_minutes": effective_ice_time,
-                    "minimum_required_minutes": governing_floor,
-                }
-                if isinstance(override_ice_time, int) and override_ice_time > 0:
-                    # A confirmed booking interval is an accepted fact, not a
-                    # proposed placement: the shortfall is a durable follow-up
-                    # finding rather than a planning violation.
-                    entry["accepted_booking_interval"] = True
-                    booking_feasibility_warnings.append(entry)
-                else:
-                    violations.append(entry)
+                _violate(
+                    "ice_time_governing_minimum",
+                    f"Tournament {t_id} ({shape_age_group}) has ice_time_minutes={effective_ice_time}, "
+                    f"below the governing minimum booking window of {governing_floor} minutes",
+                    t_id,
+                    age_group=shape_age_group,
+                    configured_ice_time_minutes=effective_ice_time,
+                    minimum_required_minutes=governing_floor,
+                )
+        if isinstance(effective_ice_time, int) and effective_ice_time > 0:
             minimum_playing = minimum_playing_requirement_minutes(configured_round_length, actual_round_count)
             if minimum_playing > 0 and effective_ice_time < minimum_playing:
                 _violate(
@@ -1557,12 +1547,10 @@ def verify_candidate(
 
     annotate_violations(violations)
     annotate_violations(waived_violations)
-    annotate_violations(booking_feasibility_warnings)
     return {
         "ok": not violations,
         "violations": violations,
         "waived_violations": waived_violations,
-        "booking_feasibility_warnings": booking_feasibility_warnings,
         "skipped": skipped,
         "club_controlled_allocations_used": movable_allocations_used,
         "movable_allocations_used": movable_allocations_used,

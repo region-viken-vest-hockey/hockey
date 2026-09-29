@@ -28,13 +28,10 @@ def _build_export_verification_problem(
     if not effective_config or not start_raw or not end_raw:
         return None
     try:
-        from ..calendar_bookings import project_associations_into_problem
-        from ..canonical_banned_dates import project_banned_dates_into_problem
         from ..canonical_baseline import resolve_canonical_state
-        from ..canonical_holiday_exceptions import project_exceptions_into_problem
-        from ..canonical_ice_time_overrides import project_overrides_into_problem
         from ..operator_waivers import load_active_waivers
         from ..planning_contract import build_planning_problem
+        from ..season_maintenance import project_canonical_overlays
 
         start = datetime.strptime(str(start_raw), "%Y-%m-%d")
         end = datetime.strptime(str(end_raw), "%Y-%m-%d")
@@ -54,18 +51,16 @@ def _build_export_verification_problem(
             canonical_baseline=canonical_baseline,
         )
         if canonical_state:
-            # Mirror season_maintenance.load_context's projections so this
-            # export chokepoint honours the same canonical banned dates,
-            # holiday-date exceptions and calendar-booking associations that
-            # season repair/apply-repair already verified the candidate
-            # against, instead of re-deriving a stricter problem from
-            # nothing but the frozen pipeline config.
+            # Delegate to the single revision-bound effective canonical
+            # projection so this export chokepoint honours exactly the same
+            # overlays (banned dates, holiday-date exceptions, ice-time
+            # overrides, calendar-booking associations, participation
+            # withdrawals) that season repair/apply-repair already verified
+            # the candidate against, instead of re-deriving a partial or
+            # stricter problem from the frozen pipeline config.
             decisions = canonical_state["decisions"]
-            problem = project_exceptions_into_problem(problem, decisions)
-            problem = project_banned_dates_into_problem(problem, decisions)
             plan = (canonical_state.get("schedule") or {}).get("plan") or {}
-            problem = project_overrides_into_problem(problem, decisions)
-            problem = project_associations_into_problem(problem, decisions, plan) or problem
+            problem = project_canonical_overlays(problem, decisions=decisions, plan=plan)
         return problem
     except Exception:
         return None
