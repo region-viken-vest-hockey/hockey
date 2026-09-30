@@ -2623,7 +2623,7 @@
       }
     }
   ],
-  "canonical_state_revision": "2986f70d6abd3665b772df38b408f69b9dee46ba3395f58d6d7b5e1927d2f8bf",
+  "canonical_state_revision": "a68cc6c607de93701e753cb3e5332ee98595f695e3edf6e4f736138a4efa9730",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -5724,9 +5724,12 @@
       "id": "change:3e66b6d421399d6e",
       "kind": "placement_field",
       "note": "Match Frisk Asker calendar times reported by club/team managers; retimed Frisk-Asker-hosted tournaments to their published Serierunde slots",
+      "release_reason": "Superseded by club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup: cancelling rvv-0038/rvv-0078 since Frisk Asker's whole U10 group cannot host/play that weekend",
+      "released_at": "2026-09-30T10:58:46.549974+00:00",
+      "released_by": "niclasl",
       "request_id": "frisk-asker:2026-09-27-calendar-match",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -5814,9 +5817,12 @@
       "id": "change:712ef5e0dd799074",
       "kind": "placement_field",
       "note": "Match Frisk Asker calendar times reported by club/team managers; retimed Frisk-Asker-hosted tournaments to their published Serierunde slots",
+      "release_reason": "Superseded by club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup: cancelling rvv-0038/rvv-0078 since Frisk Asker's whole U10 group cannot host/play that weekend",
+      "released_at": "2026-09-30T10:58:46.549974+00:00",
+      "released_by": "niclasl",
       "request_id": "frisk-asker:2026-09-27-calendar-match",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -7383,6 +7389,38 @@
       },
       "tournament_id": "rvv-0174",
       "value": "12:00"
+    },
+    {
+      "created_at": "2026-09-30T10:58:45.484042+00:00",
+      "created_by": "niclasl",
+      "id": "change:8964ee4c64572a28",
+      "kind": "must_participate",
+      "note": "Warriors Cup unavailability (whole FA U10 group registered 2027-02-12/14); legal same-age replacement, Jar hosting/booking unaffected",
+      "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+      "source_event": "participant_replacement",
+      "status": "active",
+      "team": {
+        "age_group": "U10",
+        "club": "Jutul",
+        "label": "Jutul Grønn"
+      },
+      "tournament_id": "rvv-0144"
+    },
+    {
+      "created_at": "2026-09-30T10:58:45.484042+00:00",
+      "created_by": "niclasl",
+      "id": "change:b5851a140c88dcc8",
+      "kind": "must_not_participate",
+      "note": "Warriors Cup unavailability (whole FA U10 group registered 2027-02-12/14); legal same-age replacement, Jar hosting/booking unaffected",
+      "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+      "source_event": "participant_replacement",
+      "status": "active",
+      "team": {
+        "age_group": "U10",
+        "club": "Frisk Asker",
+        "label": "Frisk Asker 5"
+      },
+      "tournament_id": "rvv-0144"
     }
   ],
   "club_booking_source_assertions": [
@@ -49908,6 +49946,2290 @@
       "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
       "tournament_fingerprint": null,
       "tournament_id": "rvv-0144"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T10:58:45.869369+00:00",
+      "details": {
+        "added_team": {
+          "club": "Jutul",
+          "label": "Jutul Grønn"
+        },
+        "affected_tournament_ids": [
+          "rvv-0144"
+        ],
+        "after_records": {
+          "rvv-0144": {
+            "age_group": "U10",
+            "arena": "Jar Isforum",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2027-02-14",
+            "duration_minutes": 140,
+            "end_time": "13:20",
+            "guest_slots": [],
+            "host_club": "Jar",
+            "id": "rvv-0144",
+            "participants": [
+              "Holmen\u001fHolmen Hockey Blå\u001fU10",
+              "Jar\u001fJar Rød\u001fU10",
+              "Jar\u001fJar Svart\u001fU10",
+              "Jutul\u001fJutul Grønn\u001fU10",
+              "Ringerike\u001fRingerike 2\u001fU10",
+              "Ringerike\u001fRingerike 4\u001fU10"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "11:00"
+          }
+        },
+        "age_group": "U10",
+        "before_fingerprint": "ef158a31c088b5a92c5b140d857abff9af84de81f8c1bfdf44c143b48f35cd24",
+        "before_records": {
+          "rvv-0144": {
+            "age_group": "U10",
+            "arena": "Jar Isforum",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2027-02-14",
+            "duration_minutes": 140,
+            "end_time": "13:20",
+            "guest_slots": [],
+            "host_club": "Jar",
+            "id": "rvv-0144",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker 5\u001fU10",
+              "Holmen\u001fHolmen Hockey Blå\u001fU10",
+              "Jar\u001fJar Rød\u001fU10",
+              "Jar\u001fJar Svart\u001fU10",
+              "Ringerike\u001fRingerike 2\u001fU10",
+              "Ringerike\u001fRingerike 4\u001fU10"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "11:00"
+          }
+        },
+        "can_apply_unchanged": true,
+        "candidate_revision": "3fc0dcc6766f8fa2ecfb4a90881a1edc4696a4b046abdb5c5b5b1e23d3212a02",
+        "change_protection_acceptable": true,
+        "consequence_acceptable": true,
+        "date": "2027-02-14",
+        "existing_change_protection_violations": [],
+        "expected_canonical_revision": "2986f70d6abd3665b772df38b408f69b9dee46ba3395f58d6d7b5e1927d2f8bf",
+        "guest_reservation_integrity": {
+          "after": {
+            "rvv-0007": [
+              [
+                "guest:rvv-0007:1",
+                "open"
+              ]
+            ],
+            "rvv-0016": [
+              [
+                "guest:rvv-0016:1",
+                "open"
+              ]
+            ],
+            "rvv-0083": [
+              [
+                "guest:rvv-0083:1",
+                "open"
+              ]
+            ],
+            "rvv-0130": [
+              [
+                "guest:rvv-0130:1",
+                "open"
+              ]
+            ],
+            "rvv-0169": [
+              [
+                "guest:rvv-0169:1",
+                "open"
+              ]
+            ]
+          },
+          "before": {
+            "rvv-0007": [
+              [
+                "guest:rvv-0007:1",
+                "open"
+              ]
+            ],
+            "rvv-0016": [
+              [
+                "guest:rvv-0016:1",
+                "open"
+              ]
+            ],
+            "rvv-0083": [
+              [
+                "guest:rvv-0083:1",
+                "open"
+              ]
+            ],
+            "rvv-0130": [
+              [
+                "guest:rvv-0130:1",
+                "open"
+              ]
+            ],
+            "rvv-0169": [
+              [
+                "guest:rvv-0169:1",
+                "open"
+              ]
+            ]
+          },
+          "ok": true
+        },
+        "hosting_responsibility_ok": true,
+        "hosting_responsibility_transfers": [],
+        "participation_counts": {
+          "Frisk Asker:Frisk Asker 5:U10": {
+            "after": {
+              "after_christmas": 2,
+              "before_christmas": 2,
+              "season": 4,
+              "unsplit": 0
+            },
+            "before": {
+              "after_christmas": 3,
+              "before_christmas": 2,
+              "season": 5,
+              "unsplit": 0
+            },
+            "identity": {
+              "age_group": "U10",
+              "club": "Frisk Asker",
+              "label": "Frisk Asker 5"
+            }
+          },
+          "Jutul:Jutul Grønn:U10": {
+            "after": {
+              "after_christmas": 4,
+              "before_christmas": 4,
+              "season": 8,
+              "unsplit": 0
+            },
+            "before": {
+              "after_christmas": 3,
+              "before_christmas": 4,
+              "season": 7,
+              "unsplit": 0
+            },
+            "identity": {
+              "age_group": "U10",
+              "club": "Jutul",
+              "label": "Jutul Grønn"
+            }
+          }
+        },
+        "protections_to_add": [
+          {
+            "created_at": "2026-09-30T10:58:45.484042+00:00",
+            "created_by": "niclasl",
+            "id": "change:8964ee4c64572a28",
+            "kind": "must_participate",
+            "note": "Warriors Cup unavailability (whole FA U10 group registered 2027-02-12/14); legal same-age replacement, Jar hosting/booking unaffected",
+            "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+            "source_event": "participant_replacement",
+            "status": "active",
+            "team": {
+              "age_group": "U10",
+              "club": "Jutul",
+              "label": "Jutul Grønn"
+            },
+            "tournament_id": "rvv-0144"
+          },
+          {
+            "created_at": "2026-09-30T10:58:45.484042+00:00",
+            "created_by": "niclasl",
+            "id": "change:b5851a140c88dcc8",
+            "kind": "must_not_participate",
+            "note": "Warriors Cup unavailability (whole FA U10 group registered 2027-02-12/14); legal same-age replacement, Jar hosting/booking unaffected",
+            "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+            "source_event": "participant_replacement",
+            "status": "active",
+            "team": {
+              "age_group": "U10",
+              "club": "Frisk Asker",
+              "label": "Frisk Asker 5"
+            },
+            "tournament_id": "rvv-0144"
+          }
+        ],
+        "regenerated_games_count": 15,
+        "removed_team": {
+          "club": "Frisk Asker",
+          "label": "Frisk Asker 5"
+        },
+        "request_constraint_acceptable": true,
+        "request_constraint_regressions": [],
+        "request_constraint_unchanged_violations": [
+          {
+            "code": "team_unavailable",
+            "constraint_id": "request:2b6286afebaa4ff7",
+            "date": "2026-11-08",
+            "message": "Frisk Asker 2 is unavailable on 2026-11-08 but participates in rvv-0078",
+            "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+            "team": {
+              "age_group": "U10",
+              "club": "Frisk Asker",
+              "label": "Frisk Asker 2"
+            },
+            "tournament_id": "rvv-0078",
+            "type": "team_unavailable"
+          },
+          {
+            "code": "team_unavailable",
+            "constraint_id": "request:22e96a3f4d8e9939",
+            "date": "2026-11-07",
+            "message": "Frisk Asker 3 is unavailable on 2026-11-07 but participates in rvv-0038",
+            "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+            "team": {
+              "age_group": "U10",
+              "club": "Frisk Asker",
+              "label": "Frisk Asker 3"
+            },
+            "tournament_id": "rvv-0038",
+            "type": "team_unavailable"
+          },
+          {
+            "code": "team_unavailable",
+            "constraint_id": "request:11b0543005df9124",
+            "date": "2026-11-07",
+            "message": "Frisk Asker 6 is unavailable on 2026-11-07 but participates in rvv-0038",
+            "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+            "team": {
+              "age_group": "U10",
+              "club": "Frisk Asker",
+              "label": "Frisk Asker 6"
+            },
+            "tournament_id": "rvv-0038",
+            "type": "team_unavailable"
+          }
+        ],
+        "request_constraint_violations": [
+          {
+            "code": "team_unavailable",
+            "constraint_id": "request:2b6286afebaa4ff7",
+            "date": "2026-11-08",
+            "message": "Frisk Asker 2 is unavailable on 2026-11-08 but participates in rvv-0078",
+            "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+            "team": {
+              "age_group": "U10",
+              "club": "Frisk Asker",
+              "label": "Frisk Asker 2"
+            },
+            "tournament_id": "rvv-0078",
+            "type": "team_unavailable"
+          },
+          {
+            "code": "team_unavailable",
+            "constraint_id": "request:22e96a3f4d8e9939",
+            "date": "2026-11-07",
+            "message": "Frisk Asker 3 is unavailable on 2026-11-07 but participates in rvv-0038",
+            "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+            "team": {
+              "age_group": "U10",
+              "club": "Frisk Asker",
+              "label": "Frisk Asker 3"
+            },
+            "tournament_id": "rvv-0038",
+            "type": "team_unavailable"
+          },
+          {
+            "code": "team_unavailable",
+            "constraint_id": "request:11b0543005df9124",
+            "date": "2026-11-07",
+            "message": "Frisk Asker 6 is unavailable on 2026-11-07 but participates in rvv-0038",
+            "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+            "team": {
+              "age_group": "U10",
+              "club": "Frisk Asker",
+              "label": "Frisk Asker 6"
+            },
+            "tournament_id": "rvv-0038",
+            "type": "team_unavailable"
+          }
+        ],
+        "request_id": "club-feedback:frisk-asker:u10:2027-02-12-14-warriors-cup",
+        "team_consequences": {
+          "added_team": {
+            "acceptable": false,
+            "after": {
+              "club_opponents": {
+                "club_counts": [
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 28,
+                    "club": "Frisk Asker",
+                    "encounters": 9,
+                    "expected_share": 0.272727,
+                    "exposure_index": 0.846154,
+                    "exposure_share": 0.230769,
+                    "opponent_squads": 6,
+                    "squad_encounters": 9
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 26,
+                    "club": "Holmen",
+                    "encounters": 8,
+                    "expected_share": 0.181818,
+                    "exposure_index": 1.128205,
+                    "exposure_share": 0.205128,
+                    "opponent_squads": 4,
+                    "squad_encounters": 8
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 30,
+                    "club": "Jar",
+                    "encounters": 11,
+                    "expected_share": 0.272727,
+                    "exposure_index": 1.034188,
+                    "exposure_share": 0.282051,
+                    "opponent_squads": 6,
+                    "squad_encounters": 11
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 7,
+                    "club": "Kongsberg",
+                    "encounters": 2,
+                    "expected_share": 0.045455,
+                    "exposure_index": 1.128205,
+                    "exposure_share": 0.051282,
+                    "opponent_squads": 1,
+                    "squad_encounters": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 26,
+                    "club": "Ringerike",
+                    "encounters": 8,
+                    "expected_share": 0.181818,
+                    "exposure_index": 1.128205,
+                    "exposure_share": 0.205128,
+                    "opponent_squads": 4,
+                    "squad_encounters": 8
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 7,
+                    "club": "Tønsberg",
+                    "encounters": 1,
+                    "expected_share": 0.045455,
+                    "exposure_index": 0.564103,
+                    "exposure_share": 0.025641,
+                    "opponent_squads": 1,
+                    "squad_encounters": 1
+                  }
+                ],
+                "co_attendance": {
+                  "club_counts": [
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 28,
+                      "club": "Frisk Asker",
+                      "encounters": 6,
+                      "expected_share": 0.272727,
+                      "exposure_index": 0.758621,
+                      "exposure_share": 0.206897,
+                      "opponent_squads": 6,
+                      "squad_encounters": 9
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 26,
+                      "club": "Holmen",
+                      "encounters": 6,
+                      "expected_share": 0.181818,
+                      "exposure_index": 1.137931,
+                      "exposure_share": 0.206897,
+                      "opponent_squads": 4,
+                      "squad_encounters": 8
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 30,
+                      "club": "Jar",
+                      "encounters": 8,
+                      "expected_share": 0.272727,
+                      "exposure_index": 1.011494,
+                      "exposure_share": 0.275862,
+                      "opponent_squads": 6,
+                      "squad_encounters": 11
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 7,
+                      "club": "Kongsberg",
+                      "encounters": 2,
+                      "expected_share": 0.045455,
+                      "exposure_index": 1.517241,
+                      "exposure_share": 0.068966,
+                      "opponent_squads": 1,
+                      "squad_encounters": 2
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 26,
+                      "club": "Ringerike",
+                      "encounters": 6,
+                      "expected_share": 0.181818,
+                      "exposure_index": 1.137931,
+                      "exposure_share": 0.206897,
+                      "opponent_squads": 4,
+                      "squad_encounters": 8
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 7,
+                      "club": "Tønsberg",
+                      "encounters": 1,
+                      "expected_share": 0.045455,
+                      "exposure_index": 0.758621,
+                      "exposure_share": 0.034483,
+                      "opponent_squads": 1,
+                      "squad_encounters": 1
+                    }
+                  ],
+                  "distinct_clubs": 6,
+                  "measure": "co_attendance"
+                },
+                "distinct_clubs": 6,
+                "exact_squad_counts": [
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "encounters": 4,
+                    "label": "Holmen Hockey Blå"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "encounters": 3,
+                    "label": "Frisk Asker 3"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "encounters": 3,
+                    "label": "Frisk Asker 6"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 3,
+                    "label": "Jar Blå"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 3,
+                    "label": "Ringerike 4"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "encounters": 2,
+                    "label": "Frisk Asker 2"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "encounters": 2,
+                    "label": "Holmen Hockey Hvit"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 2,
+                    "label": "Jar Grønn"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 2,
+                    "label": "Jar Hvit"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 2,
+                    "label": "Jar Svart"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Kongsberg",
+                    "encounters": 2,
+                    "label": "Kongsberg"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 2,
+                    "label": "Ringerike 2"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 2,
+                    "label": "Ringerike 3"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "encounters": 1,
+                    "label": "Frisk Asker 1"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "encounters": 1,
+                    "label": "Holmen Hockey Rød"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "encounters": 1,
+                    "label": "Holmen Hockey Sort"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 1,
+                    "label": "Jar Gul"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 1,
+                    "label": "Jar Rød"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jutul",
+                    "encounters": 1,
+                    "label": "Jutul Hvit"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 1,
+                    "label": "Ringerike 1"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Tønsberg",
+                    "encounters": 1,
+                    "label": "Tønsberg"
+                  }
+                ],
+                "game_coverage": "complete",
+                "measure": "games",
+                "same_club_encounters": 1,
+                "team": {
+                  "age_group": "U10",
+                  "club": "Jutul",
+                  "label": "Jutul Grønn"
+                },
+                "total_opponent_encounters": 39,
+                "tournament_count": 8
+              },
+              "opponents": {
+                "counts": [
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "label": "Holmen Hockey Blå",
+                    "meetings": 4
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "label": "Frisk Asker 3",
+                    "meetings": 3
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "label": "Frisk Asker 6",
+                    "meetings": 3
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Blå",
+                    "meetings": 3
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 4",
+                    "meetings": 3
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "label": "Frisk Asker 2",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "label": "Holmen Hockey Hvit",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Grønn",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Hvit",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Svart",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Kongsberg",
+                    "label": "Kongsberg",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 2",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 3",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "label": "Frisk Asker 1",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "label": "Holmen Hockey Rød",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "label": "Holmen Hockey Sort",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Gul",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Rød",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jutul",
+                    "label": "Jutul Hvit",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 1",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Tønsberg",
+                    "label": "Tønsberg",
+                    "meetings": 1
+                  }
+                ],
+                "max_repeat": 4,
+                "repeat_excess_over_2": 6,
+                "unique_opponents": 21
+              },
+              "spacing": {
+                "gaps_under_14": 3,
+                "gaps_under_7": 1,
+                "min_gap_days": 1
+              },
+              "team": {
+                "age_group": "U10",
+                "club": "Jutul",
+                "label": "Jutul Grønn"
+              },
+              "temporal": {
+                "finish_gap_days": 21,
+                "lead_gap_days": 1,
+                "max_gap_days": 62,
+                "max_intra_gap_days": 62
+              },
+              "tournament_count": 8,
+              "tournament_dates": [
+                "2026-10-10",
+                "2026-11-07",
+                "2026-11-15",
+                "2026-11-22",
+                "2027-01-23",
+                "2027-01-24",
+                "2027-02-14",
+                "2027-03-07"
+              ],
+              "travel_km": 89
+            },
+            "before": {
+              "club_opponents": {
+                "club_counts": [
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 29,
+                    "club": "Frisk Asker",
+                    "encounters": 9,
+                    "expected_share": 0.272727,
+                    "exposure_index": 0.970588,
+                    "exposure_share": 0.264706,
+                    "opponent_squads": 6,
+                    "squad_encounters": 9
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 26,
+                    "club": "Holmen",
+                    "encounters": 7,
+                    "expected_share": 0.181818,
+                    "exposure_index": 1.132353,
+                    "exposure_share": 0.205882,
+                    "opponent_squads": 4,
+                    "squad_encounters": 7
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 30,
+                    "club": "Jar",
+                    "encounters": 9,
+                    "expected_share": 0.272727,
+                    "exposure_index": 0.970588,
+                    "exposure_share": 0.264706,
+                    "opponent_squads": 6,
+                    "squad_encounters": 9
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 7,
+                    "club": "Kongsberg",
+                    "encounters": 2,
+                    "expected_share": 0.045455,
+                    "exposure_index": 1.294118,
+                    "exposure_share": 0.058824,
+                    "opponent_squads": 1,
+                    "squad_encounters": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 26,
+                    "club": "Ringerike",
+                    "encounters": 6,
+                    "expected_share": 0.181818,
+                    "exposure_index": 0.970588,
+                    "exposure_share": 0.176471,
+                    "opponent_squads": 4,
+                    "squad_encounters": 6
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 7,
+                    "club": "Tønsberg",
+                    "encounters": 1,
+                    "expected_share": 0.045455,
+                    "exposure_index": 0.647059,
+                    "exposure_share": 0.029412,
+                    "opponent_squads": 1,
+                    "squad_encounters": 1
+                  }
+                ],
+                "co_attendance": {
+                  "club_counts": [
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 29,
+                      "club": "Frisk Asker",
+                      "encounters": 6,
+                      "expected_share": 0.272727,
+                      "exposure_index": 0.846154,
+                      "exposure_share": 0.230769,
+                      "opponent_squads": 6,
+                      "squad_encounters": 9
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 26,
+                      "club": "Holmen",
+                      "encounters": 5,
+                      "expected_share": 0.181818,
+                      "exposure_index": 1.057692,
+                      "exposure_share": 0.192308,
+                      "opponent_squads": 4,
+                      "squad_encounters": 7
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 30,
+                      "club": "Jar",
+                      "encounters": 7,
+                      "expected_share": 0.272727,
+                      "exposure_index": 0.987179,
+                      "exposure_share": 0.269231,
+                      "opponent_squads": 6,
+                      "squad_encounters": 9
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 7,
+                      "club": "Kongsberg",
+                      "encounters": 2,
+                      "expected_share": 0.045455,
+                      "exposure_index": 1.692308,
+                      "exposure_share": 0.076923,
+                      "opponent_squads": 1,
+                      "squad_encounters": 2
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 26,
+                      "club": "Ringerike",
+                      "encounters": 5,
+                      "expected_share": 0.181818,
+                      "exposure_index": 1.057692,
+                      "exposure_share": 0.192308,
+                      "opponent_squads": 4,
+                      "squad_encounters": 6
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 7,
+                      "club": "Tønsberg",
+                      "encounters": 1,
+                      "expected_share": 0.045455,
+                      "exposure_index": 0.846154,
+                      "exposure_share": 0.038462,
+                      "opponent_squads": 1,
+                      "squad_encounters": 1
+                    }
+                  ],
+                  "distinct_clubs": 6,
+                  "measure": "co_attendance"
+                },
+                "distinct_clubs": 6,
+                "exact_squad_counts": [
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "encounters": 3,
+                    "label": "Frisk Asker 3"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "encounters": 3,
+                    "label": "Frisk Asker 6"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "encounters": 3,
+                    "label": "Holmen Hockey Blå"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 3,
+                    "label": "Jar Blå"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "encounters": 2,
+                    "label": "Frisk Asker 2"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "encounters": 2,
+                    "label": "Holmen Hockey Hvit"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 2,
+                    "label": "Jar Grønn"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 2,
+                    "label": "Jar Hvit"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Kongsberg",
+                    "encounters": 2,
+                    "label": "Kongsberg"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 2,
+                    "label": "Ringerike 3"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 2,
+                    "label": "Ringerike 4"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "encounters": 1,
+                    "label": "Frisk Asker 1"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "encounters": 1,
+                    "label": "Holmen Hockey Rød"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "encounters": 1,
+                    "label": "Holmen Hockey Sort"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 1,
+                    "label": "Jar Gul"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 1,
+                    "label": "Jar Svart"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jutul",
+                    "encounters": 1,
+                    "label": "Jutul Hvit"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 1,
+                    "label": "Ringerike 1"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 1,
+                    "label": "Ringerike 2"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Tønsberg",
+                    "encounters": 1,
+                    "label": "Tønsberg"
+                  }
+                ],
+                "game_coverage": "complete",
+                "measure": "games",
+                "same_club_encounters": 1,
+                "team": {
+                  "age_group": "U10",
+                  "club": "Jutul",
+                  "label": "Jutul Grønn"
+                },
+                "total_opponent_encounters": 34,
+                "tournament_count": 7
+              },
+              "opponents": {
+                "counts": [
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "label": "Frisk Asker 3",
+                    "meetings": 3
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "label": "Frisk Asker 6",
+                    "meetings": 3
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "label": "Holmen Hockey Blå",
+                    "meetings": 3
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Blå",
+                    "meetings": 3
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "label": "Frisk Asker 2",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "label": "Holmen Hockey Hvit",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Grønn",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Hvit",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Kongsberg",
+                    "label": "Kongsberg",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 3",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 4",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "label": "Frisk Asker 1",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "label": "Holmen Hockey Rød",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "label": "Holmen Hockey Sort",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Gul",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Svart",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jutul",
+                    "label": "Jutul Hvit",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 1",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 2",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Tønsberg",
+                    "label": "Tønsberg",
+                    "meetings": 1
+                  }
+                ],
+                "max_repeat": 3,
+                "repeat_excess_over_2": 4,
+                "unique_opponents": 20
+              },
+              "spacing": {
+                "gaps_under_14": 3,
+                "gaps_under_7": 1,
+                "min_gap_days": 1
+              },
+              "team": {
+                "age_group": "U10",
+                "club": "Jutul",
+                "label": "Jutul Grønn"
+              },
+              "temporal": {
+                "finish_gap_days": 21,
+                "lead_gap_days": 1,
+                "max_gap_days": 62,
+                "max_intra_gap_days": 62
+              },
+              "tournament_count": 7,
+              "tournament_dates": [
+                "2026-10-10",
+                "2026-11-07",
+                "2026-11-15",
+                "2026-11-22",
+                "2027-01-23",
+                "2027-01-24",
+                "2027-03-07"
+              ],
+              "travel_km": 86
+            },
+            "material_regressions": [
+              {
+                "after": 8,
+                "before": 7,
+                "code": "participation_count_changed"
+              }
+            ],
+            "replacement_acceptable": true,
+            "replacement_material_regressions": [],
+            "warnings": [
+              {
+                "after": 6,
+                "before": 4,
+                "code": "more_repeated_opponent_excess",
+                "delta": 2,
+                "measure": "exact_squad"
+              },
+              {
+                "after_km": 89,
+                "before_km": 86,
+                "code": "travel_worse",
+                "delta_km": 3,
+                "relative_increase": 0.03488372093023256
+              }
+            ]
+          },
+          "removed_team": {
+            "acceptable": false,
+            "after": {
+              "club_opponents": {
+                "club_counts": [
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 26,
+                    "club": "Holmen",
+                    "encounters": 3,
+                    "expected_share": 0.210526,
+                    "exposure_index": 0.838235,
+                    "exposure_share": 0.176471,
+                    "opponent_squads": 4,
+                    "squad_encounters": 3
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 30,
+                    "club": "Jar",
+                    "encounters": 7,
+                    "expected_share": 0.315789,
+                    "exposure_index": 1.303922,
+                    "exposure_share": 0.411765,
+                    "opponent_squads": 6,
+                    "squad_encounters": 7
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 22,
+                    "club": "Jutul",
+                    "encounters": 1,
+                    "expected_share": 0.157895,
+                    "exposure_index": 0.372549,
+                    "exposure_share": 0.058824,
+                    "opponent_squads": 3,
+                    "squad_encounters": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 7,
+                    "club": "Kongsberg",
+                    "encounters": 1,
+                    "expected_share": 0.052632,
+                    "exposure_index": 1.117647,
+                    "exposure_share": 0.058824,
+                    "opponent_squads": 1,
+                    "squad_encounters": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 26,
+                    "club": "Ringerike",
+                    "encounters": 4,
+                    "expected_share": 0.210526,
+                    "exposure_index": 1.117647,
+                    "exposure_share": 0.235294,
+                    "opponent_squads": 4,
+                    "squad_encounters": 4
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 7,
+                    "club": "Tønsberg",
+                    "encounters": 1,
+                    "expected_share": 0.052632,
+                    "exposure_index": 1.117647,
+                    "exposure_share": 0.058824,
+                    "opponent_squads": 1,
+                    "squad_encounters": 1
+                  }
+                ],
+                "co_attendance": {
+                  "club_counts": [
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 26,
+                      "club": "Holmen",
+                      "encounters": 3,
+                      "expected_share": 0.210526,
+                      "exposure_index": 1.017857,
+                      "exposure_share": 0.214286,
+                      "opponent_squads": 4,
+                      "squad_encounters": 3
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 30,
+                      "club": "Jar",
+                      "encounters": 4,
+                      "expected_share": 0.315789,
+                      "exposure_index": 0.904762,
+                      "exposure_share": 0.285714,
+                      "opponent_squads": 6,
+                      "squad_encounters": 7
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 22,
+                      "club": "Jutul",
+                      "encounters": 1,
+                      "expected_share": 0.157895,
+                      "exposure_index": 0.452381,
+                      "exposure_share": 0.071429,
+                      "opponent_squads": 3,
+                      "squad_encounters": 1
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 7,
+                      "club": "Kongsberg",
+                      "encounters": 1,
+                      "expected_share": 0.052632,
+                      "exposure_index": 1.357143,
+                      "exposure_share": 0.071429,
+                      "opponent_squads": 1,
+                      "squad_encounters": 1
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 26,
+                      "club": "Ringerike",
+                      "encounters": 4,
+                      "expected_share": 0.210526,
+                      "exposure_index": 1.357143,
+                      "exposure_share": 0.285714,
+                      "opponent_squads": 4,
+                      "squad_encounters": 4
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 7,
+                      "club": "Tønsberg",
+                      "encounters": 1,
+                      "expected_share": 0.052632,
+                      "exposure_index": 1.357143,
+                      "exposure_share": 0.071429,
+                      "opponent_squads": 1,
+                      "squad_encounters": 1
+                    }
+                  ],
+                  "distinct_clubs": 6,
+                  "measure": "co_attendance"
+                },
+                "distinct_clubs": 6,
+                "exact_squad_counts": [
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "encounters": 2,
+                    "label": "Frisk Asker 4"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 2,
+                    "label": "Jar Grønn"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 2,
+                    "label": "Jar Gul"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 2,
+                    "label": "Jar Hvit"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 2,
+                    "label": "Ringerike 1"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "encounters": 1,
+                    "label": "Frisk Asker 3"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "encounters": 1,
+                    "label": "Holmen Hockey Blå"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "encounters": 1,
+                    "label": "Holmen Hockey Hvit"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "encounters": 1,
+                    "label": "Holmen Hockey Sort"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 1,
+                    "label": "Jar Rød"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jutul",
+                    "encounters": 1,
+                    "label": "Jutul Rød"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Kongsberg",
+                    "encounters": 1,
+                    "label": "Kongsberg"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 1,
+                    "label": "Ringerike 3"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 1,
+                    "label": "Ringerike 4"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Tønsberg",
+                    "encounters": 1,
+                    "label": "Tønsberg"
+                  }
+                ],
+                "game_coverage": "complete",
+                "measure": "games",
+                "same_club_encounters": 3,
+                "team": {
+                  "age_group": "U10",
+                  "club": "Frisk Asker",
+                  "label": "Frisk Asker 5"
+                },
+                "total_opponent_encounters": 17,
+                "tournament_count": 4
+              },
+              "opponents": {
+                "counts": [
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "label": "Frisk Asker 4",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Grønn",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Gul",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Hvit",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 1",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "label": "Frisk Asker 3",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "label": "Holmen Hockey Blå",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "label": "Holmen Hockey Hvit",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "label": "Holmen Hockey Sort",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Rød",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jutul",
+                    "label": "Jutul Rød",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Kongsberg",
+                    "label": "Kongsberg",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 3",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 4",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Tønsberg",
+                    "label": "Tønsberg",
+                    "meetings": 1
+                  }
+                ],
+                "max_repeat": 2,
+                "repeat_excess_over_2": 0,
+                "unique_opponents": 15
+              },
+              "spacing": {
+                "gaps_under_14": 0,
+                "gaps_under_7": 0,
+                "min_gap_days": 22
+              },
+              "team": {
+                "age_group": "U10",
+                "club": "Frisk Asker",
+                "label": "Frisk Asker 5"
+              },
+              "temporal": {
+                "finish_gap_days": 14,
+                "lead_gap_days": 36,
+                "max_gap_days": 63,
+                "max_intra_gap_days": 63
+              },
+              "tournament_count": 4,
+              "tournament_dates": [
+                "2026-11-14",
+                "2026-12-19",
+                "2027-02-20",
+                "2027-03-14"
+              ],
+              "travel_km": 64
+            },
+            "before": {
+              "club_opponents": {
+                "club_counts": [
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 26,
+                    "club": "Holmen",
+                    "encounters": 4,
+                    "expected_share": 0.210526,
+                    "exposure_index": 0.863636,
+                    "exposure_share": 0.181818,
+                    "opponent_squads": 4,
+                    "squad_encounters": 4
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 30,
+                    "club": "Jar",
+                    "encounters": 9,
+                    "expected_share": 0.315789,
+                    "exposure_index": 1.295455,
+                    "exposure_share": 0.409091,
+                    "opponent_squads": 6,
+                    "squad_encounters": 9
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 21,
+                    "club": "Jutul",
+                    "encounters": 1,
+                    "expected_share": 0.157895,
+                    "exposure_index": 0.287879,
+                    "exposure_share": 0.045455,
+                    "opponent_squads": 3,
+                    "squad_encounters": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 7,
+                    "club": "Kongsberg",
+                    "encounters": 1,
+                    "expected_share": 0.052632,
+                    "exposure_index": 0.863636,
+                    "exposure_share": 0.045455,
+                    "opponent_squads": 1,
+                    "squad_encounters": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 26,
+                    "club": "Ringerike",
+                    "encounters": 6,
+                    "expected_share": 0.210526,
+                    "exposure_index": 1.295455,
+                    "exposure_share": 0.272727,
+                    "opponent_squads": 4,
+                    "squad_encounters": 6
+                  },
+                  {
+                    "age_group": "U10",
+                    "available_tournaments": 7,
+                    "club": "Tønsberg",
+                    "encounters": 1,
+                    "expected_share": 0.052632,
+                    "exposure_index": 0.863636,
+                    "exposure_share": 0.045455,
+                    "opponent_squads": 1,
+                    "squad_encounters": 1
+                  }
+                ],
+                "co_attendance": {
+                  "club_counts": [
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 26,
+                      "club": "Holmen",
+                      "encounters": 4,
+                      "expected_share": 0.210526,
+                      "exposure_index": 1.117647,
+                      "exposure_share": 0.235294,
+                      "opponent_squads": 4,
+                      "squad_encounters": 4
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 30,
+                      "club": "Jar",
+                      "encounters": 5,
+                      "expected_share": 0.315789,
+                      "exposure_index": 0.931373,
+                      "exposure_share": 0.294118,
+                      "opponent_squads": 6,
+                      "squad_encounters": 9
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 21,
+                      "club": "Jutul",
+                      "encounters": 1,
+                      "expected_share": 0.157895,
+                      "exposure_index": 0.372549,
+                      "exposure_share": 0.058824,
+                      "opponent_squads": 3,
+                      "squad_encounters": 1
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 7,
+                      "club": "Kongsberg",
+                      "encounters": 1,
+                      "expected_share": 0.052632,
+                      "exposure_index": 1.117647,
+                      "exposure_share": 0.058824,
+                      "opponent_squads": 1,
+                      "squad_encounters": 1
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 26,
+                      "club": "Ringerike",
+                      "encounters": 5,
+                      "expected_share": 0.210526,
+                      "exposure_index": 1.397059,
+                      "exposure_share": 0.294118,
+                      "opponent_squads": 4,
+                      "squad_encounters": 6
+                    },
+                    {
+                      "age_group": "U10",
+                      "available_tournaments": 7,
+                      "club": "Tønsberg",
+                      "encounters": 1,
+                      "expected_share": 0.052632,
+                      "exposure_index": 1.117647,
+                      "exposure_share": 0.058824,
+                      "opponent_squads": 1,
+                      "squad_encounters": 1
+                    }
+                  ],
+                  "distinct_clubs": 6,
+                  "measure": "co_attendance"
+                },
+                "distinct_clubs": 6,
+                "exact_squad_counts": [
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "encounters": 2,
+                    "label": "Frisk Asker 4"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "encounters": 2,
+                    "label": "Holmen Hockey Blå"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 2,
+                    "label": "Jar Grønn"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 2,
+                    "label": "Jar Gul"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 2,
+                    "label": "Jar Hvit"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 2,
+                    "label": "Jar Rød"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 2,
+                    "label": "Ringerike 1"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 2,
+                    "label": "Ringerike 4"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "encounters": 1,
+                    "label": "Frisk Asker 3"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "encounters": 1,
+                    "label": "Holmen Hockey Hvit"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "encounters": 1,
+                    "label": "Holmen Hockey Sort"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "encounters": 1,
+                    "label": "Jar Svart"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jutul",
+                    "encounters": 1,
+                    "label": "Jutul Rød"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Kongsberg",
+                    "encounters": 1,
+                    "label": "Kongsberg"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 1,
+                    "label": "Ringerike 2"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "encounters": 1,
+                    "label": "Ringerike 3"
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Tønsberg",
+                    "encounters": 1,
+                    "label": "Tønsberg"
+                  }
+                ],
+                "game_coverage": "complete",
+                "measure": "games",
+                "same_club_encounters": 3,
+                "team": {
+                  "age_group": "U10",
+                  "club": "Frisk Asker",
+                  "label": "Frisk Asker 5"
+                },
+                "total_opponent_encounters": 22,
+                "tournament_count": 5
+              },
+              "opponents": {
+                "counts": [
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "label": "Frisk Asker 4",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "label": "Holmen Hockey Blå",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Grønn",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Gul",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Hvit",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Rød",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 1",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 4",
+                    "meetings": 2
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Frisk Asker",
+                    "label": "Frisk Asker 3",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "label": "Holmen Hockey Hvit",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Holmen",
+                    "label": "Holmen Hockey Sort",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jar",
+                    "label": "Jar Svart",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Jutul",
+                    "label": "Jutul Rød",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Kongsberg",
+                    "label": "Kongsberg",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 2",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Ringerike",
+                    "label": "Ringerike 3",
+                    "meetings": 1
+                  },
+                  {
+                    "age_group": "U10",
+                    "club": "Tønsberg",
+                    "label": "Tønsberg",
+                    "meetings": 1
+                  }
+                ],
+                "max_repeat": 2,
+                "repeat_excess_over_2": 0,
+                "unique_opponents": 17
+              },
+              "spacing": {
+                "gaps_under_14": 1,
+                "gaps_under_7": 1,
+                "min_gap_days": 6
+              },
+              "team": {
+                "age_group": "U10",
+                "club": "Frisk Asker",
+                "label": "Frisk Asker 5"
+              },
+              "temporal": {
+                "finish_gap_days": 14,
+                "lead_gap_days": 36,
+                "max_gap_days": 57,
+                "max_intra_gap_days": 57
+              },
+              "tournament_count": 5,
+              "tournament_dates": [
+                "2026-11-14",
+                "2026-12-19",
+                "2027-02-14",
+                "2027-02-20",
+                "2027-03-14"
+              ],
+              "travel_km": 78
+            },
+            "material_regressions": [
+              {
+                "after": 4,
+                "before": 5,
+                "code": "participation_count_changed"
+              }
+            ],
+            "replacement_acceptable": true,
+            "replacement_material_regressions": [],
+            "warnings": [
+              {
+                "after": 63,
+                "before": 57,
+                "code": "temporal_coverage_worse",
+                "delta": 6
+              },
+              {
+                "after": 15,
+                "before": 17,
+                "code": "fewer_unique_opponents",
+                "delta": -2
+              }
+            ]
+          }
+        },
+        "tournament_id": "rvv-0144",
+        "verification_summary": {
+          "counts": {
+            "hosting_balance_imbalances": 14,
+            "input_constrained_shapes": 5,
+            "manual_calendar_placements": 93,
+            "manual_external_conflict_placements": 31,
+            "manual_participation_placements": 119,
+            "movable_allocations_used": 0,
+            "orphaned_approvals": 0,
+            "participation_club_pool_shortfalls": 113,
+            "participation_club_pools": 183,
+            "participation_deviations": 233,
+            "stale_approvals": 0,
+            "unresolved_hosting_obligations": 0,
+            "violations": 0,
+            "waived_violations": 0
+          },
+          "ok": true,
+          "schema_version": 1,
+          "tournament_external_conflicts": [],
+          "tournament_manual_calendar_placements": [
+            "rvv-0144"
+          ],
+          "tournament_violations": [],
+          "verification_hash": "129f04d02d80fc0890bfd48be3a8bfdbb44716d224176f65ef25f713f82231b3"
+        }
+      },
+      "event": "participant_replacement",
+      "note": "Warriors Cup unavailability (whole FA U10 group registered 2027-02-12/14); legal same-age replacement, Jar hosting/booking unaffected",
+      "previous_fingerprint": "ef158a31c088b5a92c5b140d857abff9af84de81f8c1bfdf44c143b48f35cd24",
+      "schedule_fingerprint": "3fc0dcc6766f8fa2ecfb4a90881a1edc4696a4b046abdb5c5b5b1e23d3212a02",
+      "tournament_fingerprint": "a543ffd7c7b64481c69e979afcb57142a7a8b1636176d6245da5ed3c7dbe4fbc",
+      "tournament_id": "rvv-0144"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T10:58:46.549974+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:3e66b6d421399d6e",
+          "change:712ef5e0dd799074"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "Superseded by club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup: cancelling rvv-0038/rvv-0078 since Frisk Asker's whole U10 group cannot host/play that weekend",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "3fc0dcc6766f8fa2ecfb4a90881a1edc4696a4b046abdb5c5b5b1e23d3212a02",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T10:58:47.238233+00:00",
+      "details": {
+        "accepted_regressions": [
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker 2|U10",
+            "reason": "Cancellation of Frisk Asker-hosted U10 Askerhallen tournaments; whole FA U10 group at Dragons Cup 2026-11-07/08, host cannot field a team, no legal roster swap exists",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker 2"
+          },
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker 3|U10",
+            "reason": "Cancellation of Frisk Asker-hosted U10 Askerhallen tournaments; whole FA U10 group at Dragons Cup 2026-11-07/08, host cannot field a team, no legal roster swap exists",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker 3"
+          },
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "code": "temporal_coverage_materially_worse",
+            "consequence": "Frisk Asker|Frisk Asker 3|U10",
+            "reason": "Cancellation of Frisk Asker-hosted U10 Askerhallen tournaments; whole FA U10 group at Dragons Cup 2026-11-07/08, host cannot field a team, no legal roster swap exists",
+            "regression": {
+              "after": 83,
+              "before": 63,
+              "code": "temporal_coverage_materially_worse",
+              "delta": 20,
+              "threshold_days": 60
+            },
+            "team": "Frisk Asker 3"
+          },
+          {
+            "age_group": "U10",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker 6|U10",
+            "reason": "Cancellation of Frisk Asker-hosted U10 Askerhallen tournaments; whole FA U10 group at Dragons Cup 2026-11-07/08, host cannot field a team, no legal roster swap exists",
+            "regression": {
+              "after": 5,
+              "before": 6,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker 6"
+          },
+          {
+            "age_group": "U10",
+            "club": "Holmen",
+            "code": "participation_count_changed",
+            "consequence": "Holmen|Holmen Hockey Blå|U10",
+            "reason": "Cancellation of Frisk Asker-hosted U10 Askerhallen tournaments; whole FA U10 group at Dragons Cup 2026-11-07/08, host cannot field a team, no legal roster swap exists",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Holmen Hockey Blå"
+          },
+          {
+            "age_group": "U10",
+            "club": "Holmen",
+            "code": "participation_count_changed",
+            "consequence": "Holmen|Holmen Hockey Rød|U10",
+            "reason": "Cancellation of Frisk Asker-hosted U10 Askerhallen tournaments; whole FA U10 group at Dragons Cup 2026-11-07/08, host cannot field a team, no legal roster swap exists",
+            "regression": {
+              "after": 6,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Holmen Hockey Rød"
+          },
+          {
+            "age_group": "U10",
+            "club": "Holmen",
+            "code": "temporal_coverage_materially_worse",
+            "consequence": "Holmen|Holmen Hockey Rød|U10",
+            "reason": "Cancellation of Frisk Asker-hosted U10 Askerhallen tournaments; whole FA U10 group at Dragons Cup 2026-11-07/08, host cannot field a team, no legal roster swap exists",
+            "regression": {
+              "after": 91,
+              "before": 70,
+              "code": "temporal_coverage_materially_worse",
+              "delta": 21,
+              "threshold_days": 60
+            },
+            "team": "Holmen Hockey Rød"
+          },
+          {
+            "age_group": "U10",
+            "club": "Jar",
+            "code": "participation_count_changed",
+            "consequence": "Jar|Jar Grønn|U10",
+            "reason": "Cancellation of Frisk Asker-hosted U10 Askerhallen tournaments; whole FA U10 group at Dragons Cup 2026-11-07/08, host cannot field a team, no legal roster swap exists",
+            "regression": {
+              "after": 6,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Jar Grønn"
+          },
+          {
+            "age_group": "U10",
+            "club": "Jar",
+            "code": "participation_count_changed",
+            "consequence": "Jar|Jar Rød|U10",
+            "reason": "Cancellation of Frisk Asker-hosted U10 Askerhallen tournaments; whole FA U10 group at Dragons Cup 2026-11-07/08, host cannot field a team, no legal roster swap exists",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Jar Rød"
+          },
+          {
+            "age_group": "U10",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Grønn|U10",
+            "reason": "Cancellation of Frisk Asker-hosted U10 Askerhallen tournaments; whole FA U10 group at Dragons Cup 2026-11-07/08, host cannot field a team, no legal roster swap exists",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Grønn"
+          },
+          {
+            "age_group": "U10",
+            "club": "Ringerike",
+            "code": "participation_count_changed",
+            "consequence": "Ringerike|Ringerike 3|U10",
+            "reason": "Cancellation of Frisk Asker-hosted U10 Askerhallen tournaments; whole FA U10 group at Dragons Cup 2026-11-07/08, host cannot field a team, no legal roster swap exists",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Ringerike 3"
+          },
+          {
+            "age_group": "U10",
+            "club": "Ringerike",
+            "code": "participation_count_changed",
+            "consequence": "Ringerike|Ringerike 4|U10",
+            "reason": "Cancellation of Frisk Asker-hosted U10 Askerhallen tournaments; whole FA U10 group at Dragons Cup 2026-11-07/08, host cannot field a team, no legal roster swap exists",
+            "regression": {
+              "after": 6,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Ringerike 4"
+          },
+          {
+            "age_group": "U10",
+            "club": "Tønsberg",
+            "code": "participation_count_changed",
+            "consequence": "Tønsberg|Tønsberg|U10",
+            "reason": "Cancellation of Frisk Asker-hosted U10 Askerhallen tournaments; whole FA U10 group at Dragons Cup 2026-11-07/08, host cannot field a team, no legal roster swap exists",
+            "regression": {
+              "after": 6,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Tønsberg"
+          }
+        ],
+        "after_schedule_revision": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+        "before_canonical_revision": "c2151c75bcef43b89b4d8c6445dafe13092e39f86f4552d8102cbe2f4bb27eae",
+        "before_schedule_revision": "3fc0dcc6766f8fa2ecfb4a90881a1edc4696a4b046abdb5c5b5b1e23d3212a02",
+        "cancellations": [
+          {
+            "age_group": "U10",
+            "original_date": "2026-11-08",
+            "reason": "Frisk Asker U10 group unavailable (Dragons Cup 2026-11-07/08); host cannot field a team",
+            "tournament_id": "rvv-0078"
+          },
+          {
+            "age_group": "U10",
+            "original_date": "2026-11-07",
+            "reason": "Frisk Asker U10 group unavailable (Dragons Cup 2026-11-07/08); host cannot field a team",
+            "tournament_id": "rvv-0038"
+          }
+        ],
+        "changed_tournament_ids": [
+          "rvv-0038",
+          "rvv-0078"
+        ],
+        "declared_scope": [
+          "rvv-0038",
+          "rvv-0078"
+        ],
+        "moves": [],
+        "operational_acceptable": true,
+        "operations": [
+          {
+            "op": "cancel",
+            "reason": "Frisk Asker U10 group unavailable (Dragons Cup 2026-11-07/08); host cannot field a team",
+            "tournament_id": "rvv-0078"
+          },
+          {
+            "op": "cancel",
+            "reason": "Frisk Asker U10 group unavailable (Dragons Cup 2026-11-07/08); host cannot field a team",
+            "tournament_id": "rvv-0038"
+          }
+        ],
+        "protections_added": [],
+        "removals": [],
+        "request_id": "club-feedback:frisk-asker:u10:2026-11-07-08-dragons-cup",
+        "swaps": [],
+        "verification_ok": true
+      },
+      "event": "batch_maintenance",
+      "note": "Cancel Frisk Asker-hosted U10 Askerhallen tournaments; whole FA U10 group at Dragons Cup, host cannot field a team",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ],
   "holiday_date_exceptions": [
@@ -58804,7 +61126,7 @@
       "type": "team_unavailable"
     }
   ],
-  "schedule_fingerprint": "e1db063ec38cd28e9ac922845b6a46f29fcbc1ecdf1e3293540f9bbf8a788c21",
+  "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
   "schema_version": 1,
   "season": "2026-2027",
   "season_lifecycle": {
@@ -134292,5 +136614,5 @@
       "tournament_id": "rvv-0136"
     }
   ],
-  "updated_at": "2026-09-29T19:44:26.561811+00:00"
+  "updated_at": "2026-09-30T10:58:47.238233+00:00"
 }
