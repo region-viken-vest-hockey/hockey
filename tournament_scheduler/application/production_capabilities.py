@@ -55,6 +55,7 @@ _CANONICAL_MUTATION_CONTRACT = (
     "application/canonical_season/lifecycle.py owns load/verify/reconcile/history/revision/atomic commit.",
     *_CANONICAL_READ_CONTRACT,
     "Rejected mutations leave canonical schedule and decisions unchanged unless a focused ADR 0005 evidence path explicitly records rejected evidence.",
+    "Preview, verification, rejection, retry and successful canonical commits do not materialize export artifacts; callers must enter the explicit export boundary for delivery output.",
 )
 
 _EXPORT_CONTRACT = (

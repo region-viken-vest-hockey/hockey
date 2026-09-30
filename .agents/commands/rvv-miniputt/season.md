@@ -503,7 +503,7 @@ Never hand-edit canonical JSON or select a candidate that fails hard verificatio
 
 ## Export after canonical changes
 
-When canonical schedule **or decision state** changes and the result is meant for review/publication, regenerate the derived export from canonical state:
+Canonical maintenance preview, verification, rejection, retry and commit use the effective canonical projection in memory and must not materialize export artifacts. When canonical schedule **or decision state** changes and the result is explicitly meant for review/publication, regenerate the derived export from canonical state:
 
 ```bash
 scripts/rvv-miniputt season export --season <season>
@@ -522,7 +522,7 @@ canonical season
   -> season apply-repair (atomic, revision-bound) when a local fix is enough
   -> OR approve/unapprove, targeted season move, or baseline-aware season replan
   -> diff + verified apply when replanning
-  -> season export
+  -> optional explicit delivery branch: season export
   -> semantic audit
   -> publish
 ```
