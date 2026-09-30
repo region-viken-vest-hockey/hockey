@@ -8,6 +8,10 @@ from pathlib import Path
 from tournament_scheduler.application.production_capabilities import PRODUCTION_CAPABILITIES
 
 
+CANONICAL_WRITE_BOUNDARIES = {"canonical_mutation"}
+DELIVERY_BOUNDARIES = {"export", "audit", "publication"}
+
+
 APPLICATION_ROOT = Path("tournament_scheduler/application")
 FORBIDDEN_IMPORTS = {
     "rich",
@@ -151,6 +155,36 @@ def test_application_architecture_doc_describes_durable_boundary():
     assert "DecisionContext" in text
 
 
+def _public_api_source(api: str, service_source: str) -> str:
+    if api.startswith("CanonicalSeasonService."):
+        method_name = api.partition(".")[2]
+        source = service_source
+    else:
+        module_name, _, method_name = api.rpartition(".")
+        assert module_name.startswith("tournament_scheduler."), api
+        module_path = Path(*module_name.split(".")).with_suffix(".py")
+        assert module_path.exists(), api
+        source = module_path.read_text(encoding="utf-8")
+
+    tree = ast.parse(source)
+    candidates: list[ast.AST] = list(tree.body)
+    if api.startswith("CanonicalSeasonService."):
+        service_class = next(
+            node
+            for node in tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "CanonicalSeasonService"
+        )
+        candidates = list(service_class.body)
+    for node in candidates:
+        if isinstance(node, ast.FunctionDef | ast.ClassDef) and node.name == method_name:
+            return ast.get_source_segment(source, node) or ""
+    raise AssertionError(f"{api} does not name a public function/class")
+
+
+def _assert_public_api_exists(api: str, service_source: str) -> None:
+    assert _public_api_source(api, service_source), api
+
+
 def test_production_capability_map_points_at_public_facade_and_focused_tests():
     """Published-season work has a compact map from task to stable owner."""
 
@@ -161,13 +195,22 @@ def test_production_capability_map_points_at_public_facade_and_focused_tests():
         "placement",
         "participants",
         "cancellation",
-        "audit_export_publication",
+        "canonical_export",
+        "semantic_audit",
+        "publication_lifecycle_state",
+        "publication",
     }
     service_source = (APPLICATION_ROOT / "canonical_season_service.py").read_text(encoding="utf-8")
     documented_keys = {capability.key for capability in PRODUCTION_CAPABILITIES}
 
     assert required <= documented_keys
     assert len(documented_keys) == len(PRODUCTION_CAPABILITIES)
+
+    boundary_by_key = {capability.key: capability.boundary for capability in PRODUCTION_CAPABILITIES}
+    assert boundary_by_key["canonical_export"] == "export"
+    assert boundary_by_key["semantic_audit"] == "audit"
+    assert boundary_by_key["publication_lifecycle_state"] == "canonical_mutation"
+    assert boundary_by_key["publication"] == "publication"
 
     for capability in PRODUCTION_CAPABILITIES:
         assert capability.tasks, capability.key
@@ -177,21 +220,26 @@ def test_production_capability_map_points_at_public_facade_and_focused_tests():
         assert capability.focused_tests, capability.key
         assert "SeasonPlanner" not in capability.implementation_owner
         assert "stage3" not in capability.implementation_owner.lower()
-        assert capability.boundary in {"canonical", "delivery"}
+        assert capability.boundary in CANONICAL_WRITE_BOUNDARIES | {"canonical_read"} | DELIVERY_BOUNDARIES
 
-        for api in capability.public_api:
-            prefix, _, method_name = api.partition(".")
-            if prefix == "CanonicalSeasonService":
-                assert f"def {method_name}(" in service_source, api
-            else:
-                assert capability.boundary == "delivery", api
+        api_sources = {
+            api: _public_api_source(api, service_source) for api in capability.public_api
+        }
+        for api, api_source in api_sources.items():
+            assert api_source, api
 
-        if capability.boundary == "canonical":
+        if capability.boundary in CANONICAL_WRITE_BOUNDARIES:
             assert all(api.startswith("CanonicalSeasonService.") for api in capability.public_api)
             assert any("CanonicalSeasonService" in item for item in capability.invariants)
+            assert any("atomic commit" in item for item in capability.invariants)
         else:
             assert not any("promoted-season writes" in item for item in capability.invariants)
             assert not any("atomic commit" in item for item in capability.invariants)
+
+        if capability.boundary in DELIVERY_BOUNDARIES:
+            assert not all(api.startswith("CanonicalSeasonService.") for api in capability.public_api), capability.key
+            assert any("revision-bound canonical state/evidence" in item for item in capability.invariants), capability.key
+            assert not any("._commit(" in api_source for api_source in api_sources.values()), capability.key
 
         for test_path in capability.focused_tests:
             assert Path(test_path).exists(), f"{capability.key} references missing test {test_path}"
