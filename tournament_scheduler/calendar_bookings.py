@@ -1143,8 +1143,16 @@ def _booking_record_stale_reasons(
             if str(facts.get(key) or "") != value:
                 reasons.append(f"tournament_{key}_changed")
     club = str(record.get("host_club") or (tournament or {}).get("host_club") or "")
+    event_fp = str(record.get("event_fingerprint") or "")
     if club and str(record.get("calendar_fingerprint") or "") != club_calendar_fingerprint(problem, club):
-        reasons.append("calendar_evidence_changed")
+        # The club-wide calendar fingerprint is source-version/provenance
+        # metadata.  It covers every event in the club feed, so an unrelated
+        # practice/game changing must not stale a tournament-level observation
+        # whose exact matched event is still present unchanged.  Missing
+        # event-level evidence still fails closed below by retaining the stale
+        # source-change reason for records that had no resolvable event.
+        if not event_fp or find_event(problem, event_fp) is None:
+            reasons.append("calendar_evidence_changed")
     return sorted(set(reasons))
 
 

@@ -653,6 +653,58 @@ def test_partial_source_overlap_remains_candidate_and_reconciliation_ambiguous(t
     assert "event_evidence_usable" in row["evidence_reasons"]
 
 
+def test_unrelated_calendar_change_does_not_stale_event_level_booking_evidence(tmp_path):
+    """A club feed hash change is not actionable when the matched event survives."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    booking_event = {
+        "date": "2026-09-12",
+        "start": "10:00",
+        "end": "12:00",
+        "availability": "fixed_busy",
+        "calendar_event": "Miniputt U10",
+    }
+    original_problem = _host_a_problem([booking_event])
+    reconcile_calendar_bookings(
+        season="2026-2027",
+        root=root,
+        club="A",
+        note="record matched calendar evidence",
+        problem=original_problem,
+    )
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="clubrep",
+        note="club also confirmed the same booking",
+        reference="email:booking",
+        problem=original_problem,
+    )
+
+    refreshed_problem = _host_a_problem(
+        [
+            booking_event,
+            {
+                "date": "2026-09-13",
+                "start": "08:00",
+                "end": "09:00",
+                "availability": "fixed_busy",
+                "calendar_event": "Unrelated practice",
+            },
+        ]
+    )
+    report = booking_status_report(season="2026-2027", root=root, problem=refreshed_problem)
+    row = report["tournaments"][0]
+
+    assert row["status"] == "manually_booked"
+    assert row["calendar_status"] == "ambiguous"
+    assert row["calendar_stale_reasons"] == []
+    assert "calendar_evidence_changed" not in row["follow_up_reasons"]
+    assert row["needs_attention"] is False
+
+
 def test_partial_source_without_overlap_does_not_record_negative_evidence(tmp_path):
     root = _promote(tmp_path, [_tournament("t1")])
     problem = _host_a_problem([])
