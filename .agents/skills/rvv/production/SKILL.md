@@ -9,7 +9,7 @@ Read `AGENTS.md` and `../SKILL.md` first. This file is shared by every harness.
 
 ## Boundary
 
-The current published/sealed season is an operational baseline. Maintain it through targeted canonical operations; do not invoke Stage 3, regenerate the season, normalize placements mutably, force-promote, or reopen planning merely because a maintenance operation is difficult. A fundamental restructuring requires explicit operator authority through the supported reopen lifecycle.
+A season whose authoritative lifecycle is published/sealed is an operational baseline. Maintain it through targeted canonical operations; do not invoke Stage 3, regenerate the season, normalize placements mutably, force-promote, or reopen planning merely because a maintenance operation is difficult. A fundamental restructuring requires explicit operator authority through the supported reopen lifecycle.
 
 Start from the smallest production capability (booking, calendars, participants, constraints, placement, cancellation, audit/export or publication) and load its command procedure and focused code/tests only.
 
