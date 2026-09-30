@@ -68,6 +68,18 @@ def test_move_tournament_skill_unlocks_safely_and_does_not_silently_reapprove() 
     assert "--request-id <request-id>" in text
     assert "season protections" in text
     assert "release-protection" in text
+    assert "If the operator wants the review artifact refreshed" in text
+
+
+def test_maintenance_runbooks_do_not_default_to_export_materialization() -> None:
+    operate = (ROOT / ".agents" / "commands" / "rvv-miniputt" / "operate.md").read_text(encoding="utf-8")
+    season = (ROOT / ".agents" / "commands" / "rvv-miniputt" / "season.md").read_text(encoding="utf-8")
+    delivery = (ROOT / ".agents" / "commands" / "rvv-miniputt" / "season-delivery.md").read_text(encoding="utf-8")
+
+    combined = "\n".join([operate, season, delivery])
+    assert "By default regenerate the canonical export" not in combined
+    assert "must not materialize export artifacts" in combined
+    assert "Only explicit review, audit, delivery or publication intent materializes export artifacts" in combined
 
 
 def test_shared_guide_routes_promoted_season_without_pi_special_case() -> None:

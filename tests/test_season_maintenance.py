@@ -592,6 +592,72 @@ def test_apply_repair_is_revision_bound_and_returns_fresh_delta(tmp_path: Path) 
     assert result["fresh_findings"]["finding_count"] == 0
 
 
+def _export_tree_snapshot(root: Path) -> list[str]:
+    export_root = root / "export"
+    if not export_root.exists():
+        return []
+    return sorted(str(path.relative_to(root)) for path in export_root.rglob("*"))
+
+
+def test_repair_search_retry_and_apply_do_not_materialize_exports(
+    tmp_path: Path,
+) -> None:
+    """Finding-directed production maintenance stays below Stage 4.
+
+    This covers the higher-level maintenance path used for repair/retry work:
+    list/repair-options, bounded search, a rejected stale apply, repeated option
+    enumeration, and a successful canonical commit all derive verification and
+    readiness from the revision-bound canonical projection. None enters the
+    explicit ``season export`` materialization boundary.
+    """
+
+    root, _plan_dict, _problem_dict, revision = _two_club_season(tmp_path)
+    before_export_tree = _export_tree_snapshot(tmp_path)
+
+    findings = list_findings(YEAR, root=root)
+    assert findings["finding_count"] > 0
+    assert _export_tree_snapshot(tmp_path) == before_export_tree
+
+    options = repair_options(YEAR, "hosting_balance:U10:Sorby", root=root)
+    chosen = options["options"][0]
+    assert _export_tree_snapshot(tmp_path) == before_export_tree
+
+    bounded = search(
+        YEAR,
+        "hosting_balance:U10:Sorby",
+        root=root,
+        dimensions=("participants", "host", "date", "slot"),
+    )
+    assert bounded["options"]
+    assert _export_tree_snapshot(tmp_path) == before_export_tree
+
+    rejected = apply_repair(
+        YEAR,
+        chosen["option_id"],
+        "stale-revision",
+        root=root,
+        finding_id="hosting_balance:U10:Sorby",
+    )
+    assert rejected["ok"] is False
+    assert rejected["reason"] == "stale_canonical_revision"
+    assert _export_tree_snapshot(tmp_path) == before_export_tree
+
+    retry_options = repair_options(YEAR, "hosting_balance:U10:Sorby", root=root)
+    assert retry_options["options"]
+    assert _export_tree_snapshot(tmp_path) == before_export_tree
+
+    applied = apply_repair(
+        YEAR,
+        retry_options["options"][0]["option_id"],
+        revision,
+        root=root,
+        finding_id="hosting_balance:U10:Sorby",
+    )
+    assert applied["ok"] is True
+    assert applied["revision_after"] != revision
+    assert _export_tree_snapshot(tmp_path) == before_export_tree
+
+
 # Persisted plan projection -> the fresh verifier result that owns it.
 _PROJECTION_PAIRS = (
     ("unresolved_hosting_obligations", "unresolved_hosting_obligations"),

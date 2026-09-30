@@ -283,6 +283,62 @@ def test_dry_run_move_verifies_without_writing(tmp_path: Path) -> None:
     assert (root / "2026-2027" / "decisions.json").read_bytes() == before_decisions
 
 
+def _export_tree_snapshot(root: Path) -> list[str]:
+    export_root = root / "export"
+    if not export_root.exists():
+        return []
+    return sorted(str(path.relative_to(root)) for path in export_root.rglob("*"))
+
+
+def test_move_preview_rejection_retries_and_commit_do_not_materialize_exports(tmp_path: Path) -> None:
+    """Canonical maintenance uses in-memory projection until explicit export.
+
+    Regression for production maintenance: previewing, rejecting, retrying and
+    successfully committing a move must not create timestamped Stage 4 export
+    directories. Export materialization remains owned by ``season export``.
+    """
+
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    _stage_plan(state, _two_tournament_candidate())
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    before_export_tree = _export_tree_snapshot(tmp_path)
+
+    preview = move_tournament(
+        season="2026-2027",
+        tournament_id="u10-a-20260912",
+        root=root,
+        date="2026-09-13",
+        dry_run=True,
+    )
+    assert preview["dry_run"] is True
+    assert _export_tree_snapshot(tmp_path) == before_export_tree
+
+    rejected_targets = ["2026-09-20", "2027-01-10"]
+    for target_date in rejected_targets:
+        with pytest.raises(SeasonStateError):
+            move_tournament(
+                season="2026-2027",
+                tournament_id="u10-a-20260912",
+                root=root,
+                date=target_date,
+            )
+        assert _export_tree_snapshot(tmp_path) == before_export_tree
+
+    committed = move_tournament(
+        season="2026-2027",
+        tournament_id="u10-a-20260912",
+        root=root,
+        date="2026-09-13",
+        actor="mover",
+        note="requested slot",
+        request_id="test:no-export",
+    )
+    assert committed["plan"]["tournaments"][0]["date"] == "2026-09-13"
+    assert _export_tree_snapshot(tmp_path) == before_export_tree
+
+
 def test_move_rejects_team_date_collision_and_cross_half_without_mutation(tmp_path: Path) -> None:
     work_dir = tmp_path / ".pipeline"
     root = tmp_path / "season"
