@@ -36,6 +36,7 @@ Typical promoted-season routing:
 - reviewed Stage 4 candidate has a localized audit finding and is not promoted yet -> `stage3 refine`, then re-run the semantic audit over the new export;
 - schedule accepted for club review/ice booking -> `season promote`;
 - inspect the operational schedule/revision -> `season status`;
+- investigate one tournament/roster, its relevant request constraints or same-age replacement candidates -> read-only `season inspect tournament|constraints|candidates` (JSON supported); use these repository projections instead of parsing `schedule.json`/`decisions.json` directly, and surface a missing projection as a tooling gap rather than scripting it;
 - club confirms ice -> `season approve`;
 - booking/change request for an approved tournament -> inspect `season protections` and `season constraints`, assign/reuse a stable request id, `season unapprove`, then `season move --request-id <id>`, then reapprove only after confirmation;
 - semantic club request (unavailable date/range, minimum gap, opponent avoidance) that is not an exact placement -> `season add-constraint --request-id <id>` first, then search/choose a legal result that does not introduce or worsen an active constraint; if the request needs an unsupported type, surface that capability gap rather than locking an exact placement;

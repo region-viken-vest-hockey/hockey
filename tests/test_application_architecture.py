@@ -68,6 +68,7 @@ def test_canonical_season_facade_delegates_to_focused_modules():
         "candidates",
         "constraints",
         "guest_slots",
+        "inspection",
         "lifecycle",
         "normalization",
         "placements",

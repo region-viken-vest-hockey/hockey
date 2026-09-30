@@ -468,6 +468,10 @@ def test_batch_dry_run_reports_without_writing(tmp_path: Path) -> None:
     assert preview["operational_acceptable"] is True
     assert preview["candidate_schedule_revision"] != preview["before_schedule_revision"]
     assert preview["candidate_canonical_revision"] != preview["before_canonical_revision"]
+    assert preview["verdict"]["applicable"] is True
+    assert preview["verdict"]["status"] == "safe_to_apply"
+    assert all(preview["verdict"]["checks"].values())
+    assert preview["verdict"]["blockers"] == []
     assert _schedule_bytes(root) == before_schedule
     assert _decisions_bytes(root) == before_decisions
 
@@ -520,6 +524,9 @@ def test_batch_cancellation_is_a_supported_operation(tmp_path: Path) -> None:
         dry_run=True,
     )
     assert preview["refused"] is True
+    assert preview["verdict"]["applicable"] is False
+    assert preview["verdict"]["status"] == "blocked"
+    assert preview["verdict"]["blockers"] == preview["refusal_reasons"]
     assert preview["consequence_acceptable"] is False
     assert {
         (item["team"], item["code"])

@@ -67,6 +67,9 @@ __all__ = [
     "batch_maintenance",
     "booking_status_report",
     "canonical_state_revision",
+    "constraint_inspection",
+    "replacement_candidates",
+    "tournament_inspection",
     "calendar_booking_assessment",
     "calendar_booking_candidates",
     "calendar_booking_findings",
@@ -597,6 +600,56 @@ def booking_status_report(
     problem: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return _service(root).booking_status_report(season=season, problem=problem)
+
+
+def tournament_inspection(
+    *,
+    season: str,
+    tournament_id: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    include_released_constraints: bool = False,
+) -> dict[str, Any]:
+    return _service(root).tournament_inspection(
+        season=season,
+        tournament_id=tournament_id,
+        include_released_constraints=include_released_constraints,
+    )
+
+
+def constraint_inspection(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    team: str | None = None,
+    tournament_id: str | None = None,
+    date: str | None = None,
+    include_released: bool = False,
+) -> dict[str, Any]:
+    return _service(root).constraint_inspection(
+        season=season,
+        team=team,
+        tournament_id=tournament_id,
+        date=date,
+        include_released=include_released,
+    )
+
+
+def replacement_candidates(
+    *,
+    season: str,
+    tournament_id: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    replace_team_label: str | None = None,
+    legal_only: bool = False,
+    limit: int | None = None,
+) -> dict[str, Any]:
+    return _service(root).replacement_candidates(
+        season=season,
+        tournament_id=tournament_id,
+        replace_team_label=replace_team_label,
+        legal_only=legal_only,
+        limit=limit,
+    )
 
 
 def reconcile_calendar_bookings(

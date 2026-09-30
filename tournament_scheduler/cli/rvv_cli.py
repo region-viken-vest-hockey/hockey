@@ -1335,6 +1335,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         club_booking_sources,
         compact_history,
         confirm_calendar_booking,
+        constraint_inspection,
         decisions_path,
         reconcile_calendar_bookings,
         release_calendar_booking,
@@ -1359,6 +1360,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         release_change_protections,
         release_guest_slot,
         release_banned_dates,
+        replacement_candidates,
         disallow_holiday_dates,
         release_participation_withdrawals,
         release_request_constraints,
@@ -1370,6 +1372,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         rename_teams,
         schedule_path,
         swap_participants,
+        tournament_inspection,
         unapprove_tournament,
     )
     from ..season_maintenance import SeasonMaintenanceError
@@ -2518,6 +2521,16 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 )
                 revision = result.get("candidate_revision") if result["dry_run"] else result.get("revision")
                 _console.print(f"  revision: {revision}")
+                verdict = result.get("verdict") or {}
+                _console.print(
+                    "  verdict: "
+                    + ("[green]SAFE TO APPLY[/green]" if verdict.get("applicable") else "[yellow]BLOCKED[/yellow]")
+                )
+                for name, ok in (verdict.get("checks") or {}).items():
+                    _console.print(f"    {'✓' if ok else '✗'} {name}")
+                for blocker in verdict.get("blockers") or []:
+                    if blocker not in (verdict.get("checks") or {}):
+                        _console.print(f"    ✗ {blocker}")
             return 0
 
 
@@ -2728,9 +2741,19 @@ def _cmd_season(args: argparse.Namespace) -> int:
             else:
                 action = "Validated atomic-batch preview for" if report["dry_run"] else "Applied atomic batch to"
                 revision = report.get("revision") or report.get("candidate_schedule_revision")
+                verdict = report.get("verdict") or {}
+                applicable = bool(verdict.get("applicable"))
+                marker = "[green]✓[/green]" if applicable else "[yellow]✗[/yellow]"
+                _console.print(f"{marker} {action} {args.season}; revision {revision}")
                 _console.print(
-                    f"[green]✓[/green] {action} {args.season}; revision {revision}"
+                    "  verdict: "
+                    + ("[green]SAFE TO APPLY[/green]" if applicable else "[yellow]BLOCKED[/yellow]")
                 )
+                for name, ok in (verdict.get("checks") or {}).items():
+                    _console.print(f"    {'✓' if ok else '✗'} {name}")
+                for blocker in verdict.get("blockers") or []:
+                    if blocker not in (verdict.get("checks") or {}):
+                        _console.print(f"    ✗ {blocker}")
                 _console.print(
                     f"  operations: {len(report['operations'])} · "
                     f"changed: {len(report['changed_tournament_ids'])} · "
@@ -2740,10 +2763,6 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     f"  request-constraint violations remaining: "
                     f"{len(report['remaining_request_constraint_violations'])}"
                 )
-                if report.get("refused"):
-                    _console.print(
-                        "  [yellow]⚠[/yellow] refused: " + "; ".join(report["refusal_reasons"])
-                    )
             return 0
 
         if args.season_command == "protections":
@@ -2826,6 +2845,162 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     for violation in constraint.get("violations") or []:
                         _console.print(f"      [yellow]⚠[/yellow] {violation.get('message')}")
             return 0
+
+        if args.season_command == "inspect":
+            inspect_command = getattr(args, "inspect_command", None)
+            if inspect_command == "tournament":
+                result = tournament_inspection(
+                    season=args.season,
+                    tournament_id=args.tournament_id,
+                    root=args.root,
+                    include_released_constraints=bool(args.all),
+                )
+                if args.json:
+                    print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+                else:
+                    tournament = result["tournament"]
+                    _console.print(
+                        f"[bold]Turnering {tournament['id']}[/bold] "
+                        f"{tournament.get('age_group') or ''} "
+                        f"{tournament.get('date') or ''} {tournament.get('start_time') or ''} "
+                        f"{tournament.get('arena') or ''} (vert: {tournament.get('host_club') or '-'})"
+                    )
+                    if tournament.get("cancelled"):
+                        _console.print(
+                            f"  [red]AVLYST[/red] {tournament.get('cancellation_reason') or ''}"
+                        )
+                    approval = result.get("approval") or {}
+                    _console.print(
+                        f"  godkjenning: {approval.get('status')} "
+                        f"(plassering låst: {'ja' if approval.get('placement_locked') else 'nei'}, "
+                        f"deltakere låst: {'ja' if approval.get('participants_locked') else 'nei'})"
+                    )
+                    booking = result.get("booking") or {}
+                    if booking:
+                        _console.print(
+                            f"  booking: {booking.get('status')} / {booking.get('operational_state')}"
+                        )
+                    _console.print(f"  lag ({tournament.get('team_count', 0)}):")
+                    for team in tournament.get("teams") or []:
+                        guest = " [dim](gjest)[/dim]" if team.get("guest") else ""
+                        _console.print(
+                            f"    - {team.get('label')} ({team.get('club')}){guest}"
+                        )
+                    constraints = result.get("constraints") or {}
+                    _console.print(
+                        f"  relevante constraints ({constraints.get('count', 0)}, "
+                        f"{constraints.get('unsatisfied_count', 0)} brutt):"
+                    )
+                    for constraint in constraints.get("constraints") or []:
+                        marker = (
+                            "[green]✓[/green]"
+                            if constraint.get("satisfied")
+                            else "[yellow]⚠[/yellow]"
+                        )
+                        _console.print(
+                            f"    {marker} {constraint.get('id')} "
+                            f"type={constraint.get('type')} "
+                            f"request={constraint.get('request_id') or '-'}"
+                        )
+                    history = result.get("history") or []
+                    if history:
+                        _console.print(f"  beslutningshistorikk ({len(history)} siste):")
+                        for event in history[:5]:
+                            _console.print(
+                                f"    - {event.get('at') or ''} {event.get('event')} "
+                                f"({event.get('actor') or '-'}) {event.get('note') or ''}".rstrip()
+                            )
+                return 0
+            if inspect_command == "constraints":
+                result = constraint_inspection(
+                    season=args.season,
+                    root=args.root,
+                    team=args.team,
+                    tournament_id=args.tournament_id,
+                    date=args.date,
+                    include_released=bool(args.all),
+                )
+                if args.json:
+                    print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+                else:
+                    _console.print(
+                        f"[bold]Constraint-inspeksjon {args.season}[/bold] "
+                        f"({result.get('count', 0)} treff, "
+                        f"{result.get('unsatisfied_count', 0)} brutt)"
+                    )
+                    for constraint in result.get("constraints") or []:
+                        marker = (
+                            "[green]✓[/green]"
+                            if constraint.get("satisfied")
+                            else "[yellow]⚠[/yellow]"
+                        )
+                        teams = ", ".join(
+                            str(team.get("label") or "")
+                            for team in constraint.get("teams") or []
+                        )
+                        window = constraint.get("date_from") or ""
+                        if constraint.get("date_to") and constraint.get("date_to") != constraint.get("date_from"):
+                            window = f"{window}..{constraint['date_to']}"
+                        if constraint.get("min_days"):
+                            window = f">={constraint['min_days']}d"
+                        _console.print(
+                            f"  {marker} {constraint.get('id')} "
+                            f"type={constraint.get('type')} "
+                            f"{teams} {window} request={constraint.get('request_id') or '-'}"
+                        )
+                return 0
+            if inspect_command == "candidates":
+                result = replacement_candidates(
+                    season=args.season,
+                    tournament_id=args.tournament_id,
+                    root=args.root,
+                    replace_team_label=args.replace_team,
+                    legal_only=bool(args.legal_only),
+                    limit=args.limit,
+                )
+                if args.json:
+                    print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+                else:
+                    validated = bool(result.get("validated"))
+                    _console.print(
+                        f"[bold]Erstatningskandidater for {result.get('tournament_id')}[/bold] "
+                        f"({result.get('age_group')} {result.get('date')}, "
+                        f"{result.get('candidate_count', 0)} "
+                        f"{'lovlige ' if args.legal_only else ''}kandidat(er))"
+                    )
+                    if validated:
+                        _console.print(
+                            f"  erstatter: {result.get('replace_team')}; "
+                            "hver kandidat er validert read-only"
+                        )
+                    for candidate in result.get("candidates") or []:
+                        verdict = candidate.get("verdict") or {}
+                        if validated:
+                            marker = (
+                                "[green]✓[/green]"
+                                if verdict.get("applicable")
+                                else "[yellow]✗[/yellow]"
+                            )
+                            reason = ""
+                            if not verdict.get("applicable"):
+                                blockers = verdict.get("blockers") or []
+                                reason = f" [dim]({' ; '.join(str(b) for b in blockers)})[/dim]"
+                        else:
+                            marker = " "
+                            reason = (
+                                " [yellow](spiller samme dato)[/yellow]"
+                                if candidate.get("plays_on_tournament_date")
+                                else ""
+                            )
+                        _console.print(
+                            f"  {marker} {candidate.get('label')} ({candidate.get('club')}) "
+                            f"{candidate.get('season_participations', 0)} kamper{reason}"
+                        )
+                return 0
+            _console.print(
+                "[red]✗[/red] Missing inspect command (tournament/constraints/candidates)"
+            )
+            return 2
 
         if args.season_command == "add-constraint":
             teams = [

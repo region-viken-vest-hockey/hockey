@@ -151,6 +151,28 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
         ),
     ),
     ProductionCapability(
+        key="season_inspection",
+        tasks=(
+            "inspect one tournament and roster",
+            "inspect constraints for a team/tournament/date",
+            "find and validate legal replacement candidates",
+            "inspect approval/booking/provenance for one tournament",
+        ),
+        boundary="canonical_read",
+        public_api=(
+            "CanonicalSeasonService.tournament_inspection",
+            "CanonicalSeasonService.constraint_inspection",
+            "CanonicalSeasonService.replacement_candidates",
+        ),
+        implementation_owner="tournament_scheduler/application/canonical_season/inspection.py",
+        invariants=(
+            *_CANONICAL_READ_CONTRACT,
+            "Read-only inspection never mutates canonical schedule or decisions and never invents evidence, approval or candidates.",
+            "Replacement-candidate legality is evaluated through the same read-only replacement gates as the mutation dry-run, not re-derived by callers.",
+        ),
+        focused_tests=("tests/test_season_inspection.py",),
+    ),
+    ProductionCapability(
         key="placement",
         tasks=("move tournament", "normalize placement state", "apply verified repair candidate"),
         boundary="canonical_mutation",

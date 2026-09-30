@@ -823,6 +823,21 @@ def batch_maintenance(
         "refused": bool(refusal_reasons),
         "refusal_reasons": refusal_reasons,
     }
+    report["verdict"] = {
+        "status": "safe_to_apply" if not refusal_reasons else "blocked",
+        "applicable": not refusal_reasons,
+        "checks": {
+            "schedule_acceptable": bool(verification_result.get("ok", True)),
+            "operational_acceptable": bool(operational_acceptability.get("ok")),
+            "change_protection_acceptable": not existing_protection_violations,
+            "guest_reservation_integrity": bool(guest_integrity_ok),
+            "hosting_responsibility_acceptable": not hosting_transfers,
+            "request_constraints_acceptable": bool(constraint_comparison["acceptable"]),
+            "consequences_acceptable": bool(consequence_acceptable),
+            "scope_respected": not (referenced_outside_scope or changed_outside_scope),
+        },
+        "blockers": list(refusal_reasons),
+    }
 
     if dry_run:
         report["committed"] = False

@@ -27,6 +27,25 @@ def test_rvv_skill_is_harness_neutral_progressive_router() -> None:
     assert "rvv_miniputt_scrape_llm" not in text
 
 
+def test_rvv_guidance_prohibits_ad_hoc_canonical_artifact_parsing() -> None:
+    """Routine investigation is a consumer of repository-owned projections."""
+
+    text = RVV_SKILL_FILE.read_text(encoding="utf-8")
+    assert "python -c" in text
+    assert "jq" in text
+    assert "tooling gap" in text
+
+
+def test_season_procedure_documents_supported_inspection_path() -> None:
+    season = (ROOT / ".agents" / "commands" / "rvv-miniputt" / "season.md").read_text(
+        encoding="utf-8"
+    )
+    assert "season inspect tournament" in season
+    assert "season inspect constraints" in season
+    assert "season inspect candidates" in season
+    assert "tooling gap" in season
+
+
 def test_review_baseline_skill_promotes_verified_state_and_isolates_experiments() -> None:
     text = REVIEW_BASELINE_SKILL_FILE.read_text(encoding="utf-8")
 

@@ -204,6 +204,35 @@ def _affected_participation_counts(
     }
 
 
+def replacement_verdict(
+    details: Mapping[str, Any],
+    *,
+    verification_ok: bool,
+) -> dict[str, Any]:
+    """Return the stable domain verdict for a participant-replacement preview.
+
+    Callers (CLI, harness, candidate discovery) consume this instead of
+    re-deriving applicability from individual gate fields.
+    """
+
+    guest_integrity = details.get("guest_reservation_integrity") or {}
+    checks = {
+        "schedule_acceptable": bool(verification_ok),
+        "consequences_acceptable": bool(details.get("consequence_acceptable")),
+        "change_protection_acceptable": bool(details.get("change_protection_acceptable")),
+        "request_constraints_acceptable": bool(details.get("request_constraint_acceptable")),
+        "guest_reservation_integrity": bool(guest_integrity.get("ok")),
+        "hosting_responsibility_acceptable": bool(details.get("hosting_responsibility_ok")),
+    }
+    blockers = [name for name, ok in checks.items() if not ok]
+    return {
+        "status": "safe_to_apply" if not blockers else "blocked",
+        "applicable": not blockers,
+        "checks": checks,
+        "blockers": blockers,
+    }
+
+
 def replace_participant(
     service,
     *,
@@ -434,6 +463,9 @@ def replace_participant(
             "candidate_fingerprint": candidate_revision,
             "verification_result": result,
             "change_cost": cost,
+            "verdict": replacement_verdict(
+                preview_details, verification_ok=bool(result.get("ok", True))
+            ),
             "replacement": preview_details,
         }
 
@@ -500,5 +532,8 @@ def replace_participant(
         "canonical_state_revision": canonical_state_revision(updated_schedule, updated_decisions),
         "verification_result": result,
         "change_cost": applied_cost,
+        "verdict": replacement_verdict(
+            details, verification_ok=bool(result.get("ok", True))
+        ),
         "replacement": details,
     }
