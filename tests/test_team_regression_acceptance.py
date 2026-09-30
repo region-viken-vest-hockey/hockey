@@ -608,6 +608,48 @@ def test_reviewed_consequence_token_round_trips_the_exact_plan(tmp_path: Path) -
     assert batches[-1]["details"]["accepted_regressions"]
 
 
+def test_reviewed_consequence_token_covers_complete_set_with_partial_explicit_acceptance(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+
+    club, team = sorted(_cancel_only_participants())[0]
+    preview = _cancel_only_batch(
+        root,
+        dry_run=True,
+        accept_regressions=[f"{club}|{team}|U10={PARTICIPATION_CODE}"],
+        accept_regression_reason="one team already confirmed by phone",
+    )
+    review = preview["verdict"]["review"]
+    assert review["required"] is True
+    assert review["token"]
+    # The reviewed list is the complete material set, including the team the
+    # dry-run already accepted explicitly.
+    reviewed = {(item["team"], item["code"]) for item in review["consequences"]}
+    assert reviewed == {
+        (team, PARTICIPATION_CODE) for _club, team in _cancel_only_participants()
+    }
+    assert (team, PARTICIPATION_CODE) in {
+        (item["team"], item["code"])
+        for item in preview["regression_acceptance"]["accepted_regressions"]
+    }
+
+    # Applying the same plan via the token alone must accept the complete set,
+    # not only the consequences left after the dry-run's explicit acceptance.
+    result = _cancel_only_batch(
+        root,
+        accept_reviewed_consequences=review["token"],
+        accept_regression_reason="reviewed the complete consequence set",
+    )
+    assert result["committed"] is True
+    accepted = {
+        (item["team"], item["code"])
+        for item in result["regression_acceptance"]["accepted_regressions"]
+    }
+    assert accepted == reviewed
+
+
 def test_reviewed_consequence_token_requires_a_reason(tmp_path: Path) -> None:
     root = tmp_path / "season"
     _write_canonical(root, sealed=False)

@@ -855,16 +855,29 @@ def apply_reviewed_consequence_acceptance(
     ``review_consequences`` that a dry-run would ask the operator to accept.
 
     When ``reviewed_token`` is supplied it must match the token recomputed from
-    the *current* baseline revision, candidate fingerprint and consequence set,
-    and it accepts exactly those reviewed consequences without reconstructing
-    one ``--accept-team-regression`` argument per team/code. A mismatched,
-    stale or unnecessary token refuses; there is no blanket force path.
+    the *current* baseline revision, candidate fingerprint and complete material
+    consequence set, and it accepts exactly those reviewed consequences without
+    reconstructing one ``--accept-team-regression`` argument per team/code. The
+    token is bound to the complete set (not just the consequences left after any
+    explicit acceptances) so the same reviewed plan can be applied with or
+    without the explicit flags. A mismatched, stale or unnecessary token
+    refuses; there is no blanket force path.
     """
 
     preview = evaluate_regression_acceptances(
         team_consequences, acceptances, code_scope=code_scope
     )
     unaccepted = list(preview.get("unaccepted_regressions") or [])
+    # The reviewed token and its domain-level consequence list cover the
+    # complete material consequence set, independent of explicit acceptances
+    # already supplied. Binding the token to only the *remaining* consequences
+    # would make the advertised apply flow impossible whenever a dry-run mixed
+    # explicit acceptances with a reviewed token: dropping the explicit flags
+    # changes the unaccepted set, so the recomputed token could never match.
+    complete = evaluate_regression_acceptances(
+        team_consequences, [], code_scope=code_scope
+    )
+    complete_material = list(complete.get("unaccepted_regressions") or [])
     review_consequences = [
         {
             "consequence": item.get("consequence"),
@@ -873,15 +886,15 @@ def apply_reviewed_consequence_acceptance(
             "age_group": item.get("age_group"),
             "code": item.get("code"),
         }
-        for item in unaccepted
+        for item in complete_material
     ]
     review_token = (
         reviewed_consequence_token(
             plan_fingerprint=plan_fingerprint,
             baseline_revision=baseline_revision,
-            unaccepted_regressions=unaccepted,
+            unaccepted_regressions=complete_material,
         )
-        if unaccepted
+        if complete_material
         else None
     )
     if not reviewed_token:
