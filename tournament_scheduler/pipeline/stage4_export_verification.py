@@ -49,7 +49,7 @@ def _prefer_canonical_calendar_evidence(
 
     The evidence key set copied here is not hand-maintained: it imports
     ``_CALENDAR_PROBLEM_KEYS`` from
-    ``application.canonical_season.calendars``, the same module
+    ``application.canonical_season.calendars``, the same compatibility package
     ``season refresh-calendars`` uses to decide exactly which
     ``planning_problem`` keys constitute one coherent calendar-evidence
     snapshot (``club_busy_dates``, ``club_busy_intervals``,

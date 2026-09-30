@@ -69,7 +69,19 @@ def test_canonical_season_facade_delegates_to_focused_modules():
         "roster",
         "shared",
     }
-    assert expected_modules <= {path.stem for path in package.glob("*.py")}
+    actual_modules = {path.stem for path in package.glob("*.py")} | {
+        path.name for path in package.iterdir() if path.is_dir() and (path / "__init__.py").exists()
+    }
+    assert expected_modules <= actual_modules
+    assert {
+        "source_policy.py",
+        "refresh.py",
+        "assessment.py",
+        "reconciliation.py",
+        "associations.py",
+        "manual_assertions.py",
+        "club_sources.py",
+    } <= {path.name for path in (package / "calendars").glob("*.py")}
 
     # The public boundary is a delegation facade, not a second implementation:
     # every command family is imported once and referenced only through the
@@ -85,7 +97,7 @@ def test_canonical_commit_lifecycle_has_a_single_implementation():
 
     package = APPLICATION_ROOT / "canonical_season"
     writers: list[str] = []
-    for path in [APPLICATION_ROOT / "canonical_season_service.py", *sorted(package.glob("*.py"))]:
+    for path in [APPLICATION_ROOT / "canonical_season_service.py", *sorted(package.rglob("*.py"))]:
         if path.name == "lifecycle.py":
             continue
         if "store.write(" in path.read_text(encoding="utf-8"):
