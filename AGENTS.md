@@ -71,7 +71,7 @@ For hosting, keep responsibility separate from automatic placement. Lack of a tr
 
 ## Published-season production architecture
 
-The current 2026–2027 season is published/sealed. **Production maintenance is the default architecture priority until the next initial-planning cycle.**
+Determine lifecycle from authoritative canonical state (use the shared handover/lifecycle procedure when not already established). **When a season is published/sealed, production maintenance is the default architecture until an explicit operator-authorized planning reopen or the next initial-planning cycle.**
 
 For booking/calendar reconciliation, participant changes, request constraints, scoped moves, cancellations, audit/export and publication:
 
