@@ -539,6 +539,7 @@ def batch_maintenance(
     allow_host_confirmation: bool = False,
     accept_regressions: list[Any] | None = None,
     accept_regression_reason: str | None = None,
+    accept_reviewed_consequences: str | None = None,
 ) -> dict[str, Any]:
     """Atomically compose several scoped canonical mutations in one commit."""
 
@@ -555,6 +556,7 @@ def batch_maintenance(
         allow_host_confirmation=allow_host_confirmation,
         accept_regressions=accept_regressions,
         accept_regression_reason=accept_regression_reason,
+        accept_reviewed_consequences=accept_reviewed_consequences,
     )
 
 

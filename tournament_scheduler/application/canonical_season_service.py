@@ -489,8 +489,9 @@ class CanonicalSeasonService:
         allow_host_confirmation: bool = False,
         accept_regressions: list[Any] | None = None,
         accept_regression_reason: str | None = None,
+        accept_reviewed_consequences: str | None = None,
     ) -> dict[str, Any]:
-        return _batch.batch_maintenance(self, season=season, operations=operations, scope=scope, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, accept_regressions=accept_regressions, accept_regression_reason=accept_regression_reason)
+        return _batch.batch_maintenance(self, season=season, operations=operations, scope=scope, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, accept_regressions=accept_regressions, accept_regression_reason=accept_regression_reason, accept_reviewed_consequences=accept_reviewed_consequences)
 
     def rename_teams(
         self,
