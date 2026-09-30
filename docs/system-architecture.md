@@ -518,6 +518,19 @@ Once a verified schedule is promoted, normal planning becomes baseline-aware:
   active constraint without rewriting its record. Granular change protections
   still guard the exact result of one accepted mutation; the semantic request
   remains authoritative above them;
+- accepted **canonical exceptions** (a source-confirmed booking interval below
+  the governing floor) are owned by `canonical_exception_policy`, which
+  separates the rule-engine facts from mutation admissibility: the exact
+  accepted interval stays visible in findings/audit/export as a durable
+  follow-up finding and does not block an unrelated maintenance change, while a
+  changed interval/arena/authority, a new below-floor placement, a real
+  overlap, an actual playing shortfall or a stale/wrong source stays hard. The
+  same owner classifies a candidate's hard violations against the promoted
+  baseline (`resolved`/`unchanged_accepted`/`unchanged_unaccepted`/`introduced`/
+  `worsened`/`materially_modified`) so direct mutation, dry-run, repair
+  adoption, confirmation/reconciliation and bounded search report identical
+  structured evidence. Unchanged *unaccepted* legacy debt is never silently
+  approved and remains blocking;
 - `season approve` / `season unapprove` owns the approval lifecycle;
 - changed approval fingerprints become `stale_approval` and require explicit reapproval;
 - `season export` projects the exact current canonical revision before audit/publication and, on success, clears the revision-bound "fresh export required" marker that a calendar refresh or config reconciliation set (a later canonical mutation re-arms it). The clearing is decision-only export provenance, never a schedule mutation, so published-baseline replay treats a `mark_export_fresh` history event as a no-op, and it is idempotent: re-exporting the same revision appends no duplicate history and does not churn canonical state. An export whose snapshot is overtaken by a newer canonical revision is recorded as a failed stage with its artifacts retained for diagnosis, never as a publishable success.

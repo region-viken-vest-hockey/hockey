@@ -584,15 +584,19 @@ def batch_maintenance(
     )
 
     baseline = build_canonical_baseline(schedule, decisions)
-    verification_result = (
-        verify_canonical_candidate(candidate_plan, candidate_problem)
-        if candidate_problem
-        else verify_canonical_candidate(candidate_plan)
-    )
     before_verification = (
         verify_canonical_candidate(dict(before_plan), resolved_problem)
         if resolved_problem
         else verify_canonical_candidate(dict(before_plan))
+    )
+    verification_result = (
+        verify_canonical_candidate(
+            candidate_plan, candidate_problem, baseline_verification=before_verification
+        )
+        if candidate_problem
+        else verify_canonical_candidate(
+            candidate_plan, baseline_verification=before_verification
+        )
     )
     operational_acceptability = check_operational_acceptability(
         before_plan,

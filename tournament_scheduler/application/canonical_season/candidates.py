@@ -407,23 +407,6 @@ def apply_candidate(
         if isinstance(scoped_validation, Mapping)
         else problem
     )
-    result = (
-        verify_canonical_candidate(
-            normalized_candidate,
-            verification_problem,
-            base_verifier=verify_candidate,
-        )
-        if verification_problem
-        else verify_canonical_candidate(normalized_candidate, base_verifier=verify_candidate)
-    )
-    if not result.get("ok", True):
-        messages = "; ".join(
-            str(v.get("message") or v.get("code")) for v in result.get("violations", [])
-        )
-        raise SeasonStateError(
-            f"Refusing canonical apply: candidate fails hard verification: {messages}"
-        )
-
     before_plan = schedule.get("plan") or {}
     before_verification = (
         verify_canonical_candidate(
@@ -434,6 +417,27 @@ def apply_candidate(
         if verification_problem
         else verify_canonical_candidate(dict(before_plan), base_verifier=verify_candidate)
     )
+    result = (
+        verify_canonical_candidate(
+            normalized_candidate,
+            verification_problem,
+            base_verifier=verify_candidate,
+            baseline_verification=before_verification,
+        )
+        if verification_problem
+        else verify_canonical_candidate(
+            normalized_candidate,
+            base_verifier=verify_candidate,
+            baseline_verification=before_verification,
+        )
+    )
+    if not result.get("ok", True):
+        messages = "; ".join(
+            str(v.get("message") or v.get("code")) for v in result.get("violations", [])
+        )
+        raise SeasonStateError(
+            f"Refusing canonical apply: candidate fails hard verification: {messages}"
+        )
     operational_acceptability = check_operational_acceptability(
         before_plan,
         before_verification,

@@ -14,11 +14,11 @@ from tournament_scheduler.calendar_bookings import (
     club_calendar_positive_evidence_usable,
     event_fingerprint,
     find_event,
-    governing_floor_finding,
     new_association_record,
     new_booking_evidence_record,
     tournament_occupancy_interval_facts,
 )
+from tournament_scheduler.canonical_exception_policy import reclassify_accepted_source_interval
 from tournament_scheduler.calendar_availability import CalendarAvailability, interval_availability
 from tournament_scheduler.canonical_baseline import approval_fingerprint
 from tournament_scheduler.canonical_ice_time_overrides import (
@@ -360,27 +360,24 @@ def confirm_calendar_booking(
 
     verification_problem = _resolve_plan_problem(updated_schedule, base_problem, updated)
     verification = verify_candidate(updated_schedule["plan"], verification_problem) if verification_problem else verify_candidate(updated_schedule["plan"])
-    hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
     # A source-authoritative interval below the governing *planning* floor is
     # recorded exactly and surfaced as a durable feasibility finding, never a
-    # new-placement planning violation. This classification happens here at the
-    # reconciliation boundary, not in the planning verifier, so the verifier
-    # stays strict for proposals. Insufficient actual playing time and genuine
-    # overlaps remain hard blockers above.
-    accepted_minutes = (interval_alignment.get("accepted_calendar_interval") or {}).get(
-        "duration_minutes"
+    # new-placement planning violation. The shared policy owner matches the
+    # exact accepted facts from the projected canonical evidence; the planning
+    # verifier stays strict for proposals, and genuine playing shortfalls or
+    # overlaps remain hard blockers.
+    classified = reclassify_accepted_source_interval(
+        verification_problem,
+        updated_schedule["plan"],
+        list(verification.get("violations") or []),
+        tournament_id=tournament_id,
+        accepted_interval=(interval_alignment or {}).get("accepted_calendar_interval"),
+        authority=BOOKING_AUTHORITY_CALENDAR,
     )
-    floor_finding = governing_floor_finding(tournament, accepted_minutes)
-    booking_feasibility_warnings = [floor_finding] if floor_finding else []
-    if floor_finding:
-        # The governing-floor shortfall for this exact accepted booking is a
-        # durable finding, so drop the verifier's hard violation for it while
-        # keeping every other hard blocker (playing minimum, arena overlap).
-        hard_blockers = [
-            blocker
-            for blocker in hard_blockers
-            if str(blocker.get("code") or "") != "ice_time_governing_minimum"
-        ]
+    booking_feasibility_warnings = classified["accepted_exceptions"]
+    if booking_feasibility_warnings:
+        verification = {**verification, "violations": classified["blocking_violations"]}
+    hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
     # The deviation must stay durably attached to the booking evidence as
     # independent follow-up rather than being silently absorbed. The persisted
     # override already records its `minimum_minutes`.
