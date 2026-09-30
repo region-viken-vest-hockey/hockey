@@ -205,8 +205,8 @@ _HARD: tuple[RuleEntry, ...] = (
             "below that floor or below the planned round structure is recorded exactly at the "
             "reconciliation boundary and surfaced as a durable feasibility finding (the plan "
             "must adapt, not the recorded booking), not a new-placement planning violation. "
-            "An accepted interval that cannot host even a single round is not credible booking "
-            "evidence and stays hard."
+            "The accepted interval stays factual even when its format is operationally "
+            "unusable; that concern remains a separate durable finding/action."
         ),
         canonical_owner="tournament_scheduler.occupancy",
         input_source="planning_problem ice_time_minutes + round_length_minutes + generated round count",

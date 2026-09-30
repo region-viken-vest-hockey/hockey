@@ -5,16 +5,16 @@ accepts a scraped calendar event as the actual booking, the canonical
 date/start/end/duration must become the exact event interval. The previous
 planned interval is retained only as typed history/provenance, and a short
 booking stays booked with the planned-round/governing shortfall surfaced as a
-durable (non-blocking) feasibility finding. An interval that cannot host even a
-single round is not credible evidence and stays hard.
+durable (non-blocking) feasibility finding. Recording the accepted interval is
+not an approval of its format: even an operationally unusable interval is
+recorded exactly and its playing-time concern remains a separate finding.
 
-Hermetic fixtures (``rvv-0116`` U9 60 min, ``rvv-0173`` U12 80 min and a
-representative 15-minute start offset); the live season is never mutated.
+Hermetic fixtures (``rvv-0116`` U9 60 min, ``rvv-0173`` U12 80 min, a
+representative 15-minute start offset and a 10-minute sub-round interval); the
+live season is never mutated.
 """
 
 from __future__ import annotations
-
-import pytest
 
 from tournament_scheduler.canonical_exception_policy import (
     reclassify_accepted_exceptions,
@@ -25,7 +25,6 @@ from tournament_scheduler.calendar_bookings import (
 )
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.season_state import (
-    SeasonStateError,
     booking_status_report,
     calendar_booking_assessment,
     confirm_calendar_booking,
@@ -237,8 +236,13 @@ def test_accepted_start_offset_with_unchanged_duration(tmp_path):
     assert schedule["tournaments"][0]["start_time"] == "13:15"
 
 
-def test_booking_below_one_round_stays_hard_and_evidence_is_retained(tmp_path):
-    """A 10-minute overlap cannot host a round and is not accepted as a booking."""
+def test_accepted_sub_round_booking_records_reality_and_surfaces_finding(tmp_path):
+    """An accepted sub-round interval is recorded exactly, not rejected.
+
+    Recording the authoritative interval is not an approval of its format: the
+    playing-time shortfall stays a separate durable finding even when the
+    interval is operationally unusable.
+    """
 
     teams = _teams("U9")
     tournament = _tournament("rvv-0116", age_group="U9", start="17:20", date_str="2026-11-21", teams=teams)
@@ -246,15 +250,26 @@ def test_booking_below_one_round_stays_hard_and_evidence_is_retained(tmp_path):
     event = _event(date="2026-11-21", start="17:30", end="17:40", title="TURNERING U9")
     problem = _problem(age_group="U9", ice=155, teams=teams, events=[event], parallel_games=3)
 
-    with pytest.raises(SeasonStateError, match="below the minimum"):
-        _confirm(root, problem, event, "rvv-0116")
+    result = _confirm(root, problem, event, "rvv-0116")
 
+    assert result["interval_alignment"]["accepted_calendar_interval"] == {
+        "date": "2026-11-21",
+        "start_time": "17:30",
+        "duration_minutes": 10,
+        "end_time": "17:40",
+    }
+    assert {w["code"] for w in result["booking_feasibility_warnings"]} == {
+        "ice_time_governing_minimum",
+        "ice_time_playing_minimum",
+    }
     schedule = load_schedule("2026-2027", root=root)["plan"]
-    assert schedule["tournaments"][0]["start_time"] == "17:20"
+    assert schedule["tournaments"][0]["start_time"] == "17:30"
     decisions = load_decisions("2026-2027", root=root)
-    rejected = decisions.get(REJECTED_BOOKING_EVIDENCE_KEY) or []
-    assert rejected and rejected[-1]["tournament_id"] == "rvv-0116"
-    assert "ice_time_playing_minimum" in {c["code"] for c in rejected[-1]["conflicts"]}
+    assert decisions["ice_time_minutes_overrides"][-1]["minutes"] == 10
+    assert not decisions.get(REJECTED_BOOKING_EVIDENCE_KEY)
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "rvv-0116")
+    assert row["operational_state"] == "booked"
 
 
 def _accepted_interval_problem():
@@ -330,8 +345,8 @@ def test_playing_minimum_finding_keeps_rule_identity_and_is_non_blocking():
     assert finding["accepted_exception"]["rule"] == "ice_time_playing_minimum"
 
 
-def test_playing_minimum_finding_stays_hard_when_below_one_round():
-    """A sub-round accepted interval is never reclassified as a viable finding."""
+def test_playing_minimum_finding_is_reclassified_even_below_one_round():
+    """Recording reality does not depend on the interval being playable."""
 
     candidate = {
         "tournaments": [
@@ -351,7 +366,8 @@ def test_playing_minimum_finding_stays_hard_when_below_one_round():
         _accepted_interval_problem(), candidate, [_playing_minimum_violation(10)]
     )
 
-    assert classified["accepted_exceptions"] == []
-    assert [v["code"] for v in classified["blocking_violations"]] == [
-        "ice_time_playing_minimum"
-    ]
+    assert classified["blocking_violations"] == []
+    finding = classified["accepted_exceptions"][0]
+    assert finding["code"] == "ice_time_playing_minimum"
+    assert finding["accepted_booking_interval"] is True
+    assert finding["accepted_exception"]["rule"] == "ice_time_playing_minimum"

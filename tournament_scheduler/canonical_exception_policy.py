@@ -26,8 +26,9 @@ admission gate folded into ``verify_canonical_candidate.ok`` when a baseline is
 supplied, not a separate diagnostic. It is deliberately conservative: an
 *unchanged unaccepted* legacy violation (or a still-present improved one) is
 visible debt but stays blocking. Nothing here waives a genuine overlap, a
-physically impossible playing shortfall, a stale/wrong source or an unverified
-placement, and there is no per-id allowlist or blanket bypass.
+stale/wrong source or an unverified placement, and there is no per-id allowlist
+or blanket bypass. Recording an accepted interval does not approve an
+unplayable format; the shortfall stays a durable finding.
 """
 
 from __future__ import annotations
@@ -39,7 +40,6 @@ from tournament_scheduler.calendar_bookings import (
     governing_floor_finding,
     tournament_occupancy_interval_facts,
 )
-from tournament_scheduler.occupancy import minimum_playing_requirement_minutes
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 # Rule codes for which an exact, source-confirmed canonical exception may
@@ -48,11 +48,11 @@ from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 # acceptance evidence the canonical projection can prove exactly.
 #
 # ``ice_time_playing_minimum`` is the shortfall against the *planned* round
-# structure. Once an authoritative interval is accepted, reality supersedes that
-# planning target and the shortfall becomes a durable feasibility finding (the
-# plan must adapt, not the recorded booking). A booking that cannot host even a
-# single round is not credible evidence for the tournament and stays hard; see
-# :func:`_accepted_playing_minimum_is_viable`.
+# structure. Once an authoritative interval is accepted, that interval is the
+# factual booking even when it is operationally unusable and the shortfall
+# becomes a durable feasibility finding/action (the plan must adapt, not the
+# recorded booking). Recording reality is not the same as approving the
+# format; only an explicit operator acceptance can reach this path.
 ACCEPTED_EXCEPTION_RULE_CODES = frozenset(
     {"ice_time_governing_minimum", "ice_time_playing_minimum"}
 )
@@ -118,36 +118,10 @@ def accepted_exception_identity(
     }
 
 
-def _accepted_playing_minimum_is_viable(violation: Mapping[str, Any]) -> bool:
-    """Return whether an accepted interval can host at least one playing round.
-
-    The planned-round shortfall is a planning target once an authoritative
-    interval is accepted, but an interval that cannot hold even a single round
-    is not credible evidence that this event is the tournament's booking (for
-    example a 10-minute overlap against a 15-minute round). Such a violation
-    stays hard; only a physically possible accepted interval is downgraded.
-    """
-
-    try:
-        minutes = int(violation.get("configured_ice_time_minutes"))
-        round_length = int(violation.get("round_length_minutes"))
-    except (TypeError, ValueError):
-        # Cannot prove physical viability from the structured violation; fail
-        # closed rather than grandfathering an unverifiable short interval.
-        return False
-    one_round = minimum_playing_requirement_minutes(round_length, 1)
-    return one_round <= 0 or minutes >= one_round
-
-
 def _accepted_exception_eligible(violation: Mapping[str, Any]) -> bool:
     """Return whether one violation may be reclassified for accepted evidence."""
 
-    code = str(violation.get("code") or "")
-    if code not in ACCEPTED_EXCEPTION_RULE_CODES:
-        return False
-    if code == "ice_time_playing_minimum":
-        return _accepted_playing_minimum_is_viable(violation)
-    return True
+    return str(violation.get("code") or "") in ACCEPTED_EXCEPTION_RULE_CODES
 
 
 def _accepted_exception_finding(
