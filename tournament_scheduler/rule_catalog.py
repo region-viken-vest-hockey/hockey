@@ -202,8 +202,11 @@ _HARD: tuple[RuleEntry, ...] = (
             "It must be at least the actual rounds times round length plus the per-round "
             "changeover buffer. A proposed placement must also meet any governing "
             "per-series-round booking floor; a source-confirmed accepted booking interval "
-            "below that floor is recorded exactly at the reconciliation boundary and surfaced "
-            "as a durable feasibility finding, not a new-placement planning violation."
+            "below that floor or below the planned round structure is recorded exactly at the "
+            "reconciliation boundary and surfaced as a durable feasibility finding (the plan "
+            "must adapt, not the recorded booking), not a new-placement planning violation. "
+            "An accepted interval that cannot host even a single round is not credible booking "
+            "evidence and stays hard."
         ),
         canonical_owner="tournament_scheduler.occupancy",
         input_source="planning_problem ice_time_minutes + round_length_minutes + generated round count",
