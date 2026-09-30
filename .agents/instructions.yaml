@@ -1,0 +1,33 @@
+version: 1
+adr: docs/adr/0006-harness-neutral-progressive-agent-instructions.md
+
+always:
+  path: AGENTS.md
+  max_bytes: 12000
+
+routers:
+  rvv:
+    path: .agents/skills/rvv/SKILL.md
+    max_bytes: 7000
+
+capabilities:
+  production:
+    path: .agents/skills/rvv/production/SKILL.md
+    max_bytes: 6000
+  planning:
+    path: .agents/skills/rvv/planning/SKILL.md
+    max_bytes: 5000
+  sources:
+    path: .agents/skills/rvv/sources/SKILL.md
+    max_bytes: 5000
+  publication:
+    path: .agents/skills/rvv/publication/SKILL.md
+    max_bytes: 5000
+
+harness_adapters:
+  CLAUDE.md:
+    max_bytes: 1500
+  CODEX.md:
+    max_bytes: 1500
+
+procedure_root: .agents/commands/rvv-miniputt
