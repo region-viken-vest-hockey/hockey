@@ -57,8 +57,7 @@ def classify_finding_resolution(finding: Mapping[str, Any]) -> dict[str, Any]:
             coverage_status = str(coverage.get("status") or "")
             stale = bool(coverage.get("capability_stale") or finding.get("bounded_repair_exhausted_stale"))
             if not stale and (
-                coverage_status in {"proven_infeasible", "bounded_search_exhausted"}
-                or coverage.get("proven_infeasible")
+                coverage_status == "proven_infeasible" or coverage.get("proven_infeasible") is True
             ):
                 status = PROVEN_INFEASIBLE_WITH_CURRENT_CAPACITY
                 reason = "bounded_search_zero_feasible_candidates"

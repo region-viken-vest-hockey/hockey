@@ -598,8 +598,8 @@ def test_audit_resolves_authoritative_factual_findings_without_hiding_them() -> 
             "rule_id": "tournament_placement_obligation",
             "severity": "unresolved",
             "search_coverage": {
-                "status": "bounded_search_exhausted",
-                "proven_infeasible": False,
+                "status": "proven_infeasible",
+                "proven_infeasible": True,
                 "capability": {"family": "unplaced_placement", "version": "test"},
             },
         },
@@ -631,6 +631,36 @@ def test_audit_resolves_authoritative_factual_findings_without_hiding_them() -> 
     assert statuses["tournament_placement_obligation"]["resolved_statuses"] == [
         "proven_infeasible_with_current_capacity"
     ]
+
+
+def test_bounded_exhausted_without_infeasibility_proof_stays_actionable() -> None:
+    plan, problem = _wide_gap_season()
+    verification = verify_candidate(plan, problem)
+    findings = [
+        {
+            "finding_id": "unplaced_placement:U10:2026-10-10:1",
+            "code": "unplaced_tournament_placement",
+            "rule_id": "tournament_placement_obligation",
+            "severity": "unresolved",
+            "search_coverage": {
+                "status": "bounded_search_exhausted",
+                "proven_infeasible": False,
+                "capability": {"family": "unplaced_placement", "version": "test"},
+            },
+        }
+    ]
+    annotate_resolutions(findings)
+
+    report = season_wide_audit(
+        plan=plan,
+        findings=findings,
+        verification=verification,
+        reconciliation={"ok": True},
+        catalog=[CATALOG_BY_ID["tournament_placement_obligation"]],
+    )
+
+    assert report["status"] == "FAIL"
+    assert report["mandatory_finding_checks"] == ["tournament_placement_obligation"]
 
 
 def test_stale_infeasibility_evidence_reopens_obligation() -> None:
