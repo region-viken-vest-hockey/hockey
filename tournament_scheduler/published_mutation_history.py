@@ -15,7 +15,9 @@ revision but are never replayed as schedule mutations. A per-tournament ice-time
 override does change the rendered occupied interval, so it is not ignored: the
 current active override set is applied to the reconciled projection after
 schedule replay (and reported as a decision-backed occupancy change), while a
-release event restores the recorded age-group default. This is what lets
+release event restores the recorded age-group default. Placement-infeasibility
+proofs record search evidence about an unplaced obligation; they never change a
+placement, so replay treats them as decision-only as well. This is what lets
 reconciliation converge on the same revision-bound effective projection the
 export/render path produces. The ``mark_export_fresh`` event records that an
 export artifact covered a canonical revision; it describes export provenance,
@@ -57,11 +59,13 @@ _DECISION_ONLY_EVENTS = {
     "clear_manual_booking_assertion",
     "disallow_holiday_date",
     "mark_export_fresh",
+    "record_placement_infeasibility",
     "reconcile_calendar_bookings",
     "refresh_calendar_evidence",
     "release_calendar_booking",
     "release_change_protection",
     "release_participation_withdrawal",
+    "release_placement_infeasibility",
     "release_request_constraint",
     "season_baseline_advance",
     "season_baseline_create",

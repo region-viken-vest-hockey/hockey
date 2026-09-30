@@ -33,7 +33,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Mapping, Tuple
 
-from tournament_scheduler.hosting_coverage import hosting_balance_matrix
+from tournament_scheduler.hosting_coverage import (
+    hosting_balance_matrix,
+    planned_tournament_counts_by_age,
+)
 from tournament_scheduler.participation_withdrawals import eligible_hosting_teams
 
 # Stable finding code shared by every consumer (provider rejection evidence,
@@ -51,9 +54,18 @@ def hosting_responsibility_facts(
     ``hosting_coverage.hosting_balance_matrix`` and re-projects it into a
     stable, JSON-serializable shape so callers never depend on the internal
     reporting row layout.
+
+    The target volume is the *planned* season shape: a cancelled tournament and
+    an unresolved placement obligation both stay the responsible club's target,
+    so calendar/ice availability never silently re-proportions hosting burden
+    onto another club.
     """
     teams = eligible_hosting_teams(problem)
-    tournaments = (candidate or {}).get("tournaments") or []
+    candidate = candidate or {}
+    tournaments = candidate.get("tournaments") or []
+    planned_counts = planned_tournament_counts_by_age(
+        tournaments, candidate.get("unresolved_tournament_placements") or []
+    )
     return [
         {
             "club": row["club"],
@@ -67,7 +79,9 @@ def hosting_responsibility_facts(
             "manual_placement_required": int(row.get("manual_placement_required", 0)),
             "coverage_unresolved": bool(row.get("coverage_unresolved")),
         }
-        for row in hosting_balance_matrix(teams, tournaments)
+        for row in hosting_balance_matrix(
+            teams, tournaments, planned_counts_by_age=planned_counts
+        )
     ]
 
 

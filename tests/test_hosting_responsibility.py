@@ -183,3 +183,57 @@ def test_targets_are_stable_regardless_of_which_candidate_is_compared():
     assert targets[("JU12", "Skien")] == 2
     assert targets[("JU12", "Jutul/Jar Kittens")] == 2
     assert targets[("JU12", "Kongsberg/Tønsberg")] == 2
+
+
+def test_unresolved_obligation_keeps_responsible_hosts_target_and_no_spurious_excess():
+    """A failure to place an obligation must not re-proportion hosting burden.
+
+    Without counting the unresolved obligation in the planned volume, the two
+    physically placed tournaments shrink every target and the club that hosted
+    them looks like it absorbed responsibility it does not owe. The unresolved
+    obligation stays the responsible host's target instead.
+    """
+
+    problem = {
+        "teams": [_team("Big", "U10"), _team("Big", "U10"), _team("Small", "U10")]
+    }
+    candidate = {
+        "tournaments": [_tournament("Big", "U10"), _tournament("Big", "U10")],
+        "unresolved_tournament_placements": [
+            {
+                "id": "unplaced_placement:U10:2026-10-10:1",
+                "age_group": "U10",
+                "date": "2026-10-10",
+                "responsible_host": "Small",
+            }
+        ],
+    }
+
+    facts = {fact["club"]: fact for fact in hosting_responsibility_facts(problem, candidate)}
+
+    assert facts["Big"]["target"] == 2
+    assert facts["Big"]["excess"] == 0
+    assert facts["Small"]["target"] == 1
+    assert facts["Small"]["assigned_responsibility"] == 1
+    assert facts["Small"]["deficit"] == 1
+
+
+def test_cancelled_planned_tournament_does_not_transfer_responsibility():
+    """A cancellation reduces physical hosting but not the planned target volume."""
+
+    problem = {
+        "teams": [_team("Big", "U10"), _team("Big", "U10"), _team("Small", "U10")]
+    }
+    cancelled = _tournament("Small", "U10", cancelled=True)
+    candidate = {
+        "tournaments": [
+            _tournament("Big", "U10"),
+            _tournament("Big", "U10"),
+            cancelled,
+        ]
+    }
+
+    facts = {fact["club"]: fact for fact in hosting_responsibility_facts(problem, candidate)}
+
+    assert facts["Big"]["excess"] == 0
+    assert facts["Small"]["deficit"] == 1

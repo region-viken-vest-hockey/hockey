@@ -62,6 +62,7 @@ from .canonical_season import (
     lifecycle as _lifecycle,
     lifecycle_status as _lifecycle_status,
     normalization as _normalization,
+    placement_infeasibility as _placement_infeasibility,
     placements as _placements,
     publication as _publication,
     replacement as _replacement,
@@ -889,6 +890,60 @@ class CanonicalSeasonService:
             season=season,
             problem=problem,
             include_released=include_released,
+        )
+
+    def record_placement_infeasibility_proofs(
+        self,
+        *,
+        season: str,
+        finding_ids: list[str] | None = None,
+        actor: str | None = None,
+        note: str = "",
+        expected_revision: str | None = None,
+        problem: dict[str, Any] | None = None,
+        allow_search: bool = True,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        return _placement_infeasibility.record_placement_infeasibility_proofs(
+            self,
+            season=season,
+            finding_ids=finding_ids,
+            actor=actor,
+            note=note,
+            expected_revision=expected_revision,
+            problem=problem,
+            allow_search=allow_search,
+            dry_run=dry_run,
+        )
+
+    def release_placement_infeasibility_proofs(
+        self,
+        *,
+        season: str,
+        finding_ids: list[str] | None = None,
+        actor: str | None = None,
+        note: str = "",
+    ) -> dict[str, Any]:
+        return _placement_infeasibility.release_placement_infeasibility_proofs(
+            self,
+            season=season,
+            finding_ids=finding_ids,
+            actor=actor,
+            note=note,
+        )
+
+    def placement_infeasibility_report(
+        self,
+        *,
+        season: str,
+        problem: dict[str, Any] | None = None,
+        include_superseded: bool = False,
+    ) -> dict[str, Any]:
+        return _placement_infeasibility.placement_infeasibility_report(
+            self,
+            season=season,
+            problem=problem,
+            include_superseded=include_superseded,
         )
 
     def approve_tournament(

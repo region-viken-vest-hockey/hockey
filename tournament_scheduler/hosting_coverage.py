@@ -20,7 +20,7 @@ Two distinct concerns, kept separate per issue #266:
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Tuple
 
 from tournament_scheduler.host_representation import constituent_clubs as _constituent_clubs
 
@@ -103,9 +103,42 @@ def unresolved_from_matrix(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, str
     ]
 
 
+def planned_tournament_counts_by_age(
+    tournaments: Iterable[Dict[str, Any]],
+    unresolved_placements: Iterable[Dict[str, Any]] = (),
+) -> Dict[str, int]:
+    """Return the *planned* tournament volume per age group.
+
+    A cancelled tournament and an unresolved placement obligation are both
+    still part of the planned season shape: cancelling or failing to place one
+    must not silently shrink the volume the proportional hosting targets are
+    derived from, which would move the burden onto other clubs. Callers that
+    compare physical hosting against responsibility pass this volume so a
+    cancellation/unplaced obligation stays the responsible club's target
+    instead of manufacturing an "excess" elsewhere.
+    """
+
+    counts: Dict[str, int] = defaultdict(int)
+    for tournament in tournaments:
+        if not isinstance(tournament, dict):
+            continue
+        age_group = str(tournament.get("age_group") or "")
+        if age_group:
+            counts[age_group] += 1
+    for entry in unresolved_placements:
+        if not isinstance(entry, dict):
+            continue
+        age_group = str(entry.get("age_group") or "")
+        if age_group:
+            counts[age_group] += 1
+    return dict(counts)
+
+
 def hosting_balance_matrix(
     teams: Iterable[Dict[str, Any]],
     tournaments: Iterable[Dict[str, Any]],
+    *,
+    planned_counts_by_age: Mapping[str, int] | None = None,
 ) -> List[Dict[str, Any]]:
     """Return target-vs-actual hosting burden rows per club x age group.
 
@@ -116,6 +149,13 @@ def hosting_balance_matrix(
     ``target``, ``actual``, ``delta`` (actual - target), ``deficit`` and
     ``excess`` so later host-changing operations can recompute and expose any
     drift instead of silently transferring another club's share.
+
+    By default the proportional target volume is the physically placed
+    (non-cancelled) tournaments. A caller that owns the *responsibility* view
+    may pass ``planned_counts_by_age`` (see
+    :func:`planned_tournament_counts_by_age`) so cancelled tournaments and
+    unresolved placement obligations still count toward the responsible
+    club's target instead of being redistributed by re-proportioning.
     """
     teams = list(teams)
     tournaments = [t for t in tournaments if isinstance(t, dict) and not t.get("cancelled")]
@@ -141,10 +181,15 @@ def hosting_balance_matrix(
         team_counts_by_age[row["age_group"]][row["club"]] = int(row.get("teams", 0))
 
     tournament_counts_by_age: Dict[str, int] = defaultdict(int)
-    for tournament in tournaments:
-        age_group = tournament.get("age_group")
-        if age_group:
-            tournament_counts_by_age[age_group] += 1
+    if planned_counts_by_age is None:
+        for tournament in tournaments:
+            age_group = tournament.get("age_group")
+            if age_group:
+                tournament_counts_by_age[age_group] += 1
+    else:
+        tournament_counts_by_age.update(
+            {str(age): int(count) for age, count in planned_counts_by_age.items()}
+        )
 
     targets_by_age: Dict[str, Dict[str, int]] = {}
     unmet_by_age: Dict[str, set[str]] = {}
