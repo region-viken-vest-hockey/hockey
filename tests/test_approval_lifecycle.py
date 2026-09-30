@@ -878,6 +878,112 @@ def test_confirm_calendar_booking_refuses_fabricated_source_evidence(tmp_path):
         )
 
 
+def test_confirm_calendar_booking_refuses_cancelled_tournament_atomically(tmp_path):
+    """A cancelled tournament is not an active placement.
+
+    The candidate verifier excludes cancelled tournaments, so without a
+    lifecycle guard ``confirm_calendar_booking`` writes an ``approved``/
+    ``placement_locked`` record the verifier never sees, which
+    ``canonical_locked_tournament_missing`` then reports as a hard violation.
+    The refused call must leave the approval/association/evidence overlay
+    byte-identical rather than retaining rejected side effects.
+    """
+    root = _promote(tmp_path, [_tournament("t1")])
+    schedule_path = root / "2026-2027" / "schedule.json"
+    schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+    schedule["plan"]["tournaments"][0]["cancelled"] = True
+    schedule["plan"]["tournaments"][0]["cancellation_reason"] = "arena unavailable"
+    schedule_path.write_text(json.dumps(schedule), encoding="utf-8")
+
+    event = {
+        "date": "2026-09-12",
+        "start": "10:00",
+        "end": "12:00",
+        "availability": "fixed_busy",
+        "calendar_event": "Miniputt U10 bekreftet",
+        "club": "A",
+    }
+    problem = _host_a_problem([event])
+    event_fp = event_fingerprint(event)
+    before = load_decisions("2026-2027", root=root)
+
+    with pytest.raises(SeasonStateError, match="cancelled and cannot be confirmed"):
+        confirm_calendar_booking(
+            season="2026-2027",
+            root=root,
+            event_fingerprint=event_fp,
+            tournament_id="t1",
+            problem=problem,
+            note="must not be written",
+        )
+
+    after = load_decisions("2026-2027", root=root)
+    assert after["decisions"] == before["decisions"]
+    for key in (
+        "calendar_booking_associations",
+        "manual_booking_assertions",
+        "tournament_booking_evidence",
+        "rejected_booking_evidence",
+    ):
+        assert after.get(key) == before.get(key)
+    schedule_after = load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]
+    assert schedule_after["start_time"] == "10:00"
+    assert schedule_after["cancelled"] is True
+
+
+def test_confirm_calendar_booking_rejection_leaves_approval_untouched(tmp_path):
+    """A hard-blocked confirmation must not write association/evidence/approval.
+
+    The blockers branch retains separately specified rejected-source evidence,
+    but the active placement, approval/lock and association must be committed
+    only after validation succeeds.
+    """
+    root = _promote(tmp_path, [_tournament("t1"), _tournament("t2", date_str="2026-09-19", host="A")])
+    problem = {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "teams": [{"club": club, "label": f"{club}1", "age_group": "U10"} for club in "ABCD"],
+        "age_groups": ["U10"],
+        "ice_time_minutes": {"U10": 120},
+        "rounds_per_tournament": {"U10": 3},
+        "parallel_games": {"U10": 2},
+        "club_calendar_status": {"A": "known"},
+        "club_busy_intervals": {
+            "A": [
+                {
+                    "date": "2026-09-12",
+                    "start": "10:00",
+                    "end": "12:00",
+                    "kind": "external",
+                    "availability": "fixed_busy",
+                    "calendar_event": "Serieturneringer U10",
+                }
+            ]
+        },
+    }
+    event_fp = calendar_booking_candidates(season="2026-2027", root=root, club="A", problem=problem)[
+        "booking_candidates"
+    ][0]["calendar_event"]["fingerprint"]
+    before = load_decisions("2026-2027", root=root)
+
+    with pytest.raises(SeasonStateError, match="scheduled in 2 tournaments"):
+        confirm_calendar_booking(
+            season="2026-2027",
+            root=root,
+            event_fingerprint=event_fp,
+            tournament_id="t2",
+            problem=problem,
+            note="rejected attempt must not approve",
+        )
+
+    after = load_decisions("2026-2027", root=root)
+    assert after["decisions"] == before["decisions"]
+    assert after.get("calendar_booking_associations") == before.get("calendar_booking_associations")
+    assert after.get("tournament_booking_evidence") == before.get("tournament_booking_evidence")
+    # The refused source is still retained as unresolved evidence by design.
+    assert after["rejected_booking_evidence"][-1]["tournament_id"] == "t2"
+
+
 def test_stale_calendar_booking_association_fails_closed_when_tournament_moves(tmp_path):
     root = _promote(tmp_path, [_tournament("t1")])
     problem = {
