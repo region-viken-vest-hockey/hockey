@@ -5,9 +5,17 @@ description: Harness-neutral router for RVV Miniputt work. Load for any RVV plan
 
 # RVV Miniputt shared router
 
-This is the shared RVV entry point for Claude, Codex, ChatGPT, Pi and future harnesses. Read `AGENTS.md` first. Repository semantics live in shared code/docs/instructions; harness adapters provide transport/UI only and must not redefine policy.
+Shared RVV entry point for Claude, Codex, ChatGPT, Pi and future harnesses. Read `AGENTS.md` first. Harness adapters are transport/UI only; repository code owns facts, validation, persistence, evidence, export and publication safeguards. Never create a harness-local scheduler, verifier, decision controller, audit engine, scraper policy or canonical mutation implementation.
 
-Use repository code for facts, hard constraints, validation, persistence, evidence, export and publication safeguards. Use the active agent for contextual judgment only among supported repository actions. Never create a harness-local scheduler, verifier, decision controller, semantic-audit engine, scraper policy or canonical mutation implementation.
+## Lifecycle overview
+
+### Initial season creation
+
+Use planning guidance and `scripts/rvv-miniputt run --interactive` for a deliberately opened new-season run; repository code owns stages, decisions and Stage 4 handoff.
+
+### Promoted-season maintenance
+
+Use production guidance and `scripts/rvv-miniputt season` for a promoted/published/sealed season; repository code owns canonical mutation, approvals, booking evidence, reconciliation and export freshness. Do not run Stage 3 merely to make maintenance pass.
 
 ## Route before loading detail
 
@@ -20,32 +28,55 @@ Load only the capability guidance needed for the task:
 | Scraping, source freshness, calendar acquisition/recovery | [`sources/SKILL.md`](sources/SKILL.md) |
 | Publish, republish, rollback, publication audit/scope | [`publication/SKILL.md`](publication/SKILL.md) |
 
-Combine capability files only when the task actually crosses those boundaries. For example, reconciling a booking against a refreshed host calendar loads production + sources; republishing a corrected sealed season loads production + publication.
+Combine capability files only when the task crosses boundaries. Lifecycle routing is state-derived: promoted/published/sealed work routes to production; initial/reopened planning routes to planning. Exact command execution belongs in [`.agents/commands/rvv-miniputt/`](../../commands/rvv-miniputt/); load only the specific procedure.
 
-**Lifecycle routing is state-derived:** establish the authoritative season lifecycle first. A promoted/published/sealed season routes ordinary operational work to `production/SKILL.md`; an initial/new-season planning lifecycle routes to `planning/SKILL.md`. Do not encode a season/year's current lifecycle in permanent instructions, and do not load Stage 3/SeasonPlanner guidance merely because a maintenance operation is difficult.
+## Stage gating policy
 
-Exact command execution belongs in [`.agents/commands/rvv-miniputt/`](../../commands/rvv-miniputt/). Load the specific procedure only when executing that workflow; do not preload the entire command directory.
+Shared soft-policy excerpts for inter-stage judgment. Repository checks own hard validity; the agent/judge only decides proceed/retry/recover/abort.
+
+### Stage 1
+
+Proceed when controlled input parsed into coherent season facts with no hard input errors. Abort/request correction when required dates, age groups, clubs, arenas, sources or registrations are missing/ambiguous enough to poison later stages.
+
+### Stage 2
+
+Proceed when scraping/source recovery produced usable evidence for meaningful planning. Blocked calendars, zero-event sources or health warnings are not automatically fatal, but must be visible; retry/recover material gaps and abort/request operator input when availability conclusions are unsafe.
+
+### Stage 3
+
+Proceed only with a hard-verified candidate or explicit repository decision context. Do not use prose to waive hard violations, approval locks, hosting responsibility or unresolved placement facts.
+
+## Semantic safety-net audit
+
+Semantic audit is second-pass judgment over repository-produced evidence, not a verifier. Use `operator audit-context`, `operator audit-evidence`, `operator audit-submit` and `operator audit-run`. Checklist:
+
+1. Antall cuper pr lag?
+2. Antall hjemmeturneringer pr lag?
+3. Lengde på turneringer?
+4. Er det faktisk ledig tid på is?
+5. Deltar vertsklubben i samme turnering?
+6. Deltar hvert lag maksimalt én gang per dag?
+7. Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?
+8. Er eksportformatene konsistente?
+9. Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?
 
 ## Universal RVV invariants
 
 These apply across all capabilities:
 
-- Current code, tests and controlled inputs define executable truth. This router and capability skills define shared agent policy; active docs/ADRs explain contracts and rationale.
-- Start a new/lost-context operational session with the read-only [handover procedure](../../commands/rvv-miniputt/handover.md). Handover evidence grants no mutation/planning/publication authority.
-- The operator-facing harness surface is `operate`; shared procedures and `scripts/rvv-miniputt` are repository-owned transport. Do not add harness-local orchestration or another root scheduler CLI.
-- Never hand-edit canonical season state, decisions, pipeline checkpoints, generated exports or audit artifacts to obtain a desired result.
-- Hard validity and durable identity are repository-owned. A prompt, approval, lock, waiver, booking assertion or semantic audit cannot silently override a different authority.
-- Preserve provenance and revision/fingerprint identity. Reject stale candidate/action/evidence rather than combining state from different revisions.
-- Fix defects at the canonical owner. Do not compensate in a caller, renderer, adapter or harness instruction.
-- Generated output is derived data. Correct authoritative input/code/canonical state and regenerate.
-- Planning/export does not imply publication. Publication and rollback require their explicit supported workflow and operator authority.
-- Human escalation is for genuine policy/authority/information boundaries, not as a substitute for a safe repository action.
+- Current code, tests and controlled inputs define executable truth.
+- Start new/lost-context operational sessions with read-only [handover](../../commands/rvv-miniputt/handover.md); it grants no mutation/planning/publication authority.
+- Operator-facing harness surface is `operate`; shared procedures and `scripts/rvv-miniputt` are repository-owned transport.
+- Never hand-edit canonical state, decisions, checkpoints, exports or audit artifacts.
+- Hard validity and durable identity are repository-owned; prompts/approvals/locks/waivers/bookings/audits cannot override another authority.
+- Preserve provenance and revision/fingerprint identity; reject stale evidence/actions.
+- Fix defects at the canonical owner, not in callers/renderers/adapters/prose.
+- Generated output is derived data; fix sources/code/canonical state and regenerate.
+- Planning/export does not imply publication; publication/rollback require explicit workflow and authority.
 
 ## Progressive context loading
 
-For implementation work, inspect the public entry point/capability contract, canonical owner and focused tests first. Follow only directly relevant dependencies. Load architecture docs or ADRs when the task crosses an architectural boundary; do not ingest unrelated planner, source, publication or maintenance internals by default.
-
-For canonical booking/reconciliation semantics read [ADR 0005](../../../docs/adr/0005-reconciliation-is-not-planning.md). For architectural changes read [engineering principles](../../../docs/engineering-principles.md), [system architecture](../../../docs/system-architecture.md), and the active docs index in [docs/README.md](../../../docs/README.md).
+Inspect public entry point/capability contract, canonical owner and focused tests first. Follow only relevant dependencies. For booking/reconciliation read [ADR 0005](../../../docs/adr/0005-reconciliation-is-not-planning.md). For architecture changes read engineering principles, system architecture and docs index.
 
 ## Instruction ownership
 
