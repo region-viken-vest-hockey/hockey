@@ -2902,7 +2902,7 @@
       }
     }
   ],
-  "canonical_state_revision": "4788bbd9a96547175d4551e248abedd6876142de505e9214690c435e4e941358",
+  "canonical_state_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -9455,7 +9455,7 @@
     "calendar_fingerprint": "33ed45a4b0a889a07af8b6881769480811b6b432aa5a63f88aadc824237ae88c",
     "requires_fresh_audit": true,
     "requires_fresh_export": true,
-    "stale_at": "2026-09-30T18:05:38.571340+00:00",
+    "stale_at": "2026-09-30T19:19:06.284917+00:00",
     "stale_reason": "calendar_evidence_refreshed",
     "status": "stale"
   },
@@ -53020,6 +53020,533 @@
       "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
       "tournament_fingerprint": "7d679a738ba16b45fa94839a77918f01f0fafd1ea476ed3a125349a2b7a9031c",
       "tournament_id": "rvv-0137"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T19:19:06.284917+00:00",
+      "details": {
+        "blocked_sources": [],
+        "calendar_fingerprint": "33ed45a4b0a889a07af8b6881769480811b6b432aa5a63f88aadc824237ae88c",
+        "planned_tournament_reconciliation": {
+          "Kongsberg": {
+            "count": 10,
+            "requires_review_count": 10
+          },
+          "Ringerike": {
+            "count": 23,
+            "requires_review_count": 1
+          }
+        },
+        "previous_calendar_fingerprint": "33ed45a4b0a889a07af8b6881769480811b6b432aa5a63f88aadc824237ae88c",
+        "previous_snapshot": {
+          "calendar_fingerprint": "33ed45a4b0a889a07af8b6881769480811b6b432aa5a63f88aadc824237ae88c",
+          "captured_at": "2026-09-30T19:19:06.284917+00:00",
+          "had_prior_calendar_evidence": true,
+          "had_prior_source_policy": true,
+          "path": "evidence/calendar/01aafd40358ffae8a9892c0b104c8c97033106d9241efeb72023d39de17208cc.json",
+          "sha256": "01aafd40358ffae8a9892c0b104c8c97033106d9241efeb72023d39de17208cc",
+          "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0"
+        },
+        "source_count": 9,
+        "source_policy_changes": [],
+        "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0",
+        "stage2_fingerprint": "cf19efeb28fa78ca86270b3cc70c469dbfe2dd78d5f86f46a754b1b5c482c99b"
+      },
+      "event": "refresh_calendar_evidence",
+      "note": "Fresh Kongsberg/Holmen scrape to confirm calendar_evidence_changed staleness is resolved",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T19:21:11.444731+00:00",
+      "details": {
+        "classified": [
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0003"
+          },
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0004"
+          },
+          {
+            "event_fingerprint": "1c5d2fe3969c5991090554c823142a0b21bca99c10c46c5d42dd868ba3dac7e4",
+            "evidence_reasons": [
+              "event_evidence_usable"
+            ],
+            "manual_conflict": false,
+            "reason": "explicit_calendar_booking_association",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "confirmed_booked",
+            "tournament_id": "rvv-0011"
+          },
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0021"
+          },
+          {
+            "event_fingerprint": "175e011138d8759ea77e438b73a38303c4976d634841bceb2148e5f3ba2e9961",
+            "evidence_reasons": [
+              "event_evidence_usable"
+            ],
+            "manual_conflict": false,
+            "reason": "explicit_calendar_booking_association",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "confirmed_booked",
+            "tournament_id": "rvv-0028"
+          },
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0035"
+          },
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0039"
+          },
+          {
+            "event_fingerprint": "f0c605482660a7194cb4806525bc2656e2f8a6b8eb9858f11fb9d3c775f9eef8",
+            "evidence_reasons": [
+              "event_evidence_usable"
+            ],
+            "manual_conflict": false,
+            "reason": "explicit_calendar_booking_association",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "confirmed_booked",
+            "tournament_id": "rvv-0049"
+          },
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0055"
+          },
+          {
+            "event_fingerprint": "934ff8f723b9068afa3b70a9e84608291b2ef681ac9564a800196c11e83d9c6f",
+            "evidence_reasons": [
+              "event_evidence_usable"
+            ],
+            "manual_conflict": false,
+            "reason": "explicit_calendar_booking_association",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "confirmed_booked",
+            "tournament_id": "rvv-0061"
+          },
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0071"
+          },
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0082"
+          },
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0093"
+          },
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0107"
+          },
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0110"
+          },
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0131"
+          },
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0145"
+          },
+          {
+            "event_fingerprint": "37130be5c74e9a4536831c0bd5e65c8a1976f23e631506a2c348e37a5d9ad26d",
+            "evidence_reasons": [
+              "event_evidence_usable"
+            ],
+            "manual_conflict": false,
+            "reason": "explicit_calendar_booking_association",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "confirmed_booked",
+            "tournament_id": "rvv-0150"
+          },
+          {
+            "event_fingerprint": "603f6415e7703f06201799b428a5904195356e89a79fd03570af1cea28d76994",
+            "evidence_reasons": [
+              "event_evidence_usable"
+            ],
+            "manual_conflict": false,
+            "reason": "explicit_calendar_booking_association",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "confirmed_booked",
+            "tournament_id": "rvv-0168"
+          },
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0171"
+          },
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0177"
+          }
+        ],
+        "club": "Holmen"
+      },
+      "event": "reconcile_calendar_bookings",
+      "note": "",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T19:21:48.123920+00:00",
+      "details": {
+        "classified": [
+          {
+            "event_fingerprint": "",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "source_coverage_unproven",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0029"
+          },
+          {
+            "event_fingerprint": "43b97872ccdba74072592342760bf2ad5a314f352774066f8557bfe4a548dd3e",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0103"
+          },
+          {
+            "event_fingerprint": "6d5185ce5ffaf872e338b99265b547c44755b09b6efb03174cf718367822f086",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0113"
+          },
+          {
+            "event_fingerprint": "bc0ba6bc01f6cf4178e156a63a712ce37b13f9a66c505cf3ab3f30fabd0fdf85",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0162"
+          },
+          {
+            "event_fingerprint": "8e9be13ba232eabb77b126f700c706cfc75c6b3be429b853d3724c0d00a14bf4",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0176"
+          },
+          {
+            "event_fingerprint": "12950c8b7ae936cf19ea0458cdadc07091567b994fc449262e34036311abec03",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0184"
+          },
+          {
+            "event_fingerprint": "94ceec0d46cb7c7b37ec7cc27d1d0df4e982647722448ec03389758fe1faa82f",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0158"
+          },
+          {
+            "event_fingerprint": "f576283e461b3d1c609fd6c46d25831eb336068be49219f26f7f77d0e4ec07cc",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0016"
+          },
+          {
+            "event_fingerprint": "d5f1b9cb2bc060447cb9b901a7b8e6aa744ea6d4021500ee5cfba8f381a11300",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "mp_unplaced_placement_U11_2026_10_18_1"
+          },
+          {
+            "event_fingerprint": "2cee1e84ccf92a2c0f91b8e5fda186d3b077ad5d2c50d2e2e452d8f4a8c8eba2",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0053"
+          }
+        ],
+        "club": "Kongsberg"
+      },
+      "event": "reconcile_calendar_bookings",
+      "note": "Kongsberg confirmed OK per club",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ],
   "holiday_date_exceptions": [
@@ -133681,510 +134208,6 @@
       "tournament_id": "rvv-0159"
     },
     {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-10-10",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0003:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "14:00",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Holmen ishall",
-        "date": "2026-10-10",
-        "host_club": "Holmen",
-        "start_time": "14:00"
-      },
-      "tournament_id": "rvv-0003"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-10-10",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0004:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "13:00",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Holmen ishall",
-        "date": "2026-10-10",
-        "host_club": "Holmen",
-        "start_time": "13:00"
-      },
-      "tournament_id": "rvv-0004"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-10-11",
-      "event_fingerprint": "1c5d2fe3969c5991090554c823142a0b21bca99c10c46c5d42dd868ba3dac7e4",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0011:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "12:30",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U9",
-        "arena": "Holmen ishall",
-        "date": "2026-10-11",
-        "host_club": "Holmen",
-        "start_time": "12:30"
-      },
-      "tournament_id": "rvv-0011"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-10-18",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0021:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "12:30",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U10",
-        "arena": "Holmen ishall",
-        "date": "2026-10-18",
-        "host_club": "Holmen",
-        "start_time": "12:30"
-      },
-      "tournament_id": "rvv-0021"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-10-18",
-      "event_fingerprint": "175e011138d8759ea77e438b73a38303c4976d634841bceb2148e5f3ba2e9961",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0028:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "15:00",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Holmen ishall",
-        "date": "2026-10-18",
-        "host_club": "Holmen",
-        "start_time": "15:00"
-      },
-      "tournament_id": "rvv-0028"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-01",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0035:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "13:30",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Holmen ishall",
-        "date": "2026-11-01",
-        "host_club": "Holmen",
-        "start_time": "13:30"
-      },
-      "tournament_id": "rvv-0035"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-07",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0039:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "13:30",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Holmen ishall",
-        "date": "2026-11-07",
-        "host_club": "Holmen",
-        "start_time": "13:30"
-      },
-      "tournament_id": "rvv-0039"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-14",
-      "event_fingerprint": "f0c605482660a7194cb4806525bc2656e2f8a6b8eb9858f11fb9d3c775f9eef8",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0049:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "12:15",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U8",
-        "arena": "Holmen ishall",
-        "date": "2026-11-14",
-        "host_club": "Holmen",
-        "start_time": "12:15"
-      },
-      "tournament_id": "rvv-0049"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-21",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0055:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "13:30",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U10",
-        "arena": "Holmen ishall",
-        "date": "2026-11-21",
-        "host_club": "Holmen",
-        "start_time": "13:30"
-      },
-      "tournament_id": "rvv-0055"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-22",
-      "event_fingerprint": "934ff8f723b9068afa3b70a9e84608291b2ef681ac9564a800196c11e83d9c6f",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0061:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "13:00",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Holmen ishall",
-        "date": "2026-11-22",
-        "host_club": "Holmen",
-        "start_time": "13:00"
-      },
-      "tournament_id": "rvv-0061"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-29",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0071:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "12:00",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Holmen ishall",
-        "date": "2026-11-29",
-        "host_club": "Holmen",
-        "start_time": "12:00"
-      },
-      "tournament_id": "rvv-0071"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-14",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0082:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "15:00",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U9",
-        "arena": "Holmen ishall",
-        "date": "2026-11-14",
-        "host_club": "Holmen",
-        "start_time": "15:00"
-      },
-      "tournament_id": "rvv-0082"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-01-09",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0093:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "13:30",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U10",
-        "arena": "Holmen ishall",
-        "date": "2027-01-09",
-        "host_club": "Holmen",
-        "start_time": "13:30"
-      },
-      "tournament_id": "rvv-0093"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-01-16",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0107:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "13:00",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U9",
-        "arena": "Holmen ishall",
-        "date": "2027-01-16",
-        "host_club": "Holmen",
-        "start_time": "13:00"
-      },
-      "tournament_id": "rvv-0107"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-01-17",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0110:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "13:00",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Holmen ishall",
-        "date": "2027-01-17",
-        "host_club": "Holmen",
-        "start_time": "13:00"
-      },
-      "tournament_id": "rvv-0110"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-02-06",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0131:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "13:30",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U10",
-        "arena": "Holmen ishall",
-        "date": "2027-02-06",
-        "host_club": "Holmen",
-        "start_time": "13:30"
-      },
-      "tournament_id": "rvv-0131"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-02-14",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0145:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "13:00",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Holmen ishall",
-        "date": "2027-02-14",
-        "host_club": "Holmen",
-        "start_time": "13:00"
-      },
-      "tournament_id": "rvv-0145"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-02-20",
-      "event_fingerprint": "37130be5c74e9a4536831c0bd5e65c8a1976f23e631506a2c348e37a5d9ad26d",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0150:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "13:00",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U7",
-        "arena": "Holmen ishall",
-        "date": "2027-02-20",
-        "host_club": "Holmen",
-        "start_time": "13:00"
-      },
-      "tournament_id": "rvv-0150"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-02-21",
-      "event_fingerprint": "603f6415e7703f06201799b428a5904195356e89a79fd03570af1cea28d76994",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0168:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "15:00",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U8",
-        "arena": "Holmen ishall",
-        "date": "2027-02-21",
-        "host_club": "Holmen",
-        "start_time": "15:00"
-      },
-      "tournament_id": "rvv-0168"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-03-06",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0171:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "13:30",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U10",
-        "arena": "Holmen ishall",
-        "date": "2027-03-06",
-        "host_club": "Holmen",
-        "start_time": "13:30"
-      },
-      "tournament_id": "rvv-0171"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "ed44258304c3643c4cac7183342710953841f3cd909c0ede6003aa0efda7821d",
-      "checked_at": "2026-09-28T07:27:31.133937+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-03-07",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0177:2026-09-28T07:27:31.133937+00:00",
-      "note": "Re-stamp against current calendar fingerprint",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "c2b661b4572ac977c22d06835060f29a81c32daf11a0aa150533956bf9c84bc4",
-      "start_time": "13:00",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U8",
-        "arena": "Holmen ishall",
-        "date": "2027-03-07",
-        "host_club": "Holmen",
-        "start_time": "13:00"
-      },
-      "tournament_id": "rvv-0177"
-    },
-    {
       "arena": "Baerum ishall",
       "calendar_fingerprint": "4176b791cef6092186c9361a00b1a656d7154ba46a7ad7024bd26721cb7697ea",
       "checked_at": "2026-09-28T07:30:44.648419+00:00",
@@ -135479,246 +135502,6 @@
         "start_time": "15:00"
       },
       "tournament_id": "rvv-0191"
-    },
-    {
-      "arena": "Kongsberghallen",
-      "calendar_fingerprint": "6ca9a2b2f165a237dc16bd1fcce44000dc058ee70f3c48061a5ebc3a302f4fe8",
-      "checked_at": "2026-09-28T07:46:00.755336+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-10-11",
-      "event_fingerprint": "",
-      "host_club": "Kongsberg",
-      "id": "booking_evidence:rvv-0029:2026-09-28T07:46:00.755336+00:00",
-      "note": "Cross-check against club-confirmed conflict resolutions and live calendar",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "15:30",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U8",
-        "arena": "Kongsberghallen",
-        "date": "2026-10-11",
-        "host_club": "Kongsberg",
-        "start_time": "15:30"
-      },
-      "tournament_id": "rvv-0029"
-    },
-    {
-      "arena": "Kongsberghallen",
-      "calendar_fingerprint": "6ca9a2b2f165a237dc16bd1fcce44000dc058ee70f3c48061a5ebc3a302f4fe8",
-      "checked_at": "2026-09-28T07:46:00.755336+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-01-16",
-      "event_fingerprint": "",
-      "host_club": "Kongsberg",
-      "id": "booking_evidence:rvv-0103:2026-09-28T07:46:00.755336+00:00",
-      "note": "Cross-check against club-confirmed conflict resolutions and live calendar",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "10:30",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "JU12",
-        "arena": "Kongsberghallen",
-        "date": "2027-01-16",
-        "host_club": "Kongsberg",
-        "start_time": "10:30"
-      },
-      "tournament_id": "rvv-0103"
-    },
-    {
-      "arena": "Kongsberghallen",
-      "calendar_fingerprint": "6ca9a2b2f165a237dc16bd1fcce44000dc058ee70f3c48061a5ebc3a302f4fe8",
-      "checked_at": "2026-09-28T07:46:00.755336+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-01-23",
-      "event_fingerprint": "",
-      "host_club": "Kongsberg",
-      "id": "booking_evidence:rvv-0113:2026-09-28T07:46:00.755336+00:00",
-      "note": "Cross-check against club-confirmed conflict resolutions and live calendar",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "10:30",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Kongsberghallen",
-        "date": "2027-01-23",
-        "host_club": "Kongsberg",
-        "start_time": "10:30"
-      },
-      "tournament_id": "rvv-0113"
-    },
-    {
-      "arena": "Kongsberghallen",
-      "calendar_fingerprint": "6ca9a2b2f165a237dc16bd1fcce44000dc058ee70f3c48061a5ebc3a302f4fe8",
-      "checked_at": "2026-09-28T07:46:00.755336+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-03-14",
-      "event_fingerprint": "",
-      "host_club": "Kongsberg",
-      "id": "booking_evidence:rvv-0162:2026-09-28T07:46:00.755336+00:00",
-      "note": "Cross-check against club-confirmed conflict resolutions and live calendar",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "12:30",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Kongsberghallen",
-        "date": "2027-03-14",
-        "host_club": "Kongsberg",
-        "start_time": "12:30"
-      },
-      "tournament_id": "rvv-0162"
-    },
-    {
-      "arena": "Kongsberghallen",
-      "calendar_fingerprint": "6ca9a2b2f165a237dc16bd1fcce44000dc058ee70f3c48061a5ebc3a302f4fe8",
-      "checked_at": "2026-09-28T07:46:00.755336+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-03-07",
-      "event_fingerprint": "",
-      "host_club": "Kongsberg",
-      "id": "booking_evidence:rvv-0176:2026-09-28T07:46:00.755336+00:00",
-      "note": "Cross-check against club-confirmed conflict resolutions and live calendar",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "10:00",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Kongsberghallen",
-        "date": "2027-03-07",
-        "host_club": "Kongsberg",
-        "start_time": "10:00"
-      },
-      "tournament_id": "rvv-0176"
-    },
-    {
-      "arena": "Kongsberghallen",
-      "calendar_fingerprint": "6ca9a2b2f165a237dc16bd1fcce44000dc058ee70f3c48061a5ebc3a302f4fe8",
-      "checked_at": "2026-09-28T07:46:00.755336+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-02-20",
-      "event_fingerprint": "",
-      "host_club": "Kongsberg",
-      "id": "booking_evidence:rvv-0184:2026-09-28T07:46:00.755336+00:00",
-      "note": "Cross-check against club-confirmed conflict resolutions and live calendar",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "13:00",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U9",
-        "arena": "Kongsberghallen",
-        "date": "2027-02-20",
-        "host_club": "Kongsberg",
-        "start_time": "13:00"
-      },
-      "tournament_id": "rvv-0184"
-    },
-    {
-      "arena": "Kongsberghallen",
-      "calendar_fingerprint": "6ca9a2b2f165a237dc16bd1fcce44000dc058ee70f3c48061a5ebc3a302f4fe8",
-      "checked_at": "2026-09-28T07:46:00.755336+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-02-21",
-      "event_fingerprint": "",
-      "host_club": "Kongsberg",
-      "id": "booking_evidence:rvv-0158:2026-09-28T07:46:00.755336+00:00",
-      "note": "Cross-check against club-confirmed conflict resolutions and live calendar",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "10:30",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U10",
-        "arena": "Kongsberghallen",
-        "date": "2027-02-21",
-        "host_club": "Kongsberg",
-        "start_time": "10:30"
-      },
-      "tournament_id": "rvv-0158"
-    },
-    {
-      "arena": "Kongsberghallen",
-      "calendar_fingerprint": "6ca9a2b2f165a237dc16bd1fcce44000dc058ee70f3c48061a5ebc3a302f4fe8",
-      "checked_at": "2026-09-28T07:46:00.755336+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-22",
-      "event_fingerprint": "",
-      "host_club": "Kongsberg",
-      "id": "booking_evidence:rvv-0016:2026-09-28T07:46:00.755336+00:00",
-      "note": "Cross-check against club-confirmed conflict resolutions and live calendar",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "14:00",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "JU12",
-        "arena": "Kongsberghallen",
-        "date": "2026-11-22",
-        "host_club": "Kongsberg",
-        "start_time": "14:00"
-      },
-      "tournament_id": "rvv-0016"
-    },
-    {
-      "arena": "Kongsberghallen",
-      "calendar_fingerprint": "6ca9a2b2f165a237dc16bd1fcce44000dc058ee70f3c48061a5ebc3a302f4fe8",
-      "checked_at": "2026-09-28T07:46:00.755336+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-08",
-      "event_fingerprint": "",
-      "host_club": "Kongsberg",
-      "id": "booking_evidence:mp_unplaced_placement_U11_2026_10_18_1:2026-09-28T07:46:00.755336+00:00",
-      "note": "Cross-check against club-confirmed conflict resolutions and live calendar",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "16:30",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Kongsberghallen",
-        "date": "2026-11-08",
-        "host_club": "Kongsberg",
-        "start_time": "16:30"
-      },
-      "tournament_id": "mp_unplaced_placement_U11_2026_10_18_1"
-    },
-    {
-      "arena": "Kongsberghallen",
-      "calendar_fingerprint": "6ca9a2b2f165a237dc16bd1fcce44000dc058ee70f3c48061a5ebc3a302f4fe8",
-      "checked_at": "2026-09-28T07:46:00.755336+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-15",
-      "event_fingerprint": "",
-      "host_club": "Kongsberg",
-      "id": "booking_evidence:rvv-0053:2026-09-28T07:46:00.755336+00:00",
-      "note": "Cross-check against club-confirmed conflict resolutions and live calendar",
-      "reason": "calendar_status:source_review_required",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "15:00",
-      "status": "not_checkable",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Kongsberghallen",
-        "date": "2026-11-15",
-        "host_club": "Kongsberg",
-        "start_time": "15:00"
-      },
-      "tournament_id": "rvv-0053"
     },
     {
       "arena": "Askerhallen",
@@ -137546,7 +137329,751 @@
         "start_time": "17:45"
       },
       "tournament_id": "rvv-0137"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-10-10",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0003:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "14:00",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-10-10",
+        "host_club": "Holmen",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0003"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-10-10",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0004:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "13:00",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-10-10",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0004"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-10-11",
+      "event_fingerprint": "1c5d2fe3969c5991090554c823142a0b21bca99c10c46c5d42dd868ba3dac7e4",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0011:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "explicit_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "12:30",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Holmen ishall",
+        "date": "2026-10-11",
+        "host_club": "Holmen",
+        "start_time": "12:30"
+      },
+      "tournament_id": "rvv-0011"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-10-18",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0021:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "12:30",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Holmen ishall",
+        "date": "2026-10-18",
+        "host_club": "Holmen",
+        "start_time": "12:30"
+      },
+      "tournament_id": "rvv-0021"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-10-18",
+      "event_fingerprint": "175e011138d8759ea77e438b73a38303c4976d634841bceb2148e5f3ba2e9961",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0028:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "explicit_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "15:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-10-18",
+        "host_club": "Holmen",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0028"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-01",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0035:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "13:30",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Holmen ishall",
+        "date": "2026-11-01",
+        "host_club": "Holmen",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0035"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-07",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0039:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "13:30",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Holmen ishall",
+        "date": "2026-11-07",
+        "host_club": "Holmen",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0039"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-14",
+      "event_fingerprint": "f0c605482660a7194cb4806525bc2656e2f8a6b8eb9858f11fb9d3c775f9eef8",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0049:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "explicit_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "12:15",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Holmen ishall",
+        "date": "2026-11-14",
+        "host_club": "Holmen",
+        "start_time": "12:15"
+      },
+      "tournament_id": "rvv-0049"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-21",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0055:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "13:30",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Holmen ishall",
+        "date": "2026-11-21",
+        "host_club": "Holmen",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0055"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-22",
+      "event_fingerprint": "934ff8f723b9068afa3b70a9e84608291b2ef681ac9564a800196c11e83d9c6f",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0061:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "explicit_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "13:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-11-22",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0061"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-29",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0071:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "12:00",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-11-29",
+        "host_club": "Holmen",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0071"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-14",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0082:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "15:00",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Holmen ishall",
+        "date": "2026-11-14",
+        "host_club": "Holmen",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0082"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-01-09",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0093:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "13:30",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Holmen ishall",
+        "date": "2027-01-09",
+        "host_club": "Holmen",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0093"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-01-16",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0107:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "13:00",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Holmen ishall",
+        "date": "2027-01-16",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0107"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-01-17",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0110:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "13:00",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2027-01-17",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0110"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-02-06",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0131:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "13:30",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Holmen ishall",
+        "date": "2027-02-06",
+        "host_club": "Holmen",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0131"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-02-14",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0145:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "13:00",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Holmen ishall",
+        "date": "2027-02-14",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0145"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-02-20",
+      "event_fingerprint": "37130be5c74e9a4536831c0bd5e65c8a1976f23e631506a2c348e37a5d9ad26d",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0150:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "explicit_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "13:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U7",
+        "arena": "Holmen ishall",
+        "date": "2027-02-20",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0150"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-02-21",
+      "event_fingerprint": "603f6415e7703f06201799b428a5904195356e89a79fd03570af1cea28d76994",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0168:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "explicit_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "15:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Holmen ishall",
+        "date": "2027-02-21",
+        "host_club": "Holmen",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0168"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-03-06",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0171:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "13:30",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Holmen ishall",
+        "date": "2027-03-06",
+        "host_club": "Holmen",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0171"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+      "checked_at": "2026-09-30T19:21:11.444731+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-03-07",
+      "event_fingerprint": "",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0177:2026-09-30T19:21:11.444731+00:00",
+      "note": "",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "13:00",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Holmen ishall",
+        "date": "2027-03-07",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0177"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+      "checked_at": "2026-09-30T19:21:48.123920+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-10-11",
+      "event_fingerprint": "",
+      "host_club": "Kongsberg",
+      "id": "booking_evidence:rvv-0029:2026-09-30T19:21:48.123920+00:00",
+      "note": "Kongsberg confirmed OK per club",
+      "reason": "source_coverage_unproven",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "15:30",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Kongsberghallen",
+        "date": "2026-10-11",
+        "host_club": "Kongsberg",
+        "start_time": "15:30"
+      },
+      "tournament_id": "rvv-0029"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+      "checked_at": "2026-09-30T19:21:48.123920+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-01-16",
+      "event_fingerprint": "43b97872ccdba74072592342760bf2ad5a314f352774066f8557bfe4a548dd3e",
+      "host_club": "Kongsberg",
+      "id": "booking_evidence:rvv-0103:2026-09-30T19:21:48.123920+00:00",
+      "note": "Kongsberg confirmed OK per club",
+      "reason": "single_overlapping_event_requires_confirmation",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "10:30",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "JU12",
+        "arena": "Kongsberghallen",
+        "date": "2027-01-16",
+        "host_club": "Kongsberg",
+        "start_time": "10:30"
+      },
+      "tournament_id": "rvv-0103"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+      "checked_at": "2026-09-30T19:21:48.123920+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-01-23",
+      "event_fingerprint": "6d5185ce5ffaf872e338b99265b547c44755b09b6efb03174cf718367822f086",
+      "host_club": "Kongsberg",
+      "id": "booking_evidence:rvv-0113:2026-09-30T19:21:48.123920+00:00",
+      "note": "Kongsberg confirmed OK per club",
+      "reason": "single_overlapping_event_requires_confirmation",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "10:30",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Kongsberghallen",
+        "date": "2027-01-23",
+        "host_club": "Kongsberg",
+        "start_time": "10:30"
+      },
+      "tournament_id": "rvv-0113"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+      "checked_at": "2026-09-30T19:21:48.123920+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-03-14",
+      "event_fingerprint": "bc0ba6bc01f6cf4178e156a63a712ce37b13f9a66c505cf3ab3f30fabd0fdf85",
+      "host_club": "Kongsberg",
+      "id": "booking_evidence:rvv-0162:2026-09-30T19:21:48.123920+00:00",
+      "note": "Kongsberg confirmed OK per club",
+      "reason": "single_overlapping_event_requires_confirmation",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "12:30",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Kongsberghallen",
+        "date": "2027-03-14",
+        "host_club": "Kongsberg",
+        "start_time": "12:30"
+      },
+      "tournament_id": "rvv-0162"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+      "checked_at": "2026-09-30T19:21:48.123920+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-03-07",
+      "event_fingerprint": "8e9be13ba232eabb77b126f700c706cfc75c6b3be429b853d3724c0d00a14bf4",
+      "host_club": "Kongsberg",
+      "id": "booking_evidence:rvv-0176:2026-09-30T19:21:48.123920+00:00",
+      "note": "Kongsberg confirmed OK per club",
+      "reason": "single_overlapping_event_requires_confirmation",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "10:00",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Kongsberghallen",
+        "date": "2027-03-07",
+        "host_club": "Kongsberg",
+        "start_time": "10:00"
+      },
+      "tournament_id": "rvv-0176"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+      "checked_at": "2026-09-30T19:21:48.123920+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-02-20",
+      "event_fingerprint": "12950c8b7ae936cf19ea0458cdadc07091567b994fc449262e34036311abec03",
+      "host_club": "Kongsberg",
+      "id": "booking_evidence:rvv-0184:2026-09-30T19:21:48.123920+00:00",
+      "note": "Kongsberg confirmed OK per club",
+      "reason": "single_overlapping_event_requires_confirmation",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "13:00",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Kongsberghallen",
+        "date": "2027-02-20",
+        "host_club": "Kongsberg",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0184"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+      "checked_at": "2026-09-30T19:21:48.123920+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-02-21",
+      "event_fingerprint": "94ceec0d46cb7c7b37ec7cc27d1d0df4e982647722448ec03389758fe1faa82f",
+      "host_club": "Kongsberg",
+      "id": "booking_evidence:rvv-0158:2026-09-30T19:21:48.123920+00:00",
+      "note": "Kongsberg confirmed OK per club",
+      "reason": "single_overlapping_event_requires_confirmation",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "10:30",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Kongsberghallen",
+        "date": "2027-02-21",
+        "host_club": "Kongsberg",
+        "start_time": "10:30"
+      },
+      "tournament_id": "rvv-0158"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+      "checked_at": "2026-09-30T19:21:48.123920+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-22",
+      "event_fingerprint": "f576283e461b3d1c609fd6c46d25831eb336068be49219f26f7f77d0e4ec07cc",
+      "host_club": "Kongsberg",
+      "id": "booking_evidence:rvv-0016:2026-09-30T19:21:48.123920+00:00",
+      "note": "Kongsberg confirmed OK per club",
+      "reason": "single_overlapping_event_requires_confirmation",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "14:00",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "JU12",
+        "arena": "Kongsberghallen",
+        "date": "2026-11-22",
+        "host_club": "Kongsberg",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0016"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+      "checked_at": "2026-09-30T19:21:48.123920+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-08",
+      "event_fingerprint": "d5f1b9cb2bc060447cb9b901a7b8e6aa744ea6d4021500ee5cfba8f381a11300",
+      "host_club": "Kongsberg",
+      "id": "booking_evidence:mp_unplaced_placement_U11_2026_10_18_1:2026-09-30T19:21:48.123920+00:00",
+      "note": "Kongsberg confirmed OK per club",
+      "reason": "single_overlapping_event_requires_confirmation",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "16:30",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Kongsberghallen",
+        "date": "2026-11-08",
+        "host_club": "Kongsberg",
+        "start_time": "16:30"
+      },
+      "tournament_id": "mp_unplaced_placement_U11_2026_10_18_1"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+      "checked_at": "2026-09-30T19:21:48.123920+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-15",
+      "event_fingerprint": "2cee1e84ccf92a2c0f91b8e5fda186d3b077ad5d2c50d2e2e452d8f4a8c8eba2",
+      "host_club": "Kongsberg",
+      "id": "booking_evidence:rvv-0053:2026-09-30T19:21:48.123920+00:00",
+      "note": "Kongsberg confirmed OK per club",
+      "reason": "single_overlapping_event_requires_confirmation",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
+      "start_time": "15:00",
+      "status": "ambiguous",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Kongsberghallen",
+        "date": "2026-11-15",
+        "host_club": "Kongsberg",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0053"
     }
   ],
-  "updated_at": "2026-09-30T18:10:40.117763+00:00"
+  "updated_at": "2026-09-30T19:21:48.123920+00:00"
 }
