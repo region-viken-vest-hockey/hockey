@@ -53,6 +53,7 @@ from .request_constraints import (
     compare_constraint_violations,
     request_constraint_report,
 )
+from .finding_resolution import annotate_resolutions, resolution_summary
 from .rule_catalog import annotate_findings
 from .season_state import (
     DEFAULT_SEASON_ROOT,
@@ -380,25 +381,11 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
     verification["ok"] = not remaining_violations
     verification["booking_feasibility_warnings"] = accepted_floor_findings
     findings = _findings(plan, problem, verification)
-    for warning in accepted_floor_findings:
-        tournament_id = str(warning.get("tournament_id") or "")
-        findings.append(
-            {
-                "finding_id": f"ice_time_governing_minimum:{tournament_id or 'booking'}",
-                "code": "ice_time_governing_minimum",
-                "category": BOOKING_FEASIBILITY,
-                "severity": "follow_up",
-                "tournament_id": tournament_id or None,
-                "age_group": warning.get("age_group"),
-                "accepted_booking_interval": True,
-                "accepted_exception": warning.get("accepted_exception"),
-                "message": warning.get("message") or "accepted booking interval below the governing floor",
-            }
-        )
     from .calendar_bookings import association_findings
 
     findings.extend(association_findings(problem=problem, plan=plan, decisions=decisions))
     annotate_findings(findings)
+    annotate_resolutions(findings)
     baseline = decisions.get("season_baseline") or None
     from .season_baseline import compare_findings_to_baseline
 
@@ -426,6 +413,7 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
         "counts_by_code": counts,
         "counts_by_rule_id": counts_by_rule_id,
         "findings": findings,
+        "resolution_summary": resolution_summary(findings),
         "baseline_comparison": baseline_comparison,
         "baseline": {
             "active": bool(baseline),
@@ -583,6 +571,19 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
     schedule, decisions, plan, problem = load_context(season, root=root)
     revision = canonical_state_revision(schedule, decisions)
     verification = verify_candidate(plan, problem)
+    # Use the same accepted-booking exception owner as final verification and
+    # findings before constructing the season-wide hard gate. The raw planning
+    # verifier remains strict, but an exact accepted source interval is a
+    # resolved fact rather than an unresolved hard violation.
+    from .canonical_exception_policy import reclassify_accepted_exceptions
+
+    accepted_booking = reclassify_accepted_exceptions(
+        problem, plan, list(verification.get("violations") or [])
+    )
+    verification = dict(verification)
+    verification["violations"] = accepted_booking["blocking_violations"]
+    verification["booking_feasibility_warnings"] = accepted_booking["accepted_exceptions"]
+    verification["ok"] = not verification["violations"]
     final = verify_final_candidate(dict(plan), dict(problem))
     locks = verify_canonical_locks(build_canonical_baseline(schedule, decisions), dict(plan))
     (
@@ -655,6 +656,7 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
 
     findings.extend(association_findings(problem=problem, plan=plan, decisions=decisions))
     annotate_findings(findings)
+    annotate_resolutions(findings)
     for finding in findings:
         finding.setdefault("search_coverage", cheap_search_coverage(finding))
     score = with_unresolved_obligations_count(score_candidate(dict(plan), problem=dict(problem)))
@@ -1331,6 +1333,7 @@ def _findings(
     findings.extend(_unplaced_findings(plan, problem))
     findings.extend(_movable_capacity_findings(problem, plan))
     findings.extend(_shape_findings(verification))
+    findings.extend(_booking_feasibility_findings(verification))
     findings.extend(_spacing_findings(problem, plan))
     findings.extend(_home_representation_findings(problem, plan))
     findings.extend(_intra_club_distribution_findings(verification))
@@ -1339,6 +1342,7 @@ def _findings(
     # registered semantic, so the controller payload carries identity instead
     # of prose categories alone.
     annotate_findings(findings)
+    annotate_resolutions(findings)
     # Every finding carries a coverage view so a controller never has to infer
     # "untried dimensions remain" from the absence of options. The unplaced
     # provider already attached its authoritative per-obligation coverage; the
@@ -1641,6 +1645,27 @@ def _shape_findings(verification: Mapping[str, Any]) -> List[Dict[str, Any]]:
                 "age_group": age_group or None,
                 "message": shape.get("message") or f"input-constrained tournament shape for {age_group}",
                 "facts": dict(shape),
+            }
+        )
+    return out
+
+
+def _booking_feasibility_findings(verification: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    for warning in verification.get("booking_feasibility_warnings") or []:
+        tournament_id = str(warning.get("tournament_id") or "")
+        out.append(
+            {
+                "finding_id": f"ice_time_governing_minimum:{tournament_id or 'booking'}",
+                "code": "ice_time_governing_minimum",
+                "category": BOOKING_FEASIBILITY,
+                "severity": "follow_up",
+                "tournament_id": tournament_id or None,
+                "age_group": warning.get("age_group"),
+                "accepted_booking_interval": True,
+                "accepted_exception": warning.get("accepted_exception"),
+                "message": warning.get("message")
+                or "accepted booking interval below the governing floor",
             }
         )
     return out

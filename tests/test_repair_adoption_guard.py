@@ -13,6 +13,7 @@ from typing import Any, Dict, Iterable, List
 import pytest
 
 from tournament_scheduler import repair_adoption_guard
+from tournament_scheduler.finding_resolution import annotate_resolutions
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
 from tournament_scheduler.repair_adoption_guard import (
     REGRESSION_CYCLE,
@@ -570,6 +571,96 @@ def test_audit_does_not_count_an_accepted_obligation_as_blocking() -> None:
 
     assert report["status"] == "PASS"
     assert report["accepted_exceptions"] == ["tournament_placement_obligation"]
+
+
+def test_audit_resolves_authoritative_factual_findings_without_hiding_them() -> None:
+    plan, problem = _wide_gap_season()
+    verification = verify_candidate(plan, problem)
+    findings = [
+        {
+            "finding_id": "ice_time_governing_minimum:t1",
+            "code": "ice_time_governing_minimum",
+            "rule_id": "tournament_ice_booking_duration",
+            "severity": "follow_up",
+            "accepted_booking_interval": True,
+            "accepted_exception": {"rule": "ice_time_governing_minimum", "tournament_id": "t1"},
+        },
+        {
+            "finding_id": "input_constrained_shape:JU8:1",
+            "code": "input_constrained_shape",
+            "rule_id": "tournament_roster_shape",
+            "severity": "strong_goal",
+            "facts": {"age_group": "JU8", "registered_team_count": 4},
+        },
+        {
+            "finding_id": "unplaced_placement:U10:2026-10-10:1",
+            "code": "unplaced_tournament_placement",
+            "rule_id": "tournament_placement_obligation",
+            "severity": "unresolved",
+            "search_coverage": {
+                "status": "bounded_search_exhausted",
+                "proven_infeasible": False,
+                "capability": {"family": "unplaced_placement", "version": "test"},
+            },
+        },
+    ]
+    annotate_resolutions(findings)
+
+    report = season_wide_audit(
+        plan=plan,
+        findings=findings,
+        verification=verification,
+        reconciliation={"ok": True},
+        catalog=[
+            CATALOG_BY_ID["tournament_ice_booking_duration"],
+            CATALOG_BY_ID["tournament_roster_shape"],
+            CATALOG_BY_ID["tournament_placement_obligation"],
+        ],
+    )
+
+    assert report["status"] == "PASS"
+    assert report["mandatory_finding_checks"] == []
+    assert report["blocking_finding_count"] == 0
+    statuses = {check["rule_id"]: check for check in report["checks"]}
+    assert statuses["tournament_ice_booking_duration"]["resolved_statuses"] == [
+        "accepted_authoritative_fact"
+    ]
+    assert statuses["tournament_roster_shape"]["resolved_statuses"] == [
+        "input_constrained_factual_state"
+    ]
+    assert statuses["tournament_placement_obligation"]["resolved_statuses"] == [
+        "proven_infeasible_with_current_capacity"
+    ]
+
+
+def test_stale_infeasibility_evidence_reopens_obligation() -> None:
+    plan, problem = _wide_gap_season()
+    verification = verify_candidate(plan, problem)
+    findings = [
+        {
+            "finding_id": "unplaced_placement:U10:2026-10-10:1",
+            "code": "unplaced_tournament_placement",
+            "rule_id": "tournament_placement_obligation",
+            "severity": "unresolved",
+            "search_coverage": {
+                "status": "bounded_search_exhausted",
+                "capability_stale": True,
+                "stale_reason": "capacity_or_capability_changed",
+            },
+        }
+    ]
+    annotate_resolutions(findings)
+
+    report = season_wide_audit(
+        plan=plan,
+        findings=findings,
+        verification=verification,
+        reconciliation={"ok": True},
+        catalog=[CATALOG_BY_ID["tournament_placement_obligation"]],
+    )
+
+    assert report["status"] == "FAIL"
+    assert report["mandatory_finding_checks"] == ["tournament_placement_obligation"]
 
 
 def test_travel_measurement_unavailable_blocks_adoption(monkeypatch) -> None:
