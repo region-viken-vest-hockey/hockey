@@ -6,6 +6,7 @@ from tournament_scheduler.hosting_coverage import (
     hosting_coverage_matrix,
     material_hosting_balance_imbalances,
     hosting_targets_with_coverage_floor,
+    planned_tournament_counts_by_age,
     proportional_integer_targets,
     required_club_age_group_pairs,
     shared_registration_facts,
@@ -19,6 +20,37 @@ def _team(club: str, age_group: str) -> dict:
 
 def _tournament(host_club: str, age_group: str, cancelled: bool = False) -> dict:
     return {"host_club": host_club, "age_group": age_group, "cancelled": cancelled}
+
+
+def test_planned_volume_includes_cancelled_and_unresolved_obligations():
+    tournaments = [
+        _tournament("Big", "U10"),
+        _tournament("Big", "U10"),
+        _tournament("Small", "U10", cancelled=True),
+    ]
+    unresolved = [{"age_group": "U10"}, {"age_group": "U11"}]
+
+    counts = planned_tournament_counts_by_age(tournaments, unresolved)
+
+    assert counts == {"U10": 4, "U11": 1}
+
+
+def test_balance_matrix_uses_planned_volume_when_supplied():
+    teams = [_team("Big", "U10"), _team("Big", "U10"), _team("Small", "U10")]
+    tournaments = [_tournament("Big", "U10"), _tournament("Big", "U10")]
+    planned = planned_tournament_counts_by_age(tournaments, [{"age_group": "U10"}])
+
+    physical = {row["club"]: row for row in hosting_balance_matrix(teams, tournaments)}
+    responsibility = {
+        row["club"]: row
+        for row in hosting_balance_matrix(teams, tournaments, planned_counts_by_age=planned)
+    }
+
+    # Physically placed volume alone makes Big look over-target; the planned
+    # obligation keeps Small's target so no responsibility was transferred.
+    assert physical["Big"]["excess"] == 1
+    assert responsibility["Big"]["excess"] == 0
+    assert responsibility["Small"]["assigned_responsibility"] == 1
 
 
 class TestRequiredClubAgeGroupPairs:

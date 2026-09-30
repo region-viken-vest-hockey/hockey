@@ -109,15 +109,18 @@ __all__ = [
     "rename_teams",
     "swap_participants",
     "participation_acceptance_id",
+    "placement_infeasibility_report",
     "planning_checkpoint_from_schedule",
     "promote_from_stage3",
     "publication_evidence_report",
     "record_participation_acceptance",
+    "record_placement_infeasibility_proofs",
     "reconcile_config",
     "refresh_calendars",
     "release_banned_dates",
     "release_change_protections",
     "release_participation_withdrawals",
+    "release_placement_infeasibility_proofs",
     "disallow_holiday_dates",
     "release_guest_slot",
     "release_request_constraints",
@@ -868,6 +871,66 @@ def ice_time_override_report(
         season=season,
         problem=problem,
         include_released=include_released,
+    )
+
+
+def record_placement_infeasibility_proofs(
+    *,
+    season: str,
+    finding_ids: list[str] | None = None,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+    expected_revision: str | None = None,
+    problem: dict[str, Any] | None = None,
+    allow_search: bool = True,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Run the bounded search and persist durable infeasibility proofs."""
+
+    return _service(root).record_placement_infeasibility_proofs(
+        season=season,
+        finding_ids=finding_ids,
+        actor=actor,
+        note=note,
+        expected_revision=expected_revision,
+        problem=problem,
+        allow_search=allow_search,
+        dry_run=dry_run,
+    )
+
+
+def release_placement_infeasibility_proofs(
+    *,
+    season: str,
+    finding_ids: list[str] | None = None,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+) -> dict[str, Any]:
+    """Supersede active proofs so the obligations become actionable again."""
+
+    return _service(root).release_placement_infeasibility_proofs(
+        season=season,
+        finding_ids=finding_ids,
+        actor=actor,
+        note=note,
+    )
+
+
+def placement_infeasibility_report(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+    include_superseded: bool = False,
+) -> dict[str, Any]:
+    """Read-only status of recorded placement-infeasibility proofs."""
+
+    return _service(root).placement_infeasibility_report(
+        season=season,
+        problem=problem,
+        include_superseded=include_superseded,
     )
 
 

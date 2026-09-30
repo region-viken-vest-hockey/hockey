@@ -1355,6 +1355,9 @@ def _cmd_season(args: argparse.Namespace) -> int:
         load_schedule,
         normalize_placements,
         normalize_arena_identities,
+        placement_infeasibility_report,
+        record_placement_infeasibility_proofs,
+        release_placement_infeasibility_proofs,
         effective_config_from_verification_problem,
         planning_checkpoint_from_schedule,
         promote_from_stage3,
@@ -3541,6 +3544,82 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     _console.print(
                         "  [yellow]ufullstendig dekning:[/yellow] "
                         + ", ".join(audit["incomplete_checks"])
+                    )
+            return 0
+
+        if args.season_command == "record-infeasibility":
+            result = record_placement_infeasibility_proofs(
+                season=args.season,
+                root=args.root,
+                finding_ids=list(getattr(args, "finding", None) or []),
+                actor=args.actor,
+                note=args.note,
+                expected_revision=args.expected_revision,
+                dry_run=bool(args.dry_run),
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                prefix = "Validated" if result.get("dry_run") else "Recorded"
+                _console.print(
+                    f"[green]✓[/green] {prefix} {result.get('recorded_count', 0)} "
+                    f"placement-infeasibility proof(s) for {args.season} "
+                    f"(revision {str(result.get('canonical_state_revision'))[:12]})"
+                )
+                for entry in result.get("recorded") or []:
+                    _console.print(
+                        f"  [green]•[/green] {entry.get('obligation_id')} "
+                        f"({entry.get('age_group')} {entry.get('source_date')}, "
+                        f"{entry.get('candidate_count')} rejected candidate(s))"
+                    )
+                for entry in result.get("skipped") or []:
+                    _console.print(
+                        f"  [yellow]⚠[/yellow] {entry.get('obligation_id')} not proven: "
+                        f"{entry.get('reason')} ({entry.get('coverage_status')})"
+                    )
+            return 0
+
+        if args.season_command == "release-infeasibility":
+            result = release_placement_infeasibility_proofs(
+                season=args.season,
+                root=args.root,
+                finding_ids=list(getattr(args, "finding", None) or []),
+                actor=args.actor,
+                note=args.note,
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[green]✓[/green] Released {len(result.get('released_obligation_ids') or [])} "
+                    f"placement-infeasibility proof(s) for {args.season} "
+                    f"(revision {str(result.get('canonical_state_revision'))[:12]})"
+                )
+            return 0
+
+        if args.season_command == "infeasibility-report":
+            result = placement_infeasibility_report(
+                season=args.season,
+                root=args.root,
+                include_superseded=bool(getattr(args, "include_superseded", False)),
+            )
+            if args.json:
+                print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+            else:
+                _console.print(
+                    f"[bold]Placement infeasibility {args.season}[/bold] "
+                    f"(revision {str(result.get('canonical_state_revision'))[:12]})"
+                )
+                _console.print(
+                    f"  {result.get('current_proof_count', 0)} current / "
+                    f"{result.get('active_proof_count', 0)} active proof(s); "
+                    f"{len(result.get('unproven_obligation_ids') or [])} unproven obligation(s)"
+                )
+                for entry in result.get("proofs") or []:
+                    marker = "[green]✔[/green]" if entry.get("current") else "[yellow]⚠[/yellow]"
+                    _console.print(
+                        f"  {marker} {entry.get('obligation_id')} "
+                        f"[{entry.get('status')}] {entry.get('stale_reason') or 'current'}"
                     )
             return 0
 

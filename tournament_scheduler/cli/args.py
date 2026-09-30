@@ -2084,6 +2084,60 @@ def build_parser() -> argparse.ArgumentParser:
     season_audit.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_audit.add_argument("--json", action="store_true", help="Print the audit report as JSON")
 
+    season_record_infeasibility = season_sub.add_parser(
+        "record-infeasibility",
+        help=(
+            "Run the canonical bounded placement search and persist durable "
+            "proven-infeasibility evidence for unplaced obligations"
+        ),
+    )
+    season_record_infeasibility.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_record_infeasibility.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_record_infeasibility.add_argument(
+        "--finding",
+        action="append",
+        default=[],
+        help="Restrict to one obligation/finding id (repeatable); default all unplaced obligations",
+    )
+    season_record_infeasibility.add_argument(
+        "--expected-revision",
+        default=None,
+        help="Refuse the write when the canonical revision no longer matches",
+    )
+    season_record_infeasibility.add_argument("--actor", default=None, help="Operator identity for provenance")
+    season_record_infeasibility.add_argument("--note", default="", help="Why this proof is recorded")
+    season_record_infeasibility.add_argument(
+        "--dry-run", action="store_true", help="Run the search and report the proofs without writing"
+    )
+    season_record_infeasibility.add_argument("--json", action="store_true", help="Print the result as JSON")
+
+    season_release_infeasibility = season_sub.add_parser(
+        "release-infeasibility",
+        help="Supersede recorded placement-infeasibility proofs so the obligations reopen",
+    )
+    season_release_infeasibility.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_release_infeasibility.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_release_infeasibility.add_argument(
+        "--finding",
+        action="append",
+        default=[],
+        help="Restrict to one obligation/finding id (repeatable); default all unplaced obligations",
+    )
+    season_release_infeasibility.add_argument("--actor", default=None, help="Operator identity for provenance")
+    season_release_infeasibility.add_argument("--note", default="", help="Why the proofs are released")
+    season_release_infeasibility.add_argument("--json", action="store_true", help="Print the result as JSON")
+
+    season_infeasibility_report = season_sub.add_parser(
+        "infeasibility-report",
+        help="Show recorded placement-infeasibility proofs and whether they are still current",
+    )
+    season_infeasibility_report.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_infeasibility_report.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_infeasibility_report.add_argument(
+        "--include-superseded", action="store_true", help="Include superseded proofs"
+    )
+    season_infeasibility_report.add_argument("--json", action="store_true", help="Print the report as JSON")
+
     season_baseline = season_sub.add_parser(
         "baseline",
         help="Create, advance or inspect the accepted season-quality baseline",

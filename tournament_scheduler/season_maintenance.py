@@ -380,7 +380,7 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
     verification["violations"] = remaining_violations
     verification["ok"] = not remaining_violations
     verification["booking_feasibility_warnings"] = accepted_floor_findings
-    findings = _findings(plan, problem, verification)
+    findings = _findings(plan, problem, verification, decisions=decisions)
     from .calendar_bookings import association_findings
 
     findings.extend(association_findings(problem=problem, plan=plan, decisions=decisions))
@@ -627,7 +627,7 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
         ),
         "violations": merged_violations,
     }
-    findings = _findings(plan, problem, verification)
+    findings = _findings(plan, problem, verification, decisions=decisions)
     # The findings projection already translates coverage rows; append only the
     # owner findings it does not carry (structural coverage shortfalls and
     # responsibility transfers). Deduplicate by semantic identity
@@ -721,7 +721,7 @@ def repair_options(
     """Enumerate deterministic repair options for one selected finding."""
     schedule, decisions, plan, problem = load_context(season, root=root)
     revision = canonical_state_revision(schedule, decisions)
-    findings = _findings(plan, problem, verify_candidate(plan, problem))
+    findings = _findings(plan, problem, verify_candidate(plan, problem), decisions=decisions)
     finding = _require_finding(findings, finding_id, age_group=age_group)
     options, rejected, families = _options_for_finding(
         plan, problem, finding, allow_search=allow_search, dimensions=DEFAULT_DIMENSIONS
@@ -766,7 +766,7 @@ def search(
     resolved_dimensions = tuple(sorted({str(d) for d in dimensions}))
     schedule, decisions, plan, problem = load_context(season, root=root)
     revision = canonical_state_revision(schedule, decisions)
-    findings = _findings(plan, problem, verify_candidate(plan, problem))
+    findings = _findings(plan, problem, verify_candidate(plan, problem), decisions=decisions)
     finding = _require_finding(findings, finding_id, age_group=age_group)
     options, rejected, families = _options_for_finding(
         plan, problem, finding, allow_search=True, dimensions=resolved_dimensions
@@ -840,7 +840,7 @@ def apply_repair(
         return _rejected_delta(
             season, revision, "stale_canonical_revision", expected_revision=expected_revision
         )
-    findings = _findings(plan, problem, verify_candidate(plan, problem))
+    findings = _findings(plan, problem, verify_candidate(plan, problem), decisions=decisions)
     if finding_id:
         candidates = [_require_finding(findings, finding_id, age_group=age_group)]
     else:
@@ -923,8 +923,8 @@ def apply_repair(
     # regression code with a reason. This is deliberately measured on the whole
     # season, not only on the directly affected squads.
     pass_ledger = RepairPassLedger.from_history(decisions.get("history") or [])
-    before_findings = _findings(plan, problem, before_verification)
-    candidate_findings = _findings(result_candidate, problem, verification)
+    before_findings = _findings(plan, problem, before_verification, decisions=decisions)
+    candidate_findings = _findings(result_candidate, problem, verification, decisions=decisions)
     pass_baseline = decisions.get("season_baseline")
     try:
         adoption = evaluate_adoption(
@@ -1076,7 +1076,7 @@ def accept_finding(
     """Persist an explicit operator acceptance of one participation finding."""
     schedule, decisions, plan, problem = load_context(season, root=root)
     revision = canonical_state_revision(schedule, decisions)
-    findings = _findings(plan, problem, verify_candidate(plan, problem))
+    findings = _findings(plan, problem, verify_candidate(plan, problem), decisions=decisions)
     finding = _require_finding(findings, finding_id, age_group=age_group)
     if finding["category"] != PARTICIPATION:
         raise SeasonMaintenanceError(
@@ -1117,7 +1117,7 @@ def revoke_acceptance(
     """Revoke the active operator acceptance for one participation finding."""
     schedule, decisions, plan, problem = load_context(season, root=root)
     revision = canonical_state_revision(schedule, decisions)
-    findings = _findings(plan, problem, verify_candidate(plan, problem))
+    findings = _findings(plan, problem, verify_candidate(plan, problem), decisions=decisions)
     finding = _require_finding(findings, finding_id, age_group=age_group)
     if finding["category"] != PARTICIPATION:
         raise SeasonMaintenanceError(
@@ -1324,13 +1324,15 @@ def _findings(
     plan: Mapping[str, Any],
     problem: Mapping[str, Any],
     verification: Mapping[str, Any],
+    *,
+    decisions: Optional[Mapping[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     findings: List[Dict[str, Any]] = []
     findings.extend(_hard_findings(plan, verification))
     findings.extend(_hosting_findings(problem, plan))
     findings.extend(_participation_findings(verification, problem))
     findings.extend(_manual_findings(plan, verification))
-    findings.extend(_unplaced_findings(plan, problem))
+    findings.extend(_unplaced_findings(plan, problem, decisions=decisions))
     findings.extend(_movable_capacity_findings(problem, plan))
     findings.extend(_shape_findings(verification))
     findings.extend(_booking_feasibility_findings(verification))
@@ -1532,7 +1534,10 @@ def _manual_findings(
 
 
 def _unplaced_findings(
-    plan: Mapping[str, Any], problem: Optional[Mapping[str, Any]] = None
+    plan: Mapping[str, Any],
+    problem: Optional[Mapping[str, Any]] = None,
+    *,
+    decisions: Optional[Mapping[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """Findings for genuine unplaced obligations (no tournament exists).
 
@@ -1543,6 +1548,19 @@ def _unplaced_findings(
     id, so the obligation stays visible/actionable without a fake placement.
     """
     out: List[Dict[str, Any]] = []
+    from .placement_infeasibility import (
+        coverage_from_proof,
+        proof_is_current,
+        proofs_by_obligation,
+        stale_coverage_from_proof,
+    )
+    from .unplaced_placement_repair import (
+        obligation_search_coverage,
+        unplaced_placement_search_capability,
+    )
+
+    proofs = proofs_by_obligation(decisions) if decisions else {}
+    capability = unplaced_placement_search_capability()
     for entry in plan.get("unresolved_tournament_placements") or []:
         if not isinstance(entry, Mapping):
             continue
@@ -1555,9 +1573,21 @@ def _unplaced_findings(
                 f"unplaced_placement:{entry.get('age_group') or '?'}:"
                 f"{entry.get('date') or '?'}"
             )
-        from .unplaced_placement_repair import obligation_search_coverage
-
         coverage = obligation_search_coverage(plan, problem or {}, entry, allow_search=False)
+        proof = proofs.get(finding_id)
+        if proof is not None:
+            is_current, stale_reason = proof_is_current(
+                proof,
+                plan=plan,
+                problem=problem or {},
+                obligation=entry,
+                current_capability=capability,
+            )
+            coverage = (
+                coverage_from_proof(proof)
+                if is_current
+                else stale_coverage_from_proof(proof, reason=stale_reason, fallback=coverage)
+            )
         out.append(
             {
                 "finding_id": finding_id,

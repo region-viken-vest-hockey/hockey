@@ -31,6 +31,7 @@ from tournament_scheduler.calendar_bookings import (
     MANUAL_BOOKING_ASSERTIONS_KEY,
 )
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
+from tournament_scheduler.placement_infeasibility import PROOF_KEY as PLACEMENT_INFEASIBILITY_PROOFS_KEY
 from tournament_scheduler.published_baseline import SEASON_LIFECYCLE_KEY
 
 CANONICAL_STATE_REVISION_KEY = "canonical_state_revision"
@@ -89,6 +90,12 @@ def compute_canonical_state_revision(
     club_booking_sources = decisions.get(CLUB_BOOKING_SOURCE_ASSERTIONS_KEY)
     if club_booking_sources:
         payload["club_booking_source_assertions"] = club_booking_sources
+    # Durable placement-infeasibility proofs are part of the effective canonical
+    # state once recorded, but an empty key must not silently rewrite an older
+    # season's revision (same reasoning as the club-booking source overlay).
+    placement_infeasibility_proofs = decisions.get(PLACEMENT_INFEASIBILITY_PROOFS_KEY)
+    if placement_infeasibility_proofs:
+        payload["placement_infeasibility_proofs"] = placement_infeasibility_proofs
     return stable_payload_sha256(payload)
 
 
@@ -156,6 +163,7 @@ __all__ = [
     "BANNED_DATES_KEY",
     "CALENDAR_BOOKING_ASSOCIATIONS_KEY",
     "CANONICAL_STATE_REVISION_KEY",
+    "PLACEMENT_INFEASIBILITY_PROOFS_KEY",
     "CHANGE_PROTECTIONS_KEY",
     "CLUB_BOOKING_SOURCE_ASSERTIONS_KEY",
     "ICE_TIME_OVERRIDES_KEY",
