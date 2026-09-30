@@ -21,6 +21,10 @@ from tournament_scheduler.participation_targets import INTRA_CLUB_DISTRIBUTION
 from tournament_scheduler.participation_withdrawals import (
     withdrawn_team_count_for_tournament,
 )
+from tournament_scheduler.canonical_exception_policy import (
+    classify_candidate_violations,
+    reclassify_accepted_exceptions,
+)
 from tournament_scheduler.planning_contract import verify_candidate as _verify_candidate
 from tournament_scheduler.rule_catalog import annotate_violations
 
@@ -335,34 +339,16 @@ def _reclassify_accepted_booking_floor(
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Reclassify governing-floor violations for source-confirmed bookings.
 
-    The planning verifier stays strict (an effective occupancy below the
-    governing floor is a hard violation). At the audit/export boundary a
-    source-confirmed accepted booking interval is a durable feasibility finding,
-    not a new-placement planning violation; it is reclassified here using the
-    projected canonical evidence and an exact interval match, without a second
-    evidence engine or blanket waiver.
+    Thin compatibility wrapper over the shared policy owner
+    :func:`tournament_scheduler.canonical_exception_policy.reclassify_accepted_exceptions`:
+    the planning verifier stays strict, while an exact, fact-matching accepted
+    booking interval becomes a durable feasibility finding instead of a
+    new-placement planning violation (no second evidence engine or blanket
+    waiver).
     """
 
-    from tournament_scheduler.calendar_bookings import accepted_booking_interval_evidence
-
-    tournaments = {
-        str(tournament.get("id") or ""): tournament
-        for tournament in (candidate.get("tournaments") or [])
-        if isinstance(tournament, dict)
-    }
-    findings: list[dict[str, Any]] = []
-    remaining: list[dict[str, Any]] = []
-    for violation in violations:
-        if violation.get("code") == "ice_time_governing_minimum":
-            tournament_id = str(violation.get("tournament_id") or "")
-            tournament = tournaments.get(tournament_id)
-            if tournament is not None and accepted_booking_interval_evidence(problem, tournament) is not None:
-                finding = dict(violation)
-                finding["accepted_booking_interval"] = True
-                findings.append(finding)
-                continue
-        remaining.append(violation)
-    return findings, remaining
+    classified = reclassify_accepted_exceptions(problem, candidate, violations)
+    return classified["accepted_exceptions"], classified["blocking_violations"]
 
 
 def verify_final_candidate(
@@ -423,6 +409,7 @@ def verify_canonical_candidate(
     problem: dict[str, Any] | None = None,
     *,
     base_verifier: Any | None = None,
+    baseline_verification: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Verify a promoted-season candidate against effective canonical evidence.
 
@@ -433,6 +420,11 @@ def verify_canonical_candidate(
     placement failures.  New, stale or materially changed intervals remain hard
     failures because :func:`accepted_booking_interval_evidence` requires an
     exact current interval and tournament-facts match.
+
+    When the caller supplies the authoritative baseline verification, the
+    result also carries ``violation_classification`` from the shared
+    baseline-aware policy owner, so direct mutation, dry-run, repair adoption
+    and bounded search report identical structured evidence.
     """
 
     verifier = base_verifier or _verify_candidate
@@ -445,6 +437,21 @@ def verify_canonical_candidate(
     result["violations"] = violations
     annotate_violations(result["violations"])
     result["ok"] = not violations
+    if baseline_verification is not None:
+        # The baseline and candidate are compared on their *complete* findings:
+        # accepted follow-up findings stay in the comparison so an unchanged
+        # accepted interval is reported as ``unchanged_accepted`` rather than
+        # silently dropped from the candidate view.
+        baseline_findings = [
+            *list(baseline_verification.get("violations") or []),
+            *list(baseline_verification.get("booking_feasibility_warnings") or []),
+        ]
+        candidate_findings = [*violations, *accepted_floor_findings]
+        result["violation_classification"] = classify_candidate_violations(
+            baseline_findings,
+            candidate_findings,
+            accepted_exception_violations=accepted_floor_findings,
+        )
     readiness = publication_readiness(result)
     result["publication_readiness"] = readiness
     result["publishable"] = readiness["publishable"]

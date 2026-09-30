@@ -204,10 +204,17 @@ def move_tournament(
     original_placement = move_result["original_placement"]
     original_tournament_fingerprint = move_result["original_fingerprint"]
 
-    result = (
-        verify_canonical_candidate(plan, resolved_problem)
+    before_verification = (
+        verify_canonical_candidate(dict(schedule.get("plan") or {}), resolved_problem)
         if resolved_problem
-        else verify_canonical_candidate(plan)
+        else verify_canonical_candidate(dict(schedule.get("plan") or {}))
+    )
+    result = (
+        verify_canonical_candidate(
+            plan, resolved_problem, baseline_verification=before_verification
+        )
+        if resolved_problem
+        else verify_canonical_candidate(plan, baseline_verification=before_verification)
     )
     if not result.get("ok", True):
         messages = "; ".join(
@@ -216,11 +223,6 @@ def move_tournament(
         raise SeasonStateError(
             f"Refusing canonical mutation: candidate fails hard verification: {messages}"
         )
-    before_verification = (
-        verify_canonical_candidate(dict(schedule.get("plan") or {}), resolved_problem)
-        if resolved_problem
-        else verify_canonical_candidate(dict(schedule.get("plan") or {}))
-    )
     operational_acceptability = check_operational_acceptability(
         schedule.get("plan") or {},
         before_verification,

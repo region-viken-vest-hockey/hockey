@@ -391,6 +391,7 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
                 "tournament_id": tournament_id or None,
                 "age_group": warning.get("age_group"),
                 "accepted_booking_interval": True,
+                "accepted_exception": warning.get("accepted_exception"),
                 "message": warning.get("message") or "accepted booking interval below the governing floor",
             }
         )

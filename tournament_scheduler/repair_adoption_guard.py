@@ -788,7 +788,11 @@ def evaluate_adoption(
         score_candidate(dict(candidate_plan), problem=dict(problem) if problem is not None else None)
     )
     before_verification = verify_canonical_candidate(dict(before_plan), dict(problem) if problem is not None else None)
-    after_verification = verify_canonical_candidate(dict(candidate_plan), dict(problem) if problem is not None else None)
+    after_verification = verify_canonical_candidate(
+        dict(candidate_plan),
+        dict(problem) if problem is not None else None,
+        baseline_verification=before_verification,
+    )
     before_travel = compute_travel(before_plan)
     after_travel = compute_travel(candidate_plan)
 
@@ -880,6 +884,7 @@ def evaluate_adoption(
         "hard_violations_before": hard_violations_before,
         "hard_violations_after": hard_violations_after,
         "hard_violations_decreased": hard_violations_decreased,
+        "violation_classification": after_verification.get("violation_classification"),
         "priority_improvement_tier": resolved_improvement_tier,
         "soft_regression_priority_exemption": resolved_improvement_tier is not None,
         "measurement_incomplete": measurement_incomplete,
