@@ -1,157 +1,131 @@
 # Agent instructions
 
-This is the shared, harness-neutral instruction file. Keep always-on repository rules here and keep harness-specific bootstrap files (`CLAUDE.md`, `CODEX.md`, command adapters, etc.) thin. Do not copy shared policy into each harness.
+This is the repository-wide, **harness-neutral** instruction file. Claude, Codex, ChatGPT, Pi and future harnesses must share repository semantics from here and the routed shared skills/procedures. Harness-specific files are thin bootstrap/transport adapters only; they must not redefine scheduling, source, canonical-season, verification, audit or publication policy.
 
-## Instruction loading
+## Start and route
 
-At the start of a new agent conversation or after context loss, follow the shared
-[verified session handover](.agents/commands/rvv-miniputt/handover.md) before
-making assumptions about tasks or season/publication state. A handover is
-read-only evidence, not an authority to plan, mutate or publish.
+At a new agent conversation or after context loss, use the shared read-only [verified handover](.agents/commands/rvv-miniputt/handover.md) before assuming season/publication state. Handover is evidence, not authority to mutate, plan or publish.
 
-Load task-specific guidance only when it is relevant:
+For any RVV Miniputt scraping, planning, canonical maintenance, export, audit or publication task, read [`.agents/skills/rvv/SKILL.md`](.agents/skills/rvv/SKILL.md), then load only the capability guidance and exact command procedure it routes to.
 
-- For RVV Miniputt scraping, calendar collection/recovery, season planning, canonical-season maintenance, pipeline operation/debugging, export, review, or publication, read [`.agents/skills/rvv/SKILL.md`](.agents/skills/rvv/SKILL.md).
-- When an already generated schedule/export is being handed off as the real club-review or ice-booking baseline and future experiments must not silently replace it, also read [`.agents/skills/rvv-review-baseline/SKILL.md`](.agents/skills/rvv-review-baseline/SKILL.md).
-- When the operator says one canonical tournament/ice slot is confirmed, approved, or booked and should be locked, also read [`.agents/skills/rvv-confirm-tournament/SKILL.md`](.agents/skills/rvv-confirm-tournament/SKILL.md).
-- When the operator asks to move one canonical tournament to a specific new date/arena/host/time, also read [`.agents/skills/rvv-move-tournament/SKILL.md`](.agents/skills/rvv-move-tournament/SKILL.md).
-- For a supported RVV command workflow, load the matching shared procedure under [`.agents/commands/rvv-miniputt/`](.agents/commands/rvv-miniputt/) rather than keeping another copy in a harness adapter.
-- Before proposing or making architectural changes, read [`docs/engineering-principles.md`](docs/engineering-principles.md), [`docs/system-architecture.md`](docs/system-architecture.md), and [`docs/README.md`](docs/README.md).
-- Use the focused active document linked from `docs/README.md` for task-specific contracts such as workbook/input formats or pipeline behavior.
+Before architectural changes, read [engineering principles](docs/engineering-principles.md), [system architecture](docs/system-architecture.md), and the active docs index in [docs/README.md](docs/README.md). Load focused ADRs/docs only when relevant.
 
-Harness adapters may point to these files, but must not duplicate their policy. If guidance is only useful for a particular workflow, put it in the relevant shared skill/doc and reference it instead of expanding an always-loaded harness file.
+Do **not** preload every RVV skill, command or architecture document. Progressive context loading is the repository standard.
 
 ## Source-of-truth order
 
-Use the repository in this order when facts or instructions disagree:
+When facts/instructions disagree:
 
-1. **Current code, tests, and controlled inputs** (`input.xlsx` and the relevant source files) define what the system actually accepts and executes.
-2. **`.agents/skills/rvv/SKILL.md`** is the canonical shared RVV operational/planning runbook for agents.
-3. **`README.md` and active docs listed in `docs/README.md`** explain the current system and operator workflow.
-4. **Accepted ADRs** record durable architecture decisions and rationale. They are not step-by-step runbooks.
-5. Git history, old issue text and historical season material are context only; never treat them as current instructions.
+1. current code, tests and controlled inputs define executable behavior;
+2. this file defines repository-wide agent behavior;
+3. the routed shared RVV/capability skill defines operational policy;
+4. active docs/README explain current contracts/workflows;
+5. accepted ADRs record durable architecture decisions/rationale;
+6. Git history, old issues and historical season artifacts are context only.
 
-If an active document contradicts current code or the controlled workbook, fix the active documentation in the same change unless the code/input itself is the bug being corrected.
+If active documentation contradicts current code/input, fix the owning document in the same change unless code/input is the defect being corrected.
 
-## RVV Miniputt command surface
+## Harness-neutral ownership
 
-The **operator-facing harness surface is intentionally one command**: `.agents/commands/rvv-miniputt/operate.md`. Claude, Codex, ChatGPT and future harness UIs should expose only an `operate` alias for RVV work. The operator describes the desired outcome in natural language; `operate` routes that intent to the internal shared procedures below. Files such as `run.md`, `season.md`, `publish.md`, `scrape.md` and `status.md` remain reusable agent procedures, not separate operator commands.
+Repository behavior needed by more than one harness belongs in repository/application code, shared skills, shared command procedures or docs. Harness adapters may expose genuinely harness-specific bootstrap, transport or UI mechanics, but must not copy or fork policy.
 
-The one intentional non-operation entry point is the read-only `make handover` session/evidence diagnostic, whose shared procedure is [`.agents/commands/rvv-miniputt/handover.md`](.agents/commands/rvv-miniputt/handover.md). It gathers bounded Git/GitHub/canonical/publication evidence at session start and grants no planning, mutation, export or publication authority; it is not a second RVV operation command.
+The operator-facing RVV harness surface is intentionally `operate`; shared procedures under `.agents/commands/rvv-miniputt/` and `scripts/rvv-miniputt` own execution. Do not add a harness-local scheduler, verifier, decision controller, semantic-audit implementation, source-validity policy or second root orchestration flow.
 
-`.agents/skills/rvv/SKILL.md` owns shared RVV policy. `.agents/commands/rvv-miniputt/` owns shared command procedures. Claude, Codex, ChatGPT, Pi and future agent harnesses should consume the same files and execute the same repository-local command transport.
+## Behavioral defect ownership
 
-The canonical launcher for agent operation is:
+Before changing a behavioral defect, identify the violated contract and its authoritative owner. Fix the **lowest canonical owner**, not a compensating caller.
 
-```bash
-scripts/rvv-miniputt ...
-```
-
-It selects the repository environment and forwards to `tournament_scheduler.cli.rvv_cli`. The installed `rvv-miniputt` console script and `python3 -m tournament_scheduler.cli.rvv_cli ...` target the same Python transport; the latter is a low-level developer/test fallback rather than a separate operator interface.
-
-For the checkpoint-reviewed agent flow, use the shared `run` procedure, which calls `scripts/rvv-miniputt run --interactive`, and make decisions only from the returned `DecisionContext`, its `available_actions`, action parameter schema, and decision-action template.
-
-The active harness itself should reason over the returned context. Do not add a harness-local second model call, duplicated decision controller, scheduler loop, semantic-audit implementation, or source-validity policy.
-
-If browser-assisted source recovery is ever needed, any browser-capable harness may perform only the browser/navigation extraction and then return the recovered evidence through the repository-owned `recovery-inject` / `scrape-merge` validation path. No harness-specific scraper implementation is required in this repository.
-
-Do not invoke `tournament_scheduler.pipeline.stageN_*` modules directly from a harness when that bypasses checkpointing, resumption, structured decisions, verification, or run logging. Do not add another root scheduler CLI, interactive wizard, or harness-local orchestration implementation.
-
-For booking/reconciliation or canonical projection changes, read [ADR 0005](docs/adr/0005-reconciliation-is-not-planning.md). It defines the target boundary; #504 tracks implementation. Do not treat the ADR as evidence that existing code already conforms.
-
-## Change ownership
-
-When changing scheduling behavior, input semantics, source validity, export content, or publication rules, update the smallest active document that owns that behavior in the same change.
-
-Shared behavior needed by more than one harness belongs in repository/application code or the shared RVV runbook first. Harness adapters should only expose transport/UI that is genuinely unavailable through the shared command surface.
-
-### Behavioral defect ownership
-
-Before changing code for any behavioral defect, classify the violated contract and name its authoritative owner. This applies to lifecycle/control-plane bugs as well as scheduling-rule bugs.
-
-Use this ownership map by default:
-
-| Defect type | Canonical owner |
+| Defect | Canonical owner |
 |---|---|
-| wrong, missing, or ambiguous input/source fact | input normalization / planning-problem construction |
+| wrong/missing/ambiguous source fact | input normalization / source / planning-problem construction |
 | wrong legality or invariant | planner-independent domain rule / canonical verifier |
-| rule is correct but no useful legal mutation is exposed | validated action / repair / bounded search provider |
-| candidate identity, revision, fingerprint, run identity, pending-decision scope, persistence, or replay | application/session/store/controller layer |
-| resume, transition, finalization, or stage handoff behavior | application/session/controller lifecycle layer |
-| CLI argument parsing, rendering, stdout/stderr, or exit-code behavior | CLI transport layer |
-| correct state but wrong explanation, audit evidence, report, or export projection | evidence/report/export layer |
-| contextual choice among already-valid alternatives | active agent through declared repository actions |
+| correct rule but no useful legal mutation | validated action / repair / bounded search provider |
+| revision, fingerprint, run/candidate identity, persistence/replay | application/session/store/controller |
+| resume/transition/finalization/stage handoff | application/session/controller lifecycle |
+| CLI parsing/rendering/stdout/exit code | CLI transport |
+| correct state but wrong explanation/report/export | evidence/report/export |
+| contextual choice among valid alternatives | active agent via declared repository actions |
 
-Fix defects at the **lowest canonical layer that owns the violated contract**. Never add compensating behavior in callers, adapters, repair providers, renderers, or harness instructions merely to make an upstream ownership defect appear resolved.
+If the same semantic identity crosses layers—candidate fingerprint, revision, tournament/rule/objective/run identity—it has one canonical implementation/facade. Consumers call it; they do not reconstruct equivalents.
 
-If the same semantic identity is used across layers -- for example candidate normalization/fingerprint, candidate revision, run id, tournament identity, rule id, or objective id -- it must have one canonical implementation/facade. Consumers call that contract; they must not independently reconstruct an equivalent value.
-
-For a behavioral bug, use this sequence:
+For a behavioral bug:
 
 ```text
 reproduce exact failure
--> classify the violated contract and owner
--> add the smallest regression at the owner boundary
--> fix the canonical owner only
--> add/retain an integration regression for the originally failing path
--> run the relevant broader verification
+-> identify contract + owner
+-> add smallest regression at owner boundary
+-> fix canonical owner
+-> retain integration regression for original path
+-> run relevant broader verification
 ```
 
-A fix that requires parallel semantic changes in several unrelated layers is a warning that ownership has not been identified correctly. Stop and re-evaluate the boundary before spreading compensating fixes.
+Parallel semantic fixes in unrelated layers are a warning that ownership is wrong. Do not encode domain/lifecycle fixes in CLI or harness prose when deterministic repository code can own them.
 
-Do not change a domain rule to fix lifecycle state, do not change lifecycle/session state to fix a domain rule, and do not encode either one in CLI/harness prose when repository code can own it deterministically.
+## Scheduling-rule ownership
 
-### Scheduling-rule changes
+Before changing a scheduling rule, use the implementation map in [system architecture](docs/system-architecture.md) and [rule catalog](docs/architecture/rule-catalog.md).
 
-Before implementing or modifying a scheduling rule, read the **Scheduling-rule implementation map** in [`docs/system-architecture.md`](docs/system-architecture.md) and the canonical rule/ownership catalog in [`docs/architecture/rule-catalog.md`](docs/architecture/rule-catalog.md), and identify the rule's authoritative owner.
+Persistent invariants must not live only in a generator, optimizer path, renderer/exporter or prompt. Keep reusable facts/rule math planner-independent, verification independent from candidate generation, repairs as validated repository actions, and reports derived from final authoritative state.
 
-A persistent scheduling invariant must not live only in a baseline generator, one optimizer/search path, a renderer/exporter, or an agent/harness prompt. Put reusable facts/rule math in planner-independent deterministic code, make verification/measurement independent of the generator that proposed the candidate, expose repairs as validated repository actions, and derive reports/HTML from final authoritative state.
+For hosting, keep responsibility separate from automatic placement. Lack of a trustworthy/legal slot does not silently transfer hosting responsibility to an easier club.
 
-For obligations such as hosting, keep **responsibility** separate from **automatic placement**. If the fair/intended host has no trustworthy/legal slot, preserve that host responsibility and surface manual placement; do not silently move the burden to another club merely because its calendar is easier.
+## Published-season production architecture
 
-### Published-season production architecture
+The current 2026–2027 season is published/sealed. **Production maintenance is the default architecture priority until the next initial-planning cycle.**
 
-The current 2026–2027 season is published/sealed. **Production maintenance is the default architectural priority until the next initial-planning cycle.** For booking/calendar reconciliation, participant changes, request constraints, scoped moves, cancellations, audit/export and publication work, optimize for safe incremental canonical maintenance rather than planner/Stage 3 cleanup.
+For booking/calendar reconciliation, participant changes, request constraints, scoped moves, cancellations, audit/export and publication:
 
-- Start from the smallest stable **production capability facade** and load its focused implementation/tests on demand. A facade should make the supported operations, typed contract, invariants, implementation owner and test owner discoverable without requiring the agent to ingest unrelated internals. This is progressive context loading, not abstraction for its own sake.
-- Preserve one shared revision-bound canonical mutation pattern: authoritative baseline -> candidate change in memory -> effective baseline/candidate facts -> classify resolved/unchanged/new/worsened findings -> operation-specific policy -> exact preview -> atomic commit against the same revision -> reload/verify/audit. Do not implement caller-local acceptability shortcuts.
-- Verification, reconciliation, mutation, audit/export and publication must converge on one revision-bound **effective canonical projection**. Their policy gates may differ, but they must not independently reconstruct contradictory season facts or create parallel evidence engines.
-- Keep capability facades thin and implementation slices cohesive. Prefer direct delegation/composition; avoid facade -> service -> manager -> strategy chains that only add navigation. Consumers should use the public capability boundary rather than import private helpers across capabilities when a stable contract exists.
-- Treat #575's canonical calendar package as the reference direction for production decomposition: stable public surface, focused implementation owners, behavior preserved. Track broader production convergence under #576. Concrete defects keep their own acceptance criteria; do not hide semantic changes inside refactors.
-- **Do not opportunistically refactor `SeasonPlanner`, Stage 3 optimization, or initial-planning algorithms while solving published-season maintenance.** That work remains the next-season architecture track (#358) unless the current production task demonstrably requires a shared planner-independent contract. Never invoke planner search/replanning merely to make a maintenance mutation pass.
-- Refactor production code incrementally when it reduces the context/surface needed for the current or clearly recurring maintenance capability. Characterize behavior first, preserve public signatures where practical, and add architecture tests that prevent new private cross-capability coupling or duplicate verification/evidence ownership.
+- start from the smallest stable production capability facade and load focused implementation/tests on demand;
+- preserve one revision-bound canonical mutation flow: authoritative baseline -> candidate in memory -> effective baseline/candidate facts -> classify resolved/unchanged/new/worsened findings -> capability policy -> preview -> atomic commit against same revision -> reload/verify/audit;
+- converge verification, reconciliation, mutation, audit/export and publication on one revision-bound effective canonical projection; policy gates remain distinct;
+- never create caller-local evidence, verification, grandfathering or acceptability shortcuts;
+- keep public capability facades small and focused implementation slices cohesive; avoid abstraction chains that add navigation without ownership;
+- do not opportunistically refactor `SeasonPlanner`, Stage 3 or initial-planning algorithms while solving published-season maintenance, and never invoke planner search/replanning merely to make a maintenance mutation pass.
 
-For a normal published-season task, the intended mental model is: **one capability contract + the common canonical mutation/effective-state boundary + focused implementation/tests**. If an implementation agent needs broad Stage 3/SeasonPlanner context for an ordinary booking, calendar, participant, constraint, move or cancellation change, stop and check whether it is crossing the wrong architectural boundary.
+If an ordinary booking/calendar/participant/constraint/move/cancellation change needs broad Stage 3 or `SeasonPlanner` context, stop and re-check the architectural boundary.
 
-### Design for agent locality and safe change
+Production convergence is tracked by the production architecture issue; planner decomposition remains next-season work. Issue numbers belong in tracker/commit context, not permanent code behavior or user-facing output.
 
-Before adding a feature or modifying an existing one, briefly identify the **canonical owner, stable caller-facing boundary, adjacent responsibilities, and tests**. Ask whether the proposed change can be understood and verified by reading a small, cohesive set of complete modules. This is a design check, not a requirement to refactor every touched file.
+## Design for agent locality
 
-- Prefer one responsibility and one reason to change per module. If a file mixes unrelated use cases (for example source policy, evidence refresh, booking decisions and persistence), consider extracting focused internal modules behind the existing public facade before adding more behavior. Preserve one implementation of each rule and one persistence/authority owner.
-- Keep public CLI, service, schema and adapter contracts stable where practical. New internal modules should depend on shared domain/pure helpers, not each other cyclically; avoid generic dumping-ground helpers, duplicated policy and unnecessary one-function files.
-- For a narrow change, inspect the entry point, canonical owner and directly relevant dependencies/tests first; use symbol search and targeted reads rather than loading unrelated large files. Update the compact architecture/navigation map when an owner moves so future agents can find it.
-- Do not turn a behavioral fix into a broad structural rewrite. If extraction is needed for a safe change, characterize current behavior first, extract in small reviewable steps, and keep any discovered behavior defect in a separately scoped change.
-- For a structural refactor, compare before/after observable behavior (including failures, deterministic outputs, fingerprints, revisions, evidence provenance and write ordering where relevant), preserve monkeypatch/import seams, and run targeted plus broader tests. Never use live season refresh, export or publication as a refactor test, and do not include incidental tracked season/generated-artifact changes.
-- If the module is already cohesive and the change is localized, leave it alone even if it is long. Optimize for accuracy, explicit ownership and ease of review—not arbitrary file-size or abstraction targets.
+Before a feature/change, identify the canonical owner, stable caller-facing boundary, adjacent responsibilities and focused tests.
 
-Apply this check in Claude, Pi, Codex, ChatGPT and future harnesses through this shared file; do not copy it into harness-specific adapters.
+- Prefer cohesive modules with one reason to change. Extract focused internals behind an existing stable facade when a file mixes unrelated use cases.
+- Preserve public CLI/service/schema/adapter contracts where practical.
+- Avoid circular dependencies, generic dumping-ground helpers, duplicated policy and unnecessary one-function abstractions.
+- For narrow work, inspect entry point -> owner -> direct dependencies/tests first. Use search/targeted reads instead of loading unrelated large files.
+- Do not turn a behavioral fix into a broad rewrite. Characterize behavior before structural extraction and separate discovered semantic defects.
+- For refactors compare observable behavior, failures, deterministic outputs, fingerprints/revisions, provenance and write ordering where relevant. Never use live season refresh/export/publication as a refactor test or commit incidental generated-season changes.
+- Leave a cohesive localized module alone even when long. Optimize for explicit ownership, safety and reviewability, not line counts.
 
-### Direct cleanup vs tracked feature work
+A good capability facade answers: **what can I do, what is the typed contract, what invariants apply, where is it implemented, and where is it tested?**
 
-- Routine non-critical cleanup, refactoring, documentation/test hygiene, and planner-internal cleanup that **does not intentionally change planning semantics** may be implemented directly on `main` when direct-main work is authorized. Do not create a GitHub issue merely as bookkeeping for that cleanup.
-- New functionality, intentional planner/rule/behavior changes, new operator workflows, or work that benefits from explicit acceptance criteria/coordination should be tracked in a GitHub issue before implementation.
-- If cleanup discovers a real behavior defect or a desired new capability, keep the cleanup small and file a focused issue for the behavior change instead of silently broadening the refactor.
+## Change tracking
+
+Routine non-critical cleanup/refactoring/docs/test hygiene with no intentional semantics change may go directly to `main` when direct-main work is authorized. Do not create issues merely for bookkeeping.
+
+New functionality, intentional rule/behavior changes, new operator workflows, or coordinated work with acceptance criteria should have a GitHub issue. If cleanup reveals a behavior defect/new capability, keep cleanup narrow and track the behavior separately.
 
 ## Repository hygiene
 
-- **GitHub issues are the only live implementation backlog.** Do not add project-local task/backlog/history files such as `.ps-next/`, agent scratch plans, or review notes as a second tracker.
-- **Git history is the implementation archive.** Do not keep completed roadmaps, dated investigations, generated architecture reviews, or temporary design notes in `main` once their durable outcome is represented by current code/docs/ADRs.
-- **Do not vendor generic personal agent tooling into this repo.** Project-local skills/extensions must be RVV-specific and necessary to operate or maintain this repository.
-- **Local settings stay local.** Do not commit machine-specific harness settings, absolute workstation paths, session state, credentials, cookies, or generated caches.
-- Keep generated runtime evidence under `.pipeline/`, `export/`, test fixtures, or CI artifacts rather than `docs/`.
+- GitHub issues are the only live implementation backlog. Do not add local backlog/history systems.
+- Git history is the implementation archive. Do not retain completed roadmaps, dated investigations or temporary reviews in `main`.
+- Do not vendor generic personal agent tooling. Repository skills/extensions must be RVV-specific and necessary.
+- Machine-specific settings, credentials, cookies, absolute paths, session state and caches stay local.
+- Runtime/generated evidence belongs under the existing pipeline/export/test/CI artifact locations, not durable docs.
+- Generated artifacts are derived data; fix authoritative state/code and regenerate rather than patching outputs.
+- Do not put GitHub issue numbers in user-facing reports, rendered/exported status text or permanent code comments explaining behavior.
 
-## Issue references
+## Instruction ownership
 
-Do not put GitHub issue numbers into user-facing reports, rendered HTML, exported files, rules/status text, CLI messages intended for operators, or code comments explaining permanent behavior. Issue numbers age badly and are meaningless without tracker context. Explain the reason or invariant in plain language instead.
+Keep the instruction graph small and deterministic:
 
-Issue/PR numbers are fine in commit messages, PR/issue discussion, and temporary tracker context.
+- `AGENTS.md`: only repository-wide, always-on harness-neutral behavior and routing;
+- `.agents/skills/rvv/SKILL.md`: RVV-common invariants and capability router;
+- `.agents/skills/rvv/<capability>/SKILL.md`: lazy-loaded capability invariants;
+- `.agents/commands/rvv-miniputt/*.md`: exact shared procedures;
+- `docs/` + ADRs: explanation, architecture and rationale;
+- code/tests: executable contracts;
+- GitHub issues: unfinished work.
+
+Do not duplicate detailed procedure/policy across layers. Link to the authoritative owner. If guidance is irrelevant to most tasks entering a file, move it behind a lazy-load boundary or remove it if code/docs/procedures already own it.
