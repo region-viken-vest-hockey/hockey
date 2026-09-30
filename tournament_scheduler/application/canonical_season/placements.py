@@ -341,6 +341,7 @@ def move_tournament(
             "verification_summary": verification_summary(result, tournament_id=tournament_id),
             "operational_acceptability": operational_acceptability_summary(operational_acceptability),
             "run_id": run_id,
+            "request_id": str(request_id or ""),
         },
     )
     updated_snapshot = snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)

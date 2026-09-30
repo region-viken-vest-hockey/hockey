@@ -1330,6 +1330,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
         calendar_booking_candidates,
         calendar_booking_findings,
         change_protection_report,
+        change_request_ledger,
         clear_ice_time_minutes,
         clear_manual_booking_assertion,
         club_booking_sources,
@@ -1554,6 +1555,10 @@ def _cmd_season(args: argparse.Namespace) -> int:
             )
             _write_canonical_export_evidence(schedule, result)
             if not stale_export:
+                from ..application.canonical_season.changes import write_change_log_markdown
+
+                ledger = change_request_ledger(args.season, root=args.root)
+                result["change_log"] = str(write_change_log_markdown(ledger, root=args.root))
                 # Mark audit-required explicitly rather than relying only on lazy
                 # export-fingerprint reconciliation: a re-export of unchanged
                 # canonical state produces the same content fingerprint, which
@@ -1619,6 +1624,24 @@ def _cmd_season(args: argparse.Namespace) -> int:
                         "  [yellow]⚠[/yellow] stale approvals (reapprove or unapprove): "
                         + ", ".join(entry["tournament_id"] for entry in report["stale_approvals"])
                     )
+            return 0
+
+        if args.season_command == "changes":
+            from ..application.canonical_season.changes import (
+                render_change_log_markdown,
+                write_change_log_markdown,
+            )
+
+            ledger = change_request_ledger(args.season, root=args.root)
+            if args.write:
+                path = write_change_log_markdown(ledger, root=args.root)
+                ledger = {**ledger, "markdown_path": str(path)}
+            if args.json:
+                print(_json.dumps(ledger, ensure_ascii=False, indent=2, sort_keys=True))
+            elif args.markdown or not args.write:
+                print(render_change_log_markdown(ledger), end="")
+            else:
+                _console.print(f"[green]✓[/green] Wrote {ledger['markdown_path']}")
             return 0
 
         if args.season_command == "compact-history":
