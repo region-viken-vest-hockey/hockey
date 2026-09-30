@@ -26,9 +26,11 @@ block a swap.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections import Counter
 from datetime import date
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from tournament_scheduler import planning_half
 from tournament_scheduler.club_distances import arena_to_club, distance
@@ -797,6 +799,150 @@ def evaluate_regression_acceptances(
     }
 
 
+class ReviewedConsequenceError(ValueError):
+    """A reviewed-consequence token is missing, stale, mismatched or malformed."""
+
+
+def reviewed_consequence_token(
+    *,
+    plan_fingerprint: str,
+    baseline_revision: str,
+    unaccepted_regressions: Sequence[Mapping[str, Any]],
+) -> str:
+    """Return a stable token identifying one reviewed candidate and its consequences.
+
+    The token binds the exact reviewed baseline revision, the resulting
+    candidate plan fingerprint and the precise set of material regressions
+    the operator reviewed in a dry-run. Any change to the plan, the underlying
+    revision or the consequence set yields a different token, so a reviewed
+    acceptance cannot be replayed against a stale or different candidate.
+    """
+
+    payload = {
+        "plan_fingerprint": str(plan_fingerprint or ""),
+        "baseline_revision": str(baseline_revision or ""),
+        "consequences": sorted(
+            "|".join(
+                (
+                    str(item.get("club") or ""),
+                    str(item.get("team") or ""),
+                    str(item.get("age_group") or ""),
+                    str(item.get("code") or ""),
+                )
+            )
+            for item in unaccepted_regressions
+        ),
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return "rc-" + hashlib.sha256(encoded).hexdigest()
+
+
+def apply_reviewed_consequence_acceptance(
+    team_consequences: Mapping[str, Mapping[str, Any]],
+    acceptances: list[Mapping[str, Any]] | None,
+    *,
+    code_scope: Mapping[str, set[TeamIdentity]] | None = None,
+    reviewed_token: str | None = None,
+    reviewed_reason: str | None = None,
+    baseline_revision: str = "",
+    plan_fingerprint: str = "",
+) -> dict[str, Any]:
+    """Resolve explicit and reviewed-consequence acceptances into one evaluation.
+
+    Returns a dict with the final ``evaluation`` (accepted or refused), the
+    reviewed ``review_token`` for the current candidate, whether a reviewed
+    acceptance is ``review_required``, and the domain-level
+    ``review_consequences`` that a dry-run would ask the operator to accept.
+
+    When ``reviewed_token`` is supplied it must match the token recomputed from
+    the *current* baseline revision, candidate fingerprint and complete material
+    consequence set, and it accepts exactly those reviewed consequences without
+    reconstructing one ``--accept-team-regression`` argument per team/code. The
+    token is bound to the complete set (not just the consequences left after any
+    explicit acceptances) so the same reviewed plan can be applied with or
+    without the explicit flags. A mismatched, stale or unnecessary token
+    refuses; there is no blanket force path.
+    """
+
+    preview = evaluate_regression_acceptances(
+        team_consequences, acceptances, code_scope=code_scope
+    )
+    unaccepted = list(preview.get("unaccepted_regressions") or [])
+    # The reviewed token and its domain-level consequence list cover the
+    # complete material consequence set, independent of explicit acceptances
+    # already supplied. Binding the token to only the *remaining* consequences
+    # would make the advertised apply flow impossible whenever a dry-run mixed
+    # explicit acceptances with a reviewed token: dropping the explicit flags
+    # changes the unaccepted set, so the recomputed token could never match.
+    complete = evaluate_regression_acceptances(
+        team_consequences, [], code_scope=code_scope
+    )
+    complete_material = list(complete.get("unaccepted_regressions") or [])
+    review_consequences = [
+        {
+            "consequence": item.get("consequence"),
+            "club": item.get("club"),
+            "team": item.get("team"),
+            "age_group": item.get("age_group"),
+            "code": item.get("code"),
+        }
+        for item in complete_material
+    ]
+    review_token = (
+        reviewed_consequence_token(
+            plan_fingerprint=plan_fingerprint,
+            baseline_revision=baseline_revision,
+            unaccepted_regressions=complete_material,
+        )
+        if complete_material
+        else None
+    )
+    if not reviewed_token:
+        return {
+            "evaluation": preview,
+            "review_required": bool(unaccepted),
+            "review_token": review_token,
+            "review_consequences": review_consequences,
+        }
+    if acceptances:
+        raise ReviewedConsequenceError(
+            "Use --accept-team-regression or --accept-reviewed-consequences, not both"
+        )
+    if not unaccepted:
+        raise ReviewedConsequenceError(
+            "No material consequences remain to accept; the reviewed token is unnecessary"
+        )
+    if str(reviewed_token).strip() != review_token:
+        raise ReviewedConsequenceError(
+            "Reviewed-consequence token does not match the current candidate plan/state; "
+            "re-run the dry-run and review the current consequences"
+        )
+    reason = str(reviewed_reason or "").strip()
+    if not reason:
+        raise ReviewedConsequenceError(
+            "Accepting reviewed consequences requires an explicit --accept-regression-reason"
+        )
+    synthesized = [
+        {
+            "club": item.get("club") or "",
+            "team": item.get("team") or "",
+            "age_group": item.get("age_group") or "",
+            "code": item.get("code") or "",
+            "reason": reason,
+        }
+        for item in unaccepted
+    ]
+    accepted_evaluation = evaluate_regression_acceptances(
+        team_consequences, synthesized, code_scope=code_scope
+    )
+    return {
+        "evaluation": accepted_evaluation,
+        "review_required": False,
+        "review_token": review_token,
+        "review_consequences": review_consequences,
+    }
+
+
 def regression_acceptance_refusals(evaluation: Mapping[str, Any]) -> list[str]:
     """Operator-facing refusal reasons for an acceptance evaluation."""
 
@@ -840,7 +986,9 @@ __all__ = [
     "CANCEL_ACCEPTABLE_REGRESSION_CODES",
     "PARTICIPATION_COUNT_CHANGED",
     "RegressionAcceptanceError",
+    "ReviewedConsequenceError",
     "TeamIdentity",
+    "apply_reviewed_consequence_acceptance",
     "compare_changed_team_schedule_consequence",
     "compare_team_schedule_consequence",
     "compare_team_schedule_profiles",
@@ -848,6 +996,7 @@ __all__ = [
     "evaluate_regression_acceptances",
     "parse_regression_acceptances",
     "regression_acceptance_refusals",
+    "reviewed_consequence_token",
     "team_participation_effect",
     "team_schedule_profile",
 ]

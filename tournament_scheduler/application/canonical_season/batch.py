@@ -262,6 +262,7 @@ def batch_maintenance(
     allow_host_confirmation: bool = False,
     accept_regressions: list[Any] | None = None,
     accept_regression_reason: str | None = None,
+    accept_reviewed_consequences: str | None = None,
 ) -> dict[str, Any]:
     """Compose several canonical mutations against one in-memory candidate.
 
@@ -304,7 +305,8 @@ def batch_maintenance(
         CANCEL_ACCEPTABLE_REGRESSION_CODES,
         PARTICIPATION_COUNT_CHANGED,
         RegressionAcceptanceError,
-        evaluate_regression_acceptances,
+        ReviewedConsequenceError,
+        apply_reviewed_consequence_acceptance,
         parse_regression_acceptances,
         regression_acceptance_refusals,
     )
@@ -712,16 +714,26 @@ def batch_maintenance(
                 team_consequences, cancelled_appearances
             )
         }
-    regression_acceptance = evaluate_regression_acceptances(
-        team_consequences, regression_acceptances, code_scope=code_scope
-    )
-    consequence_acceptable = bool(regression_acceptance["acceptable"])
-
     reconcile_plan_derived_state(
         candidate_plan, verification_result, problem=candidate_problem
     )
     candidate_fingerprint = schedule_fingerprint(candidate_plan)
     candidate_cost = change_cost(baseline, candidate_plan)
+
+    try:
+        regression_acceptance_result = apply_reviewed_consequence_acceptance(
+            team_consequences,
+            regression_acceptances,
+            code_scope=code_scope,
+            reviewed_token=accept_reviewed_consequences,
+            reviewed_reason=accept_regression_reason,
+            baseline_revision=before_canonical_revision,
+            plan_fingerprint=candidate_fingerprint,
+        )
+    except ReviewedConsequenceError as exc:
+        raise SeasonStateError(f"Refusing canonical batch: {exc}") from exc
+    regression_acceptance = regression_acceptance_result["evaluation"]
+    consequence_acceptable = bool(regression_acceptance["acceptable"])
 
     refusal_reasons: list[str] = []
     if referenced_outside_scope:
@@ -837,6 +849,11 @@ def batch_maintenance(
             "scope_respected": not (referenced_outside_scope or changed_outside_scope),
         },
         "blockers": list(refusal_reasons),
+        "review": {
+            "required": bool(regression_acceptance_result["review_required"]),
+            "token": regression_acceptance_result["review_token"],
+            "consequences": regression_acceptance_result["review_consequences"],
+        },
     }
 
     if dry_run:

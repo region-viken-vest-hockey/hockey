@@ -55,6 +55,21 @@ def _add_regression_acceptance_flags(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_reviewed_consequence_flag(parser: argparse.ArgumentParser) -> None:
+    """Add the reviewed-dry-run consequence acceptance for one exact plan."""
+
+    parser.add_argument(
+        "--accept-reviewed-consequences",
+        default=None,
+        metavar="TOKEN",
+        help=(
+            "Explicitly accept exactly the material consequences of the matching reviewed "
+            "dry-run (its verdict.review.token), applying the same plan unchanged; requires "
+            "--accept-regression-reason and refuses a stale/different candidate"
+        ),
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="rvv-miniputt",
@@ -1662,6 +1677,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_operational_opt_in_flags(season_batch)
     _add_regression_acceptance_flags(season_batch)
+    _add_reviewed_consequence_flag(season_batch)
     season_batch.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_batch.add_argument(
         "--fail-on-blocked",

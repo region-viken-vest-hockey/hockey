@@ -2737,6 +2737,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 allow_host_confirmation=bool(getattr(args, "allow_host_confirmation", False)),
                 accept_regressions=getattr(args, "accept_team_regressions", None),
                 accept_regression_reason=getattr(args, "accept_regression_reason", None),
+                accept_reviewed_consequences=getattr(args, "accept_reviewed_consequences", None),
             )
             if args.json:
                 print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
@@ -2765,6 +2766,23 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     f"  request-constraint violations remaining: "
                     f"{len(report['remaining_request_constraint_violations'])}"
                 )
+                review = verdict.get("review") or {}
+                if review.get("required") and review.get("token"):
+                    _console.print(
+                        "    ! reviewed consequences: "
+                        f"{len(review.get('consequences') or [])} attributable item(s)"
+                    )
+                    for consequence in review.get("consequences") or []:
+                        _console.print(
+                            "      - "
+                            f"{consequence.get('club')} {consequence.get('team')} "
+                            f"({consequence.get('age_group')}): {consequence.get('code')}"
+                        )
+                    _console.print(
+                        "      apply this exact reviewed plan with "
+                        f"--accept-reviewed-consequences {review.get('token')} "
+                        "--accept-regression-reason \"...\""
+                    )
             if bool(args.dry_run) and bool(getattr(args, "fail_on_blocked", False)):
                 return 0 if bool((report.get("verdict") or {}).get("applicable")) else 3
             return 0

@@ -8,6 +8,7 @@ nothing in the candidate is itself refused.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -558,3 +559,251 @@ def test_cancel_acceptance_scope_rejects_an_extra_unrelated_loss() -> None:
         {("Kongsberg", "K1", "U10"): 1, ("X", "X1", "U10"): 1},
     )
     assert scope == {("Kongsberg", "K1", "U10")}
+
+
+# --- Reviewed-consequence acceptance (#586) ---------------------------------
+#
+# A modern cancellation dry-run reports the exact attributable consequence set
+# and a token binding that candidate. The operator can review it once and apply
+# the same plan unchanged with one flag instead of reconstructing dozens of
+# per-team `--accept-team-regression` arguments.
+
+
+def test_reviewed_consequence_token_round_trips_the_exact_plan(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+
+    preview = _cancel_only_batch(root, dry_run=True)
+    review = preview["verdict"]["review"]
+    assert review["required"] is True
+    assert isinstance(review["token"], str) and review["token"].startswith("rc-")
+    reviewed = {
+        (item["club"], item["team"], item["age_group"], item["code"])
+        for item in review["consequences"]
+    }
+    assert reviewed == {
+        (club, team, "U10", PARTICIPATION_CODE)
+        for club, team in sorted(_cancel_only_participants())
+    }
+
+    result = _cancel_only_batch(
+        root,
+        accept_reviewed_consequences=review["token"],
+        accept_regression_reason="host retires; reviewed one-appearance loss for the U10 field",
+    )
+    assert result["committed"] is True
+    assert result["consequence_acceptable"] is True
+    accepted = {
+        (item["club"], item["team"], item["age_group"], item["code"])
+        for item in result["regression_acceptance"]["accepted_regressions"]
+    }
+    assert accepted == reviewed
+    assert _tournaments_by_id(root)["u10-b"]["cancelled"] is True
+
+    batches = [
+        event
+        for event in load_decisions(SEASON, root=root).get("history", [])
+        if event.get("event") == "batch_maintenance"
+    ]
+    assert batches[-1]["details"]["accepted_regressions"]
+
+
+def test_reviewed_consequence_token_covers_complete_set_with_partial_explicit_acceptance(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+
+    club, team = sorted(_cancel_only_participants())[0]
+    preview = _cancel_only_batch(
+        root,
+        dry_run=True,
+        accept_regressions=[f"{club}|{team}|U10={PARTICIPATION_CODE}"],
+        accept_regression_reason="one team already confirmed by phone",
+    )
+    review = preview["verdict"]["review"]
+    assert review["required"] is True
+    assert review["token"]
+    # The reviewed list is the complete material set, including the team the
+    # dry-run already accepted explicitly.
+    reviewed = {(item["team"], item["code"]) for item in review["consequences"]}
+    assert reviewed == {
+        (team, PARTICIPATION_CODE) for _club, team in _cancel_only_participants()
+    }
+    assert (team, PARTICIPATION_CODE) in {
+        (item["team"], item["code"])
+        for item in preview["regression_acceptance"]["accepted_regressions"]
+    }
+
+    # Applying the same plan via the token alone must accept the complete set,
+    # not only the consequences left after the dry-run's explicit acceptance.
+    result = _cancel_only_batch(
+        root,
+        accept_reviewed_consequences=review["token"],
+        accept_regression_reason="reviewed the complete consequence set",
+    )
+    assert result["committed"] is True
+    accepted = {
+        (item["team"], item["code"])
+        for item in result["regression_acceptance"]["accepted_regressions"]
+    }
+    assert accepted == reviewed
+
+
+def test_reviewed_consequence_token_requires_a_reason(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+    token = _cancel_only_batch(root, dry_run=True)["verdict"]["review"]["token"]
+
+    with pytest.raises(SeasonStateError, match="reason"):
+        _cancel_only_batch(root, accept_reviewed_consequences=token)
+
+
+def test_reviewed_consequence_token_must_match_and_is_exclusive(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+    before = (_schedule_bytes(root), _decisions_bytes(root))
+    token = _cancel_only_batch(root, dry_run=True)["verdict"]["review"]["token"]
+
+    with pytest.raises(SeasonStateError, match="does not match"):
+        _cancel_only_batch(
+            root,
+            accept_reviewed_consequences="rc-" + "0" * 64,
+            accept_regression_reason="stale token",
+        )
+    with pytest.raises(SeasonStateError, match="not both"):
+        _cancel_only_batch(
+            root,
+            accept_reviewed_consequences=token,
+            accept_regressions=["Alfa|Alfa 1|U10=" + PARTICIPATION_CODE],
+            accept_regression_reason="mixed acceptance styles",
+        )
+    assert (_schedule_bytes(root), _decisions_bytes(root)) == before
+
+
+def test_reviewed_consequence_token_is_bound_to_the_reviewed_operations(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+    token_b = _cancel_only_batch(root, dry_run=True)["verdict"]["review"]["token"]
+
+    cancel_a = [{"op": "cancel", "tournament_id": "u10-a", "reason": "host retires"}]
+    other = batch_maintenance(
+        season=SEASON,
+        root=root,
+        operations=cancel_a,
+        scope=["u10-a"],
+        request_id="cancel-a",
+        actor="tester",
+        dry_run=True,
+    )
+    assert other["verdict"]["review"]["token"] != token_b
+
+    with pytest.raises(SeasonStateError, match="does not match"):
+        batch_maintenance(
+            season=SEASON,
+            root=root,
+            operations=cancel_a,
+            scope=["u10-a"],
+            request_id="cancel-a",
+            actor="tester",
+            accept_reviewed_consequences=token_b,
+            accept_regression_reason="reviewed a different plan",
+        )
+
+
+def test_reviewed_consequence_token_refused_when_nothing_to_accept(tmp_path: Path) -> None:
+    _work_dir, root = _promote(tmp_path)
+    preview = batch_maintenance(
+        season=SEASON,
+        root=root,
+        operations=[{"op": "move", "tournament_id": "u10-a-20260912", "date": "2026-09-13"}],
+        scope=["u10-a-20260912"],
+        request_id="no-consequence-review",
+        actor="tester",
+        dry_run=True,
+    )
+    assert preview["verdict"]["review"]["required"] is False
+    assert preview["verdict"]["review"]["token"] is None
+
+    with pytest.raises(SeasonStateError, match="unnecessary"):
+        batch_maintenance(
+            season=SEASON,
+            root=root,
+            operations=[{"op": "move", "tournament_id": "u10-a-20260912", "date": "2026-09-13"}],
+            scope=["u10-a-20260912"],
+            request_id="no-consequence-review",
+            actor="tester",
+            accept_reviewed_consequences="rc-" + "0" * 64,
+            accept_regression_reason="no consequences to accept",
+        )
+
+
+def test_reviewed_consequence_token_is_deterministic_and_sensitive() -> None:
+    from tournament_scheduler.team_schedule_quality import reviewed_consequence_token
+
+    consequence = {"club": "C", "team": "C1", "age_group": "U10", "code": GAP_CODE}
+    token = reviewed_consequence_token(
+        plan_fingerprint="fp", baseline_revision="rev", unaccepted_regressions=[consequence]
+    )
+    assert token == reviewed_consequence_token(
+        plan_fingerprint="fp",
+        baseline_revision="rev",
+        unaccepted_regressions=[dict(consequence)],
+    )
+    assert token != reviewed_consequence_token(
+        plan_fingerprint="other", baseline_revision="rev", unaccepted_regressions=[consequence]
+    )
+    assert token != reviewed_consequence_token(
+        plan_fingerprint="fp", baseline_revision="other", unaccepted_regressions=[consequence]
+    )
+    assert token != reviewed_consequence_token(
+        plan_fingerprint="fp",
+        baseline_revision="rev",
+        unaccepted_regressions=[{**consequence, "code": "travel_materially_worse"}],
+    )
+
+
+def test_cli_batch_reviewed_consequence_round_trip(tmp_path: Path, capsys) -> None:
+    from tournament_scheduler.cli.rvv_cli import main as cli_main
+
+    root = tmp_path / "season"
+    _write_canonical(root, sealed=False)
+    operations_path = tmp_path / "cancel.json"
+    operations_path.write_text(
+        json.dumps([{"op": "cancel", "tournament_id": "u10-b", "reason": "host retires"}]),
+        encoding="utf-8",
+    )
+    base_args = [
+        "season",
+        "batch",
+        "--season",
+        SEASON,
+        "--root",
+        str(root),
+        "--operations",
+        str(operations_path),
+        "--scope",
+        "u10-b",
+        "--request-id",
+        "cli-reviewed",
+        "--dry-run",
+        "--json",
+    ]
+    assert cli_main(base_args) == 0
+    preview = json.loads(capsys.readouterr().out)
+    token = preview["verdict"]["review"]["token"]
+    assert token
+
+    assert cli_main([*base_args, "--fail-on-blocked"]) == 3
+    capsys.readouterr()
+
+    apply_args = [arg for arg in base_args if arg != "--dry-run"] + [
+        "--accept-reviewed-consequences",
+        token,
+        "--accept-regression-reason",
+        "reviewed via the CLI dry-run",
+    ]
+    assert cli_main(apply_args) == 0
+    applied = json.loads(capsys.readouterr().out)
+    assert applied["committed"] is True
+    assert _tournaments_by_id(root)["u10-b"]["cancelled"] is True
