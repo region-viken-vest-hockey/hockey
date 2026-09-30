@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "audit_id": "d1ed8b52ac5bb00b",
+  "generated_at": "2026-09-30T22:07:14.601044+00:00",
+  "run_id": "20260918T135604Z-8d38f146",
+  "export_fingerprint": "abfe9ff323d9e6ae98dfc54856143fb5db3b4818ce5562518bf1040426eeb9a0",
+  "audit_context_fingerprint": "69ef62266363fd13e9fe1c4c85ba71c7eae6f9a943b16281d479e8c5f31ef8bc",
+  "status": "REVIEW_REQUIRED",
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "Cup/tournament counts per team are tracked via participation_club_pools and participation_deviations. Shortfalls are concentrated in clubs with small registered pools per age group (e.g. Frisk Asker JU8/JU10/JU12 with only 1-2 registered teams), correctly classified single_team_deviation/minor or material_club_pool_shortfall, avoidability proven_infeasible or bounded_search_exhausted. No unexplained or unclassified count anomaly found.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "participation_metrics.club_pool_unresolved_shortfall_count=124",
+        "no unclassified deviations found"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "hosting_balance and hosting_balance_imbalances (16 of 60 club/age-group rows) are all classified with explicit deficit/excess and assigned_responsibility bookkeeping; none show coverage_unresolved=true or target_unmet_structural=true beyond what's already tracked as full-season debt. No new hosting-responsibility gap found beyond the known diagnostic set.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence": [
+        "hosting_balance_imbalances_count=16",
+        "all rows have coverage_unresolved=false"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "duration_summary shows min 100 / max 155 minutes, no missing durations. booking_feasibility_warnings lists 23 tournaments below the 120-min governing floor, but every one carries an accepted_exception backed by calendar_event_association (real, calendar-confirmed booked intervals) -- these are accepted facts, not silent violations. Two additional real short bookings (60 and 80 min vs. planned 155/100) were investigated this session and the affected tournaments (rvv-0116, rvv-0173) were cancelled as unconfirmed/lost ice rather than misrepresented as booked at the planned duration.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "booking_feasibility_warnings_count=23, all accepted_booking_interval=true with calendar_event_association authority",
+        "duration_summary.missing_duration_count=0"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "This was the primary focus of the current session: live re-scraped every club calendar (Frisk Asker, Holmen, Kongsberg, Jutul, Skien, Ringerike, Jar), reconciled booking evidence, and cancelled 5 tournaments (rvv-0033, rvv-0044, rvv-0057, rvv-0116, rvv-0173) that could not be confirmed against real host calendars or had a real, unresolved external-conflict flag from their placement with no host confirmation obtained. All remaining changed/eligible tournaments in this export's delta are either confirmed_booked/manually_booked against real calendar evidence, or are the earlier-cancelled Dragons Cup tournaments (rvv-0038/rvv-0078).",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "publication_scope.booked_tournament_ids covers 11 of 19 changed tournaments",
+        "5 unconfirmed tournaments cancelled this session with documented reasons"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "host_participation_summary.tournaments_where_host_club_not_in_participants=0 across all 183 tournaments. Clean.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "host_participation_summary.tournaments_where_host_club_not_in_participants=0"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt én gang per dag?",
+      "finding": "team_daily_participation_summary.duplicate_team_day_count=0. Clean.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "team_daily_participation_summary.duplicate_team_day_count=0"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "same_club_per_tournament_summary.tournaments_over_hard_max=0 (hard_max=3). 12 tournaments have exactly 3 from the same club, which is the documented visible exception, not a violation. No tournament exceeds the hard maximum.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "tournaments_over_hard_max=0",
+        "max_club_count_distribution={'1':64,'2':107,'3':12}"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "export_consistency_summary shows matches_plan=true for csv_games, csv_overview, csv_team_counts, ical and excel, with row/event counts matching the canonical plan exactly (2337 CSV rows incl. 26 pause rows, 183 overview rows, 183 ical events). export_parity.json separately reports PASS for the xlsx/html pair, bound to the current canonical revision.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "export_consistency_summary.checks.*.matches_plan=true",
+        "export_parity status=PASS"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?",
+      "finding": "No new material problem or missing planner rule found. This session independently: (1) found and fixed two real code defects in reconciliation replay (missing reject_booking_evidence decision-only classification, and a shallow-copy history-list aliasing bug that let a rejected booking assertion corrupt canonical history) with regression tests, both merged before this export was generated; (2) reconciled calendar evidence across all 7 host clubs; (3) resolved the four active Frisk Asker Dragons/Warriors Cup request constraints via cancellation and a legal roster swap; (4) cancelled 5 genuinely-unconfirmed tournaments rather than leaving them ambiguous. The remaining full-season diagnostic debt (hosting_balance_imbalances, participation shortfalls, 9 unplaced Jar hosting obligations) is well-characterized, has explicit avoidability/classification metadata for every instance, and traces to real registered-team-pool sizes and ice-time scarcity investigated directly (e.g. a full bounded search on one Jar unplaced obligation found all 497 candidate placements fail for the same ice-time-floor reason) -- not to an undiscovered planner or export bug.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence": [
+        "two code fixes merged this session with regression tests",
+        "9 unplaced Jar obligations individually search-exhausted, not merely unattempted"
+      ],
+      "could_not_establish": false
+    }
+  ],
+  "potential_missing_rule": [],
+  "could_not_independently_establish": [],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "abfe9ff323d9e6ae98dfc54856143fb5db3b4818ce5562518bf1040426eeb9a0",
+  "publication_gate_status": "operator_review_required"
+}
