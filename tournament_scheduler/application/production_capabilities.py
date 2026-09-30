@@ -6,7 +6,9 @@ stable public application boundary to use, which focused implementation slice to
 load next, and which tests characterize the behavior. It is **not** a business
 rule engine and it must not duplicate verifier, evidence or publication policy.
 
-Deterministic feasibility and hard validity remain owned by repository verifiers (including the planning/final verification contracts and solver-backed capabilities). Semantic audit is residual second-pass judgment over repository-produced evidence; it is not a competing feasibility engine and cannot override verifier results.\n\nThe common mutation contract for schedule/decision writes remains
+Deterministic feasibility and hard validity remain owned by repository verifiers (including the planning/final verification contracts and solver-backed capabilities). Semantic audit is residual second-pass judgment over repository-produced evidence; it is not a competing feasibility engine and cannot override verifier results.
+
+The common mutation contract for schedule/decision writes remains
 ``CanonicalSeasonService`` plus ``application.canonical_season.lifecycle`` and
 ``application.canonical_season.shared``. Capability entries below point at that
 boundary instead of reconstructing their own verification or persistence path.
