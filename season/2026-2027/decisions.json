@@ -2900,9 +2900,195 @@
         "round_count": "3",
         "start_time": "17:45"
       }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T21:37:21.720089+00:00",
+      "created_by": "niclasl",
+      "date": "2026-12-12",
+      "end": "18:50",
+      "event_fingerprint": "24b65a5965ba4ec164817b498997cad6e011c3db28e00764f229e296a08d5fcb",
+      "id": "calendar_booking:24b65a5965ba4ec164817b498997cad6e011c3db28e00764f229e296a08d5fcb:rvv-0015",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "source_revision": "180ee3c43f766c732ab656102e16105ab0fca3415440048e311379c8ebb2317d",
+      "start": "16:15",
+      "status": "active",
+      "title": "Turnering U8 RVV",
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Baerum ishall",
+        "date": "2026-12-12",
+        "host_club": "Jutul",
+        "start_time": "16:15"
+      },
+      "tournament_id": "rvv-0015",
+      "tournament_interval": {
+        "age_group": "U8",
+        "date": "2026-12-12",
+        "duration_minutes": "155",
+        "end_time": "18:50",
+        "round_count": "5",
+        "start_time": "16:15"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T21:37:28.095415+00:00",
+      "created_by": "niclasl",
+      "date": "2026-12-13",
+      "end": "16:45",
+      "event_fingerprint": "8d45285bb1d04061035ba319af33ddbec1f3482f835b503c361d526249fd5b73",
+      "id": "calendar_booking:8d45285bb1d04061035ba319af33ddbec1f3482f835b503c361d526249fd5b73:rvv-0058",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "source_revision": "242a9539fb0824bd81fa4cd5772bb8f4bfc57c5366cd5f1cbd9e0216c583b328",
+      "start": "14:10",
+      "status": "active",
+      "title": "TURNERING U9 RVV",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Baerum ishall",
+        "date": "2026-12-13",
+        "host_club": "Jutul",
+        "start_time": "14:10"
+      },
+      "tournament_id": "rvv-0058",
+      "tournament_interval": {
+        "age_group": "U9",
+        "date": "2026-12-13",
+        "duration_minutes": "155",
+        "end_time": "16:45",
+        "round_count": "5",
+        "start_time": "14:10"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T21:37:34.438002+00:00",
+      "created_by": "niclasl",
+      "date": "2027-03-13",
+      "end": "20:10",
+      "event_fingerprint": "1430e655958a0a4f564afee62d95557b1c4e1e7d3e35c67b4426361d222c4f29",
+      "id": "calendar_booking:1430e655958a0a4f564afee62d95557b1c4e1e7d3e35c67b4426361d222c4f29:rvv-0072",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "source_revision": "d8d69d2a96a6778f10e0b95bb267a0ea6884130abb30e4ba541dc9cd636bfc0c",
+      "start": "18:30",
+      "status": "active",
+      "title": "TURNERING JU12",
+      "tournament_facts": {
+        "age_group": "JU12",
+        "arena": "Baerum ishall",
+        "date": "2027-03-13",
+        "host_club": "Jutul",
+        "start_time": "18:30"
+      },
+      "tournament_id": "rvv-0072",
+      "tournament_interval": {
+        "age_group": "JU12",
+        "date": "2027-03-13",
+        "duration_minutes": "100",
+        "end_time": "20:10",
+        "round_count": "3",
+        "start_time": "18:30"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T21:37:40.791085+00:00",
+      "created_by": "niclasl",
+      "date": "2026-11-07",
+      "end": "20:00",
+      "event_fingerprint": "e7136ba97e4bf889cbe70df3307d4ecfdfdc6fd13ecaf823c5ef51a5c5f71e95",
+      "id": "calendar_booking:e7136ba97e4bf889cbe70df3307d4ecfdfdc6fd13ecaf823c5ef51a5c5f71e95:rvv-0089",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "source_revision": "e35c083f10173dbb38b7f1f539fbba03f8db421322ba63c1f517e34a08b11c84",
+      "start": "17:30",
+      "status": "active",
+      "title": "TURNERING JU8",
+      "tournament_facts": {
+        "age_group": "JU8",
+        "arena": "Baerum ishall",
+        "date": "2026-11-07",
+        "host_club": "Jutul",
+        "start_time": "17:30"
+      },
+      "tournament_id": "rvv-0089",
+      "tournament_interval": {
+        "age_group": "JU8",
+        "date": "2026-11-07",
+        "duration_minutes": "150",
+        "end_time": "20:00",
+        "round_count": "3",
+        "start_time": "17:30"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T21:37:47.112013+00:00",
+      "created_by": "niclasl",
+      "date": "2027-02-20",
+      "end": "19:30",
+      "event_fingerprint": "ddda6d853dce2d1652f1dd4a4c8cb7743e9277bd009072defeb599aa20301318",
+      "id": "calendar_booking:ddda6d853dce2d1652f1dd4a4c8cb7743e9277bd009072defeb599aa20301318:rvv-0151",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "source_revision": "f41fdc91f21cad3b97b67f62c958e4c71bff4c8656fcfb0bb8337d5f73ed2cb5",
+      "start": "16:55",
+      "status": "active",
+      "title": "TURNERING U8",
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Baerum ishall",
+        "date": "2027-02-20",
+        "host_club": "Jutul",
+        "start_time": "16:55"
+      },
+      "tournament_id": "rvv-0151",
+      "tournament_interval": {
+        "age_group": "U8",
+        "date": "2027-02-20",
+        "duration_minutes": "155",
+        "end_time": "19:30",
+        "round_count": "5",
+        "start_time": "16:55"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T21:37:53.565812+00:00",
+      "created_by": "niclasl",
+      "date": "2027-02-14",
+      "end": "16:45",
+      "event_fingerprint": "bc1a09aafc18dd7288b6a667ade9b40b90de50b932eb92fde94da8c9d81e9855",
+      "id": "calendar_booking:bc1a09aafc18dd7288b6a667ade9b40b90de50b932eb92fde94da8c9d81e9855:rvv-0167",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "source_revision": "87e41f1f4a0e778916be4954bb7be513966796e65aab633afc9f1c08cca5a492",
+      "start": "14:10",
+      "status": "active",
+      "title": "TURNERING U7",
+      "tournament_facts": {
+        "age_group": "U7",
+        "arena": "Baerum ishall",
+        "date": "2027-02-14",
+        "host_club": "Jutul",
+        "start_time": "14:10"
+      },
+      "tournament_id": "rvv-0167",
+      "tournament_interval": {
+        "age_group": "U7",
+        "date": "2027-02-14",
+        "duration_minutes": "155",
+        "end_time": "16:45",
+        "round_count": "5",
+        "start_time": "14:10"
+      }
     }
   ],
-  "canonical_state_revision": "4f49b84088d8a655abbd95a854600d1ec66a04043d46acbf4dd353690ad8923a",
+  "canonical_state_revision": "38baac8c636a134f1b6a03f9ed016e09d9dce72a980f2bc52ce2b57c639f69cc",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -4081,9 +4267,12 @@
       "id": "change:249ce3769a4c7b77",
       "kind": "placement_field",
       "note": "Jutul hall review: retime to Saturday evening (only free window)",
+      "release_reason": "Superseded by confirmed live Jutul (Baerum ishall) calendar booking evidence: actual booked interval starts 10-15 min later than the hall-review's assumed slot",
+      "released_at": "2026-09-30T21:37:12.547567+00:00",
+      "released_by": "niclasl",
       "request_id": "jutul:2026-09-26-hall-review",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -4483,9 +4672,12 @@
       "id": "change:04f4d1da454530ea",
       "kind": "placement_field",
       "note": "Jutul hall review: Saturday-evening only",
+      "release_reason": "Superseded by confirmed live Jutul (Baerum ishall) calendar booking evidence: actual booked interval starts 10-15 min later than the hall-review's assumed slot",
+      "released_at": "2026-09-30T21:37:12.547567+00:00",
+      "released_by": "niclasl",
       "request_id": "jutul:2026-09-26-hall-review",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -4642,9 +4834,12 @@
       "id": "change:d1519e962100ce64",
       "kind": "placement_field",
       "note": "swap: younger U10 (rvv-0064) now before JU12",
+      "release_reason": "Superseded by confirmed live Jutul (Baerum ishall) calendar booking evidence: actual booked interval starts 10-15 min later than the hall-review's assumed slot",
+      "released_at": "2026-09-30T21:37:12.547567+00:00",
+      "released_by": "niclasl",
       "request_id": "jutul:2026-09-26-hall-review",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -4966,9 +5161,12 @@
       "id": "change:44da0e59afc3a1d9",
       "kind": "placement_field",
       "note": "moved into Sunday afternoon gap (13:50-17:00, after BSK, before evening bookings)",
+      "release_reason": "Superseded by confirmed live Jutul (Baerum ishall) calendar booking evidence: actual booked interval starts 10-15 min later than the hall-review's assumed slot",
+      "released_at": "2026-09-30T21:37:12.547567+00:00",
+      "released_by": "niclasl",
       "request_id": "jutul:2026-09-26-hall-review",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -5122,9 +5320,12 @@
       "id": "change:fed14a4e35e28b2b",
       "kind": "placement_field",
       "note": "moved into Sunday afternoon gap (13:50-17:00, freed by rvv-0080 relocating to a Saturday morning)",
+      "release_reason": "Superseded by confirmed live Jutul (Baerum ishall) calendar booking evidence: actual booked interval starts 10-15 min later than the hall-review's assumed slot",
+      "released_at": "2026-09-30T21:37:12.547567+00:00",
+      "released_by": "niclasl",
       "request_id": "jutul:2026-09-26-hall-review",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -6795,9 +6996,12 @@
       "id": "change:ca0e940d879a1874",
       "kind": "placement_field",
       "note": "Original 09:20 slot collided with Jutul's own recurring U9+10 practice (09:30-10:50); moved into the confirmed-clear afternoon window",
+      "release_reason": "Superseded by confirmed live Jutul (Baerum ishall) calendar booking evidence: actual booked interval starts 10 min later than the assumed slot",
+      "released_at": "2026-09-30T21:38:24.155153+00:00",
+      "released_by": "niclasl",
       "request_id": "jutul:2026-09-27-calendar-conflict-check",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -6813,9 +7017,12 @@
       "id": "change:ac13431a80c978c7",
       "kind": "placement_field",
       "note": "Original 09:20 slot collided with Jutul's own recurring U9+10 practice/ishockeyskole; moved into the confirmed-clear evening window",
+      "release_reason": "Superseded by confirmed live Jutul (Baerum ishall) calendar booking evidence: actual booked interval starts 10-15 min later than the hall-review's assumed slot",
+      "released_at": "2026-09-30T21:37:12.547567+00:00",
+      "released_by": "niclasl",
       "request_id": "jutul:2026-09-27-calendar-conflict-check",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -54916,6 +55123,469 @@
       "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:37:12.547567+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:249ce3769a4c7b77",
+          "change:04f4d1da454530ea",
+          "change:d1519e962100ce64",
+          "change:44da0e59afc3a1d9",
+          "change:fed14a4e35e28b2b",
+          "change:ac13431a80c978c7"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "Superseded by confirmed live Jutul (Baerum ishall) calendar booking evidence: actual booked interval starts 10-15 min later than the hall-review's assumed slot",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:37:21.685427+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:75901c8c5792de70",
+        "reference": "Baerum ishall live calendar (Jutul)",
+        "request_id": "manual-booking:rvv-0015:8aa55edab33d418804ee709e146c992b72eb700b0396c505fec148fd5c4dd7d9",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0015"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:37:21.685427+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U8",
+          "date": "2026-12-12",
+          "duration_minutes": "155",
+          "end_time": "18:50",
+          "round_count": "5",
+          "start_time": "16:15"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:75901c8c5792de70",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2026-12-12",
+            "duration_minutes": 155,
+            "end_time": "18:50",
+            "start_time": "16:15"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U8",
+            "date": "2026-12-12",
+            "duration_minutes": "155",
+            "end_time": "18:35",
+            "round_count": "5",
+            "start_time": "16:00"
+          }
+        },
+        "reconfirms_stale_reasons": [],
+        "reference": "Baerum ishall live calendar (Jutul)",
+        "source_scope": "tournament",
+        "stated_interval": {
+          "date": "2026-12-12",
+          "duration_minutes": "155",
+          "end": "18:50",
+          "start": "16:15"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "de1a4ec2db8ca3de3067be45740a55effc196ccf2585bbae78356de64383aacb",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0015"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:37:28.061025+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:283c5db164b6befe",
+        "reference": "Baerum ishall live calendar (Jutul)",
+        "request_id": "manual-booking:rvv-0058:4efa37e0d2f618d8f16f2f406a4c64a0d20d9c35b3c58ec186e14e63f18335b9",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "de1a4ec2db8ca3de3067be45740a55effc196ccf2585bbae78356de64383aacb",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0058"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:37:28.061025+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U9",
+          "date": "2026-12-13",
+          "duration_minutes": "155",
+          "end_time": "16:45",
+          "round_count": "5",
+          "start_time": "14:10"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:283c5db164b6befe",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2026-12-13",
+            "duration_minutes": 155,
+            "end_time": "16:45",
+            "start_time": "14:10"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U9",
+            "date": "2026-12-13",
+            "duration_minutes": "155",
+            "end_time": "16:35",
+            "round_count": "5",
+            "start_time": "14:00"
+          }
+        },
+        "reconfirms_stale_reasons": [],
+        "reference": "Baerum ishall live calendar (Jutul)",
+        "source_scope": "tournament",
+        "stated_interval": {
+          "date": "2026-12-13",
+          "duration_minutes": "155",
+          "end": "16:45",
+          "start": "14:10"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7166028e02e9694e8656dd809b89c27564788b73330ce62ad8a112ae2d67ac1e",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0058"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:37:34.403044+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 100,
+        "override_id": "ice-time-override:546916fe3a62f334",
+        "reference": "Baerum ishall live calendar (Jutul)",
+        "request_id": "manual-booking:rvv-0072:a873d0ea0811e9acedcc1c8c442b24ba50a5a7106f1939d22d4d3196f2194af5",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7166028e02e9694e8656dd809b89c27564788b73330ce62ad8a112ae2d67ac1e",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0072"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:37:34.403044+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "JU12",
+          "date": "2027-03-13",
+          "duration_minutes": "100",
+          "end_time": "20:10",
+          "round_count": "3",
+          "start_time": "18:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:546916fe3a62f334",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2027-03-13",
+            "duration_minutes": 100,
+            "end_time": "20:10",
+            "start_time": "18:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "JU12",
+            "date": "2027-03-13",
+            "duration_minutes": "100",
+            "end_time": "20:00",
+            "round_count": "3",
+            "start_time": "18:20"
+          }
+        },
+        "reconfirms_stale_reasons": [],
+        "reference": "Baerum ishall live calendar (Jutul)",
+        "source_scope": "tournament",
+        "stated_interval": {
+          "date": "2027-03-13",
+          "duration_minutes": "100",
+          "end": "20:10",
+          "start": "18:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "72d43953fce784182ee5490dade27f5d33658742d19f4a8b4b68a2f29387179b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0072"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:37:40.756354+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 150,
+        "override_id": "ice-time-override:e87c968615911855",
+        "reference": "Baerum ishall live calendar (Jutul)",
+        "request_id": "manual-booking:rvv-0089:653ce53a07a03e863b6c6c41affe3d2728d2161ef018ecebc4e44610ff65e62d",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "72d43953fce784182ee5490dade27f5d33658742d19f4a8b4b68a2f29387179b",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0089"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:37:40.756354+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "JU8",
+          "date": "2026-11-07",
+          "duration_minutes": "150",
+          "end_time": "20:00",
+          "round_count": "3",
+          "start_time": "17:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:e87c968615911855",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2026-11-07",
+            "duration_minutes": 150,
+            "end_time": "20:00",
+            "start_time": "17:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "JU8",
+            "date": "2026-11-07",
+            "duration_minutes": "155",
+            "end_time": "19:55",
+            "round_count": "3",
+            "start_time": "17:20"
+          }
+        },
+        "reconfirms_stale_reasons": [],
+        "reference": "Baerum ishall live calendar (Jutul)",
+        "source_scope": "tournament",
+        "stated_interval": {
+          "date": "2026-11-07",
+          "duration_minutes": "150",
+          "end": "20:00",
+          "start": "17:30"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "929d6967d4a7b83742e58d31225002ebf573c3c8a214475846f670bd212eac60",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0089"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:37:47.077423+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:219816083fc0ca1c",
+        "reference": "Baerum ishall live calendar (Jutul)",
+        "request_id": "manual-booking:rvv-0151:1ff61660c7707d18262ffd3b9e39d56fdd6519123267fde8e6ffec026987708b",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "929d6967d4a7b83742e58d31225002ebf573c3c8a214475846f670bd212eac60",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0151"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:37:47.077423+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U8",
+          "date": "2027-02-20",
+          "duration_minutes": "155",
+          "end_time": "19:30",
+          "round_count": "5",
+          "start_time": "16:55"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:219816083fc0ca1c",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2027-02-20",
+            "duration_minutes": 155,
+            "end_time": "19:30",
+            "start_time": "16:55"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U8",
+            "date": "2027-02-20",
+            "duration_minutes": "155",
+            "end_time": "19:25",
+            "round_count": "5",
+            "start_time": "16:50"
+          }
+        },
+        "reconfirms_stale_reasons": [],
+        "reference": "Baerum ishall live calendar (Jutul)",
+        "source_scope": "tournament",
+        "stated_interval": {
+          "date": "2027-02-20",
+          "duration_minutes": "155",
+          "end": "19:30",
+          "start": "16:55"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "5f2594c1f1d8bb4347f6b61b4aae494c5637bcbde9c306031df582886ac4dd15",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0151"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:37:53.530815+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:a8c2f26475bac598",
+        "reference": "Baerum ishall live calendar (Jutul)",
+        "request_id": "manual-booking:rvv-0167:ae88c43863c89e8d85b7eff2e48f54980beab768698cba1481166817e0d1d0c7",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "5f2594c1f1d8bb4347f6b61b4aae494c5637bcbde9c306031df582886ac4dd15",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0167"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:37:53.530815+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U7",
+          "date": "2027-02-14",
+          "duration_minutes": "155",
+          "end_time": "16:45",
+          "round_count": "5",
+          "start_time": "14:10"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:a8c2f26475bac598",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2027-02-14",
+            "duration_minutes": 155,
+            "end_time": "16:45",
+            "start_time": "14:10"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U7",
+            "date": "2027-02-14",
+            "duration_minutes": "155",
+            "end_time": "16:35",
+            "round_count": "5",
+            "start_time": "14:00"
+          }
+        },
+        "reconfirms_stale_reasons": [],
+        "reference": "Baerum ishall live calendar (Jutul)",
+        "source_scope": "tournament",
+        "stated_interval": {
+          "date": "2027-02-14",
+          "duration_minutes": "155",
+          "end": "16:45",
+          "start": "14:10"
+        },
+        "supersedes": ""
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "6333b9098d6ce94da2e5e0328981ae35efc2c2dde513193dd179f803e11010ce",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0167"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:38:24.155153+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:ca0e940d879a1874"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "Superseded by confirmed live Jutul (Baerum ishall) calendar booking evidence: actual booked interval starts 10 min later than the assumed slot",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "6333b9098d6ce94da2e5e0328981ae35efc2c2dde513193dd179f803e11010ce",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ],
   "holiday_date_exceptions": [
@@ -56381,6 +57051,102 @@
       "request_id": "calendar-booking:0a26dabdc4ef6868d2e361b846f073794c5d2c9fcdc2cafd459850fd502dc630",
       "status": "active",
       "tournament_id": "rvv-0137",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U8",
+      "authority": "manual_club_confirmation_interval",
+      "created_at": "2026-09-30T21:37:21.685427+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 155,
+      "id": "ice-time-override:75901c8c5792de70",
+      "minimum_minutes": 120,
+      "minutes": 155,
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "reference": "Baerum ishall live calendar (Jutul)",
+      "request_id": "manual-booking:rvv-0015:8aa55edab33d418804ee709e146c992b72eb700b0396c505fec148fd5c4dd7d9",
+      "status": "active",
+      "tournament_id": "rvv-0015",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U9",
+      "authority": "manual_club_confirmation_interval",
+      "created_at": "2026-09-30T21:37:28.061025+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 155,
+      "id": "ice-time-override:283c5db164b6befe",
+      "minimum_minutes": 120,
+      "minutes": 155,
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "reference": "Baerum ishall live calendar (Jutul)",
+      "request_id": "manual-booking:rvv-0058:4efa37e0d2f618d8f16f2f406a4c64a0d20d9c35b3c58ec186e14e63f18335b9",
+      "status": "active",
+      "tournament_id": "rvv-0058",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "JU12",
+      "authority": "manual_club_confirmation_interval",
+      "created_at": "2026-09-30T21:37:34.403044+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:546916fe3a62f334",
+      "minimum_minutes": 60,
+      "minutes": 100,
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "reference": "Baerum ishall live calendar (Jutul)",
+      "request_id": "manual-booking:rvv-0072:a873d0ea0811e9acedcc1c8c442b24ba50a5a7106f1939d22d4d3196f2194af5",
+      "status": "active",
+      "tournament_id": "rvv-0072",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "JU8",
+      "authority": "manual_club_confirmation_interval",
+      "created_at": "2026-09-30T21:37:40.756354+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 155,
+      "id": "ice-time-override:e87c968615911855",
+      "minimum_minutes": 120,
+      "minutes": 150,
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "reference": "Baerum ishall live calendar (Jutul)",
+      "request_id": "manual-booking:rvv-0089:653ce53a07a03e863b6c6c41affe3d2728d2161ef018ecebc4e44610ff65e62d",
+      "status": "active",
+      "tournament_id": "rvv-0089",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U8",
+      "authority": "manual_club_confirmation_interval",
+      "created_at": "2026-09-30T21:37:47.077423+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 155,
+      "id": "ice-time-override:219816083fc0ca1c",
+      "minimum_minutes": 120,
+      "minutes": 155,
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "reference": "Baerum ishall live calendar (Jutul)",
+      "request_id": "manual-booking:rvv-0151:1ff61660c7707d18262ffd3b9e39d56fdd6519123267fde8e6ffec026987708b",
+      "status": "active",
+      "tournament_id": "rvv-0151",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U7",
+      "authority": "manual_club_confirmation_interval",
+      "created_at": "2026-09-30T21:37:53.530815+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 155,
+      "id": "ice-time-override:a8c2f26475bac598",
+      "minimum_minutes": 120,
+      "minutes": 155,
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "reference": "Baerum ishall live calendar (Jutul)",
+      "request_id": "manual-booking:rvv-0167:ae88c43863c89e8d85b7eff2e48f54980beab768698cba1481166817e0d1d0c7",
+      "status": "active",
+      "tournament_id": "rvv-0167",
       "type": "tournament_ice_time_override"
     }
   ],
@@ -63624,6 +64390,264 @@
         "start_time": "17:00"
       },
       "tournament_id": "rvv-0153"
+    },
+    {
+      "arena": "Baerum ishall",
+      "asserted_at": "2026-09-30T21:37:21.685427+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U8",
+        "date": "2026-12-12",
+        "duration_minutes": "155",
+        "end_time": "18:50",
+        "round_count": "5",
+        "start_time": "16:15"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_feasibility_warnings": [],
+      "booking_status": "booked",
+      "date": "2026-12-12",
+      "host_club": "Jutul",
+      "id": "manual_booking:rvv-0015:2026-09-30T21:37:21.685427+00:00",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "reference": "Baerum ishall live calendar (Jutul)",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "180ee3c43f766c732ab656102e16105ab0fca3415440048e311379c8ebb2317d",
+      "source_scope": "tournament",
+      "start_time": "16:15",
+      "stated_interval": {
+        "date": "2026-12-12",
+        "duration_minutes": "155",
+        "end": "18:50",
+        "start": "16:15"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Baerum ishall",
+        "date": "2026-12-12",
+        "host_club": "Jutul",
+        "start_time": "16:15"
+      },
+      "tournament_id": "rvv-0015"
+    },
+    {
+      "arena": "Baerum ishall",
+      "asserted_at": "2026-09-30T21:37:28.061025+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U9",
+        "date": "2026-12-13",
+        "duration_minutes": "155",
+        "end_time": "16:45",
+        "round_count": "5",
+        "start_time": "14:10"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_feasibility_warnings": [],
+      "booking_status": "booked",
+      "date": "2026-12-13",
+      "host_club": "Jutul",
+      "id": "manual_booking:rvv-0058:2026-09-30T21:37:28.061025+00:00",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "reference": "Baerum ishall live calendar (Jutul)",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "242a9539fb0824bd81fa4cd5772bb8f4bfc57c5366cd5f1cbd9e0216c583b328",
+      "source_scope": "tournament",
+      "start_time": "14:10",
+      "stated_interval": {
+        "date": "2026-12-13",
+        "duration_minutes": "155",
+        "end": "16:45",
+        "start": "14:10"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Baerum ishall",
+        "date": "2026-12-13",
+        "host_club": "Jutul",
+        "start_time": "14:10"
+      },
+      "tournament_id": "rvv-0058"
+    },
+    {
+      "arena": "Baerum ishall",
+      "asserted_at": "2026-09-30T21:37:34.403044+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "JU12",
+        "date": "2027-03-13",
+        "duration_minutes": "100",
+        "end_time": "20:10",
+        "round_count": "3",
+        "start_time": "18:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_feasibility_warnings": [],
+      "booking_status": "booked",
+      "date": "2027-03-13",
+      "host_club": "Jutul",
+      "id": "manual_booking:rvv-0072:2026-09-30T21:37:34.403044+00:00",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "reference": "Baerum ishall live calendar (Jutul)",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "d8d69d2a96a6778f10e0b95bb267a0ea6884130abb30e4ba541dc9cd636bfc0c",
+      "source_scope": "tournament",
+      "start_time": "18:30",
+      "stated_interval": {
+        "date": "2027-03-13",
+        "duration_minutes": "100",
+        "end": "20:10",
+        "start": "18:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "JU12",
+        "arena": "Baerum ishall",
+        "date": "2027-03-13",
+        "host_club": "Jutul",
+        "start_time": "18:30"
+      },
+      "tournament_id": "rvv-0072"
+    },
+    {
+      "arena": "Baerum ishall",
+      "asserted_at": "2026-09-30T21:37:40.756354+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "JU8",
+        "date": "2026-11-07",
+        "duration_minutes": "150",
+        "end_time": "20:00",
+        "round_count": "3",
+        "start_time": "17:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_feasibility_warnings": [],
+      "booking_status": "booked",
+      "date": "2026-11-07",
+      "host_club": "Jutul",
+      "id": "manual_booking:rvv-0089:2026-09-30T21:37:40.756354+00:00",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "reference": "Baerum ishall live calendar (Jutul)",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "e35c083f10173dbb38b7f1f539fbba03f8db421322ba63c1f517e34a08b11c84",
+      "source_scope": "tournament",
+      "start_time": "17:30",
+      "stated_interval": {
+        "date": "2026-11-07",
+        "duration_minutes": "150",
+        "end": "20:00",
+        "start": "17:30"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "JU8",
+        "arena": "Baerum ishall",
+        "date": "2026-11-07",
+        "host_club": "Jutul",
+        "start_time": "17:30"
+      },
+      "tournament_id": "rvv-0089"
+    },
+    {
+      "arena": "Baerum ishall",
+      "asserted_at": "2026-09-30T21:37:47.077423+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U8",
+        "date": "2027-02-20",
+        "duration_minutes": "155",
+        "end_time": "19:30",
+        "round_count": "5",
+        "start_time": "16:55"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_feasibility_warnings": [],
+      "booking_status": "booked",
+      "date": "2027-02-20",
+      "host_club": "Jutul",
+      "id": "manual_booking:rvv-0151:2026-09-30T21:37:47.077423+00:00",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "reference": "Baerum ishall live calendar (Jutul)",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "f41fdc91f21cad3b97b67f62c958e4c71bff4c8656fcfb0bb8337d5f73ed2cb5",
+      "source_scope": "tournament",
+      "start_time": "16:55",
+      "stated_interval": {
+        "date": "2027-02-20",
+        "duration_minutes": "155",
+        "end": "19:30",
+        "start": "16:55"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Baerum ishall",
+        "date": "2027-02-20",
+        "host_club": "Jutul",
+        "start_time": "16:55"
+      },
+      "tournament_id": "rvv-0151"
+    },
+    {
+      "arena": "Baerum ishall",
+      "asserted_at": "2026-09-30T21:37:53.530815+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "U7",
+        "date": "2027-02-14",
+        "duration_minutes": "155",
+        "end_time": "16:45",
+        "round_count": "5",
+        "start_time": "14:10"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_feasibility_warnings": [],
+      "booking_status": "booked",
+      "date": "2027-02-14",
+      "host_club": "Jutul",
+      "id": "manual_booking:rvv-0167:2026-09-30T21:37:53.530815+00:00",
+      "note": "Jutul Baerum ishall calendar match; recording booking confirmation at the actual booked interval (supersedes hall-review start-time protection)",
+      "reference": "Baerum ishall live calendar (Jutul)",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "87e41f1f4a0e778916be4954bb7be513966796e65aab633afc9f1c08cca5a492",
+      "source_scope": "tournament",
+      "start_time": "14:10",
+      "stated_interval": {
+        "date": "2027-02-14",
+        "duration_minutes": "155",
+        "end": "16:45",
+        "start": "14:10"
+      },
+      "status": "active",
+      "supersedes": null,
+      "tournament_facts": {
+        "age_group": "U7",
+        "arena": "Baerum ishall",
+        "date": "2027-02-14",
+        "host_club": "Jutul",
+        "start_time": "14:10"
+      },
+      "tournament_id": "rvv-0167"
     }
   ],
   "participation_withdrawals": [
@@ -63956,7 +64980,7 @@
       "type": "team_unavailable"
     }
   ],
-  "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+  "schedule_fingerprint": "6333b9098d6ce94da2e5e0328981ae35efc2c2dde513193dd179f803e11010ce",
   "schema_version": 1,
   "season": "2026-2027",
   "season_lifecycle": {
@@ -139444,5 +140468,5 @@
       "tournament_id": "rvv-0031"
     }
   ],
-  "updated_at": "2026-09-30T20:19:16.240966+00:00"
+  "updated_at": "2026-09-30T21:38:24.155153+00:00"
 }
