@@ -5,6 +5,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+from tournament_scheduler.application.production_capabilities import PRODUCTION_CAPABILITIES
+
 
 APPLICATION_ROOT = Path("tournament_scheduler/application")
 FORBIDDEN_IMPORTS = {
@@ -147,6 +149,58 @@ def test_application_architecture_doc_describes_durable_boundary():
     assert "## Example: adding a cross-adapter capability" in text
     assert ".agents/skills/rvv/SKILL.md" in text
     assert "DecisionContext" in text
+
+
+def test_production_capability_map_points_at_public_facade_and_focused_tests():
+    """Published-season work has a compact map from task to stable owner."""
+
+    required = {
+        "calendar_evidence",
+        "booking_confirmation",
+        "request_constraints",
+        "placement",
+        "participants",
+        "cancellation",
+        "audit_export_publication",
+    }
+    service_source = (APPLICATION_ROOT / "canonical_season_service.py").read_text(encoding="utf-8")
+    documented_keys = {capability.key for capability in PRODUCTION_CAPABILITIES}
+
+    assert required <= documented_keys
+    assert len(documented_keys) == len(PRODUCTION_CAPABILITIES)
+
+    for capability in PRODUCTION_CAPABILITIES:
+        assert capability.tasks, capability.key
+        assert capability.public_api, capability.key
+        assert capability.implementation_owner, capability.key
+        assert capability.invariants, capability.key
+        assert capability.focused_tests, capability.key
+        assert "SeasonPlanner" not in capability.implementation_owner
+        assert "stage3" not in capability.implementation_owner.lower()
+        assert any("CanonicalSeasonService" in item for item in capability.invariants)
+
+        for api in capability.public_api:
+            prefix, _, method_name = api.partition(".")
+            assert prefix == "CanonicalSeasonService", api
+            assert f"def {method_name}(" in service_source, api
+
+        for test_path in capability.focused_tests:
+            assert Path(test_path).exists(), f"{capability.key} references missing test {test_path}"
+
+
+def test_production_capability_map_is_navigation_not_private_policy():
+    """The map must not expose private implementation functions as public API."""
+
+    source = (APPLICATION_ROOT / "production_capabilities.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    function_defs = [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
+    class_defs = [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
+
+    assert function_defs == []
+    assert class_defs == ["ProductionCapability"]
+    for capability in PRODUCTION_CAPABILITIES:
+        assert not any("._" in api for api in capability.public_api), capability
+        assert not any("verify_candidate" in invariant for invariant in capability.invariants), capability
 
 
 def test_canonical_season_state_has_one_persistence_owner():
