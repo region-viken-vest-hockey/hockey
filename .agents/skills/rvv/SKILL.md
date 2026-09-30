@@ -9,6 +9,16 @@ This is the shared RVV entry point for Claude, Codex, ChatGPT, Pi and future har
 
 Use repository code for facts, hard constraints, validation, persistence, evidence, export and publication safeguards. Use the active agent for contextual judgment only among supported repository actions. Never create a harness-local scheduler, verifier, decision controller, semantic-audit engine, scraper policy or canonical mutation implementation.
 
+## Lifecycle overview
+
+### Initial season creation
+
+Use `scripts/rvv-miniputt run --interactive` for initial planning.
+
+### Promoted-season maintenance
+
+Use `scripts/rvv-miniputt season` for promoted/published/sealed maintenance.
+
 ## Route before loading detail
 
 Load only the capability guidance needed for the task:
@@ -25,6 +35,24 @@ Combine capability files only when the task actually crosses those boundaries. F
 **Lifecycle routing is state-derived:** establish the authoritative season lifecycle first. A promoted/published/sealed season routes ordinary operational work to `production/SKILL.md`; an initial/new-season planning lifecycle routes to `planning/SKILL.md`. Do not encode a season/year's current lifecycle in permanent instructions, and do not load Stage 3/SeasonPlanner guidance merely because a maintenance operation is difficult.
 
 Exact command execution belongs in [`.agents/commands/rvv-miniputt/`](../../commands/rvv-miniputt/). Load the specific procedure only when executing that workflow; do not preload the entire command directory.
+
+## Stage gating policy
+
+### Stage 1
+
+Proceed when controlled input parsed into coherent season facts; abort/request correction on material missing dates, groups, clubs, arenas, sources or registrations.
+
+### Stage 2
+
+Proceed when scraping/source recovery produced usable evidence for meaningful planning; retry/recover material gaps and abort/request operator input when availability conclusions are unsafe.
+
+### Stage 3
+
+Proceed only with a hard-verified candidate or explicit repository decision context; do not waive hard violations, locks, hosting responsibility or unresolved placements.
+
+## Semantic safety-net audit
+
+Use `operator audit-context`, `operator audit-evidence`, `operator audit-submit` and `operator audit-run`. Checklist: Antall cuper pr lag? Antall hjemmeturneringer pr lag? Lengde på turneringer? Er det faktisk ledig tid på is? Deltar vertsklubben i samme turnering? Deltar hvert lag maksimalt én gang per dag? Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak? Er eksportformatene konsistente? Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?
 
 ## Universal RVV invariants
 
