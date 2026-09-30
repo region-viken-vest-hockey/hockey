@@ -160,6 +160,37 @@ def test_tournament_inspection_projects_roster_status_and_constraints(
     assert load_schedule("2026-2027", root=root)["revision"] == report["revision"]
 
 
+def test_tournament_inspection_excludes_unrelated_same_date_team_constraint(
+    tmp_path: Path,
+) -> None:
+    """A team-scoped constraint follows its team, not the tournament date."""
+
+    root = _promote(tmp_path)
+    # E1 plays t2 on 2026-09-12 (same date as t1) but is not a t1 participant,
+    # so this constraint must not appear as relevant to t1.
+    add_request_constraint(
+        season="2026-2027",
+        type="team_unavailable",
+        request_id="club-feedback:e:e1",
+        teams=[{"club": "E", "label": "E1", "age_group": "U10"}],
+        date_from="2026-09-12",
+        date_to="2026-09-12",
+        root=root,
+    )
+
+    t1 = tournament_inspection(season="2026-2027", tournament_id="t1", root=root)
+    assert t1["constraints"]["count"] == 0
+    t1_filtered = constraint_inspection(
+        season="2026-2027", tournament_id="t1", root=root
+    )
+    assert t1_filtered["count"] == 0
+
+    t2 = tournament_inspection(season="2026-2027", tournament_id="t2", root=root)
+    assert [item["request_id"] for item in t2["constraints"]["constraints"]] == [
+        "club-feedback:e:e1"
+    ]
+
+
 def test_tournament_inspection_rejects_unknown_tournament(tmp_path: Path) -> None:
     root = _promote(tmp_path)
     with pytest.raises(SeasonStateError, match="Unknown tournament id"):

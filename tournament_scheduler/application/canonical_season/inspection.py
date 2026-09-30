@@ -21,6 +21,7 @@ from tournament_scheduler.canonical_baseline import resolve_approval
 from tournament_scheduler.canonical_state import canonical_state_revision
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
 from tournament_scheduler.request_constraints import (
+    OPPONENT_AVOIDANCE,
     request_constraint_report as build_request_constraint_report,
     team_identity,
 )
@@ -51,26 +52,47 @@ def _constraint_window_contains(constraint: Mapping[str, Any], date: str) -> boo
     return start <= date <= (end or start)
 
 
-def _constraint_matches_team(constraint: Mapping[str, Any], identity: tuple[str, str, str]) -> bool:
-    for team in constraint.get("teams") or []:
-        if team_identity(team) == identity:
-            return True
-    return False
-
-
 def _constraint_affects_tournament(
     constraint: Mapping[str, Any],
     tournament: Mapping[str, Any],
 ) -> bool:
+    """Return whether a request constraint actually constrains this tournament.
+
+    Relevance respects the constraint's domain identity. A team-scoped
+    constraint is only relevant to a tournament in which its team(s)
+    participate; a date window that merely overlaps the tournament date is not
+    enough (an unrelated ``team_unavailable`` on the same date must not appear).
+    ``opponent_avoidance`` requires both named teams; ``minimum_gap`` and
+    ``team_unavailable`` follow their single team and date window.
+    """
+
     age_group = str(tournament.get("age_group") or "")
     participants = {
         team_identity(team, age_group)
         for team in tournament.get("teams", []) or []
         if not bool((team or {}).get("guest", False))
     }
-    if any(_constraint_matches_team(constraint, identity) for identity in participants):
-        return True
-    return _constraint_window_contains(constraint, str(tournament.get("date") or ""))
+    identities = [
+        team_identity(team, age_group) for team in constraint.get("teams") or []
+    ]
+    if not identities:
+        # A constraint without a team identity can only be tied to a tournament
+        # through its date window.
+        return _constraint_window_contains(
+            constraint, str(tournament.get("date") or "")
+        )
+    if str(constraint.get("type") or "") == OPPONENT_AVOIDANCE:
+        if len(identities) < 2 or not all(
+            identity in participants for identity in identities[:2]
+        ):
+            return False
+    elif not any(identity in participants for identity in identities):
+        return False
+    if constraint.get("date_from") and not _constraint_window_contains(
+        constraint, str(tournament.get("date") or "")
+    ):
+        return False
+    return True
 
 
 def _filter_constraint_report(
