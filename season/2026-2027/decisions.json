@@ -9453,11 +9453,15 @@
   },
   "export_state": {
     "calendar_fingerprint": "e29a104f0dcf7fe91d1bfeca8ed50d1a99c8e563ae7a79084ee1884f83cb480f",
+    "export_dir": "export/2026-09-30T2019",
+    "fresh_at": "2026-09-30T20:19:16.240966+00:00",
+    "fresh_by": "niclasl",
+    "fresh_canonical_revision": "4f49b84088d8a655abbd95a854600d1ec66a04043d46acbf4dd353690ad8923a",
     "requires_fresh_audit": true,
-    "requires_fresh_export": true,
+    "requires_fresh_export": false,
     "stale_at": "2026-09-30T20:15:29.486280+00:00",
     "stale_reason": "calendar_evidence_refreshed",
-    "status": "stale"
+    "status": "fresh"
   },
   "history": [
     {
@@ -54892,6 +54896,22 @@
       },
       "event": "reconcile_calendar_bookings",
       "note": "Fresh Jar reconciliation",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T20:19:16.240966+00:00",
+      "details": {
+        "canonical_state_revision": "4f49b84088d8a655abbd95a854600d1ec66a04043d46acbf4dd353690ad8923a",
+        "export_dir": "export/2026-09-30T2019",
+        "previous_export_status": "stale",
+        "previous_requires_fresh_export": true
+      },
+      "event": "mark_export_fresh",
+      "note": "canonical export",
       "previous_fingerprint": null,
       "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
       "tournament_fingerprint": null,
@@ -139424,5 +139444,5 @@
       "tournament_id": "rvv-0031"
     }
   ],
-  "updated_at": "2026-09-30T20:17:25.018765+00:00"
+  "updated_at": "2026-09-30T20:19:16.240966+00:00"
 }
