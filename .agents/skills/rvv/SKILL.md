@@ -13,6 +13,10 @@ Read `AGENTS.md` first for repository-wide precedence and hygiene rules.
 
 ## Canonical-season implementation navigation
 
+The current season is published/sealed, so treat canonical-season maintenance as the primary production architecture. Start from a small capability contract (booking, calendars, participants, constraints, placement, cancellation, audit/export or publication), then load only that capability's implementation and focused tests plus the shared mutation/effective-state boundary. Ordinary production maintenance should not require Stage 3 or `SeasonPlanner` context.
+
+Production implementation must converge on one revision-bound effective canonical projection and one shared mutation shape: load authoritative revision -> build candidate in memory -> compare effective baseline/candidate findings -> apply capability policy -> preview exact delta -> atomically commit against the same revision -> reload/verify/audit. Policy gates remain distinct, especially publication, but callers must not create their own evidence projection, verification semantics or grandfathering/bypass logic. See #576 for the production architecture convergence track; #358 remains next-season planner decomposition.
+
 `CanonicalSeasonService` is the stable public application boundary for promoted-season mutations; it is **not** a requirement that every canonical-season use case live in one source file. Preserve one public mutation boundary, one persistence owner (`CanonicalSeasonStore`), and the shared load -> mutate -> verify -> reconcile -> history -> revision -> atomic-write invariants, while preferring cohesive internal modules when implementation size/coupling warrants extraction.
 
 When investigating or changing canonical-season behavior, keep agent context local:
