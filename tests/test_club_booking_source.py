@@ -402,34 +402,41 @@ def test_source_confirmed_moved_day_double_booked_team_is_rejected_and_evidence_
     assert decisions["decisions"]["t1"]["placement_locked"] is False
 
 
-def test_source_confirmed_playing_shortfall_stays_hard_and_evidence_retained(tmp_path):
-    """Insufficient actual playing time stays a hard conflict even with exact
-    source evidence; the governing-floor downgrade never waives it."""
+def test_source_confirmed_sub_round_shortfall_records_reality_and_surfaces_finding(tmp_path):
+    """An accepted sub-round source interval is recorded exactly.
+
+    Recording the authoritative interval is not an approval of its format: the
+    playing-time shortfall stays a separate durable finding instead of rejecting
+    the observed booking and leaving the stale planned interval canonical.
+    """
 
     root = _promote(tmp_path, [_tournament("t1")])
     problem = {**_host_a_problem([]), "round_length_minutes": {"U10": 15}}
     source = _source_set(root)["source"]
-    with pytest.raises(Exception, match="minimum 20 minutes"):
-        _interpretation(
-            root,
-            tournament_id="t1",
-            source_id=source["id"],
-            problem=problem,
-            stated_date="2026-09-12",
-            stated_start="10:00",
-            stated_end="10:10",
-        )
+    result = _interpretation(
+        root,
+        tournament_id="t1",
+        source_id=source["id"],
+        problem=problem,
+        stated_date="2026-09-12",
+        stated_start="10:00",
+        stated_end="10:10",
+    )
 
-    decisions = load_decisions("2026-2027", root=root)
-    rejected = decisions.get(REJECTED_BOOKING_EVIDENCE_KEY) or []
-    assert rejected and rejected[-1]["tournament_id"] == "t1"
-    codes = {c["code"] for c in rejected[-1]["conflicts"]}
-    assert "ice_time_playing_minimum" in codes
-    # The governing-floor shortfall was reclassified as a feasibility finding,
-    # not used as a blanket waiver of the independent playing minimum.
-    assert "ice_time_governing_minimum" not in codes
+    assert result["interval_alignment"]["accepted_source_interval"] == {
+        "date": "2026-09-12",
+        "start_time": "10:00",
+        "duration_minutes": 10,
+        "end_time": "10:10",
+    }
+    # Governing-floor and playing-round shortfalls are both durable findings.
+    codes = {warning["code"] for warning in result["booking_feasibility_warnings"]}
+    assert codes == {"ice_time_governing_minimum", "ice_time_playing_minimum"}
     schedule = load_schedule("2026-2027", root=root)["plan"]
     assert schedule["tournaments"][0]["start_time"] == "10:00"
+    decisions = load_decisions("2026-2027", root=root)
+    assert decisions["ice_time_minutes_overrides"][-1]["minutes"] == 10
+    assert not decisions.get(REJECTED_BOOKING_EVIDENCE_KEY)
 
 
 def test_adjacent_booked_source_intervals_use_actual_duration_for_conflicts(tmp_path):

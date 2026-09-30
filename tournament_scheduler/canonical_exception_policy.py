@@ -26,8 +26,9 @@ admission gate folded into ``verify_canonical_candidate.ok`` when a baseline is
 supplied, not a separate diagnostic. It is deliberately conservative: an
 *unchanged unaccepted* legacy violation (or a still-present improved one) is
 visible debt but stays blocking. Nothing here waives a genuine overlap, a
-playing shortfall, a stale/wrong source or an unverified placement, and there is
-no per-id allowlist or blanket bypass.
+stale/wrong source or an unverified placement, and there is no per-id allowlist
+or blanket bypass. Recording an accepted interval does not approve an
+unplayable format; the shortfall stays a durable finding.
 """
 
 from __future__ import annotations
@@ -45,7 +46,16 @@ from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 # downgrade an otherwise-hard violation to a durable follow-up finding. Kept as
 # a small explicit set (not an id allowlist): each entry names a rule whose
 # acceptance evidence the canonical projection can prove exactly.
-ACCEPTED_EXCEPTION_RULE_CODES = frozenset({"ice_time_governing_minimum"})
+#
+# ``ice_time_playing_minimum`` is the shortfall against the *planned* round
+# structure. Once an authoritative interval is accepted, that interval is the
+# factual booking even when it is operationally unusable and the shortfall
+# becomes a durable feasibility finding/action (the plan must adapt, not the
+# recorded booking). Recording reality is not the same as approving the
+# format; only an explicit operator acceptance can reach this path.
+ACCEPTED_EXCEPTION_RULE_CODES = frozenset(
+    {"ice_time_governing_minimum", "ice_time_playing_minimum"}
+)
 
 # Baseline-vs-candidate classification buckets.
 RESOLVED = "resolved"
@@ -108,6 +118,12 @@ def accepted_exception_identity(
     }
 
 
+def _accepted_exception_eligible(violation: Mapping[str, Any]) -> bool:
+    """Return whether one violation may be reclassified for accepted evidence."""
+
+    return str(violation.get("code") or "") in ACCEPTED_EXCEPTION_RULE_CODES
+
+
 def _accepted_exception_finding(
     tournament: Mapping[str, Any],
     violation: Mapping[str, Any],
@@ -118,11 +134,18 @@ def _accepted_exception_finding(
     The finding keeps the verifier's structured fields (so findings/audit/export
     agree on the deficit) and adds the exact accepted interval, its evidence
     authority and the structured exception identity. ``governing_floor_finding``
-    remains the message owner for the shortfall.
+    remains the message owner for the governing-floor shortfall; a playing-round
+    shortfall keeps the verifier's own code/message so the two deficits stay
+    distinguishable.
     """
 
     accepted_minutes = (identity.get("interval") or {}).get("duration_minutes")
-    floor_finding = governing_floor_finding(tournament, accepted_minutes)
+    code = str(violation.get("code") or "")
+    floor_finding = (
+        governing_floor_finding(tournament, accepted_minutes)
+        if code == "ice_time_governing_minimum"
+        else None
+    )
     finding = dict(floor_finding or violation)
     # Preserve any structured verifier fields the message owner does not repeat.
     for key, value in violation.items():
@@ -151,8 +174,11 @@ def _split_accepted_violations(
     for violation in violations:
         item = dict(violation)
         code = str(item.get("code") or "")
-        if code in ACCEPTED_EXCEPTION_RULE_CODES and matches(item):
-            accepted.append(_accepted_exception_finding(tournament, item, identity))
+        if _accepted_exception_eligible(item) and matches(item):
+            # Label the accepted exception with the rule it actually reclassifies
+            # so governing-floor and playing-round findings stay distinct.
+            violation_identity = {**identity, "rule": code}
+            accepted.append(_accepted_exception_finding(tournament, item, violation_identity))
             continue
         blocking.append(item)
     return {"accepted_exceptions": accepted, "blocking_violations": blocking}
@@ -175,13 +201,17 @@ def reclassify_accepted_exceptions(
     for violation in violations:
         item = dict(violation)
         code = str(item.get("code") or "")
-        if code in ACCEPTED_EXCEPTION_RULE_CODES:
+        if _accepted_exception_eligible(item):
             tournament_id = str(item.get("tournament_id") or "")
             tournament = _tournament_by_id(candidate, tournament_id)
             if tournament is not None:
                 identity = accepted_exception_identity(problem, tournament)
                 if identity is not None:
-                    accepted.append(_accepted_exception_finding(tournament, item, identity))
+                    accepted.append(
+                        _accepted_exception_finding(
+                            tournament, item, {**identity, "rule": code}
+                        )
+                    )
                     continue
         blocking.append(item)
     return {"accepted_exceptions": accepted, "blocking_violations": blocking}
