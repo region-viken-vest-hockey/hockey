@@ -22,7 +22,7 @@ scheduling rules (those are domain providers/verifier); it is the application
 layer that sequences them.
 
 ``CanonicalSeasonService`` is a stable facade. The use-case implementations
-live in the cohesive modules under :mod:`tournament_scheduler.application.canonical_season`
+live in the cohesive modules/packages under :mod:`tournament_scheduler.application.canonical_season`
 (``baseline``, ``calendars``, ``constraints``, ``placements``, ``normalization``,
 ``roster``, ``replacement``, ``batch``, ``candidates``, ``guest_slots``,
 ``approvals``), while the one shared load -> verify -> reconcile -> history ->

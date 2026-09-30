@@ -319,8 +319,12 @@ def test_real_sep_21_baseline_reconciles_with_durable_history() -> None:
     if publication_plan is None:
         pytest.skip("canonical history for the publication revision is unavailable")
 
+    from tournament_scheduler.canonical_ice_time_overrides import active_overrides
     from tournament_scheduler.infrastructure.canonical_revision_history import load_canonical_schedule_at_revision
-    from tournament_scheduler.published_baseline import projection_problem_from_schedule
+    from tournament_scheduler.published_baseline import (
+        effective_projection_from_canonical_schedule,
+        projection_problem_from_schedule,
+    )
 
     publication_schedule = load_canonical_schedule_at_revision("2026-2027", revision, season_root=season_root)
     published = projection_from_export_artifacts(
@@ -329,11 +333,8 @@ def test_real_sep_21_baseline_reconciles_with_durable_history() -> None:
         published_canonical_problem=projection_problem_from_schedule(publication_schedule),
     )
     current_schedule = load_schedule("2026-2027", root=season_root)
-    current = tournament_projection(
-        current_schedule["plan"],
-        projection_problem_from_schedule(current_schedule),
-    )
     decisions = load_decisions("2026-2027", root=season_root)
+    current = effective_projection_from_canonical_schedule(current_schedule, decisions)
 
     omissions = omission_projection(
         tournament_projection(publication_plan, projection_problem_from_schedule(publication_schedule)),
@@ -348,6 +349,7 @@ def test_real_sep_21_baseline_reconciles_with_durable_history() -> None:
         current_projection=current,
         history=decisions.get("history") or [],
         attested_additions={**omissions, **materializations},
+        occupancy_overrides=active_overrides(decisions),
     )
     assert report["ok"] is True, report["unexplained_delta"]
     assert sorted(omissions) == ["rvv-0033", "rvv-0057"]
