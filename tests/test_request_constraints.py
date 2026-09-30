@@ -142,6 +142,36 @@ def _unit_plan() -> dict:
     }
 
 
+def _gap_plan(dates: list[str]) -> dict:
+    """A one-focus-team plan: Kongsberg K1 plays every tournament."""
+
+    return {
+        "tournaments": [
+            _tournament(
+                f"gap-{index}",
+                day,
+                "Kongsberg",
+                "Arena A",
+                [("Kongsberg", "K1"), ("X", "X1"), ("Y", "Y1"), ("Z", "Z1")],
+                "10:00",
+            )
+            for index, day in enumerate(dates)
+        ]
+    }
+
+
+def _minimum_gap_constraint(plan: dict, min_days: int = 14) -> dict:
+    return validate_and_normalize(
+        {
+            "type": "minimum_gap",
+            "request_id": "r",
+            "teams": [{"club": "Kongsberg", "label": "K1", "age_group": "U10"}],
+            "min_days": min_days,
+        },
+        plan,
+    )
+
+
 # -- unit: typed model ------------------------------------------------------
 
 
@@ -357,6 +387,56 @@ def test_compare_constraint_violations_distinguishes_unchanged_worsened_resolved
     assert resolved["acceptable"] is True
     assert len(resolved["resolved"]) == 1
     assert resolved["candidate_violations"] == []
+
+
+def test_minimum_gap_adjacency_migration_compares_total_shortfall() -> None:
+    """Debt moving between adjacent pairs is judged by total shortfall."""
+
+    baseline = _gap_plan(["2027-02-01", "2027-02-05", "2027-03-01"])
+    constraint = _minimum_gap_constraint(baseline)
+    # Baseline shortfall: (gap-0, gap-1) is 4 days vs 14 -> 10, (gap-1, gap-2)
+    # is 24 days and fine.
+
+    # The original violating pair disappears and a new one appears, but the
+    # team's total shortfall drops from 10 to 5, so this is an improvement.
+    improving = _gap_plan(["2027-02-01", "2027-02-20", "2027-03-01"])
+    improved = compare_constraint_violations(baseline, improving, [constraint])
+    assert improved["acceptable"] is True
+    assert improved["introduced"] == []
+    assert improved["worsened"] == []
+    assert len(improved["improved"]) == 1
+
+    # Same total shortfall (5 + 5) split across two new pairs: the debt
+    # migrated, so the candidate is unchanged, not newly introduced.
+    migrated = _gap_plan(["2027-02-01", "2027-02-10", "2027-02-19"])
+    unchanged = compare_constraint_violations(baseline, migrated, [constraint])
+    assert unchanged["acceptable"] is True
+    assert unchanged["introduced"] == []
+    assert unchanged["worsened"] == []
+    assert len(unchanged["unchanged"]) == 2
+
+
+def test_minimum_gap_adjacency_migration_can_worsen_or_introduce() -> None:
+    baseline = _gap_plan(["2027-02-01", "2027-02-05", "2027-03-01"])
+    constraint = _minimum_gap_constraint(baseline)
+
+    # Moving the shortfall to a closer new pair (3 days vs 14) raises the total
+    # from 10 to 11 and is a worsening.
+    worsening = _gap_plan(["2027-02-01", "2027-02-26", "2027-03-01"])
+    worsened = compare_constraint_violations(baseline, worsening, [constraint])
+    assert worsened["acceptable"] is False
+    assert len(worsened["worsened"]) == 1
+    assert worsened["introduced"] == []
+
+    # A satisfied baseline gaining any shortfall is still an introduced
+    # violation, not a migration.
+    satisfied = _gap_plan(["2027-02-01", "2027-02-20"])
+    introduced = compare_constraint_violations(
+        satisfied, _gap_plan(["2027-02-01", "2027-02-05"]), [constraint]
+    )
+    assert introduced["acceptable"] is False
+    assert len(introduced["introduced"]) == 1
+    assert introduced["worsened"] == []
 
 
 # -- integration: canonical lifecycle --------------------------------------

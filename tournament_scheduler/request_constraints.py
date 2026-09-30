@@ -439,9 +439,12 @@ def violation_identity(violation: Mapping[str, Any]) -> tuple[str, ...]:
     """Return the stable semantic identity of one structured violation.
 
     The identity is scoped to the constraint and to the exact entities/facts it
-    covers, so a candidate that changes a tournament, date or pairing in the
-    constraint's scope produces a different identity and is classified as a new
-    violation instead of being inherited from the baseline.
+    covers, so a candidate that changes a tournament or date in the constraint's
+    scope produces a different identity and is classified as a new violation
+    instead of being inherited from the baseline. ``minimum_gap`` debt is
+    aggregated per constraint (see :func:`_constraint_debt_view`): the identity
+    of whichever adjacent pair currently carries the shortfall is not a stable
+    debt identity, so it collapses to the constraint itself.
     """
 
     constraint_identifier = str(violation.get("constraint_id") or "")
@@ -464,22 +467,16 @@ def violation_identity(violation: Mapping[str, Any]) -> tuple[str, ...]:
             str(violation.get("tournament_id") or ""),
             str(violation.get("date") or ""),
         )
-    if code == MINIMUM_GAP:
-        return (
-            constraint_identifier,
-            code,
-            *[str(item) for item in (violation.get("tournament_ids") or [])],
-        )
     return (constraint_identifier, code)
 
 
 def violation_severity(violation: Mapping[str, Any]) -> float:
     """Return a deterministic higher-is-worse score for one violation.
 
-    Binary violations (an unavailable team, an avoided opponent) are either
-    present at a given identity or not, so they score ``1.0``. A minimum-gap
-    violation scores its shortfall in days, so moving an unchanged pairing
-    closer together is a worsening even though the pair identity is unchanged.
+    Entity-scoped violations (an unavailable team, an avoided opponent) are
+    binary and score ``1.0``. A minimum-gap violation scores its shortfall in
+    days; the constraint-level comparison sums those shortfalls, so moving the
+    shortfall to a neighbouring pair is the same debt unless the total grows.
     """
 
     if str(violation.get("code") or "") == MINIMUM_GAP:
@@ -487,6 +484,30 @@ def violation_severity(violation: Mapping[str, Any]) -> float:
         gap = int(violation.get("gap_days") or 0)
         return float(max(0, minimum - gap))
     return 1.0
+
+
+def _constraint_debt_view(
+    constraint: Mapping[str, Any],
+    violations: list[dict[str, Any]],
+) -> tuple[dict[tuple[str, ...], float], dict[tuple[str, ...], list[dict[str, Any]]]]:
+    """Return one constraint's debt keys -> severity and keys -> evidence.
+
+    Entity-scoped constraints key each violation by the exact entity/fact it
+    covers, so touching that fact is a new violation. A ``minimum_gap``
+    constraint keys its whole spacing shortfall to one aggregate, so a candidate
+    that removes one violating adjacent pair while creating another is compared
+    on the team's total shortfall rather than on pair identity.
+    """
+
+    if not violations:
+        return {}, {}
+    if str(constraint.get("type") or "") == MINIMUM_GAP:
+        key = (str(constraint.get("id") or ""), MINIMUM_GAP)
+        severity = sum(violation_severity(item) for item in violations)
+        return {key: severity}, {key: violations}
+    debt = {violation_identity(item): violation_severity(item) for item in violations}
+    by_key = {violation_identity(item): [dict(item)] for item in violations}
+    return debt, by_key
 
 
 def compare_constraint_violations(
@@ -501,48 +522,44 @@ def compare_constraint_violations(
     ``acceptable`` is true exactly when the candidate introduces no new
     violation and worsens no existing one; pre-existing unchanged violations
     remain in the result as unresolved, actionable debt.
+
+    Classification is per constraint debt, not per raw violation dict: entity
+    facts are keyed individually, while a ``minimum_gap`` constraint compares
+    its total spacing shortfall so debt can migrate between adjacent pairs
+    without being misread as a brand-new violation.
     """
 
     constraint_list = [dict(constraint) for constraint in constraints]
-    baseline_violations = [
-        violation
-        for constraint in constraint_list
-        for violation in constraint_violations(baseline_plan, constraint)
-    ]
-    candidate_violations = [
-        violation
-        for constraint in constraint_list
-        for violation in constraint_violations(candidate_plan, constraint)
-    ]
-    baseline_by_identity = {
-        violation_identity(violation): violation for violation in baseline_violations
-    }
-    candidate_by_identity = {
-        violation_identity(violation): violation for violation in candidate_violations
-    }
+    baseline_violations: list[dict[str, Any]] = []
+    candidate_violations: list[dict[str, Any]] = []
 
     introduced: list[dict[str, Any]] = []
     worsened: list[dict[str, Any]] = []
     unchanged: list[dict[str, Any]] = []
     improved: list[dict[str, Any]] = []
-    for identity, violation in candidate_by_identity.items():
-        previous = baseline_by_identity.get(identity)
-        if previous is None:
-            introduced.append(violation)
-            continue
-        before = violation_severity(previous)
-        after = violation_severity(violation)
-        if after > before:
-            worsened.append(violation)
-        elif after < before:
-            improved.append(violation)
-        else:
-            unchanged.append(violation)
-    resolved = [
-        violation
-        for identity, violation in baseline_by_identity.items()
-        if identity not in candidate_by_identity
-    ]
+    resolved: list[dict[str, Any]] = []
+
+    for constraint in constraint_list:
+        base = constraint_violations(baseline_plan, constraint)
+        cand = constraint_violations(candidate_plan, constraint)
+        baseline_violations.extend(base)
+        candidate_violations.extend(cand)
+        baseline_debt, baseline_by_key = _constraint_debt_view(constraint, base)
+        candidate_debt, candidate_by_key = _constraint_debt_view(constraint, cand)
+        for key, severity in candidate_debt.items():
+            entries = candidate_by_key.get(key, [])
+            previous = baseline_debt.get(key)
+            if previous is None:
+                introduced.extend(entries)
+            elif severity > previous:
+                worsened.extend(entries)
+            elif severity < previous:
+                improved.extend(entries)
+            else:
+                unchanged.extend(entries)
+        for key, entries in baseline_by_key.items():
+            if key not in candidate_debt:
+                resolved.extend(entries)
 
     regressions = introduced + worsened
     return {
