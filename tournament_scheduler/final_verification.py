@@ -422,9 +422,10 @@ def verify_canonical_candidate(
     exact current interval and tournament-facts match.
 
     When the caller supplies the authoritative baseline verification, the
-    result also carries ``violation_classification`` from the shared
-    baseline-aware policy owner, so direct mutation, dry-run, repair adoption
-    and bounded search report identical structured evidence.
+    shared baseline-aware policy owner's verdict is folded into ``ok`` and the
+    structured ``violation_classification`` is included, so direct mutation,
+    dry-run, repair adoption and bounded search all gate on the same admission
+    decision instead of reporting it as a separate diagnostic.
     """
 
     verifier = base_verifier or _verify_candidate
@@ -447,11 +448,19 @@ def verify_canonical_candidate(
             *list(baseline_verification.get("booking_feasibility_warnings") or []),
         ]
         candidate_findings = [*violations, *accepted_floor_findings]
-        result["violation_classification"] = classify_candidate_violations(
+        classification = classify_candidate_violations(
             baseline_findings,
             candidate_findings,
             accepted_exception_violations=accepted_floor_findings,
         )
+        result["violation_classification"] = classification
+        # The classification is the authoritative admission gate, not a
+        # diagnostic: a candidate is admissible exactly when it introduces or
+        # worsens nothing and leaves no unchanged unaccepted (or merely
+        # improved-but-still-present unaccepted) debt. Folding the verdict into
+        # ``ok`` keeps the reported classification and every canonical writer
+        # that gates on ``ok`` from ever diverging.
+        result["ok"] = bool(classification["acceptable"]) and not violations
     readiness = publication_readiness(result)
     result["publication_readiness"] = readiness
     result["publishable"] = readiness["publishable"]

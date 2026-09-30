@@ -20,11 +20,14 @@ duration). It
 
 The module also classifies a candidate's hard violations against the
 authoritative baseline (``resolved``/``unchanged_accepted``/``unchanged_unaccepted``/
-``introduced``/``worsened``/``materially_modified``) so every caller can report
-the same structured evidence. It is deliberately conservative: an *unchanged
-unaccepted* legacy violation is visible debt but stays blocking. Nothing here
-waives a genuine overlap, a playing shortfall, a stale/wrong source or an
-unverified placement, and there is no per-id allowlist or blanket bypass.
+``introduced``/``worsened``/``materially_modified``/``improved``) and exposes the
+authoritative ``acceptable``/``blocking`` verdict. That verdict is the actual
+admission gate folded into ``verify_canonical_candidate.ok`` when a baseline is
+supplied, not a separate diagnostic. It is deliberately conservative: an
+*unchanged unaccepted* legacy violation (or a still-present improved one) is
+visible debt but stays blocking. Nothing here waives a genuine overlap, a
+playing shortfall, a stale/wrong source or an unverified placement, and there is
+no per-id allowlist or blanket bypass.
 """
 
 from __future__ import annotations
@@ -51,6 +54,7 @@ UNCHANGED_UNACCEPTED = "unchanged_unaccepted"
 INTRODUCED = "introduced"
 WORSENED = "worsened"
 MATERIALLY_MODIFIED = "materially_modified"
+IMPROVED = "improved"
 
 # Facts a rule is *about*. A candidate that changes any of them is
 # re-evaluated even when the rule code and tournament id are unchanged, so an
@@ -302,12 +306,14 @@ def classify_candidate_violations(
     """Classify a candidate's hard violations against the authoritative baseline.
 
     Returns the explicit ``resolved``/``unchanged_accepted``/
-    ``unchanged_unaccepted``/``introduced``/``worsened``/``materially_modified``
-    buckets. ``acceptable`` is true only when the candidate introduces no new
-    violation, worsens no existing one and leaves no unchanged *unaccepted*
-    debt: an unchanged accepted exception is admissible (it stays visible as a
-    follow-up finding), while unchanged unaccepted legacy debt remains blocking
-    and is reported as ``unchanged_unaccepted``.
+    ``unchanged_unaccepted``/``introduced``/``worsened``/``materially_modified``/
+    ``improved`` buckets plus the authoritative ``acceptable`` verdict and the
+    flat ``blocking`` list it was derived from. ``acceptable`` is true only when
+    every remaining candidate violation is an exact accepted exception:
+    introduced/worsened/materially modified, unchanged *unaccepted* debt and a
+    still-present but improved unaccepted deficit are all blocking. This is the
+    same verdict the canonical writers gate on, so the reported classification
+    and the admission decision can never diverge.
 
     ``accepted_exception_violations`` names the candidate violations already
     matched to exact accepted evidence (see :func:`reclassify_accepted_exceptions`),
@@ -324,8 +330,14 @@ def classify_candidate_violations(
     introduced: list[dict[str, Any]] = []
     worsened: list[dict[str, Any]] = []
     materially_modified: list[dict[str, Any]] = []
+    improved: list[dict[str, Any]] = []
 
     for key, entries in candidate.items():
+        if key in accepted_keys:
+            # An exact accepted exception is admissible and stays visible; it is
+            # never a regression even though the underlying rule is violated.
+            unchanged_accepted.extend(entries)
+            continue
         previous = baseline.get(key)
         if previous is None:
             introduced.extend(entries)
@@ -339,11 +351,9 @@ def classify_candidate_violations(
         elif candidate_severity > previous_severity:
             worsened.extend(entries)
         elif candidate_severity < previous_severity:
-            # A strictly smaller unchanged-facts deficit is an improvement, not
-            # a regression; it is not a blocking bucket.
-            resolved.extend(previous)
-        elif key in accepted_keys:
-            unchanged_accepted.extend(entries)
+            # The candidate improves the deficit but the violation is still
+            # present and unaccepted, so it remains blocking debt.
+            improved.extend(entries)
         else:
             unchanged_unaccepted.extend(entries)
 
@@ -352,8 +362,10 @@ def classify_candidate_violations(
             resolved.extend(entries)
 
     regressions = introduced + worsened + materially_modified
+    blocking = regressions + unchanged_unaccepted + improved
     return {
-        "acceptable": not regressions and not unchanged_unaccepted,
+        "acceptable": not blocking,
+        "blocking": blocking,
         "regressions": regressions,
         "resolved": resolved,
         "unchanged_accepted": unchanged_accepted,
@@ -361,6 +373,7 @@ def classify_candidate_violations(
         "introduced": introduced,
         "worsened": worsened,
         "materially_modified": materially_modified,
+        "improved": improved,
         "baseline_violations": [
             dict(item) for group in baseline.values() for item in group
         ],
@@ -372,6 +385,7 @@ def classify_candidate_violations(
 
 __all__ = [
     "ACCEPTED_EXCEPTION_RULE_CODES",
+    "IMPROVED",
     "INTRODUCED",
     "MATERIALLY_MODIFIED",
     "RESOLVED",

@@ -311,6 +311,35 @@ def test_apply_candidate_rejects_changed_accepted_booking_interval(tmp_path):
     assert (root / "2026-2027" / "schedule.json").read_bytes() == before
 
 
+def test_apply_candidate_rejects_unrelated_change_with_unaccepted_floor_debt(tmp_path):
+    # The below-floor override has no accepted source evidence, so it is
+    # unaccepted debt. An unrelated added tournament must not be admitted while
+    # that debt remains: the shared baseline classification is the gate.
+    teams = _teams(("A", "B", "C"))
+    root = _promote(tmp_path, [_tournament("t1", teams=teams)])
+    before = (root / "2026-2027" / "schedule.json").read_bytes()
+
+    candidate = _plan(
+        [
+            _tournament("t1", teams=teams),
+            _tournament("t2", date_str="2026-10-10", teams=teams),
+        ]
+    )
+    with pytest.raises(SeasonStateError, match="hard verification"):
+        apply_candidate(
+            season="2026-2027",
+            candidate=candidate,
+            root=root,
+            problem={
+                "teams": teams,
+                "ice_time_minutes": {"U10": 120},
+                "ice_time_minutes_overrides": {"t1": 110},
+            },
+        )
+
+    assert (root / "2026-2027" / "schedule.json").read_bytes() == before
+
+
 def test_apply_candidate_rejects_unexplained_hosting_responsibility_transfer(tmp_path):
     root = _promote(
         tmp_path,

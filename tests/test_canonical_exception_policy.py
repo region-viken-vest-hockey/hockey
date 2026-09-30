@@ -11,6 +11,7 @@ every canonical writer can rely on one structured comparison.
 from __future__ import annotations
 
 from tournament_scheduler.canonical_exception_policy import (
+    IMPROVED,
     INTRODUCED,
     MATERIALLY_MODIFIED,
     UNCHANGED_ACCEPTED,
@@ -211,6 +212,31 @@ def test_classification_distinguishes_accepted_debt_from_regressions():
     assert {v["tournament_id"] for v in result["regressions"]} == {"t-worse", "t-new"}
 
 
+def test_classification_keeps_improved_but_present_unaccepted_debt_blocking():
+    baseline = [_floor_violation("t-debt", 100)]
+    candidate = [_floor_violation("t-debt", 110)]
+
+    result = classify_candidate_violations(baseline, candidate)
+
+    assert result["acceptable"] is False
+    assert {v["tournament_id"] for v in result["improved"]} == {"t-debt"}
+    assert {v["tournament_id"] for v in result["blocking"]} == {"t-debt"}
+
+
+def test_classification_exposes_authoritative_blocking_list():
+    accepted = _floor_violation("t-accepted", 110)
+    introduced = _floor_violation("t-new", 100)
+
+    result = classify_candidate_violations(
+        [accepted],
+        [accepted, introduced],
+        accepted_exception_violations=[accepted],
+    )
+
+    assert result["acceptable"] is False
+    assert {v["tournament_id"] for v in result["blocking"]} == {"t-new"}
+
+
 def test_classification_allows_unchanged_accepted_but_not_unaccepted_debt():
     baseline = [_floor_violation("t-accepted", 110), _floor_violation("t-debt", 100)]
     candidate = [_floor_violation("t-accepted", 110), _floor_violation("t-debt", 100)]
@@ -239,7 +265,9 @@ def test_classification_flags_materially_modified_facts_as_regression():
     baseline = [_floor_violation("t-accepted", 110)]
     moved = {**_floor_violation("t-accepted", 110), "date": "2026-02-08"}
 
-    result = classify_candidate_violations(baseline, [moved], accepted_exception_violations=[moved])
+    # A fact change is never an accepted exception (the evidence matcher is
+    # exact), so it is submitted without an accepted match.
+    result = classify_candidate_violations(baseline, [moved])
 
     assert result["acceptable"] is False
     assert {v["tournament_id"] for v in result["materially_modified"]} == {"t-accepted"}
@@ -279,18 +307,113 @@ def test_changed_accepted_interval_stays_hard_in_canonical_verification():
     assert result["booking_feasibility_warnings"] == []
 
 
+def test_gate_rejects_introduced_violation():
+    baseline_plan = {"tournaments": [_tournament("t-accepted")]}
+    candidate_plan = {
+        "tournaments": [
+            _tournament("t-accepted"),
+            _tournament("t-new", date="2026-03-01"),
+        ]
+    }
+    problem = _problem()
+    problem["ice_time_minutes_overrides"]["t-new"] = 90
+
+    baseline = verify_canonical_candidate(baseline_plan, problem)
+    result = verify_canonical_candidate(
+        candidate_plan, problem, baseline_verification=baseline
+    )
+
+    assert result["ok"] is False
+    classification = result["violation_classification"]
+    assert classification["acceptable"] is False
+    assert {v["tournament_id"] for v in classification["introduced"]} == {"t-new"}
+
+
+def test_gate_rejects_worsened_violation():
+    plan = {"tournaments": [_tournament("t-worse")]}
+    baseline_problem = {
+        "teams": [_team("Jar 1"), _team("Jar 2"), _team("Jar 3")],
+        "ice_time_minutes": {"U10": 120},
+        "ice_time_minutes_overrides": {"t-worse": 110},
+    }
+    candidate_problem = {
+        **baseline_problem,
+        "ice_time_minutes_overrides": {"t-worse": 90},
+    }
+
+    baseline = verify_canonical_candidate(plan, baseline_problem)
+    result = verify_canonical_candidate(
+        plan, candidate_problem, baseline_verification=baseline
+    )
+
+    assert result["ok"] is False
+    classification = result["violation_classification"]
+    assert classification["acceptable"] is False
+    assert {v["tournament_id"] for v in classification["worsened"]} == {"t-worse"}
+
+
+def test_gate_rejects_unchanged_unaccepted_floor_debt():
+    baseline_plan = {"tournaments": [_tournament("t-debt")]}
+    candidate_plan = {
+        "tournaments": [_tournament("t-debt"), _tournament("t-other", date="2026-03-01")]
+    }
+    # No accepted evidence backs the t-debt override, so it is unaccepted debt
+    # that stays blocking even for an otherwise unrelated addition.
+    problem = {
+        "teams": [_team("Jar 1"), _team("Jar 2"), _team("Jar 3")],
+        "ice_time_minutes": {"U10": 120},
+        "ice_time_minutes_overrides": {"t-debt": 110},
+    }
+
+    baseline = verify_canonical_candidate(baseline_plan, problem)
+    result = verify_canonical_candidate(
+        candidate_plan, problem, baseline_verification=baseline
+    )
+
+    assert result["ok"] is False
+    classification = result["violation_classification"]
+    assert classification["acceptable"] is False
+    assert {v["tournament_id"] for v in classification["unchanged_unaccepted"]} == {
+        "t-debt"
+    }
+    assert classification["regressions"] == []
+
+
+def test_gate_and_classification_verdict_never_diverge():
+    plan = {"tournaments": [_tournament("t-accepted")]}
+    problem = _problem()
+    baseline = verify_canonical_candidate(plan, problem)
+
+    allowed = verify_canonical_candidate(plan, problem, baseline_verification=baseline)
+    assert allowed["ok"] is allowed["violation_classification"]["acceptable"] is True
+
+    debt_problem = {
+        "teams": [_team("Jar 1"), _team("Jar 2"), _team("Jar 3")],
+        "ice_time_minutes": {"U10": 120},
+        "ice_time_minutes_overrides": {"t-debt": 110},
+    }
+    debt_plan = {"tournaments": [_tournament("t-debt")]}
+    debt_baseline = verify_canonical_candidate(debt_plan, debt_problem)
+    rejected = verify_canonical_candidate(
+        debt_plan, debt_problem, baseline_verification=debt_baseline
+    )
+    assert rejected["ok"] is rejected["violation_classification"]["acceptable"] is False
+
+
 def test_classification_bucket_constants_are_stable():
     # Guards against accidental renames that downstream diagnostics rely on.
     assert {
         INTRODUCED,
         WORSENED,
         MATERIALLY_MODIFIED,
+        IMPROVED,
         UNCHANGED_ACCEPTED,
         UNCHANGED_UNACCEPTED,
     } == {
         "introduced",
         "worsened",
         "materially_modified",
+        "improved",
         "unchanged_accepted",
         "unchanged_unaccepted",
     }
