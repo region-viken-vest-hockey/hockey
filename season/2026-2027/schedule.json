@@ -431,7 +431,7 @@
     ]
   },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "adf533a8fea3c24c55ba2f4dcc62da451f36b12744f9db756a6f1e7f1687138f",
+  "fingerprint": "abfe9ff323d9e6ae98dfc54856143fb5db3b4818ce5562518bf1040426eeb9a0",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -5005,10 +5005,10 @@
         "teams": 3
       },
       {
-        "actual": 2,
-        "actual_physical_hosting": 2,
+        "actual": 1,
+        "actual_physical_hosting": 1,
         "age_group": "U9",
-        "assigned_responsibility": 3,
+        "assigned_responsibility": 2,
         "club": "Jar",
         "coverage_unresolved": false,
         "deficit": 1,
@@ -5016,19 +5016,19 @@
         "excess": 0,
         "manual_placement_required": 1,
         "manual_unplaced": 1,
-        "placed_automatically": 2,
+        "placed_automatically": 1,
         "responsibility_deficit": 0,
         "responsibility_delta": 0,
         "responsibility_excess": 0,
-        "target": 3,
+        "target": 2,
         "target_unmet_structural": false,
         "teams": 3
       },
       {
-        "actual": 3,
-        "actual_physical_hosting": 3,
+        "actual": 2,
+        "actual_physical_hosting": 2,
         "age_group": "U9",
-        "assigned_responsibility": 3,
+        "assigned_responsibility": 2,
         "club": "Jutul",
         "coverage_unresolved": false,
         "deficit": 0,
@@ -5036,11 +5036,11 @@
         "excess": 0,
         "manual_placement_required": 0,
         "manual_unplaced": 0,
-        "placed_automatically": 3,
+        "placed_automatically": 2,
         "responsibility_deficit": 0,
         "responsibility_delta": 0,
         "responsibility_excess": 0,
-        "target": 3,
+        "target": 2,
         "target_unmet_structural": false,
         "teams": 3
       },
@@ -5425,18 +5425,18 @@
         "teams": 8
       },
       {
-        "actual": 3,
-        "actual_physical_hosting": 3,
+        "actual": 2,
+        "actual_physical_hosting": 2,
         "age_group": "U11",
         "assigned_responsibility": 3,
         "club": "Jutul",
         "coverage_unresolved": false,
-        "deficit": 0,
-        "delta": 0,
+        "deficit": 1,
+        "delta": -1,
         "excess": 0,
-        "manual_placement_required": 0,
-        "manual_unplaced": 0,
-        "placed_automatically": 3,
+        "manual_placement_required": 1,
+        "manual_unplaced": 1,
+        "placed_automatically": 2,
         "responsibility_deficit": 0,
         "responsibility_delta": 0,
         "responsibility_excess": 0,
@@ -5492,15 +5492,15 @@
         "club": "Sandefjord Penguins",
         "coverage_unresolved": false,
         "deficit": 0,
-        "delta": 0,
-        "excess": 0,
+        "delta": 1,
+        "excess": 1,
         "manual_placement_required": 0,
         "manual_unplaced": 0,
         "placed_automatically": 2,
         "responsibility_deficit": 0,
-        "responsibility_delta": 0,
-        "responsibility_excess": 0,
-        "target": 2,
+        "responsibility_delta": 1,
+        "responsibility_excess": 1,
+        "target": 1,
         "target_unmet_structural": false,
         "teams": 1
       },
@@ -5685,10 +5685,10 @@
         "teams": 2
       },
       {
-        "actual": 9,
-        "actual_physical_hosting": 9,
+        "actual": 8,
+        "actual_physical_hosting": 8,
         "age_group": "U12",
-        "assigned_responsibility": 11,
+        "assigned_responsibility": 10,
         "club": "Jar",
         "coverage_unresolved": false,
         "deficit": 2,
@@ -5696,30 +5696,30 @@
         "excess": 0,
         "manual_placement_required": 2,
         "manual_unplaced": 2,
-        "placed_automatically": 9,
+        "placed_automatically": 8,
         "responsibility_deficit": 0,
         "responsibility_delta": 0,
         "responsibility_excess": 0,
-        "target": 11,
+        "target": 10,
         "target_unmet_structural": false,
         "teams": 4
       },
       {
-        "actual": 6,
-        "actual_physical_hosting": 6,
+        "actual": 5,
+        "actual_physical_hosting": 5,
         "age_group": "U12",
-        "assigned_responsibility": 6,
+        "assigned_responsibility": 5,
         "club": "Jutul",
         "coverage_unresolved": false,
         "deficit": 0,
-        "delta": 1,
-        "excess": 1,
+        "delta": 0,
+        "excess": 0,
         "manual_placement_required": 0,
         "manual_unplaced": 0,
-        "placed_automatically": 6,
+        "placed_automatically": 5,
         "responsibility_deficit": 0,
-        "responsibility_delta": 1,
-        "responsibility_excess": 1,
+        "responsibility_delta": 0,
+        "responsibility_excess": 0,
         "target": 5,
         "target_unmet_structural": false,
         "teams": 2
@@ -5732,15 +5732,15 @@
         "club": "Kongsberg",
         "coverage_unresolved": false,
         "deficit": 0,
-        "delta": 0,
-        "excess": 0,
+        "delta": 1,
+        "excess": 1,
         "manual_placement_required": 0,
         "manual_unplaced": 0,
         "placed_automatically": 3,
         "responsibility_deficit": 0,
-        "responsibility_delta": 0,
-        "responsibility_excess": 0,
-        "target": 3,
+        "responsibility_delta": 1,
+        "responsibility_excess": 1,
+        "target": 2,
         "target_unmet_structural": false,
         "teams": 1
       },
@@ -5807,10 +5807,10 @@
         "teams": 4
       },
       {
-        "actual": 2,
-        "actual_physical_hosting": 2,
+        "actual": 1,
+        "actual_physical_hosting": 1,
         "age_group": "U9",
-        "assigned_responsibility": 3,
+        "assigned_responsibility": 2,
         "club": "Jar",
         "coverage_unresolved": false,
         "deficit": 1,
@@ -5818,11 +5818,11 @@
         "excess": 0,
         "manual_placement_required": 1,
         "manual_unplaced": 1,
-        "placed_automatically": 2,
+        "placed_automatically": 1,
         "responsibility_deficit": 0,
         "responsibility_delta": 0,
         "responsibility_excess": 0,
-        "target": 3,
+        "target": 2,
         "target_unmet_structural": false,
         "teams": 3
       },
@@ -5885,6 +5885,46 @@
         "target": 12,
         "target_unmet_structural": false,
         "teams": 8
+      },
+      {
+        "actual": 2,
+        "actual_physical_hosting": 2,
+        "age_group": "U11",
+        "assigned_responsibility": 3,
+        "club": "Jutul",
+        "coverage_unresolved": false,
+        "deficit": 1,
+        "delta": -1,
+        "excess": 0,
+        "manual_placement_required": 1,
+        "manual_unplaced": 1,
+        "placed_automatically": 2,
+        "responsibility_deficit": 0,
+        "responsibility_delta": 0,
+        "responsibility_excess": 0,
+        "target": 3,
+        "target_unmet_structural": false,
+        "teams": 2
+      },
+      {
+        "actual": 2,
+        "actual_physical_hosting": 2,
+        "age_group": "U11",
+        "assigned_responsibility": 2,
+        "club": "Sandefjord Penguins",
+        "coverage_unresolved": false,
+        "deficit": 0,
+        "delta": 1,
+        "excess": 1,
+        "manual_placement_required": 0,
+        "manual_unplaced": 0,
+        "placed_automatically": 2,
+        "responsibility_deficit": 0,
+        "responsibility_delta": 1,
+        "responsibility_excess": 1,
+        "target": 1,
+        "target_unmet_structural": false,
+        "teams": 1
       },
       {
         "actual": 2,
@@ -6007,10 +6047,10 @@
         "teams": 2
       },
       {
-        "actual": 9,
-        "actual_physical_hosting": 9,
+        "actual": 8,
+        "actual_physical_hosting": 8,
         "age_group": "U12",
-        "assigned_responsibility": 11,
+        "assigned_responsibility": 10,
         "club": "Jar",
         "coverage_unresolved": false,
         "deficit": 2,
@@ -6018,33 +6058,33 @@
         "excess": 0,
         "manual_placement_required": 2,
         "manual_unplaced": 2,
-        "placed_automatically": 9,
+        "placed_automatically": 8,
         "responsibility_deficit": 0,
         "responsibility_delta": 0,
         "responsibility_excess": 0,
-        "target": 11,
+        "target": 10,
         "target_unmet_structural": false,
         "teams": 4
       },
       {
-        "actual": 6,
-        "actual_physical_hosting": 6,
+        "actual": 3,
+        "actual_physical_hosting": 3,
         "age_group": "U12",
-        "assigned_responsibility": 6,
-        "club": "Jutul",
+        "assigned_responsibility": 3,
+        "club": "Kongsberg",
         "coverage_unresolved": false,
         "deficit": 0,
         "delta": 1,
         "excess": 1,
         "manual_placement_required": 0,
         "manual_unplaced": 0,
-        "placed_automatically": 6,
+        "placed_automatically": 3,
         "responsibility_deficit": 0,
         "responsibility_delta": 1,
         "responsibility_excess": 1,
-        "target": 5,
+        "target": 2,
         "target_unmet_structural": false,
-        "teams": 2
+        "teams": 1
       },
       {
         "actual": 6,
@@ -6627,15 +6667,15 @@
       },
       {
         "age_group": "U11",
-        "classification": "minor_club_pool_shortfall",
+        "classification": "material_club_pool_shortfall",
         "club": "Frisk Asker",
-        "club_pool_actual": 35,
-        "club_pool_deviation": -5,
+        "club_pool_actual": 34,
+        "club_pool_deviation": -6,
         "club_pool_target": 40,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 5,
         "nominal_target_per_team": 10,
-        "planning_significance": "minor",
+        "planning_significance": "material",
         "registered_team_count": 4,
         "scope": "season",
         "team_distribution": [
@@ -6655,7 +6695,7 @@
             "team": "Frisk Asker 3"
           },
           {
-            "actual": 10,
+            "actual": 9,
             "target": 10,
             "team": "Frisk Asker 4"
           }
@@ -6665,8 +6705,8 @@
         "age_group": "U11",
         "classification": "material_club_pool_shortfall",
         "club": "Frisk Asker",
-        "club_pool_actual": 16,
-        "club_pool_deviation": -4,
+        "club_pool_actual": 15,
+        "club_pool_deviation": -5,
         "club_pool_target": 20,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 2,
@@ -6691,7 +6731,7 @@
             "team": "Frisk Asker 3"
           },
           {
-            "actual": 5,
+            "actual": 4,
             "target": 5,
             "team": "Frisk Asker 4"
           }
@@ -6737,8 +6777,8 @@
         "age_group": "U12",
         "classification": "minor_club_pool_shortfall",
         "club": "Frisk Asker",
-        "club_pool_actual": 33,
-        "club_pool_deviation": -3,
+        "club_pool_actual": 32,
+        "club_pool_deviation": -4,
         "club_pool_target": 36,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 6,
@@ -6758,7 +6798,7 @@
             "team": "Frisk Asker 2"
           },
           {
-            "actual": 9,
+            "actual": 8,
             "target": 12,
             "team": "Frisk Asker 3"
           }
@@ -6768,8 +6808,8 @@
         "age_group": "U12",
         "classification": "minor_club_pool_shortfall",
         "club": "Frisk Asker",
-        "club_pool_actual": 17,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 16,
+        "club_pool_deviation": -2,
         "club_pool_target": 18,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 3,
@@ -6789,7 +6829,7 @@
             "team": "Frisk Asker 2"
           },
           {
-            "actual": 4,
+            "actual": 3,
             "target": 6,
             "team": "Frisk Asker 3"
           }
@@ -7044,25 +7084,25 @@
       },
       {
         "age_group": "U9",
-        "classification": "minor_club_pool_shortfall",
+        "classification": "material_club_pool_shortfall",
         "club": "Frisk Asker",
-        "club_pool_actual": 31,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 27,
+        "club_pool_deviation": -5,
         "club_pool_target": 32,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 4,
         "nominal_target_per_team": 8,
-        "planning_significance": "minor",
+        "planning_significance": "material",
         "registered_team_count": 4,
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 7,
+            "actual": 6,
             "target": 8,
             "team": "Frisk Asker 1"
           },
           {
-            "actual": 8,
+            "actual": 6,
             "target": 8,
             "team": "Frisk Asker 2"
           },
@@ -7072,7 +7112,7 @@
             "team": "Frisk Asker 3"
           },
           {
-            "actual": 8,
+            "actual": 7,
             "target": 8,
             "team": "Frisk Asker 4"
           }
@@ -7080,25 +7120,25 @@
       },
       {
         "age_group": "U9",
-        "classification": "over_target",
+        "classification": "minor_club_pool_shortfall",
         "club": "Frisk Asker",
-        "club_pool_actual": 18,
-        "club_pool_deviation": 2,
+        "club_pool_actual": 14,
+        "club_pool_deviation": -2,
         "club_pool_target": 16,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 2,
         "nominal_target_per_team": 4,
-        "planning_significance": "informational",
+        "planning_significance": "minor",
         "registered_team_count": 4,
         "scope": "before_christmas",
         "team_distribution": [
           {
-            "actual": 4,
+            "actual": 3,
             "target": 4,
             "team": "Frisk Asker 1"
           },
           {
-            "actual": 5,
+            "actual": 3,
             "target": 4,
             "team": "Frisk Asker 2"
           },
@@ -7108,7 +7148,7 @@
             "team": "Frisk Asker 3"
           },
           {
-            "actual": 5,
+            "actual": 4,
             "target": 4,
             "team": "Frisk Asker 4"
           }
@@ -7340,8 +7380,8 @@
         "age_group": "U12",
         "classification": "minor_club_pool_shortfall",
         "club": "Holmen",
-        "club_pool_actual": 22,
-        "club_pool_deviation": -2,
+        "club_pool_actual": 20,
+        "club_pool_deviation": -4,
         "club_pool_target": 24,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 6,
@@ -7351,7 +7391,7 @@
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 10,
+            "actual": 8,
             "target": 12,
             "team": "Holmen Hockey Hvit"
           },
@@ -7366,8 +7406,8 @@
         "age_group": "U12",
         "classification": "minor_club_pool_shortfall",
         "club": "Holmen",
-        "club_pool_actual": 11,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 10,
+        "club_pool_deviation": -2,
         "club_pool_target": 12,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 3,
@@ -7377,7 +7417,7 @@
         "scope": "before_christmas",
         "team_distribution": [
           {
-            "actual": 5,
+            "actual": 4,
             "target": 6,
             "team": "Holmen Hockey Hvit"
           },
@@ -7392,8 +7432,8 @@
         "age_group": "U12",
         "classification": "minor_club_pool_shortfall",
         "club": "Holmen",
-        "club_pool_actual": 11,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 10,
+        "club_pool_deviation": -2,
         "club_pool_target": 12,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 3,
@@ -7403,7 +7443,7 @@
         "scope": "after_christmas",
         "team_distribution": [
           {
-            "actual": 5,
+            "actual": 4,
             "target": 6,
             "team": "Holmen Hockey Hvit"
           },
@@ -7617,20 +7657,20 @@
       },
       {
         "age_group": "U9",
-        "classification": "minor_club_pool_shortfall",
+        "classification": "material_club_pool_shortfall",
         "club": "Holmen",
-        "club_pool_actual": 22,
-        "club_pool_deviation": -2,
+        "club_pool_actual": 19,
+        "club_pool_deviation": -5,
         "club_pool_target": 24,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 4,
         "nominal_target_per_team": 8,
-        "planning_significance": "minor",
+        "planning_significance": "material",
         "registered_team_count": 3,
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 7,
+            "actual": 6,
             "target": 8,
             "team": "Holmen Hockey Hvit"
           },
@@ -7640,7 +7680,7 @@
             "team": "Holmen Hockey Rød"
           },
           {
-            "actual": 8,
+            "actual": 6,
             "target": 8,
             "team": "Holmen Hockey Sort"
           }
@@ -7648,20 +7688,20 @@
       },
       {
         "age_group": "U9",
-        "classification": "intra_club_distribution",
+        "classification": "material_club_pool_shortfall",
         "club": "Holmen",
-        "club_pool_actual": 12,
-        "club_pool_deviation": 0,
+        "club_pool_actual": 9,
+        "club_pool_deviation": -3,
         "club_pool_target": 12,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 2,
         "nominal_target_per_team": 4,
-        "planning_significance": "informational",
+        "planning_significance": "material",
         "registered_team_count": 3,
         "scope": "before_christmas",
         "team_distribution": [
           {
-            "actual": 4,
+            "actual": 3,
             "target": 4,
             "team": "Holmen Hockey Hvit"
           },
@@ -7671,7 +7711,7 @@
             "team": "Holmen Hockey Rød"
           },
           {
-            "actual": 5,
+            "actual": 3,
             "target": 4,
             "team": "Holmen Hockey Sort"
           }
@@ -8006,8 +8046,8 @@
         "age_group": "U11",
         "classification": "material_club_pool_shortfall",
         "club": "Jar",
-        "club_pool_actual": 73,
-        "club_pool_deviation": -7,
+        "club_pool_actual": 72,
+        "club_pool_deviation": -8,
         "club_pool_target": 80,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 5,
@@ -8017,7 +8057,7 @@
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 11,
+            "actual": 10,
             "target": 10,
             "team": "Jar Blå"
           },
@@ -8062,8 +8102,8 @@
         "age_group": "U11",
         "classification": "material_club_pool_shortfall",
         "club": "Jar",
-        "club_pool_actual": 32,
-        "club_pool_deviation": -8,
+        "club_pool_actual": 31,
+        "club_pool_deviation": -9,
         "club_pool_target": 40,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 2,
@@ -8073,7 +8113,7 @@
         "scope": "before_christmas",
         "team_distribution": [
           {
-            "actual": 6,
+            "actual": 5,
             "target": 5,
             "team": "Jar Blå"
           },
@@ -8174,8 +8214,8 @@
         "age_group": "U12",
         "classification": "material_club_pool_shortfall",
         "club": "Jar",
-        "club_pool_actual": 40,
-        "club_pool_deviation": -8,
+        "club_pool_actual": 38,
+        "club_pool_deviation": -10,
         "club_pool_target": 48,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 6,
@@ -8195,12 +8235,12 @@
             "team": "Jar Hvit"
           },
           {
-            "actual": 11,
+            "actual": 10,
             "target": 12,
             "team": "Jar Rød"
           },
           {
-            "actual": 10,
+            "actual": 9,
             "target": 12,
             "team": "Jar Svart"
           }
@@ -8210,8 +8250,8 @@
         "age_group": "U12",
         "classification": "material_club_pool_shortfall",
         "club": "Jar",
-        "club_pool_actual": 19,
-        "club_pool_deviation": -5,
+        "club_pool_actual": 18,
+        "club_pool_deviation": -6,
         "club_pool_target": 24,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 3,
@@ -8231,7 +8271,7 @@
             "team": "Jar Hvit"
           },
           {
-            "actual": 4,
+            "actual": 3,
             "target": 6,
             "team": "Jar Rød"
           },
@@ -8244,15 +8284,15 @@
       },
       {
         "age_group": "U12",
-        "classification": "minor_club_pool_shortfall",
+        "classification": "material_club_pool_shortfall",
         "club": "Jar",
-        "club_pool_actual": 21,
-        "club_pool_deviation": -3,
+        "club_pool_actual": 20,
+        "club_pool_deviation": -4,
         "club_pool_target": 24,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 3,
         "nominal_target_per_team": 6,
-        "planning_significance": "minor",
+        "planning_significance": "material",
         "registered_team_count": 4,
         "scope": "after_christmas",
         "team_distribution": [
@@ -8272,7 +8312,7 @@
             "team": "Jar Rød"
           },
           {
-            "actual": 6,
+            "actual": 5,
             "target": 6,
             "team": "Jar Svart"
           }
@@ -8513,8 +8553,8 @@
         "age_group": "U9",
         "classification": "minor_club_pool_shortfall",
         "club": "Jar",
-        "club_pool_actual": 23,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 20,
+        "club_pool_deviation": -4,
         "club_pool_target": 24,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 4,
@@ -8524,7 +8564,7 @@
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 7,
+            "actual": 6,
             "target": 8,
             "team": "Jar Blå"
           },
@@ -8534,7 +8574,7 @@
             "team": "Jar Hvit"
           },
           {
-            "actual": 8,
+            "actual": 6,
             "target": 8,
             "team": "Jar Rød"
           }
@@ -8542,20 +8582,20 @@
       },
       {
         "age_group": "U9",
-        "classification": "complete",
+        "classification": "material_club_pool_shortfall",
         "club": "Jar",
-        "club_pool_actual": 12,
-        "club_pool_deviation": 0,
+        "club_pool_actual": 9,
+        "club_pool_deviation": -3,
         "club_pool_target": 12,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 2,
         "nominal_target_per_team": 4,
-        "planning_significance": "resolved",
+        "planning_significance": "material",
         "registered_team_count": 3,
         "scope": "before_christmas",
         "team_distribution": [
           {
-            "actual": 4,
+            "actual": 3,
             "target": 4,
             "team": "Jar Blå"
           },
@@ -8565,7 +8605,7 @@
             "team": "Jar Hvit"
           },
           {
-            "actual": 4,
+            "actual": 2,
             "target": 4,
             "team": "Jar Rød"
           }
@@ -8823,15 +8863,15 @@
       },
       {
         "age_group": "U11",
-        "classification": "minor_club_pool_shortfall",
+        "classification": "material_club_pool_shortfall",
         "club": "Jutul",
-        "club_pool_actual": 15,
-        "club_pool_deviation": -5,
+        "club_pool_actual": 14,
+        "club_pool_deviation": -6,
         "club_pool_target": 20,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 5,
         "nominal_target_per_team": 10,
-        "planning_significance": "minor",
+        "planning_significance": "material",
         "registered_team_count": 2,
         "scope": "season",
         "team_distribution": [
@@ -8841,7 +8881,7 @@
             "team": "Jutul Grønn"
           },
           {
-            "actual": 9,
+            "actual": 8,
             "target": 10,
             "team": "Jutul Rød"
           }
@@ -8851,8 +8891,8 @@
         "age_group": "U11",
         "classification": "material_club_pool_shortfall",
         "club": "Jutul",
-        "club_pool_actual": 7,
-        "club_pool_deviation": -3,
+        "club_pool_actual": 6,
+        "club_pool_deviation": -4,
         "club_pool_target": 10,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 2,
@@ -8867,7 +8907,7 @@
             "team": "Jutul Grønn"
           },
           {
-            "actual": 4,
+            "actual": 3,
             "target": 5,
             "team": "Jutul Rød"
           }
@@ -8903,8 +8943,8 @@
         "age_group": "U12",
         "classification": "minor_club_pool_shortfall",
         "club": "Jutul",
-        "club_pool_actual": 22,
-        "club_pool_deviation": -2,
+        "club_pool_actual": 21,
+        "club_pool_deviation": -3,
         "club_pool_target": 24,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 6,
@@ -8919,7 +8959,7 @@
             "team": "Jutul Grønn"
           },
           {
-            "actual": 12,
+            "actual": 11,
             "target": 12,
             "team": "Jutul Rød"
           }
@@ -8955,8 +8995,8 @@
         "age_group": "U12",
         "classification": "minor_club_pool_shortfall",
         "club": "Jutul",
-        "club_pool_actual": 11,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 10,
+        "club_pool_deviation": -2,
         "club_pool_target": 12,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 3,
@@ -8971,7 +9011,7 @@
             "team": "Jutul Grønn"
           },
           {
-            "actual": 6,
+            "actual": 5,
             "target": 6,
             "team": "Jutul Rød"
           }
@@ -9180,30 +9220,30 @@
       },
       {
         "age_group": "U9",
-        "classification": "minor_club_pool_shortfall",
+        "classification": "material_club_pool_shortfall",
         "club": "Jutul",
-        "club_pool_actual": 22,
-        "club_pool_deviation": -2,
+        "club_pool_actual": 18,
+        "club_pool_deviation": -6,
         "club_pool_target": 24,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 4,
         "nominal_target_per_team": 8,
-        "planning_significance": "minor",
+        "planning_significance": "material",
         "registered_team_count": 3,
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 7,
+            "actual": 5,
             "target": 8,
             "team": "Jutul Grønn"
           },
           {
-            "actual": 7,
+            "actual": 6,
             "target": 8,
             "team": "Jutul Hvit"
           },
           {
-            "actual": 8,
+            "actual": 7,
             "target": 8,
             "team": "Jutul Rød"
           }
@@ -9211,30 +9251,30 @@
       },
       {
         "age_group": "U9",
-        "classification": "complete",
+        "classification": "material_club_pool_shortfall",
         "club": "Jutul",
-        "club_pool_actual": 12,
-        "club_pool_deviation": 0,
+        "club_pool_actual": 8,
+        "club_pool_deviation": -4,
         "club_pool_target": 12,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 2,
         "nominal_target_per_team": 4,
-        "planning_significance": "resolved",
+        "planning_significance": "material",
         "registered_team_count": 3,
         "scope": "before_christmas",
         "team_distribution": [
           {
-            "actual": 4,
+            "actual": 2,
             "target": 4,
             "team": "Jutul Grønn"
           },
           {
-            "actual": 4,
+            "actual": 3,
             "target": 4,
             "team": "Jutul Hvit"
           },
           {
-            "actual": 4,
+            "actual": 3,
             "target": 4,
             "team": "Jutul Rød"
           }
@@ -9336,20 +9376,20 @@
       },
       {
         "age_group": "U11",
-        "classification": "complete",
+        "classification": "single_team_deviation",
         "club": "Kongsberg",
-        "club_pool_actual": 10,
-        "club_pool_deviation": 0,
+        "club_pool_actual": 9,
+        "club_pool_deviation": -1,
         "club_pool_target": 10,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
         "nominal_target_per_team": 10,
-        "planning_significance": "resolved",
+        "planning_significance": "material",
         "registered_team_count": 1,
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 10,
+            "actual": 9,
             "target": 10,
             "team": "Kongsberg"
           }
@@ -9357,20 +9397,20 @@
       },
       {
         "age_group": "U11",
-        "classification": "single_team_deviation",
+        "classification": "complete",
         "club": "Kongsberg",
-        "club_pool_actual": 6,
-        "club_pool_deviation": 1,
+        "club_pool_actual": 5,
+        "club_pool_deviation": 0,
         "club_pool_target": 5,
         "counts_as_unresolved_shortfall": false,
         "minor_shortfall_threshold": null,
         "nominal_target_per_team": 5,
-        "planning_significance": "material",
+        "planning_significance": "resolved",
         "registered_team_count": 1,
         "scope": "before_christmas",
         "team_distribution": [
           {
-            "actual": 6,
+            "actual": 5,
             "target": 5,
             "team": "Kongsberg"
           }
@@ -9525,20 +9565,20 @@
       },
       {
         "age_group": "U9",
-        "classification": "complete",
+        "classification": "single_team_deviation",
         "club": "Kongsberg",
-        "club_pool_actual": 8,
-        "club_pool_deviation": 0,
+        "club_pool_actual": 7,
+        "club_pool_deviation": -1,
         "club_pool_target": 8,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
         "nominal_target_per_team": 8,
-        "planning_significance": "resolved",
+        "planning_significance": "material",
         "registered_team_count": 1,
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 8,
+            "actual": 7,
             "target": 8,
             "team": "Kongsberg"
           }
@@ -9546,20 +9586,20 @@
       },
       {
         "age_group": "U9",
-        "classification": "complete",
+        "classification": "single_team_deviation",
         "club": "Kongsberg",
-        "club_pool_actual": 4,
-        "club_pool_deviation": 0,
+        "club_pool_actual": 3,
+        "club_pool_deviation": -1,
         "club_pool_target": 4,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
         "nominal_target_per_team": 4,
-        "planning_significance": "resolved",
+        "planning_significance": "material",
         "registered_team_count": 1,
         "scope": "before_christmas",
         "team_distribution": [
           {
-            "actual": 4,
+            "actual": 3,
             "target": 4,
             "team": "Kongsberg"
           }
@@ -10043,8 +10083,8 @@
         "age_group": "U12",
         "classification": "minor_club_pool_shortfall",
         "club": "Ringerike",
-        "club_pool_actual": 22,
-        "club_pool_deviation": -2,
+        "club_pool_actual": 20,
+        "club_pool_deviation": -4,
         "club_pool_target": 24,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 6,
@@ -10054,12 +10094,12 @@
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 10,
+            "actual": 9,
             "target": 12,
             "team": "Ringerike 1"
           },
           {
-            "actual": 12,
+            "actual": 11,
             "target": 12,
             "team": "Ringerike 2"
           }
@@ -10069,8 +10109,8 @@
         "age_group": "U12",
         "classification": "minor_club_pool_shortfall",
         "club": "Ringerike",
-        "club_pool_actual": 11,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 10,
+        "club_pool_deviation": -2,
         "club_pool_target": 12,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 3,
@@ -10085,7 +10125,7 @@
             "team": "Ringerike 1"
           },
           {
-            "actual": 6,
+            "actual": 5,
             "target": 6,
             "team": "Ringerike 2"
           }
@@ -10095,8 +10135,8 @@
         "age_group": "U12",
         "classification": "minor_club_pool_shortfall",
         "club": "Ringerike",
-        "club_pool_actual": 11,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 10,
+        "club_pool_deviation": -2,
         "club_pool_target": 12,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 3,
@@ -10106,7 +10146,7 @@
         "scope": "after_christmas",
         "team_distribution": [
           {
-            "actual": 5,
+            "actual": 4,
             "target": 6,
             "team": "Ringerike 1"
           },
@@ -10260,20 +10300,20 @@
       },
       {
         "age_group": "U11",
-        "classification": "complete",
+        "classification": "single_team_deviation",
         "club": "Sandefjord Penguins",
-        "club_pool_actual": 10,
-        "club_pool_deviation": 0,
+        "club_pool_actual": 9,
+        "club_pool_deviation": -1,
         "club_pool_target": 10,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
         "nominal_target_per_team": 10,
-        "planning_significance": "resolved",
+        "planning_significance": "material",
         "registered_team_count": 1,
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 10,
+            "actual": 9,
             "target": 10,
             "team": "Sandefjord"
           }
@@ -10281,20 +10321,20 @@
       },
       {
         "age_group": "U11",
-        "classification": "complete",
+        "classification": "single_team_deviation",
         "club": "Sandefjord Penguins",
-        "club_pool_actual": 5,
-        "club_pool_deviation": 0,
+        "club_pool_actual": 4,
+        "club_pool_deviation": -1,
         "club_pool_target": 5,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
         "nominal_target_per_team": 5,
-        "planning_significance": "resolved",
+        "planning_significance": "material",
         "registered_team_count": 1,
         "scope": "before_christmas",
         "team_distribution": [
           {
-            "actual": 5,
+            "actual": 4,
             "target": 5,
             "team": "Sandefjord"
           }
@@ -10955,8 +10995,8 @@
         "age_group": "U11",
         "classification": "minor_club_pool_shortfall",
         "club": "Tønsberg",
-        "club_pool_actual": 29,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 28,
+        "club_pool_deviation": -2,
         "club_pool_target": 30,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 5,
@@ -10976,7 +11016,7 @@
             "team": "Tønsberg Hvit"
           },
           {
-            "actual": 10,
+            "actual": 9,
             "target": 10,
             "team": "Tønsberg Rød"
           }
@@ -10986,8 +11026,8 @@
         "age_group": "U11",
         "classification": "material_club_pool_shortfall",
         "club": "Tønsberg",
-        "club_pool_actual": 12,
-        "club_pool_deviation": -3,
+        "club_pool_actual": 11,
+        "club_pool_deviation": -4,
         "club_pool_target": 15,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 2,
@@ -11007,7 +11047,7 @@
             "team": "Tønsberg Hvit"
           },
           {
-            "actual": 3,
+            "actual": 2,
             "target": 5,
             "team": "Tønsberg Rød"
           }
@@ -11267,8 +11307,8 @@
         "age_group": "U9",
         "classification": "single_team_deviation",
         "club": "Tønsberg",
-        "club_pool_actual": 7,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 6,
+        "club_pool_deviation": -2,
         "club_pool_target": 8,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
@@ -11278,7 +11318,7 @@
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 7,
+            "actual": 6,
             "target": 8,
             "team": "Tønsberg"
           }
@@ -11286,20 +11326,20 @@
       },
       {
         "age_group": "U9",
-        "classification": "complete",
+        "classification": "single_team_deviation",
         "club": "Tønsberg",
-        "club_pool_actual": 4,
-        "club_pool_deviation": 0,
+        "club_pool_actual": 3,
+        "club_pool_deviation": -1,
         "club_pool_target": 4,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
         "nominal_target_per_team": 4,
-        "planning_significance": "resolved",
+        "planning_significance": "material",
         "registered_team_count": 1,
         "scope": "before_christmas",
         "team_distribution": [
           {
-            "actual": 4,
+            "actual": 3,
             "target": 4,
             "team": "Tønsberg"
           }
@@ -11369,7 +11409,7 @@
       "informational_reasons": [
         {
           "code": "intra_club_participation_distribution",
-          "count": 7
+          "count": 6
         },
         {
           "code": "booking_feasibility_warnings",
@@ -11380,23 +11420,23 @@
       "reasons": [
         {
           "code": "hosting_balance_imbalances",
-          "count": 14
+          "count": 16
         },
         {
           "code": "manual_calendar_placements",
-          "count": 93
+          "count": 91
         },
         {
           "code": "external_calendar_conflicts",
-          "count": 13
+          "count": 10
         },
         {
           "code": "participation_shortfalls",
-          "count": 115
+          "count": 132
         },
         {
           "code": "participation_target_deviation",
-          "count": 30
+          "count": 25
         },
         {
           "code": "tournament_placement_shortfall",
@@ -16107,6 +16147,8 @@
       {
         "age_group": "U12",
         "arena": "Jar Isforum",
+        "cancellation_reason": "No confirmed booking evidence at Jar (no matching calendar event; unconfirmed placement considered lost ice)",
+        "cancelled": true,
         "date": "2026-11-15",
         "games": [
           {
@@ -20849,6 +20891,8 @@
       {
         "age_group": "U9",
         "arena": "Baerum ishall",
+        "cancellation_reason": "Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice",
+        "cancelled": true,
         "date": "2026-11-21",
         "games": [
           {
@@ -25795,6 +25839,8 @@
       {
         "age_group": "U12",
         "arena": "Baerum ishall",
+        "cancellation_reason": "Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice",
+        "cancelled": true,
         "date": "2027-03-06",
         "games": [
           {
@@ -29013,6 +29059,8 @@
       {
         "age_group": "U11",
         "arena": "Baerum ishall",
+        "cancellation_reason": "Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice",
+        "cancelled": true,
         "date": "2026-11-14",
         "games": [
           {
@@ -31255,6 +31303,8 @@
       {
         "age_group": "U9",
         "arena": "Jar Isforum",
+        "cancellation_reason": "No confirmed booking evidence at Jar (no matching calendar event; unconfirmed placement considered lost ice)",
+        "cancelled": true,
         "date": "2026-11-22",
         "games": [
           {
@@ -33471,13 +33521,6 @@
         "tournament_id": "rvv-0102"
       },
       {
-        "age_group": "U9",
-        "date": "2026-11-21",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0116"
-      },
-      {
         "age_group": "JU12",
         "date": "2027-01-30",
         "host_club": "Frisk Asker",
@@ -33499,25 +33542,11 @@
         "tournament_id": "rvv-0157"
       },
       {
-        "age_group": "U12",
-        "date": "2027-03-06",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0173"
-      },
-      {
         "age_group": "JU8",
         "date": "2027-03-13",
         "host_club": "Frisk Asker",
         "reason": "external calendar conflict requires manual resolution",
         "tournament_id": "rvv-0179"
-      },
-      {
-        "age_group": "U11",
-        "date": "2026-11-14",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0044"
       },
       {
         "age_group": "U12",
@@ -33724,6 +33753,55 @@
         "club": "Frisk Asker",
         "club_pool": {
           "age_group": "U9",
+          "classification": "minor_club_pool_shortfall",
+          "club": "Frisk Asker",
+          "club_pool_actual": 14,
+          "club_pool_deviation": -2,
+          "club_pool_target": 16,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 2,
+          "nominal_target_per_team": 4,
+          "planning_significance": "minor",
+          "registered_team_count": 4,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Frisk Asker 1"
+            },
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Frisk Asker 2"
+            },
+            {
+              "actual": 4,
+              "target": 4,
+              "team": "Frisk Asker 3"
+            },
+            {
+              "actual": 4,
+              "target": 4,
+              "team": "Frisk Asker 4"
+            }
+          ]
+        },
+        "club_pool_classification": "minor_club_pool_shortfall",
+        "club_pool_significance": "minor",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Frisk Asker 1 (Frisk Asker, U9)",
+        "reason": "actual participation count does not match target",
+        "target": "4"
+      },
+      {
+        "actual": "3",
+        "age_group": "U9",
+        "category": "participation_under_target",
+        "club": "Frisk Asker",
+        "club_pool": {
+          "age_group": "U9",
           "classification": "material_club_pool_shortfall",
           "club": "Frisk Asker",
           "club_pool_actual": 13,
@@ -33834,8 +33912,8 @@
           "age_group": "U11",
           "classification": "material_club_pool_shortfall",
           "club": "Frisk Asker",
-          "club_pool_actual": 16,
-          "club_pool_deviation": -4,
+          "club_pool_actual": 15,
+          "club_pool_deviation": -5,
           "club_pool_target": 20,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -33860,7 +33938,7 @@
               "team": "Frisk Asker 3"
             },
             {
-              "actual": 5,
+              "actual": 4,
               "target": 5,
               "team": "Frisk Asker 4"
             }
@@ -34038,6 +34116,55 @@
         "club": "Frisk Asker",
         "club_pool": {
           "age_group": "U9",
+          "classification": "minor_club_pool_shortfall",
+          "club": "Frisk Asker",
+          "club_pool_actual": 14,
+          "club_pool_deviation": -2,
+          "club_pool_target": 16,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 2,
+          "nominal_target_per_team": 4,
+          "planning_significance": "minor",
+          "registered_team_count": 4,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Frisk Asker 1"
+            },
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Frisk Asker 2"
+            },
+            {
+              "actual": 4,
+              "target": 4,
+              "team": "Frisk Asker 3"
+            },
+            {
+              "actual": 4,
+              "target": 4,
+              "team": "Frisk Asker 4"
+            }
+          ]
+        },
+        "club_pool_classification": "minor_club_pool_shortfall",
+        "club_pool_significance": "minor",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Frisk Asker 2 (Frisk Asker, U9)",
+        "reason": "actual participation count does not match target",
+        "target": "4"
+      },
+      {
+        "actual": "3",
+        "age_group": "U9",
+        "category": "participation_under_target",
+        "club": "Frisk Asker",
+        "club_pool": {
+          "age_group": "U9",
           "classification": "material_club_pool_shortfall",
           "club": "Frisk Asker",
           "club_pool_actual": 13,
@@ -34148,8 +34275,8 @@
           "age_group": "U11",
           "classification": "material_club_pool_shortfall",
           "club": "Frisk Asker",
-          "club_pool_actual": 16,
-          "club_pool_deviation": -4,
+          "club_pool_actual": 15,
+          "club_pool_deviation": -5,
           "club_pool_target": 20,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -34174,7 +34301,7 @@
               "team": "Frisk Asker 3"
             },
             {
-              "actual": 5,
+              "actual": 4,
               "target": 5,
               "team": "Frisk Asker 4"
             }
@@ -34189,7 +34316,7 @@
         "target": "5"
       },
       {
-        "actual": "4",
+        "actual": "3",
         "age_group": "U12",
         "category": "participation_under_target_same_date_capacity",
         "club": "Frisk Asker",
@@ -34197,8 +34324,8 @@
           "age_group": "U12",
           "classification": "minor_club_pool_shortfall",
           "club": "Frisk Asker",
-          "club_pool_actual": 17,
-          "club_pool_deviation": -1,
+          "club_pool_actual": 16,
+          "club_pool_deviation": -2,
           "club_pool_target": 18,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 3,
@@ -34218,7 +34345,7 @@
               "team": "Frisk Asker 2"
             },
             {
-              "actual": 4,
+              "actual": 3,
               "target": 6,
               "team": "Frisk Asker 3"
             }
@@ -34364,6 +34491,55 @@
         "label": "Frisk Asker 4 (Frisk Asker, U10)",
         "reason": "Frisk Asker 5 (Frisk Asker, U10) deltar 3 ganger i before_christmas -- ikke nok ledige turneringsplasser ble funnet i denne halvdelen av sesongen.",
         "target": "4"
+      },
+      {
+        "actual": "4",
+        "age_group": "U11",
+        "category": "participation_under_target",
+        "club": "Frisk Asker",
+        "club_pool": {
+          "age_group": "U11",
+          "classification": "material_club_pool_shortfall",
+          "club": "Frisk Asker",
+          "club_pool_actual": 15,
+          "club_pool_deviation": -5,
+          "club_pool_target": 20,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 2,
+          "nominal_target_per_team": 5,
+          "planning_significance": "material",
+          "registered_team_count": 4,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 5,
+              "target": 5,
+              "team": "Frisk Asker 1"
+            },
+            {
+              "actual": 4,
+              "target": 5,
+              "team": "Frisk Asker 2"
+            },
+            {
+              "actual": 2,
+              "target": 5,
+              "team": "Frisk Asker 3"
+            },
+            {
+              "actual": 4,
+              "target": 5,
+              "team": "Frisk Asker 4"
+            }
+          ]
+        },
+        "club_pool_classification": "material_club_pool_shortfall",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Frisk Asker 4 (Frisk Asker, U11)",
+        "reason": "actual participation count does not match target",
+        "target": "5"
       },
       {
         "actual": "3",
@@ -35086,7 +35262,7 @@
         "target": "5"
       },
       {
-        "actual": "5",
+        "actual": "4",
         "age_group": "U12",
         "category": "participation_under_target",
         "club": "Holmen",
@@ -35094,8 +35270,8 @@
           "age_group": "U12",
           "classification": "minor_club_pool_shortfall",
           "club": "Holmen",
-          "club_pool_actual": 11,
-          "club_pool_deviation": -1,
+          "club_pool_actual": 10,
+          "club_pool_deviation": -2,
           "club_pool_target": 12,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 3,
@@ -35105,7 +35281,7 @@
           "scope": "before_christmas",
           "team_distribution": [
             {
-              "actual": 5,
+              "actual": 4,
               "target": 6,
               "team": "Holmen Hockey Hvit"
             },
@@ -35125,7 +35301,7 @@
         "target": "6"
       },
       {
-        "actual": "5",
+        "actual": "4",
         "age_group": "U12",
         "category": "participation_under_target",
         "club": "Holmen",
@@ -35133,8 +35309,8 @@
           "age_group": "U12",
           "classification": "minor_club_pool_shortfall",
           "club": "Holmen",
-          "club_pool_actual": 11,
-          "club_pool_deviation": -1,
+          "club_pool_actual": 10,
+          "club_pool_deviation": -2,
           "club_pool_target": 12,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 3,
@@ -35144,7 +35320,7 @@
           "scope": "after_christmas",
           "team_distribution": [
             {
-              "actual": 5,
+              "actual": 4,
               "target": 6,
               "team": "Holmen Hockey Hvit"
             },
@@ -35162,6 +35338,50 @@
         "label": "Holmen Hockey Hvit (Holmen, U12)",
         "reason": "actual participation count does not match target",
         "target": "6"
+      },
+      {
+        "actual": "3",
+        "age_group": "U9",
+        "category": "participation_under_target",
+        "club": "Holmen",
+        "club_pool": {
+          "age_group": "U9",
+          "classification": "material_club_pool_shortfall",
+          "club": "Holmen",
+          "club_pool_actual": 9,
+          "club_pool_deviation": -3,
+          "club_pool_target": 12,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 2,
+          "nominal_target_per_team": 4,
+          "planning_significance": "material",
+          "registered_team_count": 3,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Holmen Hockey Hvit"
+            },
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Holmen Hockey Rød"
+            },
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Holmen Hockey Sort"
+            }
+          ]
+        },
+        "club_pool_classification": "material_club_pool_shortfall",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Holmen Hockey Hvit (Holmen, U9)",
+        "reason": "actual participation count does not match target",
+        "target": "4"
       },
       {
         "actual": "3",
@@ -35302,20 +35522,20 @@
         "club": "Holmen",
         "club_pool": {
           "age_group": "U9",
-          "classification": "intra_club_distribution",
+          "classification": "material_club_pool_shortfall",
           "club": "Holmen",
-          "club_pool_actual": 12,
-          "club_pool_deviation": 0,
+          "club_pool_actual": 9,
+          "club_pool_deviation": -3,
           "club_pool_target": 12,
-          "counts_as_unresolved_shortfall": false,
+          "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
           "nominal_target_per_team": 4,
-          "planning_significance": "informational",
+          "planning_significance": "material",
           "registered_team_count": 3,
           "scope": "before_christmas",
           "team_distribution": [
             {
-              "actual": 4,
+              "actual": 3,
               "target": 4,
               "team": "Holmen Hockey Hvit"
             },
@@ -35325,15 +35545,15 @@
               "team": "Holmen Hockey Rød"
             },
             {
-              "actual": 5,
+              "actual": 3,
               "target": 4,
               "team": "Holmen Hockey Sort"
             }
           ]
         },
-        "club_pool_classification": "intra_club_distribution",
-        "club_pool_significance": "informational",
-        "counts_as_unresolved_shortfall": false,
+        "club_pool_classification": "material_club_pool_shortfall",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
         "half": "before_christmas",
         "label": "Holmen Hockey Rød (Holmen, U9)",
         "reason": "actual participation count does not match target",
@@ -35436,6 +35656,50 @@
         "label": "Holmen Hockey Sort (Holmen, U8)",
         "reason": "Holmen Hockey Rød (Holmen, U8) deltar 2 ganger i before_christmas -- ikke nok ledige turneringsplasser ble funnet i denne halvdelen av sesongen.",
         "target": "3"
+      },
+      {
+        "actual": "3",
+        "age_group": "U9",
+        "category": "participation_under_target",
+        "club": "Holmen",
+        "club_pool": {
+          "age_group": "U9",
+          "classification": "material_club_pool_shortfall",
+          "club": "Holmen",
+          "club_pool_actual": 9,
+          "club_pool_deviation": -3,
+          "club_pool_target": 12,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 2,
+          "nominal_target_per_team": 4,
+          "planning_significance": "material",
+          "registered_team_count": 3,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Holmen Hockey Hvit"
+            },
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Holmen Hockey Rød"
+            },
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Holmen Hockey Sort"
+            }
+          ]
+        },
+        "club_pool_classification": "material_club_pool_shortfall",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Holmen Hockey Sort (Holmen, U9)",
+        "reason": "actual participation count does not match target",
+        "target": "4"
       },
       {
         "actual": "3",
@@ -35568,8 +35832,8 @@
           "age_group": "U12",
           "classification": "material_club_pool_shortfall",
           "club": "Jar",
-          "club_pool_actual": 19,
-          "club_pool_deviation": -5,
+          "club_pool_actual": 18,
+          "club_pool_deviation": -6,
           "club_pool_target": 24,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 3,
@@ -35589,7 +35853,7 @@
               "team": "Jar Hvit"
             },
             {
-              "actual": 4,
+              "actual": 3,
               "target": 6,
               "team": "Jar Rød"
             },
@@ -35645,15 +35909,15 @@
         "club": "Jar",
         "club_pool": {
           "age_group": "U12",
-          "classification": "minor_club_pool_shortfall",
+          "classification": "material_club_pool_shortfall",
           "club": "Jar",
-          "club_pool_actual": 21,
-          "club_pool_deviation": -3,
+          "club_pool_actual": 20,
+          "club_pool_deviation": -4,
           "club_pool_target": 24,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 3,
           "nominal_target_per_team": 6,
-          "planning_significance": "minor",
+          "planning_significance": "material",
           "registered_team_count": 4,
           "scope": "after_christmas",
           "team_distribution": [
@@ -35673,19 +35937,63 @@
               "team": "Jar Rød"
             },
             {
-              "actual": 6,
+              "actual": 5,
               "target": 6,
               "team": "Jar Svart"
             }
           ]
         },
-        "club_pool_classification": "minor_club_pool_shortfall",
-        "club_pool_significance": "minor",
+        "club_pool_classification": "material_club_pool_shortfall",
+        "club_pool_significance": "material",
         "counts_as_unresolved_shortfall": true,
         "half": "after_christmas",
         "label": "Jar Blå (Jar, U12)",
         "reason": "actual participation count does not match target",
         "target": "6"
+      },
+      {
+        "actual": "3",
+        "age_group": "U9",
+        "category": "participation_under_target",
+        "club": "Jar",
+        "club_pool": {
+          "age_group": "U9",
+          "classification": "material_club_pool_shortfall",
+          "club": "Jar",
+          "club_pool_actual": 9,
+          "club_pool_deviation": -3,
+          "club_pool_target": 12,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 2,
+          "nominal_target_per_team": 4,
+          "planning_significance": "material",
+          "registered_team_count": 3,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Jar Blå"
+            },
+            {
+              "actual": 4,
+              "target": 4,
+              "team": "Jar Hvit"
+            },
+            {
+              "actual": 2,
+              "target": 4,
+              "team": "Jar Rød"
+            }
+          ]
+        },
+        "club_pool_classification": "material_club_pool_shortfall",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Jar Blå (Jar, U9)",
+        "reason": "actual participation count does not match target",
+        "target": "4"
       },
       {
         "actual": "3",
@@ -35799,8 +36107,8 @@
           "age_group": "U11",
           "classification": "material_club_pool_shortfall",
           "club": "Jar",
-          "club_pool_actual": 32,
-          "club_pool_deviation": -8,
+          "club_pool_actual": 31,
+          "club_pool_deviation": -9,
           "club_pool_target": 40,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -35810,7 +36118,7 @@
           "scope": "before_christmas",
           "team_distribution": [
             {
-              "actual": 6,
+              "actual": 5,
               "target": 5,
               "team": "Jar Blå"
             },
@@ -35927,8 +36235,8 @@
           "age_group": "U11",
           "classification": "material_club_pool_shortfall",
           "club": "Jar",
-          "club_pool_actual": 32,
-          "club_pool_deviation": -8,
+          "club_pool_actual": 31,
+          "club_pool_deviation": -9,
           "club_pool_target": 40,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -35938,7 +36246,7 @@
           "scope": "before_christmas",
           "team_distribution": [
             {
-              "actual": 6,
+              "actual": 5,
               "target": 5,
               "team": "Jar Blå"
             },
@@ -36166,15 +36474,15 @@
         "club": "Jar",
         "club_pool": {
           "age_group": "U12",
-          "classification": "minor_club_pool_shortfall",
+          "classification": "material_club_pool_shortfall",
           "club": "Jar",
-          "club_pool_actual": 21,
-          "club_pool_deviation": -3,
+          "club_pool_actual": 20,
+          "club_pool_deviation": -4,
           "club_pool_target": 24,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 3,
           "nominal_target_per_team": 6,
-          "planning_significance": "minor",
+          "planning_significance": "material",
           "registered_team_count": 4,
           "scope": "after_christmas",
           "team_distribution": [
@@ -36194,14 +36502,14 @@
               "team": "Jar Rød"
             },
             {
-              "actual": 6,
+              "actual": 5,
               "target": 6,
               "team": "Jar Svart"
             }
           ]
         },
-        "club_pool_classification": "minor_club_pool_shortfall",
-        "club_pool_significance": "minor",
+        "club_pool_classification": "material_club_pool_shortfall",
+        "club_pool_significance": "material",
         "counts_as_unresolved_shortfall": true,
         "half": "after_christmas",
         "label": "Jar Hvit (Jar, U12)",
@@ -36217,8 +36525,8 @@
           "age_group": "U11",
           "classification": "material_club_pool_shortfall",
           "club": "Jar",
-          "club_pool_actual": 32,
-          "club_pool_deviation": -8,
+          "club_pool_actual": 31,
+          "club_pool_deviation": -9,
           "club_pool_target": 40,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -36228,7 +36536,7 @@
           "scope": "before_christmas",
           "team_distribution": [
             {
-              "actual": 6,
+              "actual": 5,
               "target": 5,
               "team": "Jar Blå"
             },
@@ -36563,7 +36871,7 @@
         "target": "5"
       },
       {
-        "actual": "4",
+        "actual": "3",
         "age_group": "U12",
         "category": "participation_under_target_same_date_capacity",
         "club": "Jar",
@@ -36571,8 +36879,8 @@
           "age_group": "U12",
           "classification": "material_club_pool_shortfall",
           "club": "Jar",
-          "club_pool_actual": 19,
-          "club_pool_deviation": -5,
+          "club_pool_actual": 18,
+          "club_pool_deviation": -6,
           "club_pool_target": 24,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 3,
@@ -36592,7 +36900,7 @@
               "team": "Jar Hvit"
             },
             {
-              "actual": 4,
+              "actual": 3,
               "target": 6,
               "team": "Jar Rød"
             },
@@ -36640,6 +36948,50 @@
           }
         ],
         "target": "6"
+      },
+      {
+        "actual": "2",
+        "age_group": "U9",
+        "category": "participation_under_target",
+        "club": "Jar",
+        "club_pool": {
+          "age_group": "U9",
+          "classification": "material_club_pool_shortfall",
+          "club": "Jar",
+          "club_pool_actual": 9,
+          "club_pool_deviation": -3,
+          "club_pool_target": 12,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 2,
+          "nominal_target_per_team": 4,
+          "planning_significance": "material",
+          "registered_team_count": 3,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Jar Blå"
+            },
+            {
+              "actual": 4,
+              "target": 4,
+              "team": "Jar Hvit"
+            },
+            {
+              "actual": 2,
+              "target": 4,
+              "team": "Jar Rød"
+            }
+          ]
+        },
+        "club_pool_classification": "material_club_pool_shortfall",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Jar Rød (Jar, U9)",
+        "reason": "actual participation count does not match target",
+        "target": "4"
       },
       {
         "actual": "2",
@@ -36768,8 +37120,8 @@
           "age_group": "U11",
           "classification": "material_club_pool_shortfall",
           "club": "Jar",
-          "club_pool_actual": 32,
-          "club_pool_deviation": -8,
+          "club_pool_actual": 31,
+          "club_pool_deviation": -9,
           "club_pool_target": 40,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -36779,7 +37131,7 @@
           "scope": "before_christmas",
           "team_distribution": [
             {
-              "actual": 6,
+              "actual": 5,
               "target": 5,
               "team": "Jar Blå"
             },
@@ -36837,8 +37189,8 @@
           "age_group": "U12",
           "classification": "material_club_pool_shortfall",
           "club": "Jar",
-          "club_pool_actual": 19,
-          "club_pool_deviation": -5,
+          "club_pool_actual": 18,
+          "club_pool_deviation": -6,
           "club_pool_target": 24,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 3,
@@ -36858,7 +37210,7 @@
               "team": "Jar Hvit"
             },
             {
-              "actual": 4,
+              "actual": 3,
               "target": 6,
               "team": "Jar Rød"
             },
@@ -36905,6 +37257,55 @@
             "unplaced_participations": 4
           }
         ],
+        "target": "6"
+      },
+      {
+        "actual": "5",
+        "age_group": "U12",
+        "category": "participation_under_target",
+        "club": "Jar",
+        "club_pool": {
+          "age_group": "U12",
+          "classification": "material_club_pool_shortfall",
+          "club": "Jar",
+          "club_pool_actual": 20,
+          "club_pool_deviation": -4,
+          "club_pool_target": 24,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 3,
+          "nominal_target_per_team": 6,
+          "planning_significance": "material",
+          "registered_team_count": 4,
+          "scope": "after_christmas",
+          "team_distribution": [
+            {
+              "actual": 4,
+              "target": 6,
+              "team": "Jar Blå"
+            },
+            {
+              "actual": 4,
+              "target": 6,
+              "team": "Jar Hvit"
+            },
+            {
+              "actual": 7,
+              "target": 6,
+              "team": "Jar Rød"
+            },
+            {
+              "actual": 5,
+              "target": 6,
+              "team": "Jar Svart"
+            }
+          ]
+        },
+        "club_pool_classification": "material_club_pool_shortfall",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "after_christmas",
+        "label": "Jar Svart (Jar, U12)",
+        "reason": "actual participation count does not match target",
         "target": "6"
       },
       {
@@ -36960,8 +37361,8 @@
           "age_group": "U11",
           "classification": "material_club_pool_shortfall",
           "club": "Jutul",
-          "club_pool_actual": 7,
-          "club_pool_deviation": -3,
+          "club_pool_actual": 6,
+          "club_pool_deviation": -4,
           "club_pool_target": 10,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -36976,7 +37377,7 @@
               "team": "Jutul Grønn"
             },
             {
-              "actual": 4,
+              "actual": 3,
               "target": 5,
               "team": "Jutul Rød"
             }
@@ -37077,8 +37478,8 @@
           "age_group": "U12",
           "classification": "minor_club_pool_shortfall",
           "club": "Jutul",
-          "club_pool_actual": 11,
-          "club_pool_deviation": -1,
+          "club_pool_actual": 10,
+          "club_pool_deviation": -2,
           "club_pool_target": 12,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 3,
@@ -37093,7 +37494,7 @@
               "team": "Jutul Grønn"
             },
             {
-              "actual": 6,
+              "actual": 5,
               "target": 6,
               "team": "Jutul Rød"
             }
@@ -37155,6 +37556,50 @@
         "label": "Jutul Grønn (Jutul, U8)",
         "reason": "Jutul Grønn (Jutul, U8) deltar 2 ganger i after_christmas -- ikke nok ledige turneringsplasser ble funnet i denne halvdelen av sesongen.",
         "target": "3"
+      },
+      {
+        "actual": "2",
+        "age_group": "U9",
+        "category": "participation_under_target",
+        "club": "Jutul",
+        "club_pool": {
+          "age_group": "U9",
+          "classification": "material_club_pool_shortfall",
+          "club": "Jutul",
+          "club_pool_actual": 8,
+          "club_pool_deviation": -4,
+          "club_pool_target": 12,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 2,
+          "nominal_target_per_team": 4,
+          "planning_significance": "material",
+          "registered_team_count": 3,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 2,
+              "target": 4,
+              "team": "Jutul Grønn"
+            },
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Jutul Hvit"
+            },
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Jutul Rød"
+            }
+          ]
+        },
+        "club_pool_classification": "material_club_pool_shortfall",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Jutul Grønn (Jutul, U9)",
+        "reason": "actual participation count does not match target",
+        "target": "4"
       },
       {
         "actual": "3",
@@ -37354,6 +37799,50 @@
         "club": "Jutul",
         "club_pool": {
           "age_group": "U9",
+          "classification": "material_club_pool_shortfall",
+          "club": "Jutul",
+          "club_pool_actual": 8,
+          "club_pool_deviation": -4,
+          "club_pool_target": 12,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 2,
+          "nominal_target_per_team": 4,
+          "planning_significance": "material",
+          "registered_team_count": 3,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 2,
+              "target": 4,
+              "team": "Jutul Grønn"
+            },
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Jutul Hvit"
+            },
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Jutul Rød"
+            }
+          ]
+        },
+        "club_pool_classification": "material_club_pool_shortfall",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Jutul Hvit (Jutul, U9)",
+        "reason": "actual participation count does not match target",
+        "target": "4"
+      },
+      {
+        "actual": "3",
+        "age_group": "U9",
+        "category": "participation_under_target",
+        "club": "Jutul",
+        "club_pool": {
+          "age_group": "U9",
           "classification": "minor_club_pool_shortfall",
           "club": "Jutul",
           "club_pool_actual": 10,
@@ -37470,7 +37959,7 @@
         "target": "4"
       },
       {
-        "actual": "4",
+        "actual": "3",
         "age_group": "U11",
         "category": "participation_under_target",
         "club": "Jutul",
@@ -37478,8 +37967,8 @@
           "age_group": "U11",
           "classification": "material_club_pool_shortfall",
           "club": "Jutul",
-          "club_pool_actual": 7,
-          "club_pool_deviation": -3,
+          "club_pool_actual": 6,
+          "club_pool_deviation": -4,
           "club_pool_target": 10,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -37494,7 +37983,7 @@
               "team": "Jutul Grønn"
             },
             {
-              "actual": 4,
+              "actual": 3,
               "target": 5,
               "team": "Jutul Rød"
             }
@@ -37507,6 +37996,45 @@
         "label": "Jutul Rød (Jutul, U11)",
         "reason": "actual participation count does not match target",
         "target": "5"
+      },
+      {
+        "actual": "5",
+        "age_group": "U12",
+        "category": "participation_under_target",
+        "club": "Jutul",
+        "club_pool": {
+          "age_group": "U12",
+          "classification": "minor_club_pool_shortfall",
+          "club": "Jutul",
+          "club_pool_actual": 10,
+          "club_pool_deviation": -2,
+          "club_pool_target": 12,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 3,
+          "nominal_target_per_team": 6,
+          "planning_significance": "minor",
+          "registered_team_count": 2,
+          "scope": "after_christmas",
+          "team_distribution": [
+            {
+              "actual": 5,
+              "target": 6,
+              "team": "Jutul Grønn"
+            },
+            {
+              "actual": 5,
+              "target": 6,
+              "team": "Jutul Rød"
+            }
+          ]
+        },
+        "club_pool_classification": "minor_club_pool_shortfall",
+        "club_pool_significance": "minor",
+        "counts_as_unresolved_shortfall": true,
+        "half": "after_christmas",
+        "label": "Jutul Rød (Jutul, U12)",
+        "reason": "actual participation count does not match target",
+        "target": "6"
       },
       {
         "actual": "1",
@@ -37556,6 +38084,50 @@
         "label": "Jutul Rød (Jutul, U8)",
         "reason": "Jutul Gul (Jutul, U8) deltar 2 ganger i before_christmas -- ikke nok ledige turneringsplasser ble funnet i denne halvdelen av sesongen.",
         "target": "3"
+      },
+      {
+        "actual": "3",
+        "age_group": "U9",
+        "category": "participation_under_target",
+        "club": "Jutul",
+        "club_pool": {
+          "age_group": "U9",
+          "classification": "material_club_pool_shortfall",
+          "club": "Jutul",
+          "club_pool_actual": 8,
+          "club_pool_deviation": -4,
+          "club_pool_target": 12,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 2,
+          "nominal_target_per_team": 4,
+          "planning_significance": "material",
+          "registered_team_count": 3,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 2,
+              "target": 4,
+              "team": "Jutul Grønn"
+            },
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Jutul Hvit"
+            },
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Jutul Rød"
+            }
+          ]
+        },
+        "club_pool_classification": "material_club_pool_shortfall",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Jutul Rød (Jutul, U9)",
+        "reason": "actual participation count does not match target",
+        "target": "4"
       },
       {
         "actual": "4",
@@ -37756,6 +38328,40 @@
         "label": "Kongsberg (Kongsberg, U8)",
         "reason": "actual participation count does not match target",
         "target": "3"
+      },
+      {
+        "actual": "3",
+        "age_group": "U9",
+        "category": "participation_under_target",
+        "club": "Kongsberg",
+        "club_pool": {
+          "age_group": "U9",
+          "classification": "single_team_deviation",
+          "club": "Kongsberg",
+          "club_pool_actual": 3,
+          "club_pool_deviation": -1,
+          "club_pool_target": 4,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": null,
+          "nominal_target_per_team": 4,
+          "planning_significance": "material",
+          "registered_team_count": 1,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Kongsberg"
+            }
+          ]
+        },
+        "club_pool_classification": "single_team_deviation",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Kongsberg (Kongsberg, U9)",
+        "reason": "actual participation count does not match target",
+        "target": "4"
       },
       {
         "actual": "4",
@@ -38024,8 +38630,8 @@
           "age_group": "U12",
           "classification": "minor_club_pool_shortfall",
           "club": "Ringerike",
-          "club_pool_actual": 11,
-          "club_pool_deviation": -1,
+          "club_pool_actual": 10,
+          "club_pool_deviation": -2,
           "club_pool_target": 12,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 3,
@@ -38040,7 +38646,7 @@
               "team": "Ringerike 1"
             },
             {
-              "actual": 6,
+              "actual": 5,
               "target": 6,
               "team": "Ringerike 2"
             }
@@ -38055,7 +38661,7 @@
         "target": "6"
       },
       {
-        "actual": "5",
+        "actual": "4",
         "age_group": "U12",
         "category": "participation_under_target",
         "club": "Ringerike",
@@ -38063,8 +38669,8 @@
           "age_group": "U12",
           "classification": "minor_club_pool_shortfall",
           "club": "Ringerike",
-          "club_pool_actual": 11,
-          "club_pool_deviation": -1,
+          "club_pool_actual": 10,
+          "club_pool_deviation": -2,
           "club_pool_target": 12,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 3,
@@ -38074,7 +38680,7 @@
           "scope": "after_christmas",
           "team_distribution": [
             {
-              "actual": 5,
+              "actual": 4,
               "target": 6,
               "team": "Ringerike 1"
             },
@@ -38253,6 +38859,45 @@
         "label": "Ringerike 2 (Ringerike, U10)",
         "reason": "actual participation count does not match target",
         "target": "4"
+      },
+      {
+        "actual": "5",
+        "age_group": "U12",
+        "category": "participation_under_target",
+        "club": "Ringerike",
+        "club_pool": {
+          "age_group": "U12",
+          "classification": "minor_club_pool_shortfall",
+          "club": "Ringerike",
+          "club_pool_actual": 10,
+          "club_pool_deviation": -2,
+          "club_pool_target": 12,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": 3,
+          "nominal_target_per_team": 6,
+          "planning_significance": "minor",
+          "registered_team_count": 2,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 5,
+              "target": 6,
+              "team": "Ringerike 1"
+            },
+            {
+              "actual": 5,
+              "target": 6,
+              "team": "Ringerike 2"
+            }
+          ]
+        },
+        "club_pool_classification": "minor_club_pool_shortfall",
+        "club_pool_significance": "minor",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Ringerike 2 (Ringerike, U12)",
+        "reason": "actual participation count does not match target",
+        "target": "6"
       },
       {
         "actual": "2",
@@ -38466,6 +39111,40 @@
         "counts_as_unresolved_shortfall": false,
         "half": "after_christmas",
         "label": "Ringerike Svart",
+        "reason": "actual participation count does not match target",
+        "target": "5"
+      },
+      {
+        "actual": "4",
+        "age_group": "U11",
+        "category": "participation_under_target",
+        "club": "Sandefjord Penguins",
+        "club_pool": {
+          "age_group": "U11",
+          "classification": "single_team_deviation",
+          "club": "Sandefjord Penguins",
+          "club_pool_actual": 4,
+          "club_pool_deviation": -1,
+          "club_pool_target": 5,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": null,
+          "nominal_target_per_team": 5,
+          "planning_significance": "material",
+          "registered_team_count": 1,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 4,
+              "target": 5,
+              "team": "Sandefjord"
+            }
+          ]
+        },
+        "club_pool_classification": "single_team_deviation",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Sandefjord (Sandefjord Penguins, U11)",
         "reason": "actual participation count does not match target",
         "target": "5"
       },
@@ -38860,6 +39539,40 @@
           "nominal_target_per_team": 4,
           "planning_significance": "material",
           "registered_team_count": 1,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 3,
+              "target": 4,
+              "team": "Tønsberg"
+            }
+          ]
+        },
+        "club_pool_classification": "single_team_deviation",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Tønsberg (Tønsberg, U9)",
+        "reason": "actual participation count does not match target",
+        "target": "4"
+      },
+      {
+        "actual": "3",
+        "age_group": "U9",
+        "category": "participation_under_target",
+        "club": "Tønsberg",
+        "club_pool": {
+          "age_group": "U9",
+          "classification": "single_team_deviation",
+          "club": "Tønsberg",
+          "club_pool_actual": 3,
+          "club_pool_deviation": -1,
+          "club_pool_target": 4,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": null,
+          "nominal_target_per_team": 4,
+          "planning_significance": "material",
+          "registered_team_count": 1,
           "scope": "after_christmas",
           "team_distribution": [
             {
@@ -38886,8 +39599,8 @@
           "age_group": "U11",
           "classification": "material_club_pool_shortfall",
           "club": "Tønsberg",
-          "club_pool_actual": 12,
-          "club_pool_deviation": -3,
+          "club_pool_actual": 11,
+          "club_pool_deviation": -4,
           "club_pool_target": 15,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -38907,7 +39620,7 @@
               "team": "Tønsberg Hvit"
             },
             {
-              "actual": 3,
+              "actual": 2,
               "target": 5,
               "team": "Tønsberg Rød"
             }
@@ -39158,7 +39871,7 @@
         "target": "6"
       },
       {
-        "actual": "3",
+        "actual": "2",
         "age_group": "U11",
         "category": "participation_under_target",
         "club": "Tønsberg",
@@ -39166,8 +39879,8 @@
           "age_group": "U11",
           "classification": "material_club_pool_shortfall",
           "club": "Tønsberg",
-          "club_pool_actual": 12,
-          "club_pool_deviation": -3,
+          "club_pool_actual": 11,
+          "club_pool_deviation": -4,
           "club_pool_target": 15,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -39187,7 +39900,7 @@
               "team": "Tønsberg Hvit"
             },
             {
-              "actual": 3,
+              "actual": 2,
               "target": 5,
               "team": "Tønsberg Rød"
             }
@@ -40478,10 +41191,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "adf533a8fea3c24c55ba2f4dcc62da451f36b12744f9db756a6f1e7f1687138f",
+  "revision": "abfe9ff323d9e6ae98dfc54856143fb5db3b4818ce5562518bf1040426eeb9a0",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-30T21:52:10.019152+00:00",
+  "updated_at": "2026-09-30T22:00:53.742952+00:00",
   "verification_context": {
     "calendar_evidence": {
       "blocked_sources": [],

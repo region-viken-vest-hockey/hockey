@@ -3181,7 +3181,7 @@
       }
     }
   ],
-  "canonical_state_revision": "cc1ca9e1c007db99e8ca30560ee15688c38a19b8c1548054f3d6da4257d166d8",
+  "canonical_state_revision": "171ed74ee2b69813eebadf5437fef95e7d9e18ccd0b39931b9a639f3a0411ed0",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -7155,9 +7155,12 @@
       "id": "change:7ab3ded57af5ee4a",
       "kind": "placement_field",
       "note": "Original 09:20 slot collided with Jutul's own recurring U9+10 practice (09:30-10:50); moved into the confirmed-clear afternoon window",
+      "release_reason": "Superseded: cancelling this tournament, no confirmed booking evidence and no legal same-age replacement/reschedule available",
+      "released_at": "2026-09-30T21:59:24.930352+00:00",
+      "released_by": "niclasl",
       "request_id": "jutul:2026-09-27-calendar-conflict-check",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -7173,9 +7176,12 @@
       "id": "change:ea133f7f8820f727",
       "kind": "placement_field",
       "note": "Original 16:00 slot collided with Jutul's own 'Kamp 5 div Jutul A - Bøler' match (14:45-16:50); moved to a confirmed-clear evening window",
+      "release_reason": "Superseded: cancelling this tournament, no confirmed booking evidence and no legal same-age replacement/reschedule available",
+      "released_at": "2026-09-30T21:59:24.930352+00:00",
+      "released_by": "niclasl",
       "request_id": "jutul:2026-09-27-calendar-conflict-check",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -7191,9 +7197,12 @@
       "id": "change:508d91ae63e86a67",
       "kind": "placement_field",
       "note": "Original 16:00 slot collided with Jutul's own 'Kamp 5 div Jutul A - Bøler' match (14:45-16:50); moved to a confirmed-clear evening window",
+      "release_reason": "Superseded: cancelling this tournament, no confirmed booking evidence and no legal same-age replacement/reschedule available",
+      "released_at": "2026-09-30T21:59:24.930352+00:00",
+      "released_by": "niclasl",
       "request_id": "jutul:2026-09-27-calendar-conflict-check",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -8017,9 +8026,12 @@
       "id": "change:cddad50e0919846b",
       "kind": "placement_field",
       "note": "Confirmed via live Jutul calendar: actual booked interval starts 17:30, not 17:20",
+      "release_reason": "Superseded: cancelling this tournament, no confirmed booking evidence and no legal same-age replacement/reschedule available",
+      "released_at": "2026-09-30T21:59:24.930352+00:00",
+      "released_by": "niclasl",
       "request_id": "jutul:baerum-ishall-calendar-confirm",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
@@ -56033,6 +56045,477 @@
       "schedule_fingerprint": "adf533a8fea3c24c55ba2f4dcc62da451f36b12744f9db756a6f1e7f1687138f",
       "tournament_fingerprint": null,
       "tournament_id": "rvv-0044"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T21:59:24.930352+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:7ab3ded57af5ee4a",
+          "change:ea133f7f8820f727",
+          "change:508d91ae63e86a67",
+          "change:cddad50e0919846b"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "Superseded: cancelling this tournament, no confirmed booking evidence and no legal same-age replacement/reschedule available",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "adf533a8fea3c24c55ba2f4dcc62da451f36b12744f9db756a6f1e7f1687138f",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T22:00:53.742952+00:00",
+      "details": {
+        "accepted_regressions": [
+          {
+            "age_group": "U9",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker 1|U9",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 6,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker 1"
+          },
+          {
+            "age_group": "U9",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker 2|U9",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 6,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker 2"
+          },
+          {
+            "age_group": "U12",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker 3|U12",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 8,
+              "before": 9,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker 3"
+          },
+          {
+            "age_group": "U11",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker 4|U11",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 9,
+              "before": 10,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker 4"
+          },
+          {
+            "age_group": "U9",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker 4|U9",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker 4"
+          },
+          {
+            "age_group": "U12",
+            "club": "Holmen",
+            "code": "participation_count_changed",
+            "consequence": "Holmen|Holmen Hockey Hvit|U12",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 8,
+              "before": 10,
+              "code": "participation_count_changed"
+            },
+            "team": "Holmen Hockey Hvit"
+          },
+          {
+            "age_group": "U9",
+            "club": "Holmen",
+            "code": "participation_count_changed",
+            "consequence": "Holmen|Holmen Hockey Hvit|U9",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 6,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Holmen Hockey Hvit"
+          },
+          {
+            "age_group": "U9",
+            "club": "Holmen",
+            "code": "participation_count_changed",
+            "consequence": "Holmen|Holmen Hockey Sort|U9",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 6,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Holmen Hockey Sort"
+          },
+          {
+            "age_group": "U11",
+            "club": "Jar",
+            "code": "participation_count_changed",
+            "consequence": "Jar|Jar Blå|U11",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 10,
+              "before": 11,
+              "code": "participation_count_changed"
+            },
+            "team": "Jar Blå"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jar",
+            "code": "participation_count_changed",
+            "consequence": "Jar|Jar Blå|U9",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 6,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Jar Blå"
+          },
+          {
+            "age_group": "U12",
+            "club": "Jar",
+            "code": "participation_count_changed",
+            "consequence": "Jar|Jar Rød|U12",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 10,
+              "before": 11,
+              "code": "participation_count_changed"
+            },
+            "team": "Jar Rød"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jar",
+            "code": "participation_count_changed",
+            "consequence": "Jar|Jar Rød|U9",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 6,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Jar Rød"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jar",
+            "code": "temporal_coverage_materially_worse",
+            "consequence": "Jar|Jar Rød|U9",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 65,
+              "before": 43,
+              "code": "temporal_coverage_materially_worse",
+              "delta": 22,
+              "threshold_days": 60
+            },
+            "team": "Jar Rød"
+          },
+          {
+            "age_group": "U12",
+            "club": "Jar",
+            "code": "participation_count_changed",
+            "consequence": "Jar|Jar Svart|U12",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 9,
+              "before": 10,
+              "code": "participation_count_changed"
+            },
+            "team": "Jar Svart"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Grønn|U9",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 5,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Grønn"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Hvit|U9",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 6,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Hvit"
+          },
+          {
+            "age_group": "U11",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Rød|U11",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 8,
+              "before": 9,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Rød"
+          },
+          {
+            "age_group": "U12",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Rød|U12",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 11,
+              "before": 12,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Rød"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Rød|U9",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Rød"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jutul",
+            "code": "temporal_coverage_materially_worse",
+            "consequence": "Jutul|Jutul Rød|U9",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 76,
+              "before": 56,
+              "code": "temporal_coverage_materially_worse",
+              "delta": 20,
+              "threshold_days": 60
+            },
+            "team": "Jutul Rød"
+          },
+          {
+            "age_group": "U11",
+            "club": "Kongsberg",
+            "code": "participation_count_changed",
+            "consequence": "Kongsberg|Kongsberg|U11",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 9,
+              "before": 10,
+              "code": "participation_count_changed"
+            },
+            "team": "Kongsberg"
+          },
+          {
+            "age_group": "U9",
+            "club": "Kongsberg",
+            "code": "participation_count_changed",
+            "consequence": "Kongsberg|Kongsberg|U9",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Kongsberg"
+          },
+          {
+            "age_group": "U12",
+            "club": "Ringerike",
+            "code": "participation_count_changed",
+            "consequence": "Ringerike|Ringerike 1|U12",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 9,
+              "before": 10,
+              "code": "participation_count_changed"
+            },
+            "team": "Ringerike 1"
+          },
+          {
+            "age_group": "U12",
+            "club": "Ringerike",
+            "code": "participation_count_changed",
+            "consequence": "Ringerike|Ringerike 2|U12",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 11,
+              "before": 12,
+              "code": "participation_count_changed"
+            },
+            "team": "Ringerike 2"
+          },
+          {
+            "age_group": "U11",
+            "club": "Sandefjord Penguins",
+            "code": "participation_count_changed",
+            "consequence": "Sandefjord Penguins|Sandefjord|U11",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 9,
+              "before": 10,
+              "code": "participation_count_changed"
+            },
+            "team": "Sandefjord"
+          },
+          {
+            "age_group": "U9",
+            "club": "Tønsberg",
+            "code": "participation_count_changed",
+            "consequence": "Tønsberg|Tønsberg|U9",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 6,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Tønsberg"
+          },
+          {
+            "age_group": "U11",
+            "club": "Tønsberg",
+            "code": "participation_count_changed",
+            "consequence": "Tønsberg|Tønsberg Rød|U11",
+            "reason": "Cancelling unconfirmed/lost-ice tournaments (no booking evidence, or unresolved external conflict with no host confirmation obtained); participation loss is inherent to the cancellation",
+            "regression": {
+              "after": 9,
+              "before": 10,
+              "code": "participation_count_changed"
+            },
+            "team": "Tønsberg Rød"
+          }
+        ],
+        "after_schedule_revision": "abfe9ff323d9e6ae98dfc54856143fb5db3b4818ce5562518bf1040426eeb9a0",
+        "before_canonical_revision": "95a78fd4a5eee90896d276e1c00e1c7738ff0449d5e08d6d2579b85482023952",
+        "before_schedule_revision": "adf533a8fea3c24c55ba2f4dcc62da451f36b12744f9db756a6f1e7f1687138f",
+        "cancellations": [
+          {
+            "age_group": "U9",
+            "original_date": "2026-11-22",
+            "reason": "No confirmed booking evidence at Jar (no matching calendar event; unconfirmed placement considered lost ice)",
+            "tournament_id": "rvv-0033"
+          },
+          {
+            "age_group": "U12",
+            "original_date": "2026-11-15",
+            "reason": "No confirmed booking evidence at Jar (no matching calendar event; unconfirmed placement considered lost ice)",
+            "tournament_id": "rvv-0057"
+          },
+          {
+            "age_group": "U11",
+            "original_date": "2026-11-14",
+            "reason": "Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice",
+            "tournament_id": "rvv-0044"
+          },
+          {
+            "age_group": "U9",
+            "original_date": "2026-11-21",
+            "reason": "Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice",
+            "tournament_id": "rvv-0116"
+          },
+          {
+            "age_group": "U12",
+            "original_date": "2027-03-06",
+            "reason": "Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice",
+            "tournament_id": "rvv-0173"
+          }
+        ],
+        "changed_tournament_ids": [
+          "rvv-0033",
+          "rvv-0044",
+          "rvv-0057",
+          "rvv-0116",
+          "rvv-0173"
+        ],
+        "declared_scope": [
+          "rvv-0033",
+          "rvv-0044",
+          "rvv-0057",
+          "rvv-0116",
+          "rvv-0173"
+        ],
+        "moves": [],
+        "operational_acceptable": true,
+        "operations": [
+          {
+            "op": "cancel",
+            "reason": "No confirmed booking evidence at Jar (no matching calendar event; unconfirmed placement considered lost ice)",
+            "tournament_id": "rvv-0033"
+          },
+          {
+            "op": "cancel",
+            "reason": "No confirmed booking evidence at Jar (no matching calendar event; unconfirmed placement considered lost ice)",
+            "tournament_id": "rvv-0057"
+          },
+          {
+            "op": "cancel",
+            "reason": "Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice",
+            "tournament_id": "rvv-0044"
+          },
+          {
+            "op": "cancel",
+            "reason": "Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice",
+            "tournament_id": "rvv-0116"
+          },
+          {
+            "op": "cancel",
+            "reason": "Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice",
+            "tournament_id": "rvv-0173"
+          }
+        ],
+        "protections_added": [],
+        "removals": [],
+        "request_id": "operator:2026-09-30-lost-ice-cancellations",
+        "swaps": [],
+        "verification_ok": true
+      },
+      "event": "batch_maintenance",
+      "note": "Cancel unconfirmed/lost-ice tournaments at Jar and Jutul: no booking evidence or unresolved external conflict with no host confirmation",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "abfe9ff323d9e6ae98dfc54856143fb5db3b4818ce5562518bf1040426eeb9a0",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ],
   "holiday_date_exceptions": [
@@ -65633,7 +66116,7 @@
       "type": "team_unavailable"
     }
   ],
-  "schedule_fingerprint": "adf533a8fea3c24c55ba2f4dcc62da451f36b12744f9db756a6f1e7f1687138f",
+  "schedule_fingerprint": "abfe9ff323d9e6ae98dfc54856143fb5db3b4818ce5562518bf1040426eeb9a0",
   "schema_version": 1,
   "season": "2026-2027",
   "season_lifecycle": {
@@ -141121,5 +141604,5 @@
       "tournament_id": "rvv-0031"
     }
   ],
-  "updated_at": "2026-09-30T21:52:35.072542+00:00"
+  "updated_at": "2026-09-30T22:00:53.742952+00:00"
 }
