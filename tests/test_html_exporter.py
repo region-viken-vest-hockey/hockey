@@ -633,7 +633,10 @@ class TestBookingStatusRendering:
                 },
             },
         )
-        embedded = {row["id"]: row for row in _embedded_tournaments(out_path.read_text(encoding="utf-8"))}
+        html = out_path.read_text(encoding="utf-8")
+        embedded = {row["id"]: row for row in _embedded_tournaments(html)}
+        assert "booket · låst" in html
+        assert "GODKJENT' + (t.apl ? ' · LÅST' : '')" not in html
         assert embedded["holmen-booked"]["ap"] == "approved"
         assert embedded["holmen-booked"]["apl"] is True
         assert embedded["holmen-booked"]["obs"] == "booked"
