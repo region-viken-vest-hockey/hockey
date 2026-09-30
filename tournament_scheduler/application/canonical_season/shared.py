@@ -145,9 +145,17 @@ def _append_decision_history(
     note: str = "",
     details: dict[str, Any] | None = None,
 ) -> None:
-    """Append a durable approval-lifecycle audit entry to decisions.json."""
+    """Append a durable approval-lifecycle audit entry to decisions.json.
 
-    history = decisions.setdefault("history", [])
+    Copy-on-write: a shallow ``dict(decisions)`` copy (the speculative-candidate
+    pattern used throughout this package, e.g. before a booking assertion's
+    blockers are known) still shares the original's ``history`` list object.
+    Mutating it in place would leak this event into the source dict even when
+    the candidate is later discarded/rejected, so a fresh list is always
+    written back onto ``decisions`` rather than appended to in place.
+    """
+
+    history = list(decisions.get("history") or [])
     entry = {
         "event": event,
         "tournament_id": tournament_id,
@@ -161,6 +169,7 @@ def _append_decision_history(
     if details:
         entry["details"] = details
     history.append(entry)
+    decisions["history"] = history
 
 
 def _reconcile_decisions(

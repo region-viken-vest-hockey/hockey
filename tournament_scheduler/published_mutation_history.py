@@ -21,7 +21,10 @@ placement, so replay treats them as decision-only as well. This is what lets
 reconciliation converge on the same revision-bound effective projection the
 export/render path produces. The ``mark_export_fresh`` event records that an
 export artifact covered a canonical revision; it describes export provenance,
-not a schedule change, so replay treats it as decision-only.
+not a schedule change, so replay treats it as decision-only. A rejected
+booking/calendar assertion (``reject_booking_evidence``) never reaches the
+active placement -- it is retained purely as an unresolved-conflict record for
+operator follow-up -- so it is decision-only too.
 Pre-publication mutations are safe to replay because a publication
 baseline already reflects them, so re-applying the same placement is a no-op.
 
@@ -62,6 +65,7 @@ _DECISION_ONLY_EVENTS = {
     "record_placement_infeasibility",
     "reconcile_calendar_bookings",
     "refresh_calendar_evidence",
+    "reject_booking_evidence",
     "release_calendar_booking",
     "release_change_protection",
     "release_participation_withdrawal",

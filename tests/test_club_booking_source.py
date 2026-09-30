@@ -1070,3 +1070,33 @@ def test_calendar_event_at_a_different_arena_does_not_auto_link(tmp_path):
         )
     decisions = load_decisions("2026-2027", root=root)
     assert (decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []) == []
+
+
+def test_append_decision_history_does_not_mutate_a_shallow_copy_source():
+    """A speculative candidate built via ``dict(decisions)`` (the pattern every
+    writer in this package uses before it knows whether the final change will
+    be accepted) must never leak history entries back into the source dict it
+    was copied from -- otherwise a later-rejected assertion permanently
+    corrupts the original decisions object with an audit event for a change
+    that was never actually applied (observed in production: a rejected
+    booking assertion left a ``set_ice_time_minutes`` entry behind even though
+    the override itself was correctly discarded, breaking reconciliation
+    replay).
+    """
+
+    from tournament_scheduler.application.canonical_season.shared import (
+        _append_decision_history,
+    )
+
+    original = {"history": []}
+    candidate = dict(original)
+    _append_decision_history(
+        candidate,
+        event="set_ice_time_minutes",
+        tournament_id="t1",
+        actor="tester",
+        now="2026-01-01T00:00:00+00:00",
+        note="speculative",
+    )
+    assert len(candidate["history"]) == 1
+    assert original["history"] == []

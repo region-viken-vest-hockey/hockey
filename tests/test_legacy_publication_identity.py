@@ -386,3 +386,33 @@ def test_manual_booking_assertion_history_is_decision_only_for_reconciliation() 
         attested_additions={},
     )
     assert report["ok"] is True, report["unexplained_delta"]
+
+
+def test_rejected_booking_evidence_history_is_decision_only_for_reconciliation() -> None:
+    """A rejected booking/calendar assertion never reaches the active
+    placement -- it is retained purely as an unresolved-conflict record for
+    operator follow-up -- so publication reconciliation must treat
+    ``reject_booking_evidence`` as decision-only, not an unreplayable schedule
+    mutation.
+    """
+
+    from tournament_scheduler.published_mutation_history import reconcile_published_baseline
+
+    plan = {"tournaments": [_tournament("rvv-0001", "2026-10-17", "14:15", "Tonsberghallen", "Tønsberg", "U12", ["A", "B"])]}
+    projection = tournament_projection(plan, _problem(plan))
+
+    history = [
+        {
+            "event": "reject_booking_evidence",
+            "tournament_id": "rvv-0001",
+            "details": {"proposed_interval": {"start_time": "17:30"}},
+        },
+    ]
+
+    report = reconcile_published_baseline(
+        published_projection=projection,
+        current_projection=projection,
+        history=history,
+        attested_additions={},
+    )
+    assert report["ok"] is True, report["unexplained_delta"]
