@@ -2621,9 +2621,288 @@
         "round_count": "5",
         "start_time": "14:15"
       }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T18:10:33.032678+00:00",
+      "created_by": "niclasl",
+      "date": "2026-11-28",
+      "end": "18:20",
+      "event_fingerprint": "a71c5235b9e74ad219ce05223227cd869d5fce017a9479b757ed4a3a9c2d8a95",
+      "id": "calendar_booking:a71c5235b9e74ad219ce05223227cd869d5fce017a9479b757ed4a3a9c2d8a95:rvv-0043",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "source_revision": "ea7196ac3a74a485f2b9f72e52cc5c526f9fb6d6f0a7c5cb3c221b46bfe826eb",
+      "start": "16:00",
+      "status": "active",
+      "title": "Turnering U10 RVV",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Baerum ishall",
+        "date": "2026-11-28",
+        "host_club": "Jutul",
+        "start_time": "16:00"
+      },
+      "tournament_id": "rvv-0043",
+      "tournament_interval": {
+        "age_group": "U10",
+        "date": "2026-11-28",
+        "duration_minutes": "140",
+        "end_time": "18:20",
+        "round_count": "5",
+        "start_time": "16:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T18:10:33.794283+00:00",
+      "created_by": "niclasl",
+      "date": "2026-11-28",
+      "end": "20:00",
+      "event_fingerprint": "15c819a0c91541df8c1311d8f825afa1accb129473394798ea6260bada143a9e",
+      "id": "calendar_booking:15c819a0c91541df8c1311d8f825afa1accb129473394798ea6260bada143a9e:rvv-0036",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "source_revision": "618ef002a112ac620520dc57358737b1b97d04da6d339dd9dd669c0387bf1f5c",
+      "start": "18:20",
+      "status": "active",
+      "title": "Turnering U12 RVV",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Baerum ishall",
+        "date": "2026-11-28",
+        "host_club": "Jutul",
+        "start_time": "18:20"
+      },
+      "tournament_id": "rvv-0036",
+      "tournament_interval": {
+        "age_group": "U12",
+        "date": "2026-11-28",
+        "duration_minutes": "100",
+        "end_time": "20:00",
+        "round_count": "3",
+        "start_time": "18:20"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T18:10:35.613332+00:00",
+      "created_by": "niclasl",
+      "date": "2026-12-19",
+      "end": "18:36",
+      "event_fingerprint": "c9a0295eb757044345716a5423e079567ce011eb05b0504eb732236d4bc8ac42",
+      "id": "calendar_booking:c9a0295eb757044345716a5423e079567ce011eb05b0504eb732236d4bc8ac42:rvv-0092",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "source_revision": "a4abf5ef3fe093d1c62ce5b95fa6f85c1d3d388bc7a75ea53727f18159d2f21b",
+      "start": "16:00",
+      "status": "active",
+      "title": "TURNERING U9",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Baerum ishall",
+        "date": "2026-12-19",
+        "host_club": "Jutul",
+        "start_time": "16:00"
+      },
+      "tournament_id": "rvv-0092",
+      "tournament_interval": {
+        "age_group": "U9",
+        "date": "2026-12-19",
+        "duration_minutes": "156",
+        "end_time": "18:36",
+        "round_count": "5",
+        "start_time": "16:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T18:10:36.356862+00:00",
+      "created_by": "niclasl",
+      "date": "2027-01-16",
+      "end": "18:20",
+      "event_fingerprint": "a85bee0ed6b616411629965ce790c35155b9c372adb74bd0d3ec4de2424b8435",
+      "id": "calendar_booking:a85bee0ed6b616411629965ce790c35155b9c372adb74bd0d3ec4de2424b8435:rvv-0022",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "source_revision": "8a42758f45f01d770fd4584d99fc123b57f5450d2e8e0c02daf0a16cdbb8dbbd",
+      "start": "16:00",
+      "status": "active",
+      "title": "Turnering U11 RVV",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Baerum ishall",
+        "date": "2027-01-16",
+        "host_club": "Jutul",
+        "start_time": "16:00"
+      },
+      "tournament_id": "rvv-0022",
+      "tournament_interval": {
+        "age_group": "U11",
+        "date": "2027-01-16",
+        "duration_minutes": "140",
+        "end_time": "18:20",
+        "round_count": "5",
+        "start_time": "16:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T18:10:37.119498+00:00",
+      "created_by": "niclasl",
+      "date": "2027-01-16",
+      "end": "20:00",
+      "event_fingerprint": "5967015227fbd67f34eea6ea7c788607d86a0a9e902780269e59977862c512cc",
+      "id": "calendar_booking:5967015227fbd67f34eea6ea7c788607d86a0a9e902780269e59977862c512cc:rvv-0106",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "source_revision": "33a09f9b17477fe1f7738636b228fa34da636f417c798ed5363f6bfa18d0f201",
+      "start": "18:20",
+      "status": "active",
+      "title": "TURNERING U12",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Baerum ishall",
+        "date": "2027-01-16",
+        "host_club": "Jutul",
+        "start_time": "18:20"
+      },
+      "tournament_id": "rvv-0106",
+      "tournament_interval": {
+        "age_group": "U12",
+        "date": "2027-01-16",
+        "duration_minutes": "100",
+        "end_time": "20:00",
+        "round_count": "3",
+        "start_time": "18:20"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T18:10:37.875362+00:00",
+      "created_by": "niclasl",
+      "date": "2027-01-23",
+      "end": "19:20",
+      "event_fingerprint": "52916c9c482bacede898352d2a04cdddf4ae3d59511579931912b6ac117b8801",
+      "id": "calendar_booking:52916c9c482bacede898352d2a04cdddf4ae3d59511579931912b6ac117b8801:rvv-0074",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "source_revision": "200a440df737b02ecc151388de180aa95cd30f673879063d4fc25f3ab4a7d848",
+      "start": "17:00",
+      "status": "active",
+      "title": "TURNERING U11",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Baerum ishall",
+        "date": "2027-01-23",
+        "host_club": "Jutul",
+        "start_time": "17:00"
+      },
+      "tournament_id": "rvv-0074",
+      "tournament_interval": {
+        "age_group": "U11",
+        "date": "2027-01-23",
+        "duration_minutes": "140",
+        "end_time": "19:20",
+        "round_count": "5",
+        "start_time": "17:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T18:10:38.645598+00:00",
+      "created_by": "niclasl",
+      "date": "2027-01-24",
+      "end": "16:20",
+      "event_fingerprint": "c77b120df07e06f3ed1ddafc66de87723035366d31fffd2d0a9f227f4febe87a",
+      "id": "calendar_booking:c77b120df07e06f3ed1ddafc66de87723035366d31fffd2d0a9f227f4febe87a:rvv-0122",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "source_revision": "2d1abc0a33832d09cfc0eedccab09b4bae47c17654eed1c60c9f93c0530016d8",
+      "start": "14:00",
+      "status": "active",
+      "title": "TURNERING U10",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Baerum ishall",
+        "date": "2027-01-24",
+        "host_club": "Jutul",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0122",
+      "tournament_interval": {
+        "age_group": "U10",
+        "date": "2027-01-24",
+        "duration_minutes": "140",
+        "end_time": "16:20",
+        "round_count": "5",
+        "start_time": "14:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T18:10:39.417778+00:00",
+      "created_by": "niclasl",
+      "date": "2027-02-13",
+      "end": "17:40",
+      "event_fingerprint": "5a390b4d5243b76cf3511e335afb6882e81dad9ad3956f7485436d8ab31fdcce",
+      "id": "calendar_booking:5a390b4d5243b76cf3511e335afb6882e81dad9ad3956f7485436d8ab31fdcce:rvv-0130",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "source_revision": "d428a6a142f5d464288b9a5c17ee70c0f067c030821cd50a15f8d42e30b9c7fd",
+      "start": "16:00",
+      "status": "active",
+      "title": "TURNERING JU12",
+      "tournament_facts": {
+        "age_group": "JU12",
+        "arena": "Baerum ishall",
+        "date": "2027-02-13",
+        "host_club": "Jutul",
+        "start_time": "16:00"
+      },
+      "tournament_id": "rvv-0130",
+      "tournament_interval": {
+        "age_group": "JU12",
+        "date": "2027-02-13",
+        "duration_minutes": "100",
+        "end_time": "17:40",
+        "round_count": "3",
+        "start_time": "16:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-09-30T18:10:40.170550+00:00",
+      "created_by": "niclasl",
+      "date": "2027-02-13",
+      "end": "19:30",
+      "event_fingerprint": "0a26dabdc4ef6868d2e361b846f073794c5d2c9fcdc2cafd459850fd502dc630",
+      "id": "calendar_booking:0a26dabdc4ef6868d2e361b846f073794c5d2c9fcdc2cafd459850fd502dc630:rvv-0137",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "source_revision": "8b95458b8de6aa3bd5bfb812771e7fb9bb819446451fe4f543529cb6a94d7287",
+      "start": "17:45",
+      "status": "active",
+      "title": "TURNERING U12",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Baerum ishall",
+        "date": "2027-02-13",
+        "host_club": "Jutul",
+        "start_time": "17:45"
+      },
+      "tournament_id": "rvv-0137",
+      "tournament_interval": {
+        "age_group": "U12",
+        "date": "2027-02-13",
+        "duration_minutes": "105",
+        "end_time": "19:30",
+        "round_count": "3",
+        "start_time": "17:45"
+      }
     }
   ],
-  "canonical_state_revision": "a68cc6c607de93701e753cb3e5332ee98595f695e3edf6e4f736138a4efa9730",
+  "canonical_state_revision": "4788bbd9a96547175d4551e248abedd6876142de505e9214690c435e4e941358",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -7702,13 +7981,13 @@
       "status": "approved"
     },
     "rvv-0022": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-09-30T18:10:36.301778+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "1fe23be3f4c48d1330fad98e6db771c639bbc3b0348459c3e236dfa64615a033",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0023": {
       "approved_at": "2026-09-28T18:50:07.326548+00:00",
@@ -7830,13 +8109,13 @@
       "status": "approved"
     },
     "rvv-0036": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-09-30T18:10:33.741766+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "9da75088aad85c8f83d8ef7958306919bd6a2eaf905c8a30baaf57a275b6031a",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0037": {
       "approved_at": null,
@@ -7895,13 +8174,13 @@
       "status": "pending_review"
     },
     "rvv-0043": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-09-30T18:10:32.979485+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "713c20ad684380e4b03818ce3a8165247852e13517b96183e2fd878a6db126d6",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0044": {
       "approved_at": null,
@@ -8149,13 +8428,13 @@
       "status": "approved"
     },
     "rvv-0074": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-09-30T18:10:37.819699+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "ae11461df9dbfaddf0151ea794921046c3b64c48325acc561c81b6e78c8d0b48",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0075": {
       "approved_at": "2026-09-28T18:50:41.934326+00:00",
@@ -8284,13 +8563,13 @@
       "status": "approved"
     },
     "rvv-0092": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-09-30T18:10:35.560294+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "6c72f73e1eabcdf796b2680d70f04674935b0e31020623d79602869068799c1c",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0093": {
       "approved_at": "2026-09-22T14:40:23.108358+00:00",
@@ -8412,13 +8691,13 @@
       "status": "approved"
     },
     "rvv-0106": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-09-30T18:10:37.062779+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "56a156aa979e05d85d71939c9a36bff51cba06c5a2fd327b30aa633e9902abe0",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0107": {
       "approved_at": "2026-09-22T14:40:23.992980+00:00",
@@ -8556,13 +8835,13 @@
       "status": "pending_review"
     },
     "rvv-0122": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-09-30T18:10:38.588346+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "883a8509d9350f4f631bd17568efb09c86338c22af8216937e65086b67a5b9ec",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0123": {
       "approved_at": "2026-09-22T14:08:37.875695+00:00",
@@ -8628,13 +8907,13 @@
       "status": "approved"
     },
     "rvv-0130": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-09-30T18:10:39.364520+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "2daa45f73cd481ea2a26cf3299a6c4cd7165088785ef6c766065db998e8ef389",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0131": {
       "approved_at": "2026-09-22T14:40:25.763634+00:00",
@@ -8691,13 +8970,13 @@
       "status": "approved"
     },
     "rvv-0137": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-09-30T18:10:40.117763+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "7d679a738ba16b45fa94839a77918f01f0fafd1ea476ed3a125349a2b7a9031c",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0138": {
       "approved_at": "2026-09-22T14:08:41.159151+00:00",
@@ -9173,16 +9452,12 @@
     }
   },
   "export_state": {
-    "calendar_fingerprint": "c2ad140610e03846c33570456e0759f6108d16f18589983a15954f9715a49e56",
-    "export_dir": "export/2026-09-29T1919",
-    "fresh_at": "2026-09-29T19:19:58.338774+00:00",
-    "fresh_by": "niclasl",
-    "fresh_canonical_revision": "9b1277adb06795ab931b987cb8445b5d5ad625482510ca50c0a0ce9275a13631",
+    "calendar_fingerprint": "33ed45a4b0a889a07af8b6881769480811b6b432aa5a63f88aadc824237ae88c",
     "requires_fresh_audit": true,
-    "requires_fresh_export": false,
-    "stale_at": "2026-09-29T15:46:36.080945+00:00",
+    "requires_fresh_export": true,
+    "stale_at": "2026-09-30T18:05:38.571340+00:00",
     "stale_reason": "calendar_evidence_refreshed",
-    "status": "fresh"
+    "status": "stale"
   },
   "history": [
     {
@@ -52230,6 +52505,521 @@
       "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:05:38.571340+00:00",
+      "details": {
+        "blocked_sources": [],
+        "calendar_fingerprint": "33ed45a4b0a889a07af8b6881769480811b6b432aa5a63f88aadc824237ae88c",
+        "planned_tournament_reconciliation": {
+          "Kongsberg": {
+            "count": 10,
+            "requires_review_count": 10
+          },
+          "Ringerike": {
+            "count": 23,
+            "requires_review_count": 1
+          }
+        },
+        "previous_calendar_fingerprint": "c2ad140610e03846c33570456e0759f6108d16f18589983a15954f9715a49e56",
+        "previous_snapshot": {
+          "calendar_fingerprint": "c2ad140610e03846c33570456e0759f6108d16f18589983a15954f9715a49e56",
+          "captured_at": "2026-09-30T18:05:38.571340+00:00",
+          "had_prior_calendar_evidence": true,
+          "had_prior_source_policy": true,
+          "path": "evidence/calendar/624134429d1ce1faa18e059e655efed2d389cfbb9ef1c2fdd52ed1c46cfaf815.json",
+          "sha256": "624134429d1ce1faa18e059e655efed2d389cfbb9ef1c2fdd52ed1c46cfaf815",
+          "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0"
+        },
+        "source_count": 9,
+        "source_policy_changes": [],
+        "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0",
+        "stage2_fingerprint": "e23bbe9044633e099acc91642baffb3242e45e1e1f544badf7008624a138ce46"
+      },
+      "event": "refresh_calendar_evidence",
+      "note": "Reconcile cached scrape evidence into canonical state (Holmen/Kongsberg calendar_evidence_changed follow-up)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:32.979485+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:66a6b521b3a0f96f",
+        "reference": "Turnering U10 RVV",
+        "request_id": "calendar-booking:a71c5235b9e74ad219ce05223227cd869d5fce017a9479b757ed4a3a9c2d8a95",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0043"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:32.979485+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Turnering U10 RVV",
+        "event_fingerprint": "a71c5235b9e74ad219ce05223227cd869d5fce017a9479b757ed4a3a9c2d8a95",
+        "ice_time_override_id": "ice-time-override:66a6b521b3a0f96f",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-28",
+            "duration_minutes": 140,
+            "end_time": "18:20",
+            "start_time": "16:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U10",
+            "date": "2026-11-28",
+            "duration_minutes": "140",
+            "end_time": "18:20",
+            "round_count": "5",
+            "start_time": "16:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": "713c20ad684380e4b03818ce3a8165247852e13517b96183e2fd878a6db126d6",
+      "tournament_id": "rvv-0043"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:33.741766+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 100,
+        "override_id": "ice-time-override:4e93bbb45126e192",
+        "reference": "Turnering U12 RVV",
+        "request_id": "calendar-booking:15c819a0c91541df8c1311d8f825afa1accb129473394798ea6260bada143a9e",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0036"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:33.741766+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Turnering U12 RVV",
+        "event_fingerprint": "15c819a0c91541df8c1311d8f825afa1accb129473394798ea6260bada143a9e",
+        "ice_time_override_id": "ice-time-override:4e93bbb45126e192",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-28",
+            "duration_minutes": 100,
+            "end_time": "20:00",
+            "start_time": "18:20"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2026-11-28",
+            "duration_minutes": "100",
+            "end_time": "20:00",
+            "round_count": "3",
+            "start_time": "18:20"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": "9da75088aad85c8f83d8ef7958306919bd6a2eaf905c8a30baaf57a275b6031a",
+      "tournament_id": "rvv-0036"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:35.560294+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 156,
+        "override_id": "ice-time-override:75f6ddfe9facc54a",
+        "reference": "TURNERING U9",
+        "request_id": "calendar-booking:c9a0295eb757044345716a5423e079567ce011eb05b0504eb732236d4bc8ac42",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0092"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:35.560294+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING U9",
+        "event_fingerprint": "c9a0295eb757044345716a5423e079567ce011eb05b0504eb732236d4bc8ac42",
+        "ice_time_override_id": "ice-time-override:75f6ddfe9facc54a",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-12-19",
+            "duration_minutes": 156,
+            "end_time": "18:36",
+            "start_time": "16:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U9",
+            "date": "2026-12-19",
+            "duration_minutes": "155",
+            "end_time": "18:35",
+            "round_count": "5",
+            "start_time": "16:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": "6c72f73e1eabcdf796b2680d70f04674935b0e31020623d79602869068799c1c",
+      "tournament_id": "rvv-0092"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:36.301778+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:a534753d4271081a",
+        "reference": "Turnering U11 RVV",
+        "request_id": "calendar-booking:a85bee0ed6b616411629965ce790c35155b9c372adb74bd0d3ec4de2424b8435",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0022"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:36.301778+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Turnering U11 RVV",
+        "event_fingerprint": "a85bee0ed6b616411629965ce790c35155b9c372adb74bd0d3ec4de2424b8435",
+        "ice_time_override_id": "ice-time-override:a534753d4271081a",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-16",
+            "duration_minutes": 140,
+            "end_time": "18:20",
+            "start_time": "16:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2027-01-16",
+            "duration_minutes": "140",
+            "end_time": "18:20",
+            "round_count": "5",
+            "start_time": "16:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": "1fe23be3f4c48d1330fad98e6db771c639bbc3b0348459c3e236dfa64615a033",
+      "tournament_id": "rvv-0022"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:37.062779+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 100,
+        "override_id": "ice-time-override:6b1964b5b72db921",
+        "reference": "TURNERING U12",
+        "request_id": "calendar-booking:5967015227fbd67f34eea6ea7c788607d86a0a9e902780269e59977862c512cc",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0106"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:37.062779+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING U12",
+        "event_fingerprint": "5967015227fbd67f34eea6ea7c788607d86a0a9e902780269e59977862c512cc",
+        "ice_time_override_id": "ice-time-override:6b1964b5b72db921",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-16",
+            "duration_minutes": 100,
+            "end_time": "20:00",
+            "start_time": "18:20"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2027-01-16",
+            "duration_minutes": "100",
+            "end_time": "20:00",
+            "round_count": "3",
+            "start_time": "18:20"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": "56a156aa979e05d85d71939c9a36bff51cba06c5a2fd327b30aa633e9902abe0",
+      "tournament_id": "rvv-0106"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:37.819699+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:422745a6e4789118",
+        "reference": "TURNERING U11",
+        "request_id": "calendar-booking:52916c9c482bacede898352d2a04cdddf4ae3d59511579931912b6ac117b8801",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0074"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:37.819699+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING U11",
+        "event_fingerprint": "52916c9c482bacede898352d2a04cdddf4ae3d59511579931912b6ac117b8801",
+        "ice_time_override_id": "ice-time-override:422745a6e4789118",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-23",
+            "duration_minutes": 140,
+            "end_time": "19:20",
+            "start_time": "17:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2027-01-23",
+            "duration_minutes": "140",
+            "end_time": "19:20",
+            "round_count": "5",
+            "start_time": "17:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": "ae11461df9dbfaddf0151ea794921046c3b64c48325acc561c81b6e78c8d0b48",
+      "tournament_id": "rvv-0074"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:38.588346+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:a26eb6e23555417d",
+        "reference": "TURNERING U10",
+        "request_id": "calendar-booking:c77b120df07e06f3ed1ddafc66de87723035366d31fffd2d0a9f227f4febe87a",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0122"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:38.588346+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING U10",
+        "event_fingerprint": "c77b120df07e06f3ed1ddafc66de87723035366d31fffd2d0a9f227f4febe87a",
+        "ice_time_override_id": "ice-time-override:a26eb6e23555417d",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-24",
+            "duration_minutes": 140,
+            "end_time": "16:20",
+            "start_time": "14:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U10",
+            "date": "2027-01-24",
+            "duration_minutes": "140",
+            "end_time": "16:20",
+            "round_count": "5",
+            "start_time": "14:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": "883a8509d9350f4f631bd17568efb09c86338c22af8216937e65086b67a5b9ec",
+      "tournament_id": "rvv-0122"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:39.364520+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 100,
+        "override_id": "ice-time-override:6b991de88c66e6d6",
+        "reference": "TURNERING JU12",
+        "request_id": "calendar-booking:5a390b4d5243b76cf3511e335afb6882e81dad9ad3956f7485436d8ab31fdcce",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0130"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:39.364520+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING JU12",
+        "event_fingerprint": "5a390b4d5243b76cf3511e335afb6882e81dad9ad3956f7485436d8ab31fdcce",
+        "ice_time_override_id": "ice-time-override:6b991de88c66e6d6",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-02-13",
+            "duration_minutes": 100,
+            "end_time": "17:40",
+            "start_time": "16:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "JU12",
+            "date": "2027-02-13",
+            "duration_minutes": "100",
+            "end_time": "17:40",
+            "round_count": "3",
+            "start_time": "16:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": "2daa45f73cd481ea2a26cf3299a6c4cd7165088785ef6c766065db998e8ef389",
+      "tournament_id": "rvv-0130"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:40.117763+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 105,
+        "override_id": "ice-time-override:b1b38903005cfeda",
+        "reference": "TURNERING U12",
+        "request_id": "calendar-booking:0a26dabdc4ef6868d2e361b846f073794c5d2c9fcdc2cafd459850fd502dc630",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0137"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-09-30T18:10:40.117763+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING U12",
+        "event_fingerprint": "0a26dabdc4ef6868d2e361b846f073794c5d2c9fcdc2cafd459850fd502dc630",
+        "ice_time_override_id": "ice-time-override:b1b38903005cfeda",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-02-13",
+            "duration_minutes": 105,
+            "end_time": "19:30",
+            "start_time": "17:45"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2027-02-13",
+            "duration_minutes": "100",
+            "end_time": "19:25",
+            "round_count": "3",
+            "start_time": "17:45"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+      "tournament_fingerprint": "7d679a738ba16b45fa94839a77918f01f0fafd1ea476ed3a125349a2b7a9031c",
+      "tournament_id": "rvv-0137"
     }
   ],
   "holiday_date_exceptions": [
@@ -53551,6 +54341,150 @@
       "request_id": "manual-booking:rvv-0153:9d9ac4c3eae1a9781c34c77c73940d610db3053034aeb7f98802f56a30718b2a",
       "status": "active",
       "tournament_id": "rvv-0153",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U10",
+      "authority": "calendar_event_association",
+      "created_at": "2026-09-30T18:10:32.979485+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 140,
+      "id": "ice-time-override:66a6b521b3a0f96f",
+      "minimum_minutes": 120,
+      "minutes": 140,
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reference": "Turnering U10 RVV",
+      "request_id": "calendar-booking:a71c5235b9e74ad219ce05223227cd869d5fce017a9479b757ed4a3a9c2d8a95",
+      "status": "active",
+      "tournament_id": "rvv-0043",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U12",
+      "authority": "calendar_event_association",
+      "created_at": "2026-09-30T18:10:33.741766+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:4e93bbb45126e192",
+      "minimum_minutes": 60,
+      "minutes": 100,
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reference": "Turnering U12 RVV",
+      "request_id": "calendar-booking:15c819a0c91541df8c1311d8f825afa1accb129473394798ea6260bada143a9e",
+      "status": "active",
+      "tournament_id": "rvv-0036",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U9",
+      "authority": "calendar_event_association",
+      "created_at": "2026-09-30T18:10:35.560294+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 155,
+      "id": "ice-time-override:75f6ddfe9facc54a",
+      "minimum_minutes": 120,
+      "minutes": 156,
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reference": "TURNERING U9",
+      "request_id": "calendar-booking:c9a0295eb757044345716a5423e079567ce011eb05b0504eb732236d4bc8ac42",
+      "status": "active",
+      "tournament_id": "rvv-0092",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U11",
+      "authority": "calendar_event_association",
+      "created_at": "2026-09-30T18:10:36.301778+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 140,
+      "id": "ice-time-override:a534753d4271081a",
+      "minimum_minutes": 120,
+      "minutes": 140,
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reference": "Turnering U11 RVV",
+      "request_id": "calendar-booking:a85bee0ed6b616411629965ce790c35155b9c372adb74bd0d3ec4de2424b8435",
+      "status": "active",
+      "tournament_id": "rvv-0022",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U12",
+      "authority": "calendar_event_association",
+      "created_at": "2026-09-30T18:10:37.062779+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:6b1964b5b72db921",
+      "minimum_minutes": 60,
+      "minutes": 100,
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reference": "TURNERING U12",
+      "request_id": "calendar-booking:5967015227fbd67f34eea6ea7c788607d86a0a9e902780269e59977862c512cc",
+      "status": "active",
+      "tournament_id": "rvv-0106",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U11",
+      "authority": "calendar_event_association",
+      "created_at": "2026-09-30T18:10:37.819699+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 140,
+      "id": "ice-time-override:422745a6e4789118",
+      "minimum_minutes": 120,
+      "minutes": 140,
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reference": "TURNERING U11",
+      "request_id": "calendar-booking:52916c9c482bacede898352d2a04cdddf4ae3d59511579931912b6ac117b8801",
+      "status": "active",
+      "tournament_id": "rvv-0074",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U10",
+      "authority": "calendar_event_association",
+      "created_at": "2026-09-30T18:10:38.588346+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 140,
+      "id": "ice-time-override:a26eb6e23555417d",
+      "minimum_minutes": 120,
+      "minutes": 140,
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reference": "TURNERING U10",
+      "request_id": "calendar-booking:c77b120df07e06f3ed1ddafc66de87723035366d31fffd2d0a9f227f4febe87a",
+      "status": "active",
+      "tournament_id": "rvv-0122",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "JU12",
+      "authority": "calendar_event_association",
+      "created_at": "2026-09-30T18:10:39.364520+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:6b991de88c66e6d6",
+      "minimum_minutes": 60,
+      "minutes": 100,
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reference": "TURNERING JU12",
+      "request_id": "calendar-booking:5a390b4d5243b76cf3511e335afb6882e81dad9ad3956f7485436d8ab31fdcce",
+      "status": "active",
+      "tournament_id": "rvv-0130",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U12",
+      "authority": "calendar_event_association",
+      "created_at": "2026-09-30T18:10:40.117763+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:b1b38903005cfeda",
+      "minimum_minutes": 60,
+      "minutes": 105,
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reference": "TURNERING U12",
+      "request_id": "calendar-booking:0a26dabdc4ef6868d2e361b846f073794c5d2c9fcdc2cafd459850fd502dc630",
+      "status": "active",
+      "tournament_id": "rvv-0137",
       "type": "tournament_ice_time_override"
     }
   ],
@@ -133279,78 +134213,6 @@
       "calendar_fingerprint": "4176b791cef6092186c9361a00b1a656d7154ba46a7ad7024bd26721cb7697ea",
       "checked_at": "2026-09-28T07:30:44.648419+00:00",
       "checked_by": "niclasl",
-      "date": "2027-01-16",
-      "event_fingerprint": "",
-      "host_club": "Jutul",
-      "id": "booking_evidence:rvv-0022:2026-09-28T07:30:44.648419+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "no_covering_event_for_current_slot",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "16:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Baerum ishall",
-        "date": "2027-01-16",
-        "host_club": "Jutul",
-        "start_time": "16:00"
-      },
-      "tournament_id": "rvv-0022"
-    },
-    {
-      "arena": "Baerum ishall",
-      "calendar_fingerprint": "4176b791cef6092186c9361a00b1a656d7154ba46a7ad7024bd26721cb7697ea",
-      "checked_at": "2026-09-28T07:30:44.648419+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-28",
-      "event_fingerprint": "",
-      "host_club": "Jutul",
-      "id": "booking_evidence:rvv-0036:2026-09-28T07:30:44.648419+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "no_covering_event_for_current_slot",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "18:20",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Baerum ishall",
-        "date": "2026-11-28",
-        "host_club": "Jutul",
-        "start_time": "18:20"
-      },
-      "tournament_id": "rvv-0036"
-    },
-    {
-      "arena": "Baerum ishall",
-      "calendar_fingerprint": "4176b791cef6092186c9361a00b1a656d7154ba46a7ad7024bd26721cb7697ea",
-      "checked_at": "2026-09-28T07:30:44.648419+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-28",
-      "event_fingerprint": "",
-      "host_club": "Jutul",
-      "id": "booking_evidence:rvv-0043:2026-09-28T07:30:44.648419+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "no_covering_event_for_current_slot",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "16:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U10",
-        "arena": "Baerum ishall",
-        "date": "2026-11-28",
-        "host_club": "Jutul",
-        "start_time": "16:00"
-      },
-      "tournament_id": "rvv-0043"
-    },
-    {
-      "arena": "Baerum ishall",
-      "calendar_fingerprint": "4176b791cef6092186c9361a00b1a656d7154ba46a7ad7024bd26721cb7697ea",
-      "checked_at": "2026-09-28T07:30:44.648419+00:00",
-      "checked_by": "niclasl",
       "date": "2026-12-13",
       "event_fingerprint": "",
       "host_club": "Jutul",
@@ -133423,30 +134285,6 @@
       "calendar_fingerprint": "4176b791cef6092186c9361a00b1a656d7154ba46a7ad7024bd26721cb7697ea",
       "checked_at": "2026-09-28T07:30:44.648419+00:00",
       "checked_by": "niclasl",
-      "date": "2027-01-23",
-      "event_fingerprint": "",
-      "host_club": "Jutul",
-      "id": "booking_evidence:rvv-0074:2026-09-28T07:30:44.648419+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "no_covering_event_for_current_slot",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "17:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Baerum ishall",
-        "date": "2027-01-23",
-        "host_club": "Jutul",
-        "start_time": "17:00"
-      },
-      "tournament_id": "rvv-0074"
-    },
-    {
-      "arena": "Baerum ishall",
-      "calendar_fingerprint": "4176b791cef6092186c9361a00b1a656d7154ba46a7ad7024bd26721cb7697ea",
-      "checked_at": "2026-09-28T07:30:44.648419+00:00",
-      "checked_by": "niclasl",
       "date": "2026-12-12",
       "event_fingerprint": "",
       "host_club": "Jutul",
@@ -133495,30 +134333,6 @@
       "calendar_fingerprint": "4176b791cef6092186c9361a00b1a656d7154ba46a7ad7024bd26721cb7697ea",
       "checked_at": "2026-09-28T07:30:44.648419+00:00",
       "checked_by": "niclasl",
-      "date": "2027-01-16",
-      "event_fingerprint": "",
-      "host_club": "Jutul",
-      "id": "booking_evidence:rvv-0106:2026-09-28T07:30:44.648419+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "no_covering_event_for_current_slot",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "18:20",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Baerum ishall",
-        "date": "2027-01-16",
-        "host_club": "Jutul",
-        "start_time": "18:20"
-      },
-      "tournament_id": "rvv-0106"
-    },
-    {
-      "arena": "Baerum ishall",
-      "calendar_fingerprint": "4176b791cef6092186c9361a00b1a656d7154ba46a7ad7024bd26721cb7697ea",
-      "checked_at": "2026-09-28T07:30:44.648419+00:00",
-      "checked_by": "niclasl",
       "date": "2026-11-21",
       "event_fingerprint": "",
       "host_club": "Jutul",
@@ -133537,78 +134351,6 @@
         "start_time": "17:20"
       },
       "tournament_id": "rvv-0116"
-    },
-    {
-      "arena": "Baerum ishall",
-      "calendar_fingerprint": "4176b791cef6092186c9361a00b1a656d7154ba46a7ad7024bd26721cb7697ea",
-      "checked_at": "2026-09-28T07:30:44.648419+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-01-24",
-      "event_fingerprint": "",
-      "host_club": "Jutul",
-      "id": "booking_evidence:rvv-0122:2026-09-28T07:30:44.648419+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "no_covering_event_for_current_slot",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "14:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U10",
-        "arena": "Baerum ishall",
-        "date": "2027-01-24",
-        "host_club": "Jutul",
-        "start_time": "14:00"
-      },
-      "tournament_id": "rvv-0122"
-    },
-    {
-      "arena": "Baerum ishall",
-      "calendar_fingerprint": "4176b791cef6092186c9361a00b1a656d7154ba46a7ad7024bd26721cb7697ea",
-      "checked_at": "2026-09-28T07:30:44.648419+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-02-13",
-      "event_fingerprint": "",
-      "host_club": "Jutul",
-      "id": "booking_evidence:rvv-0130:2026-09-28T07:30:44.648419+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "no_covering_event_for_current_slot",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "16:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "JU12",
-        "arena": "Baerum ishall",
-        "date": "2027-02-13",
-        "host_club": "Jutul",
-        "start_time": "16:00"
-      },
-      "tournament_id": "rvv-0130"
-    },
-    {
-      "arena": "Baerum ishall",
-      "calendar_fingerprint": "4176b791cef6092186c9361a00b1a656d7154ba46a7ad7024bd26721cb7697ea",
-      "checked_at": "2026-09-28T07:30:44.648419+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-02-13",
-      "event_fingerprint": "",
-      "host_club": "Jutul",
-      "id": "booking_evidence:rvv-0137:2026-09-28T07:30:44.648419+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "no_covering_event_for_current_slot",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "17:45",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Baerum ishall",
-        "date": "2027-02-13",
-        "host_club": "Jutul",
-        "start_time": "17:45"
-      },
-      "tournament_id": "rvv-0137"
     },
     {
       "arena": "Baerum ishall",
@@ -133729,30 +134471,6 @@
         "start_time": "17:20"
       },
       "tournament_id": "rvv-0044"
-    },
-    {
-      "arena": "Baerum ishall",
-      "calendar_fingerprint": "4176b791cef6092186c9361a00b1a656d7154ba46a7ad7024bd26721cb7697ea",
-      "checked_at": "2026-09-28T07:30:44.648419+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-12-19",
-      "event_fingerprint": "",
-      "host_club": "Jutul",
-      "id": "booking_evidence:rvv-0092:2026-09-28T07:30:44.648419+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "no_covering_event_for_current_slot",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "16:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U9",
-        "arena": "Baerum ishall",
-        "date": "2026-12-19",
-        "host_club": "Jutul",
-        "start_time": "16:00"
-      },
-      "tournament_id": "rvv-0092"
     },
     {
       "arena": "Schjongshallen",
@@ -136612,7 +137330,223 @@
         "start_time": "14:15"
       },
       "tournament_id": "rvv-0136"
+    },
+    {
+      "arena": "Baerum ishall",
+      "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+      "checked_at": "2026-09-30T18:10:32.979485+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-28",
+      "event_fingerprint": "a71c5235b9e74ad219ce05223227cd869d5fce017a9479b757ed4a3a9c2d8a95",
+      "host_club": "Jutul",
+      "id": "booking_evidence:rvv-0043:2026-09-30T18:10:32.979485+00:00",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "ea7196ac3a74a485f2b9f72e52cc5c526f9fb6d6f0a7c5cb3c221b46bfe826eb",
+      "start_time": "16:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Baerum ishall",
+        "date": "2026-11-28",
+        "host_club": "Jutul",
+        "start_time": "16:00"
+      },
+      "tournament_id": "rvv-0043"
+    },
+    {
+      "arena": "Baerum ishall",
+      "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+      "checked_at": "2026-09-30T18:10:33.741766+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-28",
+      "event_fingerprint": "15c819a0c91541df8c1311d8f825afa1accb129473394798ea6260bada143a9e",
+      "host_club": "Jutul",
+      "id": "booking_evidence:rvv-0036:2026-09-30T18:10:33.741766+00:00",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "618ef002a112ac620520dc57358737b1b97d04da6d339dd9dd669c0387bf1f5c",
+      "start_time": "18:20",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Baerum ishall",
+        "date": "2026-11-28",
+        "host_club": "Jutul",
+        "start_time": "18:20"
+      },
+      "tournament_id": "rvv-0036"
+    },
+    {
+      "arena": "Baerum ishall",
+      "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+      "checked_at": "2026-09-30T18:10:35.560294+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-12-19",
+      "event_fingerprint": "c9a0295eb757044345716a5423e079567ce011eb05b0504eb732236d4bc8ac42",
+      "host_club": "Jutul",
+      "id": "booking_evidence:rvv-0092:2026-09-30T18:10:35.560294+00:00",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "a4abf5ef3fe093d1c62ce5b95fa6f85c1d3d388bc7a75ea53727f18159d2f21b",
+      "start_time": "16:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Baerum ishall",
+        "date": "2026-12-19",
+        "host_club": "Jutul",
+        "start_time": "16:00"
+      },
+      "tournament_id": "rvv-0092"
+    },
+    {
+      "arena": "Baerum ishall",
+      "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+      "checked_at": "2026-09-30T18:10:36.301778+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-01-16",
+      "event_fingerprint": "a85bee0ed6b616411629965ce790c35155b9c372adb74bd0d3ec4de2424b8435",
+      "host_club": "Jutul",
+      "id": "booking_evidence:rvv-0022:2026-09-30T18:10:36.301778+00:00",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "8a42758f45f01d770fd4584d99fc123b57f5450d2e8e0c02daf0a16cdbb8dbbd",
+      "start_time": "16:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Baerum ishall",
+        "date": "2027-01-16",
+        "host_club": "Jutul",
+        "start_time": "16:00"
+      },
+      "tournament_id": "rvv-0022"
+    },
+    {
+      "arena": "Baerum ishall",
+      "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+      "checked_at": "2026-09-30T18:10:37.062779+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-01-16",
+      "event_fingerprint": "5967015227fbd67f34eea6ea7c788607d86a0a9e902780269e59977862c512cc",
+      "host_club": "Jutul",
+      "id": "booking_evidence:rvv-0106:2026-09-30T18:10:37.062779+00:00",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "33a09f9b17477fe1f7738636b228fa34da636f417c798ed5363f6bfa18d0f201",
+      "start_time": "18:20",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Baerum ishall",
+        "date": "2027-01-16",
+        "host_club": "Jutul",
+        "start_time": "18:20"
+      },
+      "tournament_id": "rvv-0106"
+    },
+    {
+      "arena": "Baerum ishall",
+      "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+      "checked_at": "2026-09-30T18:10:37.819699+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-01-23",
+      "event_fingerprint": "52916c9c482bacede898352d2a04cdddf4ae3d59511579931912b6ac117b8801",
+      "host_club": "Jutul",
+      "id": "booking_evidence:rvv-0074:2026-09-30T18:10:37.819699+00:00",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "200a440df737b02ecc151388de180aa95cd30f673879063d4fc25f3ab4a7d848",
+      "start_time": "17:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Baerum ishall",
+        "date": "2027-01-23",
+        "host_club": "Jutul",
+        "start_time": "17:00"
+      },
+      "tournament_id": "rvv-0074"
+    },
+    {
+      "arena": "Baerum ishall",
+      "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+      "checked_at": "2026-09-30T18:10:38.588346+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-01-24",
+      "event_fingerprint": "c77b120df07e06f3ed1ddafc66de87723035366d31fffd2d0a9f227f4febe87a",
+      "host_club": "Jutul",
+      "id": "booking_evidence:rvv-0122:2026-09-30T18:10:38.588346+00:00",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "2d1abc0a33832d09cfc0eedccab09b4bae47c17654eed1c60c9f93c0530016d8",
+      "start_time": "14:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Baerum ishall",
+        "date": "2027-01-24",
+        "host_club": "Jutul",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0122"
+    },
+    {
+      "arena": "Baerum ishall",
+      "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+      "checked_at": "2026-09-30T18:10:39.364520+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-02-13",
+      "event_fingerprint": "5a390b4d5243b76cf3511e335afb6882e81dad9ad3956f7485436d8ab31fdcce",
+      "host_club": "Jutul",
+      "id": "booking_evidence:rvv-0130:2026-09-30T18:10:39.364520+00:00",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "d428a6a142f5d464288b9a5c17ee70c0f067c030821cd50a15f8d42e30b9c7fd",
+      "start_time": "16:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "JU12",
+        "arena": "Baerum ishall",
+        "date": "2027-02-13",
+        "host_club": "Jutul",
+        "start_time": "16:00"
+      },
+      "tournament_id": "rvv-0130"
+    },
+    {
+      "arena": "Baerum ishall",
+      "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+      "checked_at": "2026-09-30T18:10:40.117763+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-02-13",
+      "event_fingerprint": "0a26dabdc4ef6868d2e361b846f073794c5d2c9fcdc2cafd459850fd502dc630",
+      "host_club": "Jutul",
+      "id": "booking_evidence:rvv-0137:2026-09-30T18:10:40.117763+00:00",
+      "note": "Bærum Ishall calendar reconciliation: confirm scraped Jutul event to canonical tournament",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "8b95458b8de6aa3bd5bfb812771e7fb9bb819446451fe4f543529cb6a94d7287",
+      "start_time": "17:45",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Baerum ishall",
+        "date": "2027-02-13",
+        "host_club": "Jutul",
+        "start_time": "17:45"
+      },
+      "tournament_id": "rvv-0137"
     }
   ],
-  "updated_at": "2026-09-30T10:58:47.238233+00:00"
+  "updated_at": "2026-09-30T18:10:40.117763+00:00"
 }
