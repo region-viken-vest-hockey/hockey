@@ -10,8 +10,10 @@ Deterministic feasibility and hard validity remain owned by repository verifiers
 
 Canonical mutation capabilities point at ``CanonicalSeasonService`` plus
 ``application.canonical_season.lifecycle`` and ``application.canonical_season.shared``.
-Delivery capabilities keep publication/export authority separate and do not inherit
-the write contract merely because some current lifecycle methods live on the same facade.
+Export, audit and publication capabilities declare their own authoritative public
+boundary. They may consume exact revision-bound canonical state and evidence, but they
+do not inherit the mutation facade merely because some current compatibility methods
+live on it.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 CapabilityStatus = Literal["active", "via_batch"]
-BoundaryKind = Literal["canonical", "delivery"]
+BoundaryKind = Literal["canonical_mutation", "canonical_read", "export", "audit", "publication"]
 
 
 @dataclass(frozen=True)
@@ -40,19 +42,36 @@ class ProductionCapability:
 _COMMON_PRODUCTION_INVARIANTS = (
     "Deterministic feasibility/hard-validity findings come from repository verifier owners; semantic audit cannot replace or override them.",
     "Publication/export authorization is separate from accepting a canonical mutation.",
+    "Delivery capabilities consume exact revision-bound canonical state/evidence through their declared boundary rather than reconstructing a second verifier or evidence engine.",
+)
+
+_CANONICAL_READ_CONTRACT = (
+    "application/canonical_season/shared.py owns shared effective canonical readers/projections.",
+    *_COMMON_PRODUCTION_INVARIANTS,
 )
 
 _CANONICAL_MUTATION_CONTRACT = (
     "CanonicalSeasonService is the public application facade for promoted-season writes.",
     "application/canonical_season/lifecycle.py owns load/verify/reconcile/history/revision/atomic commit.",
-    "application/canonical_season/shared.py owns shared effective canonical readers/projections.",
+    *_CANONICAL_READ_CONTRACT,
     "Rejected mutations leave canonical schedule and decisions unchanged unless a focused ADR 0005 evidence path explicitly records rejected evidence.",
+)
+
+_EXPORT_CONTRACT = (
+    "The export boundary materializes an already selected canonical revision and records immutable export lifecycle/evidence identity.",
+    "Export projection guards compare generated artifacts with the authoritative canonical plan instead of becoming scheduling policy.",
     *_COMMON_PRODUCTION_INVARIANTS,
 )
 
-_DELIVERY_CONTRACT = (
-    "Export, audit and publication are delivery gates over an already selected canonical revision.",
-    "A fresh export or successful preflight is not public-write authorization.",
+_AUDIT_CONTRACT = (
+    "The audit boundary consumes repository-produced export evidence and records a residual semantic workflow verdict.",
+    "Audit/convergence workflow state is revision/export-fingerprint bound and cannot satisfy a newer export.",
+    *_COMMON_PRODUCTION_INVARIANTS,
+)
+
+_PUBLICATION_CONTRACT = (
+    "The publication boundary publishes or seals an already exported, preflight-checked bundle; it never generates or mutates the schedule.",
+    "A fresh export, audit pass or successful preflight is not public-write authorization.",
     "Sealed reconciliation replays authorized mutations rather than recomputing a plan.",
     *_COMMON_PRODUCTION_INVARIANTS,
 )
@@ -62,7 +81,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
     ProductionCapability(
         key="calendar_evidence",
         tasks=("refresh calendars", "reconcile booking evidence", "assess booking status"),
-        boundary="canonical",
+        boundary="canonical_mutation",
         public_api=(
             "CanonicalSeasonService.refresh_calendars",
             "CanonicalSeasonService.reconcile_calendar_bookings",
@@ -84,7 +103,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
     ProductionCapability(
         key="booking_confirmation",
         tasks=("confirm scraped booking", "release booking association", "record manual booking assertion"),
-        boundary="canonical",
+        boundary="canonical_mutation",
         public_api=(
             "CanonicalSeasonService.calendar_booking_candidates",
             "CanonicalSeasonService.confirm_calendar_booking",
@@ -108,7 +127,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
     ProductionCapability(
         key="request_constraints",
         tasks=("team unavailable", "minimum gap", "opponent avoidance", "global banned/holiday exception dates"),
-        boundary="canonical",
+        boundary="canonical_mutation",
         public_api=(
             "CanonicalSeasonService.request_constraint_report",
             "CanonicalSeasonService.add_request_constraint",
@@ -133,7 +152,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
     ProductionCapability(
         key="placement",
         tasks=("move tournament", "normalize placement state", "apply verified repair candidate"),
-        boundary="canonical",
+        boundary="canonical_mutation",
         public_api=(
             "CanonicalSeasonService.move_tournament",
             "CanonicalSeasonService.normalize_placements",
@@ -155,7 +174,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
     ProductionCapability(
         key="participants",
         tasks=("swap participants", "replace participant", "remove/withdraw team", "release withdrawal"),
-        boundary="canonical",
+        boundary="canonical_mutation",
         public_api=(
             "CanonicalSeasonService.swap_participants",
             "CanonicalSeasonService.replace_participant",
@@ -178,7 +197,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
     ProductionCapability(
         key="cancellation",
         tasks=("cancel one or more tournaments as part of an explicit batch maintenance request",),
-        boundary="canonical",
+        boundary="canonical_mutation",
         public_api=("CanonicalSeasonService.batch_maintenance",),
         implementation_owner="tournament_scheduler/application/canonical_season/batch.py",
         invariants=(
@@ -190,23 +209,87 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
         status="via_batch",
     ),
     ProductionCapability(
-        key="audit_export_publication",
-        tasks=("mark export fresh", "report publication evidence", "seal/reopen publication lifecycle"),
-        boundary="delivery",
+        key="canonical_export",
+        tasks=("materialize canonical export", "verify export projection"),
+        boundary="export",
         public_api=(
-            "CanonicalSeasonService.mark_export_fresh",
-            "CanonicalSeasonService.publication_evidence_report",
-            "CanonicalSeasonService.seal_published_season",
-            "CanonicalSeasonService.verify_sealed_reconciliation",
-            "CanonicalSeasonService.reopen_planning",
+            "tournament_scheduler.pipeline.stage4_export.run",
+            "tournament_scheduler.pipeline.canonical_export_evidence.build_canonical_export_evidence",
+            "tournament_scheduler.pipeline.export_lifecycle.write_draft_manifest",
+            "tournament_scheduler.pipeline.export_projection_guard.assert_export_preserves_canonical_plan",
         ),
-        implementation_owner="tournament_scheduler/application/canonical_season/publication.py + export_freshness.py + lifecycle_status.py",
+        implementation_owner="tournament_scheduler/pipeline/stage4_export.py + canonical_export_evidence.py + export_lifecycle.py + export_projection_guard.py",
         invariants=(
-            *_DELIVERY_CONTRACT,
+            *_EXPORT_CONTRACT,
+            "Canonical preview/rejection/commit does not materialize exports unless the caller explicitly enters this export boundary.",
         ),
         focused_tests=(
-            "tests/test_published_season_sealing.py",
+            "tests/test_stage4_export.py",
             "tests/test_canonical_export_context.py",
+            "tests/test_export_parity.py",
+        ),
+    ),
+    ProductionCapability(
+        key="semantic_audit",
+        tasks=("build audit evidence", "record audit workflow verdict", "report audit completion blockers"),
+        boundary="audit",
+        public_api=(
+            "tournament_scheduler.pipeline.audit_context.build_audit_context",
+            "tournament_scheduler.pipeline.audit_result.write_audit_result",
+            "tournament_scheduler.application.audit_lifecycle.current_workflow",
+            "tournament_scheduler.application.audit_lifecycle.record_audit_verdict",
+        ),
+        implementation_owner="tournament_scheduler/pipeline/audit_context.py + audit_result.py + application/audit_lifecycle.py",
+        invariants=(
+            *_AUDIT_CONTRACT,
+        ),
+        focused_tests=(
+            "tests/test_audit_context.py",
+            "tests/test_audit_result.py",
+            "tests/test_audit_workflow.py",
+            "tests/test_audit_convergence.py",
+        ),
+    ),
+    ProductionCapability(
+        key="publication_lifecycle_state",
+        tasks=("mark export freshness state", "seal publication lifecycle", "reopen planning lifecycle"),
+        boundary="canonical_mutation",
+        public_api=(
+            "CanonicalSeasonService.mark_export_fresh",
+            "CanonicalSeasonService.seal_published_season",
+            "CanonicalSeasonService.reopen_planning",
+        ),
+        implementation_owner="tournament_scheduler/application/canonical_season/publication.py + lifecycle_status.py",
+        invariants=(
+            *_CANONICAL_MUTATION_CONTRACT,
+            "Export freshness, sealing and reopening change canonical lifecycle decisions only; they do not publish Pages content or materialize exports.",
+        ),
+        focused_tests=(
+            "tests/test_export_freshness.py",
+            "tests/test_published_season_sealing.py",
+            "tests/test_legacy_publication_identity.py",
+        ),
+    ),
+    ProductionCapability(
+        key="publication",
+        tasks=("report publication evidence", "publish Pages bundle", "verify publication preflight"),
+        boundary="publication",
+        public_api=(
+            "tournament_scheduler.pipeline.publication_evidence.build_publication_evidence",
+            "tournament_scheduler.pipeline.publication_lifecycle.assert_publication_allowed",
+            "tournament_scheduler.pipeline.pages_publish.publish",
+            "tournament_scheduler.application.canonical_season.lifecycle_status.publication_evidence_report",
+            "tournament_scheduler.application.canonical_season.lifecycle_status.verify_sealed_reconciliation",
+        ),
+        implementation_owner="tournament_scheduler/pipeline/publication_evidence.py + publication_lifecycle.py + pages_publish.py + application/canonical_season/lifecycle_status.py",
+        invariants=(
+            *_PUBLICATION_CONTRACT,
+        ),
+        focused_tests=(
+            "tests/test_publication_evidence.py",
+            "tests/test_pages_publish.py",
+            "tests/test_publish_audit_gate.py",
+            "tests/test_published_season_sealing.py",
         ),
     ),
 )
