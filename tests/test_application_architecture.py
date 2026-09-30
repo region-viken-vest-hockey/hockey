@@ -189,6 +189,9 @@ def test_production_capability_map_points_at_public_facade_and_focused_tests():
         if capability.boundary == "canonical":
             assert all(api.startswith("CanonicalSeasonService.") for api in capability.public_api)
             assert any("CanonicalSeasonService" in item for item in capability.invariants)
+        else:
+            assert not any("promoted-season writes" in item for item in capability.invariants)
+            assert not any("atomic commit" in item for item in capability.invariants)
 
         for test_path in capability.focused_tests:
             assert Path(test_path).exists(), f"{capability.key} references missing test {test_path}"

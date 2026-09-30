@@ -26,7 +26,7 @@ def test_load_stage_gating_policy_reads_canonical_skill_md(stage_key: str) -> No
 
 def test_load_stage_gating_policy_falls_back_for_unknown_stage() -> None:
     assert load_stage_gating_policy("not-a-real-stage") == (
-        "Canonical policy at .agents/skills/rvv/SKILL.md was unavailable. "
+        "Canonical policy at .agents/skills/rvv/planning/SKILL.md was unavailable. "
         "Use best judgment: proceed only if the stage facts show no hard "
         "problems; abort if the stage produced clearly insufficient or "
         "invalid data."
@@ -105,8 +105,8 @@ def test_build_decision_prompt_quotes_canonical_policy_not_inline_thresholds() -
 
     prompt = build_decision_prompt(context)
 
-    assert "usable evidence for meaningful planning" in prompt  # sourced from SKILL.md, not hardcoded here
-    assert ".agents/skills/rvv/SKILL.md" in prompt
+    assert "usable evidence for meaningful planning" in prompt  # sourced from planning/SKILL.md, not hardcoded here
+    assert ".agents/skills/rvv/planning/SKILL.md" in prompt
     assert "PROCEED" in prompt
     assert "ABORT" in prompt
 

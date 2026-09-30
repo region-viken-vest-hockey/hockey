@@ -12,16 +12,17 @@ GUIDE_FILE = ROOT / ".agents" / "commands" / "rvv-miniputt" / "guide.md"
 SCRAPE_LLM_FILE = ROOT / ".agents" / "commands" / "rvv-miniputt" / "scrape-llm.md"
 
 
-def test_rvv_skill_is_harness_neutral_and_documents_two_phase_lifecycle() -> None:
+def test_rvv_skill_is_harness_neutral_progressive_router() -> None:
     text = RVV_SKILL_FILE.read_text(encoding="utf-8")
 
-    assert "Initial season creation" in text
-    assert "Promoted-season maintenance" in text
-    assert "scripts/rvv-miniputt run --interactive" in text
-    assert "scripts/rvv-miniputt season" in text
-    assert "operator audit-context" in text
-    assert "operator audit-evidence" in text
-    assert "operator audit-submit" in text
+    assert "production/SKILL.md" in text
+    assert "planning/SKILL.md" in text
+    assert "sources/SKILL.md" in text
+    assert "publication/SKILL.md" in text
+    assert "Initial season creation" not in text
+    assert "Semantic safety-net audit" not in text
+    assert "scripts/rvv-miniputt run --interactive" not in text
+    assert "scripts/rvv-miniputt season" not in text
     assert "rvv_miniputt_scrape" not in text
     assert "rvv_miniputt_scrape_llm" not in text
 

@@ -8,10 +8,10 @@ rule engine and it must not duplicate verifier, evidence or publication policy.
 
 Deterministic feasibility and hard validity remain owned by repository verifiers (including the planning/final verification contracts and solver-backed capabilities). Semantic audit is residual second-pass judgment over repository-produced evidence; it is not a competing feasibility engine and cannot override verifier results.
 
-The common mutation contract for schedule/decision writes remains
-``CanonicalSeasonService`` plus ``application.canonical_season.lifecycle`` and
-``application.canonical_season.shared``. Capability entries below point at that
-boundary instead of reconstructing their own verification or persistence path.
+Canonical mutation capabilities point at ``CanonicalSeasonService`` plus
+``application.canonical_season.lifecycle`` and ``application.canonical_season.shared``.
+Delivery capabilities keep publication/export authority separate and do not inherit
+the write contract merely because some current lifecycle methods live on the same facade.
 """
 
 from __future__ import annotations
@@ -37,13 +37,24 @@ class ProductionCapability:
     status: CapabilityStatus = "active"
 
 
-_COMMON_MUTATION_CONTRACT = (
+_COMMON_PRODUCTION_INVARIANTS = (
+    "Deterministic feasibility/hard-validity findings come from repository verifier owners; semantic audit cannot replace or override them.",
+    "Publication/export authorization is separate from accepting a canonical mutation.",
+)
+
+_CANONICAL_MUTATION_CONTRACT = (
     "CanonicalSeasonService is the public application facade for promoted-season writes.",
     "application/canonical_season/lifecycle.py owns load/verify/reconcile/history/revision/atomic commit.",
     "application/canonical_season/shared.py owns shared effective canonical readers/projections.",
     "Rejected mutations leave canonical schedule and decisions unchanged unless a focused ADR 0005 evidence path explicitly records rejected evidence.",
-    "Publication/export authorization is separate from accepting a canonical mutation.",
-    "Deterministic feasibility/hard-validity findings come from repository verifier owners; semantic audit cannot replace or override them.",
+    *_COMMON_PRODUCTION_INVARIANTS,
+)
+
+_DELIVERY_CONTRACT = (
+    "Export, audit and publication are delivery gates over an already selected canonical revision.",
+    "A fresh export or successful preflight is not public-write authorization.",
+    "Sealed reconciliation replays authorized mutations rather than recomputing a plan.",
+    *_COMMON_PRODUCTION_INVARIANTS,
 )
 
 
@@ -60,7 +71,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
         ),
         implementation_owner="tournament_scheduler/application/canonical_season/calendars/",
         invariants=(
-            *_COMMON_MUTATION_CONTRACT,
+            *_CANONICAL_MUTATION_CONTRACT,
             "Calendar overlap is occupancy evidence, not booking confirmation.",
             "Refresh/reconciliation never moves tournaments or edits rosters as a side effect.",
         ),
@@ -84,7 +95,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
         ),
         implementation_owner="tournament_scheduler/application/canonical_season/calendars/",
         invariants=(
-            *_COMMON_MUTATION_CONTRACT,
+            *_CANONICAL_MUTATION_CONTRACT,
             "Only an explicit association/assertion projects as confirmed booked or manually booked.",
             "Authoritative interval changes use the shared ice-time override/effective occupancy path.",
         ),
@@ -109,7 +120,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
         ),
         implementation_owner="tournament_scheduler/application/canonical_season/constraints.py",
         invariants=(
-            *_COMMON_MUTATION_CONTRACT,
+            *_CANONICAL_MUTATION_CONTRACT,
             "Recording a constraint is decision-only and may precede the repair that satisfies it.",
             "Every later schedule-changing mutation re-checks the complete active constraint set.",
         ),
@@ -131,7 +142,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
         ),
         implementation_owner="tournament_scheduler/application/canonical_season/placements.py",
         invariants=(
-            *_COMMON_MUTATION_CONTRACT,
+            *_CANONICAL_MUTATION_CONTRACT,
             "Approvals, placement locks and protected decisions are preserved unless the typed operation explicitly changes them.",
             "Planner search/replanning is not invoked for ordinary production moves.",
         ),
@@ -154,7 +165,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
         ),
         implementation_owner="tournament_scheduler/application/canonical_season/roster.py + replacement.py + withdrawal.py",
         invariants=(
-            *_COMMON_MUTATION_CONTRACT,
+            *_CANONICAL_MUTATION_CONTRACT,
             "Roster mutations reproduce a typed scoped operation before sealed-season apply.",
             "Placement, host-confirmation metadata and unrelated tournaments cannot drift.",
         ),
@@ -171,7 +182,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
         public_api=("CanonicalSeasonService.batch_maintenance",),
         implementation_owner="tournament_scheduler/application/canonical_season/batch.py",
         invariants=(
-            *_COMMON_MUTATION_CONTRACT,
+            *_CANONICAL_MUTATION_CONTRACT,
             "Cancellation is scoped, explicit and committed only after the final whole-season candidate passes the canonical gates.",
             "Active guest reservations must be released explicitly before cancellation.",
         ),
@@ -191,9 +202,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
         ),
         implementation_owner="tournament_scheduler/application/canonical_season/publication.py + export_freshness.py + lifecycle_status.py",
         invariants=(
-            *_COMMON_MUTATION_CONTRACT,
-            "A fresh export or successful preflight is not public-write authorization.",
-            "Sealed reconciliation replays authorized mutations rather than recomputing a plan.",
+            *_DELIVERY_CONTRACT,
         ),
         focused_tests=(
             "tests/test_published_season_sealing.py",
