@@ -38,12 +38,14 @@ from tournament_scheduler.season_maintenance import (
 )
 from tournament_scheduler.quality_objectives import QUALITY_OBJECTIVE_DIMENSIONS
 from tournament_scheduler.season_state import (
+    add_request_constraint,
     canonical_state_revision,
     load_decisions,
     load_participation_acceptances,
     load_schedule,
     normalize_arena_identities,
     record_participation_acceptance,
+    request_constraint_report,
     revoke_participation_acceptance,
     schedule_fingerprint,
 )
@@ -564,6 +566,61 @@ def test_repair_options_offer_surplus_donor_and_preserve_unrelated(tmp_path: Pat
     # Only one tournament changes; the other must survive byte-identically.
     assert all(option["effects"]["changed_tournament_count"] == 1 for option in options["options"])
     assert plan["tournaments"][1]["id"] == "T2"
+
+
+def test_repair_options_measure_unchanged_preexisting_request_constraint(tmp_path: Path) -> None:
+    """An already-violated request constraint does not hide otherwise valid repairs."""
+    root, _plan, _problem_dict, _revision = _two_club_season(tmp_path)
+    add_request_constraint(
+        season=YEAR,
+        type="team_unavailable",
+        request_id="nordby-unavailable",
+        teams=[{"club": "Nordby", "label": "Nordby 1", "age_group": "U10"}],
+        date_from="2026-10-10",
+        root=root,
+        actor="tester",
+    )
+
+    report = repair_options(YEAR, "hosting_balance:U10:Sorby", root=root)
+
+    assert report["options"]
+    assert report["pareto"]["request_constraint_rejected_option_ids"] == []
+    for option in report["options"]:
+        assert option["request_constraint_acceptable"] is True
+        # The pre-existing violation stays visible on every candidate.
+        assert option["request_constraint_unchanged_violations"]
+        assert option["request_constraint_regressions"] == []
+
+
+def test_apply_repair_ignores_unchanged_preexisting_request_constraint(tmp_path: Path) -> None:
+    """Repair adoption uses the same baseline-aware acceptability boundary."""
+    root, _plan, _problem_dict, _revision = _two_club_season(tmp_path)
+    add_request_constraint(
+        season=YEAR,
+        type="team_unavailable",
+        request_id="nordby-unavailable",
+        teams=[{"club": "Nordby", "label": "Nordby 1", "age_group": "U10"}],
+        date_from="2026-10-10",
+        root=root,
+        actor="tester",
+    )
+    current_revision = canonical_state_revision(
+        load_schedule(YEAR, root=root), load_decisions(YEAR, root=root)
+    )
+
+    options = repair_options(YEAR, "hosting_balance:U10:Sorby", root=root)
+    result = apply_repair(
+        YEAR,
+        options["options"][0]["option_id"],
+        current_revision,
+        root=root,
+        finding_id="hosting_balance:U10:Sorby",
+    )
+
+    assert result["ok"] is True
+    assert result["revision_after"]
+    # The unchanged unavailability debt is still recorded after the repair.
+    assert request_constraint_report(YEAR, root=root)["unsatisfied_count"] == 1
 
 
 def test_apply_repair_is_revision_bound_and_returns_fresh_delta(tmp_path: Path) -> None:

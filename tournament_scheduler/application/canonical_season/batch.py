@@ -18,7 +18,7 @@ from tournament_scheduler.change_protections import (
     protection_violations,
 )
 from tournament_scheduler.request_constraints import (
-    request_constraint_violations,
+    compare_request_constraint_violations,
 )
 from tournament_scheduler.guest_slots import (
     active_guest_slots,
@@ -604,7 +604,9 @@ def batch_maintenance(
     )
     lock_violations = verify_canonical_locks(baseline, candidate_plan)
     existing_protection_violations = protection_violations(candidate_plan, decisions)
-    constraint_violations = request_constraint_violations(candidate_plan, decisions)
+    constraint_comparison = compare_request_constraint_violations(
+        before_plan, candidate_plan, decisions
+    )
     before_guest_signature = _guest_reservation_signature(before_plan)
     after_guest_signature = _guest_reservation_signature(candidate_plan)
     guest_integrity_ok = before_guest_signature == after_guest_signature
@@ -744,9 +746,10 @@ def batch_maintenance(
         refusal_reasons.append("final candidate would change reserved guest slots")
     if hosting_transfers:
         refusal_reasons.append("final candidate transfers hosting responsibility")
-    if constraint_violations:
+    if constraint_comparison["regressions"]:
         refusal_reasons.append(
-            f"final candidate leaves {len(constraint_violations)} active "
+            f"final candidate introduces or worsens "
+            f"{len(constraint_comparison['regressions'])} active "
             "request-constraint violation(s)"
         )
     refusal_reasons.extend(
@@ -803,9 +806,11 @@ def batch_maintenance(
         },
         "hosting_responsibility_transfers": hosting_transfers,
         "hosting_responsibility_ok": not hosting_transfers,
-        "request_constraint_violations": constraint_violations,
-        "remaining_request_constraint_violations": constraint_violations,
-        "request_constraint_acceptable": not constraint_violations,
+        "request_constraint_violations": constraint_comparison["candidate_violations"],
+        "remaining_request_constraint_violations": constraint_comparison["candidate_violations"],
+        "request_constraint_regressions": constraint_comparison["regressions"],
+        "request_constraint_unchanged_violations": constraint_comparison["unchanged"],
+        "request_constraint_acceptable": constraint_comparison["acceptable"],
         "team_consequences": team_consequences,
         "consequence_acceptable": consequence_acceptable,
         "regression_acceptance": regression_acceptance,
@@ -830,9 +835,9 @@ def batch_maintenance(
 
     if refusal_reasons:
         messages = "; ".join(refusal_reasons)
-        if constraint_violations:
+        if constraint_comparison["regressions"]:
             messages += ": " + "; ".join(
-                str(item.get("message")) for item in constraint_violations
+                str(item.get("message")) for item in constraint_comparison["regressions"]
             )
         raise SeasonStateError(f"Refusing canonical batch: {messages}")
 

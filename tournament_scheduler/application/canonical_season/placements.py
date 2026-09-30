@@ -19,7 +19,7 @@ from tournament_scheduler.change_protections import (
     protection_violations,
 )
 from tournament_scheduler.request_constraints import (
-    request_constraint_violations,
+    compare_request_constraint_violations,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
@@ -231,7 +231,9 @@ def move_tournament(
     )
     reconcile_plan_derived_state(plan, result, problem=resolved_problem)
     existing_protection_violations = protection_violations(plan, decisions)
-    constraint_violations = request_constraint_violations(plan, decisions)
+    constraint_comparison = compare_request_constraint_violations(
+        schedule.get("plan") or {}, plan, decisions
+    )
 
     now = _now_iso()
     fingerprint = schedule_fingerprint(plan)
@@ -272,8 +274,10 @@ def move_tournament(
             "run_id": run_id,
             "existing_change_protection_violations": existing_protection_violations,
             "change_protection_acceptable": not existing_protection_violations,
-            "request_constraint_violations": constraint_violations,
-            "request_constraint_acceptable": not constraint_violations,
+            "request_constraint_violations": constraint_comparison["candidate_violations"],
+            "request_constraint_regressions": constraint_comparison["regressions"],
+            "request_constraint_unchanged_violations": constraint_comparison["unchanged"],
+            "request_constraint_acceptable": constraint_comparison["acceptable"],
             "operational_acceptability": operational_acceptability,
             "protections_to_add": new_protections,
             "request_id": str(request_id or ""),
@@ -297,9 +301,9 @@ def move_tournament(
         raise SeasonStateError(
             "Refusing canonical move: it would undo an accepted change: " + messages
         )
-    if constraint_violations:
+    if constraint_comparison["regressions"]:
         messages = "; ".join(
-            str(item.get("message")) for item in constraint_violations
+            str(item.get("message")) for item in constraint_comparison["regressions"]
         )
         raise SeasonStateError(
             "Refusing canonical move: it violates an active request constraint: " + messages

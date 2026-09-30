@@ -14,7 +14,7 @@ from tournament_scheduler.change_protections import (
     protection_violations,
 )
 from tournament_scheduler.request_constraints import (
-    request_constraint_violations,
+    compare_request_constraint_violations,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (
     CanonicalSeasonSnapshot,
@@ -151,20 +151,32 @@ def _assert_request_constraints_satisfied(
     decisions: Mapping[str, Any],
     *,
     action: str,
+    baseline_plan: Mapping[str, Any] | None = None,
 ) -> None:
-    """Refuse a schedule-changing commit that violates an active constraint.
+    """Refuse a schedule-changing commit that regresses a request constraint.
 
     Request constraints are hard maintenance requirements: every canonical
-    schedule-changing entry point calls this at its application boundary, so
-    a generator/search that already considered the constraints is still
-    re-checked against the authoritative active set. Decision-only writes
-    (recording a new request, approval, release) deliberately do not.
+    schedule-changing entry point calls this at its application boundary, so a
+    generator/search that already considered the constraints is still re-checked
+    against the authoritative active set. Decision-only writes (recording a new
+    request, approval, release) deliberately do not.
+
+    The check is baseline-aware: a violation that already exists unchanged in
+    the promoted plan is visible debt, not a candidate regression, and must not
+    veto an unrelated change. A newly introduced or worsened violation still
+    refuses. Callers that do not supply a baseline keep the strict behavior.
     """
 
-    violations = request_constraint_violations(plan, decisions)
-    if not violations:
+    comparison = compare_request_constraint_violations(
+        baseline_plan if baseline_plan is not None else {},
+        plan,
+        decisions,
+    )
+    if comparison["acceptable"]:
         return
-    messages = "; ".join(str(item.get("message")) for item in violations)
+    messages = "; ".join(
+        str(item.get("message")) for item in comparison["regressions"]
+    )
     raise SeasonStateError(
         f"Refusing canonical {action}: it violates an active request constraint: {messages}"
     )
