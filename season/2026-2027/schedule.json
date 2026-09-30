@@ -40594,7 +40594,7 @@
     "export_fresh_at": "2026-09-29T19:19:58.338774+00:00",
     "export_fresh_revision": "9b1277adb06795ab931b987cb8445b5d5ad625482510ca50c0a0ce9275a13631",
     "export_stale": true,
-    "export_stale_at": "2026-09-30T19:19:06.284917+00:00",
+    "export_stale_at": "2026-09-30T19:34:18.406538+00:00",
     "export_stale_reason": "calendar evidence refreshed",
     "public_export_context_fingerprint": "f5ac564e3b0f7eac33196110185cb082556676d5fe9f8bbd33ea0be77bbfc415",
     "run_id": "20260918T135604Z-8d38f146",
@@ -40610,15 +40610,15 @@
   "revision": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-30T19:19:06.284917+00:00",
+  "updated_at": "2026-09-30T19:34:18.406538+00:00",
   "verification_context": {
     "calendar_evidence": {
       "blocked_sources": [],
-      "calendar_fingerprint": "33ed45a4b0a889a07af8b6881769480811b6b432aa5a63f88aadc824237ae88c",
+      "calendar_fingerprint": "3f8daeb961319fa224f293734a20e4f70647d8d83df2180299c852fb61c29eab",
       "dry_run": false,
       "empty_sources": [],
       "input_path": "input.xlsx",
-      "note": "Fresh Kongsberg/Holmen scrape to confirm calendar_evidence_changed staleness is resolved",
+      "note": "Fresh Jutul scrape (Bærum Ishall) to confirm calendar reconciliation",
       "planned_tournament_reconciliation": {
         "clubs": {
           "Kongsberg": {
@@ -41066,15 +41066,15 @@
       "previous_calendar_fingerprint": "33ed45a4b0a889a07af8b6881769480811b6b432aa5a63f88aadc824237ae88c",
       "previous_snapshot": {
         "calendar_fingerprint": "33ed45a4b0a889a07af8b6881769480811b6b432aa5a63f88aadc824237ae88c",
-        "captured_at": "2026-09-30T19:19:06.284917+00:00",
+        "captured_at": "2026-09-30T19:34:18.406538+00:00",
         "had_prior_calendar_evidence": true,
         "had_prior_source_policy": true,
-        "path": "evidence/calendar/01aafd40358ffae8a9892c0b104c8c97033106d9241efeb72023d39de17208cc.json",
-        "sha256": "01aafd40358ffae8a9892c0b104c8c97033106d9241efeb72023d39de17208cc",
+        "path": "evidence/calendar/a47e6f662f4deaa7354f9a382eb671e68c4f9025457d92a65fab31414392a150.json",
+        "sha256": "a47e6f662f4deaa7354f9a382eb671e68c4f9025457d92a65fab31414392a150",
         "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0"
       },
       "previous_source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0",
-      "refreshed_at": "2026-09-30T19:19:06.284917+00:00",
+      "refreshed_at": "2026-09-30T19:34:18.406538+00:00",
       "refreshed_by": "niclasl",
       "schema_version": 1,
       "source_count": 9,
@@ -41255,7 +41255,7 @@
         {
           "blocked": false,
           "event_count": 1143,
-          "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+          "fetched_at": "2026-09-30T19:34:18.406538+00:00",
           "fingerprint": "5ab8106d7d51af53a2ab382bf7af1796ab9b976d2b3e8f2c816a07f3865b6080",
           "name": "Frisk Asker",
           "type": "ical",
@@ -41264,7 +41264,7 @@
         {
           "blocked": false,
           "event_count": 211,
-          "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+          "fetched_at": "2026-09-30T19:34:18.406538+00:00",
           "fingerprint": "1f5ee8e854a528b999b039d95a0cc3d77b5491f288549cfecab03f7872f86e1f",
           "name": "Holmen",
           "type": "outlook",
@@ -41273,7 +41273,7 @@
         {
           "blocked": false,
           "event_count": 1286,
-          "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+          "fetched_at": "2026-09-30T19:34:18.406538+00:00",
           "fingerprint": "144f9f2fdc71bbb5f2e6328a40973350d2db29c4e693ce1b6bb0dc8e4a336514",
           "name": "Jar",
           "type": "outlook",
@@ -41282,7 +41282,7 @@
         {
           "blocked": false,
           "event_count": 1198,
-          "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+          "fetched_at": "2026-09-30T19:34:18.406538+00:00",
           "fingerprint": "5d8463cd87a9ec70ba84d67c931be3253abe02e16071ffda214c575ca51d0af7",
           "name": "Jutul",
           "type": "outlook",
@@ -41291,7 +41291,7 @@
         {
           "blocked": false,
           "event_count": 599,
-          "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+          "fetched_at": "2026-09-30T19:34:18.406538+00:00",
           "fingerprint": "6282448ea84a38c51cde3f4cb6b2a433e133cd6621c990c985bd4bebfbaeb738",
           "name": "Kongsberg",
           "type": "outlook",
@@ -41300,7 +41300,7 @@
         {
           "blocked": false,
           "event_count": 1333,
-          "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+          "fetched_at": "2026-09-30T19:34:18.406538+00:00",
           "fingerprint": "b44f562522bca3441e2d016e6d7144066961886af3b6c3b755ae1e361d275b63",
           "name": "Ringerike",
           "type": "ical",
@@ -41309,7 +41309,7 @@
         {
           "blocked": false,
           "event_count": 221,
-          "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+          "fetched_at": "2026-09-30T19:34:18.406538+00:00",
           "fingerprint": "a52f2efb78be957fb8c0ba99b51632e6548922ea7b5a84073719cb6c3c98c9a9",
           "name": "Sandefjord Penguins",
           "type": "fixed_allocation",
@@ -41318,7 +41318,7 @@
         {
           "blocked": false,
           "event_count": 1443,
-          "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+          "fetched_at": "2026-09-30T19:34:18.406538+00:00",
           "fingerprint": "669081da0aece7eefe64b22f9e1eb5db303226e8b01558272298b67672bfc6ba",
           "name": "Skien",
           "type": "outlook",
@@ -41326,15 +41326,15 @@
         },
         {
           "blocked": false,
-          "event_count": 944,
-          "fetched_at": "2026-09-30T19:19:06.284917+00:00",
-          "fingerprint": "6962c405373277bc5cdf324addd1c6a13e22bc73c92ec6c41f1b1022fa14bf67",
+          "event_count": 933,
+          "fetched_at": "2026-09-30T19:34:18.406538+00:00",
+          "fingerprint": "46bde56160e48dd3a5c68935142dd543737a22e0a75af1846decf3710e843712",
           "name": "Tønsberg",
           "type": "outlook",
           "url": "https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book"
         }
       ],
-      "stage2_fingerprint": "cf19efeb28fa78ca86270b3cc70c469dbfe2dd78d5f86f46a754b1b5c482c99b"
+      "stage2_fingerprint": "ec43c84e0440c91315ab17ee24a05bdfe94ec40027dd7f6325b17a33db7871cc"
     },
     "calendar_evidence_history": [
       {
@@ -47301,6 +47301,730 @@
           }
         ],
         "stage2_fingerprint": "e23bbe9044633e099acc91642baffb3242e45e1e1f544badf7008624a138ce46"
+      },
+      {
+        "blocked_sources": [],
+        "calendar_fingerprint": "33ed45a4b0a889a07af8b6881769480811b6b432aa5a63f88aadc824237ae88c",
+        "dry_run": false,
+        "empty_sources": [],
+        "input_path": "input.xlsx",
+        "note": "Fresh Kongsberg/Holmen scrape to confirm calendar_evidence_changed staleness is resolved",
+        "planned_tournament_reconciliation": {
+          "clubs": {
+            "Kongsberg": {
+              "classified": [
+                {
+                  "event_fingerprint": "",
+                  "evidence_reasons": [
+                    "event_evidence_usable",
+                    "association_ambiguous"
+                  ],
+                  "manual_conflict": false,
+                  "reason": "source_coverage_unproven",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": true,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "source_review_required",
+                  "status": "ambiguous",
+                  "tournament_id": "rvv-0029"
+                },
+                {
+                  "event_fingerprint": "43b97872ccdba74072592342760bf2ad5a314f352774066f8557bfe4a548dd3e",
+                  "evidence_reasons": [
+                    "event_evidence_usable",
+                    "association_ambiguous"
+                  ],
+                  "manual_conflict": false,
+                  "reason": "single_overlapping_event_requires_confirmation",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": true,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "source_review_required",
+                  "status": "ambiguous",
+                  "tournament_id": "rvv-0103"
+                },
+                {
+                  "event_fingerprint": "6d5185ce5ffaf872e338b99265b547c44755b09b6efb03174cf718367822f086",
+                  "evidence_reasons": [
+                    "event_evidence_usable",
+                    "association_ambiguous"
+                  ],
+                  "manual_conflict": false,
+                  "reason": "single_overlapping_event_requires_confirmation",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": true,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "source_review_required",
+                  "status": "ambiguous",
+                  "tournament_id": "rvv-0113"
+                },
+                {
+                  "event_fingerprint": "bc0ba6bc01f6cf4178e156a63a712ce37b13f9a66c505cf3ab3f30fabd0fdf85",
+                  "evidence_reasons": [
+                    "event_evidence_usable",
+                    "association_ambiguous"
+                  ],
+                  "manual_conflict": false,
+                  "reason": "single_overlapping_event_requires_confirmation",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": true,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "source_review_required",
+                  "status": "ambiguous",
+                  "tournament_id": "rvv-0162"
+                },
+                {
+                  "event_fingerprint": "8e9be13ba232eabb77b126f700c706cfc75c6b3be429b853d3724c0d00a14bf4",
+                  "evidence_reasons": [
+                    "event_evidence_usable",
+                    "association_ambiguous"
+                  ],
+                  "manual_conflict": false,
+                  "reason": "single_overlapping_event_requires_confirmation",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": true,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "source_review_required",
+                  "status": "ambiguous",
+                  "tournament_id": "rvv-0176"
+                },
+                {
+                  "event_fingerprint": "12950c8b7ae936cf19ea0458cdadc07091567b994fc449262e34036311abec03",
+                  "evidence_reasons": [
+                    "event_evidence_usable",
+                    "association_ambiguous"
+                  ],
+                  "manual_conflict": false,
+                  "reason": "single_overlapping_event_requires_confirmation",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": true,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "source_review_required",
+                  "status": "ambiguous",
+                  "tournament_id": "rvv-0184"
+                },
+                {
+                  "event_fingerprint": "94ceec0d46cb7c7b37ec7cc27d1d0df4e982647722448ec03389758fe1faa82f",
+                  "evidence_reasons": [
+                    "event_evidence_usable",
+                    "association_ambiguous"
+                  ],
+                  "manual_conflict": false,
+                  "reason": "single_overlapping_event_requires_confirmation",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": true,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "source_review_required",
+                  "status": "ambiguous",
+                  "tournament_id": "rvv-0158"
+                },
+                {
+                  "event_fingerprint": "f576283e461b3d1c609fd6c46d25831eb336068be49219f26f7f77d0e4ec07cc",
+                  "evidence_reasons": [
+                    "event_evidence_usable",
+                    "association_ambiguous"
+                  ],
+                  "manual_conflict": false,
+                  "reason": "single_overlapping_event_requires_confirmation",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": true,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "source_review_required",
+                  "status": "ambiguous",
+                  "tournament_id": "rvv-0016"
+                },
+                {
+                  "event_fingerprint": "d5f1b9cb2bc060447cb9b901a7b8e6aa744ea6d4021500ee5cfba8f381a11300",
+                  "evidence_reasons": [
+                    "event_evidence_usable",
+                    "association_ambiguous"
+                  ],
+                  "manual_conflict": false,
+                  "reason": "single_overlapping_event_requires_confirmation",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": true,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "source_review_required",
+                  "status": "ambiguous",
+                  "tournament_id": "mp_unplaced_placement_U11_2026_10_18_1"
+                },
+                {
+                  "event_fingerprint": "2cee1e84ccf92a2c0f91b8e5fda186d3b077ad5d2c50d2e2e452d8f4a8c8eba2",
+                  "evidence_reasons": [
+                    "event_evidence_usable",
+                    "association_ambiguous"
+                  ],
+                  "manual_conflict": false,
+                  "reason": "single_overlapping_event_requires_confirmation",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": true,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "source_review_required",
+                  "status": "ambiguous",
+                  "tournament_id": "rvv-0053"
+                }
+              ],
+              "count": 10,
+              "requires_review_count": 10
+            },
+            "Ringerike": {
+              "classified": [
+                {
+                  "event_fingerprint": "d50c6cd2c04f60fdb2f267d10b4d9f11a2557a658c6e31389c7a8da00acb48ad",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0010"
+                },
+                {
+                  "event_fingerprint": "7e6804935b6959b5fe2721638ad436ec710665eb651ecb907b62a059f0cfb450",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0012"
+                },
+                {
+                  "event_fingerprint": "7f444dd53710c7ea88b46d868efc0172a254a0550a32a386338fb0c2b26b2576",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0025"
+                },
+                {
+                  "event_fingerprint": "",
+                  "evidence_reasons": [
+                    "association_ambiguous"
+                  ],
+                  "manual_conflict": false,
+                  "reason": "no_covering_event_for_current_slot",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "ambiguous",
+                  "tournament_id": "rvv-0054"
+                },
+                {
+                  "event_fingerprint": "c2a7db965e63876612ae348f285bce8c922cf0b3657a6cbcfde97d1754d2d633",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0059"
+                },
+                {
+                  "event_fingerprint": "c35e266d7a8d4bf883d1afe46b77f004f3dd5219142a5d9e79b764f0c8c6eb8d",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0068"
+                },
+                {
+                  "event_fingerprint": "3b2b183fff325f0b0c104dabde1c3e7e0491c5d206cab6ceb0350f1be1bfe035",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0073"
+                },
+                {
+                  "event_fingerprint": "49b29f10ed788d1e10b85176af2d2cd19bc5460df85573d9cbcb25128e77f6e3",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0081"
+                },
+                {
+                  "event_fingerprint": "6f1b6ea1241e35d02401d91258bce2b36dac59972207ba2193f1c94dd7470f6c",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0083"
+                },
+                {
+                  "event_fingerprint": "81de163ef99f3b2b6576bae5ce30504968ff7e316c8b1a2b3b7725d0767eece4",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0085"
+                },
+                {
+                  "event_fingerprint": "c9ded70c5c9e593a2da0404d8fa4752bcef45bdb6646374db273275de7a64711",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0099"
+                },
+                {
+                  "event_fingerprint": "7f6539485aa997fd36ef57ea0117f958d1f7d5f8c6a55b5b5d88a2c454ae6367",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0114"
+                },
+                {
+                  "event_fingerprint": "ea68dc100f2b88c26e5cc9e7ce9ffd26f3e39c0b0c5e30a1369ab75096bf586b",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0126"
+                },
+                {
+                  "event_fingerprint": "15341e02dfd7550d1a58e4e835bd045dd5478a599b9afbb618e95336ba5adce2",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0140"
+                },
+                {
+                  "event_fingerprint": "4cac2bdcc19b141eee523f4cef731166b965f7b127e28eee7ae6f5d238f7e114",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0149"
+                },
+                {
+                  "event_fingerprint": "049741b986ef07097334326c529d4bef437883c8b32e3bdcb42ef86063f2ac96",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0152"
+                },
+                {
+                  "event_fingerprint": "43c6fbabb57e362c4dad22f10569765e1e6e3928caacb7e12ae16e9508080736",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0164"
+                },
+                {
+                  "event_fingerprint": "1fdefecb4c8e91e4d3d522d8b163fe6fedc2fbffdbcaa509a2fc2ea3865f925d",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0170"
+                },
+                {
+                  "event_fingerprint": "6a298c872aafc5fec7d97b93570a18152a6605134b2929ddb009fb7c745ed133",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0178"
+                },
+                {
+                  "event_fingerprint": "71c4b92b794386742594e13bd147e0c8d47ff356273f20c96bdc8dc345395436",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0182"
+                },
+                {
+                  "event_fingerprint": "d6ad1c326ec9a015253672246a8dbc1114a1ed41b793e81b5a09c8f4d0b528e9",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0056"
+                },
+                {
+                  "event_fingerprint": "cc2012e56260e300bbd1998c2979e83378548e6caea2f32e8b16867152201c06",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0006"
+                },
+                {
+                  "event_fingerprint": "da002c1da4183ad66254d52cb7bce4101b3ff55b416d3b27a596ffb8398f9dc7",
+                  "evidence_reasons": [],
+                  "manual_conflict": false,
+                  "reason": "explicit_calendar_booking_association",
+                  "source_fabricated_placeholder": false,
+                  "source_integrity_concern": false,
+                  "source_positive_evidence_usable": true,
+                  "source_status": "known",
+                  "status": "confirmed_booked",
+                  "tournament_id": "rvv-0032"
+                }
+              ],
+              "count": 23,
+              "requires_review_count": 1
+            }
+          }
+        },
+        "previous_calendar_fingerprint": "33ed45a4b0a889a07af8b6881769480811b6b432aa5a63f88aadc824237ae88c",
+        "previous_snapshot": {
+          "calendar_fingerprint": "33ed45a4b0a889a07af8b6881769480811b6b432aa5a63f88aadc824237ae88c",
+          "captured_at": "2026-09-30T19:19:06.284917+00:00",
+          "had_prior_calendar_evidence": true,
+          "had_prior_source_policy": true,
+          "path": "evidence/calendar/01aafd40358ffae8a9892c0b104c8c97033106d9241efeb72023d39de17208cc.json",
+          "sha256": "01aafd40358ffae8a9892c0b104c8c97033106d9241efeb72023d39de17208cc",
+          "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0"
+        },
+        "previous_source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0",
+        "refreshed_at": "2026-09-30T19:19:06.284917+00:00",
+        "refreshed_by": "niclasl",
+        "schema_version": 1,
+        "source_count": 9,
+        "source_policy": {
+          "age_groups": [
+            "JU10",
+            "JU12",
+            "JU8",
+            "U10",
+            "U11",
+            "U12",
+            "U7",
+            "U8",
+            "U9"
+          ],
+          "end_date": "2027-03-28",
+          "operator_confirmed_available_clubs": [],
+          "schema_version": 1,
+          "sources": [
+            {
+              "club": "Frisk Asker",
+              "club_controlled_calendar": false,
+              "deterministic_scraper": "ical",
+              "engine": "teamup_ical",
+              "event_classification_rules": [],
+              "location_exclude_substring": null,
+              "location_filter": null,
+              "name": "Frisk Asker",
+              "needs_llm_agent": false,
+              "parser": "ical",
+              "requires_credentials": false,
+              "trusted_for_auto_placement": true,
+              "type": "ical",
+              "url": "https://ics.teamup.com/feed/ksdwpwxysmxwnuftoy/0.ics"
+            },
+            {
+              "club": "Holmen",
+              "club_controlled_calendar": false,
+              "deterministic_scraper": "sportello",
+              "engine": "sportello",
+              "event_classification_rules": [],
+              "location_exclude_substring": null,
+              "location_filter": null,
+              "name": "Holmen",
+              "needs_llm_agent": false,
+              "parser": "outlook",
+              "requires_credentials": false,
+              "trusted_for_auto_placement": true,
+              "type": "outlook",
+              "url": "https://kalender.sportello.no/booking/11055"
+            },
+            {
+              "club": "Jar",
+              "club_controlled_calendar": false,
+              "deterministic_scraper": "forumbooking",
+              "engine": "forumbooking",
+              "event_classification_rules": [],
+              "location_exclude_substring": null,
+              "location_filter": null,
+              "name": "Jar",
+              "needs_llm_agent": false,
+              "parser": "outlook",
+              "requires_credentials": false,
+              "trusted_for_auto_placement": true,
+              "type": "outlook",
+              "url": "https://www.forumbooking.no/schema.aspx?obj=2&schema=Jarhallen%20(ishall)&kalender=true&safarifix=true"
+            },
+            {
+              "club": "Jutul",
+              "club_controlled_calendar": false,
+              "deterministic_scraper": "styledcalendar",
+              "engine": "styled_calendar",
+              "event_classification_rules": [],
+              "location_exclude_substring": null,
+              "location_filter": null,
+              "name": "Jutul",
+              "needs_llm_agent": true,
+              "parser": "outlook",
+              "requires_credentials": false,
+              "trusted_for_auto_placement": true,
+              "type": "outlook",
+              "url": "https://baerumishall.no/kalender/"
+            },
+            {
+              "club": "Kongsberg",
+              "club_controlled_calendar": false,
+              "deterministic_scraper": "browser",
+              "engine": "outlook_iframe",
+              "event_classification_rules": [
+                {
+                  "classification": "movable_busy",
+                  "pattern": "åpen ishall",
+                  "reason": "host-controlled open ice; may be moved or replaced for an RVV tournament, subject to Kongsberg confirmation"
+                }
+              ],
+              "location_exclude_substring": null,
+              "location_filter": null,
+              "name": "Kongsberg",
+              "needs_llm_agent": false,
+              "parser": "outlook",
+              "requires_credentials": false,
+              "trusted_for_auto_placement": true,
+              "type": "outlook",
+              "url": "https://kongsberghallen.no/webkalender/ishall/"
+            },
+            {
+              "club": "Ringerike",
+              "club_controlled_calendar": false,
+              "deterministic_scraper": "ical",
+              "engine": "teamup_ical",
+              "event_classification_rules": [],
+              "location_exclude_substring": null,
+              "location_filter": null,
+              "name": "Ringerike",
+              "needs_llm_agent": false,
+              "parser": "ical",
+              "requires_credentials": false,
+              "trusted_for_auto_placement": true,
+              "type": "ical",
+              "url": "https://ics.teamup.com/feed/ksr8bg1tpn5s3npskw/0.ics"
+            },
+            {
+              "club": "Sandefjord Penguins",
+              "club_controlled_calendar": false,
+              "event_classification_rules": [
+                {
+                  "classification": "fixed_busy",
+                  "pattern": "fast istid",
+                  "reason": ""
+                }
+              ],
+              "location_exclude_substring": null,
+              "location_filter": null,
+              "name": "Sandefjord Penguins",
+              "parser": "outlook",
+              "trusted_for_auto_placement": true,
+              "type": "fixed_allocation",
+              "url": ""
+            },
+            {
+              "club": "Skien",
+              "club_controlled_calendar": false,
+              "deterministic_scraper": "brp_exigo",
+              "engine": "date_param",
+              "event_classification_rules": [],
+              "location_exclude_substring": null,
+              "location_filter": null,
+              "name": "Skien",
+              "needs_llm_agent": false,
+              "parser": "outlook",
+              "requires_credentials": false,
+              "trusted_for_auto_placement": true,
+              "type": "outlook",
+              "url": "https://skienfritidspark.brp.exigo.no/ishallen"
+            },
+            {
+              "club": "Tønsberg",
+              "club_controlled_calendar": false,
+              "deterministic_scraper": "bookup",
+              "engine": "bookup_spa",
+              "event_classification_rules": [],
+              "location_exclude_substring": null,
+              "location_filter": null,
+              "name": "Tønsberg",
+              "needs_llm_agent": false,
+              "parser": "outlook",
+              "requires_credentials": false,
+              "trusted_for_auto_placement": false,
+              "type": "outlook",
+              "url": "https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book"
+            }
+          ],
+          "start_date": "2026-10-09"
+        },
+        "source_policy_changes": [],
+        "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0",
+        "sources": [
+          {
+            "blocked": false,
+            "event_count": 1143,
+            "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+            "fingerprint": "5ab8106d7d51af53a2ab382bf7af1796ab9b976d2b3e8f2c816a07f3865b6080",
+            "name": "Frisk Asker",
+            "type": "ical",
+            "url": "https://ics.teamup.com/feed/ksdwpwxysmxwnuftoy/0.ics"
+          },
+          {
+            "blocked": false,
+            "event_count": 211,
+            "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+            "fingerprint": "1f5ee8e854a528b999b039d95a0cc3d77b5491f288549cfecab03f7872f86e1f",
+            "name": "Holmen",
+            "type": "outlook",
+            "url": "https://kalender.sportello.no/booking/11055"
+          },
+          {
+            "blocked": false,
+            "event_count": 1286,
+            "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+            "fingerprint": "144f9f2fdc71bbb5f2e6328a40973350d2db29c4e693ce1b6bb0dc8e4a336514",
+            "name": "Jar",
+            "type": "outlook",
+            "url": "https://www.forumbooking.no/schema.aspx?obj=2&schema=Jarhallen%20(ishall)&kalender=true&safarifix=true"
+          },
+          {
+            "blocked": false,
+            "event_count": 1198,
+            "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+            "fingerprint": "5d8463cd87a9ec70ba84d67c931be3253abe02e16071ffda214c575ca51d0af7",
+            "name": "Jutul",
+            "type": "outlook",
+            "url": "https://baerumishall.no/kalender/"
+          },
+          {
+            "blocked": false,
+            "event_count": 599,
+            "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+            "fingerprint": "6282448ea84a38c51cde3f4cb6b2a433e133cd6621c990c985bd4bebfbaeb738",
+            "name": "Kongsberg",
+            "type": "outlook",
+            "url": "https://kongsberghallen.no/webkalender/ishall/"
+          },
+          {
+            "blocked": false,
+            "event_count": 1333,
+            "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+            "fingerprint": "b44f562522bca3441e2d016e6d7144066961886af3b6c3b755ae1e361d275b63",
+            "name": "Ringerike",
+            "type": "ical",
+            "url": "https://ics.teamup.com/feed/ksr8bg1tpn5s3npskw/0.ics"
+          },
+          {
+            "blocked": false,
+            "event_count": 221,
+            "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+            "fingerprint": "a52f2efb78be957fb8c0ba99b51632e6548922ea7b5a84073719cb6c3c98c9a9",
+            "name": "Sandefjord Penguins",
+            "type": "fixed_allocation",
+            "url": ""
+          },
+          {
+            "blocked": false,
+            "event_count": 1443,
+            "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+            "fingerprint": "669081da0aece7eefe64b22f9e1eb5db303226e8b01558272298b67672bfc6ba",
+            "name": "Skien",
+            "type": "outlook",
+            "url": "https://skienfritidspark.brp.exigo.no/ishallen"
+          },
+          {
+            "blocked": false,
+            "event_count": 944,
+            "fetched_at": "2026-09-30T19:19:06.284917+00:00",
+            "fingerprint": "6962c405373277bc5cdf324addd1c6a13e22bc73c92ec6c41f1b1022fa14bf67",
+            "name": "Tønsberg",
+            "type": "outlook",
+            "url": "https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book"
+          }
+        ],
+        "stage2_fingerprint": "cf19efeb28fa78ca86270b3cc70c469dbfe2dd78d5f86f46a754b1b5c482c99b"
       }
     ],
     "candidate_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
@@ -56076,9 +56800,6 @@
           "2027-03-21"
         ],
         "Tønsberg": [
-          "2026-10-09",
-          "2026-10-10",
-          "2026-10-11",
           "2026-10-12",
           "2026-10-13",
           "2026-10-14",
@@ -114875,94 +115596,6 @@
           {
             "availability": "fixed_busy",
             "calendar_event": "Booket",
-            "date": "2026-10-09",
-            "end": "09:00",
-            "kind": "external",
-            "start": "08:00"
-          },
-          {
-            "availability": "fixed_busy",
-            "calendar_event": "Booket",
-            "date": "2026-10-09",
-            "end": "11:00",
-            "kind": "external",
-            "start": "10:00"
-          },
-          {
-            "availability": "fixed_busy",
-            "calendar_event": "Booket",
-            "date": "2026-10-09",
-            "end": "19:30",
-            "kind": "external",
-            "start": "15:00"
-          },
-          {
-            "availability": "fixed_busy",
-            "calendar_event": "Booket",
-            "date": "2026-10-09",
-            "end": "23:00",
-            "kind": "external",
-            "start": "19:30"
-          },
-          {
-            "availability": "fixed_busy",
-            "calendar_event": "Booket",
-            "date": "2026-10-10",
-            "end": "14:00",
-            "kind": "external",
-            "start": "07:00"
-          },
-          {
-            "availability": "fixed_busy",
-            "calendar_event": "Booket",
-            "date": "2026-10-10",
-            "end": "22:00",
-            "kind": "external",
-            "start": "14:00"
-          },
-          {
-            "availability": "fixed_busy",
-            "calendar_event": "Booket",
-            "date": "2026-10-11",
-            "end": "17:00",
-            "kind": "external",
-            "start": "09:00"
-          },
-          {
-            "availability": "fixed_busy",
-            "calendar_event": "Booket",
-            "date": "2026-10-11",
-            "end": "19:00",
-            "kind": "external",
-            "start": "17:00"
-          },
-          {
-            "availability": "fixed_busy",
-            "calendar_event": "Booket",
-            "date": "2026-10-11",
-            "end": "20:00",
-            "kind": "external",
-            "start": "19:00"
-          },
-          {
-            "availability": "fixed_busy",
-            "calendar_event": "Booket",
-            "date": "2026-10-11",
-            "end": "21:00",
-            "kind": "external",
-            "start": "20:00"
-          },
-          {
-            "availability": "fixed_busy",
-            "calendar_event": "Booket",
-            "date": "2026-10-11",
-            "end": "22:00",
-            "kind": "external",
-            "start": "21:00"
-          },
-          {
-            "availability": "fixed_busy",
-            "calendar_event": "Booket",
             "date": "2026-10-12",
             "end": "08:00",
             "kind": "external",
@@ -122446,7 +123079,7 @@
         "Ringerike": true,
         "Sandefjord Penguins": true,
         "Skien": false,
-        "Tønsberg": true
+        "Tønsberg": false
       },
       "club_source_integrity": {
         "Frisk Asker": "complete",
@@ -122457,7 +123090,7 @@
         "Ringerike": "complete",
         "Sandefjord Penguins": "complete",
         "Skien": "complete",
-        "Tønsberg": "complete"
+        "Tønsberg": "partial"
       },
       "club_source_integrity_details": {
         "Frisk Asker": {
@@ -122626,23 +123259,28 @@
           "type": "outlook"
         },
         "Tønsberg": {
-          "coverage_proven": true,
-          "event_count": 944,
+          "coverage_proven": false,
+          "event_count": 933,
           "event_observed_end": "2027-03-28",
-          "event_observed_start": "2026-10-09",
-          "exceptions": [],
-          "fingerprint": "2dd5a0ce8cf235aa4e5f4fdcde8323198885f02d5884bf4673ee8cde8d973b7d",
-          "navigation_complete": true,
+          "event_observed_start": "2026-10-12",
+          "exceptions": [
+            "BookUp-dekningen manglet datoer: 2026-10-09..2026-10-11."
+          ],
+          "fingerprint": "fc4d3db644cfdd26c031503f98d9da89371332c47f224f190a349c8c22bbbaec",
+          "navigation_complete": false,
           "observed_end": null,
           "observed_start": null,
           "previous_event_count": null,
-          "reasons": [],
+          "reasons": [
+            "Skraperen rapporterte ufullstendig dekning eller en delvis feil.",
+            "BookUp-dekningen manglet datoer: 2026-10-09..2026-10-11."
+          ],
           "requested_end": "2027-03-28",
           "requested_start": "2026-10-09",
           "schema_version": 1,
           "source": "Tønsberg",
-          "status": "complete",
-          "trusted_for_negative_claim": true,
+          "status": "partial",
+          "trusted_for_negative_claim": false,
           "type": "outlook"
         }
       },
@@ -179613,94 +180251,6 @@
           "availability": "fixed_busy",
           "calendar_event": "Booket",
           "club": "Tønsberg",
-          "date": "2026-10-09",
-          "end": "09:00",
-          "start": "08:00"
-        },
-        {
-          "availability": "fixed_busy",
-          "calendar_event": "Booket",
-          "club": "Tønsberg",
-          "date": "2026-10-09",
-          "end": "11:00",
-          "start": "10:00"
-        },
-        {
-          "availability": "fixed_busy",
-          "calendar_event": "Booket",
-          "club": "Tønsberg",
-          "date": "2026-10-09",
-          "end": "19:30",
-          "start": "15:00"
-        },
-        {
-          "availability": "fixed_busy",
-          "calendar_event": "Booket",
-          "club": "Tønsberg",
-          "date": "2026-10-09",
-          "end": "23:00",
-          "start": "19:30"
-        },
-        {
-          "availability": "fixed_busy",
-          "calendar_event": "Booket",
-          "club": "Tønsberg",
-          "date": "2026-10-10",
-          "end": "14:00",
-          "start": "07:00"
-        },
-        {
-          "availability": "fixed_busy",
-          "calendar_event": "Booket",
-          "club": "Tønsberg",
-          "date": "2026-10-10",
-          "end": "22:00",
-          "start": "14:00"
-        },
-        {
-          "availability": "fixed_busy",
-          "calendar_event": "Booket",
-          "club": "Tønsberg",
-          "date": "2026-10-11",
-          "end": "17:00",
-          "start": "09:00"
-        },
-        {
-          "availability": "fixed_busy",
-          "calendar_event": "Booket",
-          "club": "Tønsberg",
-          "date": "2026-10-11",
-          "end": "19:00",
-          "start": "17:00"
-        },
-        {
-          "availability": "fixed_busy",
-          "calendar_event": "Booket",
-          "club": "Tønsberg",
-          "date": "2026-10-11",
-          "end": "20:00",
-          "start": "19:00"
-        },
-        {
-          "availability": "fixed_busy",
-          "calendar_event": "Booket",
-          "club": "Tønsberg",
-          "date": "2026-10-11",
-          "end": "21:00",
-          "start": "20:00"
-        },
-        {
-          "availability": "fixed_busy",
-          "calendar_event": "Booket",
-          "club": "Tønsberg",
-          "date": "2026-10-11",
-          "end": "22:00",
-          "start": "21:00"
-        },
-        {
-          "availability": "fixed_busy",
-          "calendar_event": "Booket",
-          "club": "Tønsberg",
           "date": "2026-10-12",
           "end": "08:00",
           "start": "07:00"
@@ -187163,7 +187713,7 @@
         }
       ]
     },
-    "problem_fingerprint": "9a611c4179608cb852611a1c2468052b61ca0ae7a85be27d5dbfcc4120a9a6f2",
+    "problem_fingerprint": "590911eadc031b4c880d700c95a72774926d293d1fb5a0b87a9dc5b107d633b1",
     "run_id": "20260918T135604Z-8d38f146",
     "schema_version": 1,
     "verify_ok": true
