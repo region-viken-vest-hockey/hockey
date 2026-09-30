@@ -93,7 +93,10 @@ def normalize_placements(
     reconcile_plan_derived_state(plan, result, problem=resolved_problem)
     if not dry_run:
         service._assert_request_constraints_satisfied(
-            plan, decisions, action="placement normalization"
+            plan,
+            decisions,
+            action="placement normalization",
+            baseline_plan=schedule.get("plan") or {},
         )
 
     now = _now_iso()
@@ -282,7 +285,10 @@ def normalize_arena_identities(
     reconcile_plan_derived_state(plan, result, problem=resolved_problem)
     if not dry_run:
         service._assert_request_constraints_satisfied(
-            plan, decisions, action="arena normalization"
+            plan,
+            decisions,
+            action="arena normalization",
+            baseline_plan=before_plan,
         )
 
     now = _now_iso()

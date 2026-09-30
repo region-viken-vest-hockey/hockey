@@ -15,7 +15,7 @@ from tournament_scheduler.change_protections import (
     protection_violations,
 )
 from tournament_scheduler.request_constraints import (
-    request_constraint_violations,
+    compare_request_constraint_violations,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
@@ -308,7 +308,9 @@ def swap_participants(
 
     reconcile_plan_derived_state(plan, result, problem=resolved_problem)
     existing_protection_violations = protection_violations(plan, decisions)
-    constraint_violations = request_constraint_violations(plan, decisions)
+    constraint_comparison = compare_request_constraint_violations(
+        schedule.get("plan") or {}, plan, decisions
+    )
     candidate_revision = schedule_fingerprint(plan)
     cost = change_cost(baseline, plan)
 
@@ -369,8 +371,10 @@ def swap_participants(
         "regression_acceptance": regression_acceptance,
         "existing_change_protection_violations": existing_protection_violations,
         "change_protection_acceptable": not existing_protection_violations,
-        "request_constraint_violations": constraint_violations,
-        "request_constraint_acceptable": not constraint_violations,
+        "request_constraint_violations": constraint_comparison["candidate_violations"],
+        "request_constraint_regressions": constraint_comparison["regressions"],
+        "request_constraint_unchanged_violations": constraint_comparison["unchanged"],
+        "request_constraint_acceptable": constraint_comparison["acceptable"],
         "protections_to_add": new_protections,
         "request_id": protection_request_id,
     }
@@ -394,9 +398,9 @@ def swap_participants(
             "Refusing canonical participant swap: it would undo an accepted change: "
             + messages
         )
-    if constraint_violations:
+    if constraint_comparison["regressions"]:
         messages = "; ".join(
-            str(item.get("message")) for item in constraint_violations
+            str(item.get("message")) for item in constraint_comparison["regressions"]
         )
         raise SeasonStateError(
             "Refusing canonical participant swap: it violates an active request constraint: "

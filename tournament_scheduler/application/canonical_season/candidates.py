@@ -23,7 +23,7 @@ from tournament_scheduler.participation_withdrawals import (
     append_withdrawal_records,
 )
 from tournament_scheduler.request_constraints import (
-    request_constraint_violations,
+    compare_request_constraint_violations,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (
     DECISIONS_SCHEMA_VERSION,
@@ -382,12 +382,14 @@ def apply_candidate(
         raise SeasonStateError(
             "Refusing canonical apply: it would undo an accepted change: " + messages
         )
-    active_constraint_violations = request_constraint_violations(
-        normalized_candidate, working_decisions
+    constraint_comparison = compare_request_constraint_violations(
+        schedule.get("plan") or {},
+        normalized_candidate,
+        working_decisions,
     )
-    if active_constraint_violations:
+    if not constraint_comparison["acceptable"]:
         messages = "; ".join(
-            str(item.get("message")) for item in active_constraint_violations
+            str(item.get("message")) for item in constraint_comparison["regressions"]
         )
         raise SeasonStateError(
             "Refusing canonical apply: it violates an active request constraint: " + messages

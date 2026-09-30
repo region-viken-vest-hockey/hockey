@@ -218,8 +218,15 @@ class CanonicalSeasonService:
         decisions: Mapping[str, Any],
         *,
         action: str,
+        baseline_plan: Mapping[str, Any] | None = None,
     ) -> None:
-        return _lifecycle._assert_request_constraints_satisfied(self, plan=plan, decisions=decisions, action=action)
+        return _lifecycle._assert_request_constraints_satisfied(
+            self,
+            plan=plan,
+            decisions=decisions,
+            action=action,
+            baseline_plan=baseline_plan,
+        )
 
     def request_constraint_report(
         self,

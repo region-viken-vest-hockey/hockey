@@ -417,6 +417,161 @@ def request_constraint_violations(
     return violations
 
 
+# --- baseline-aware acceptability ------------------------------------------
+#
+# ``request_constraint_violations`` answers "does this plan satisfy the
+# constraint?". Canonical mutation acceptability is a different, baseline
+# question: "does this candidate introduce or worsen a violation relative to the
+# promoted plan?". A pre-existing unchanged violation is real, visible debt that
+# must not veto an unrelated maintenance change, while a candidate that touches
+# the constrained facts is still re-evaluated so a new or worsened violation is
+# rejected. This classifier is the single policy owner for that comparison, so
+# direct mutation, dry-run, repair adoption and bounded search cannot drift.
+
+UNCHANGED = "unchanged"
+IMPROVED = "improved"
+INTRODUCED = "introduced"
+WORSENED = "worsened"
+RESOLVED = "resolved"
+
+
+def violation_identity(violation: Mapping[str, Any]) -> tuple[str, ...]:
+    """Return the stable semantic identity of one structured violation.
+
+    The identity is scoped to the constraint and to the exact entities/facts it
+    covers, so a candidate that changes a tournament, date or pairing in the
+    constraint's scope produces a different identity and is classified as a new
+    violation instead of being inherited from the baseline.
+    """
+
+    constraint_identifier = str(violation.get("constraint_id") or "")
+    code = str(violation.get("code") or "")
+    if code == TEAM_UNAVAILABLE:
+        team = violation.get("team") or {}
+        return (
+            constraint_identifier,
+            code,
+            str(team.get("club") or ""),
+            str(team.get("label") or ""),
+            str(team.get("age_group") or ""),
+            str(violation.get("tournament_id") or ""),
+            str(violation.get("date") or ""),
+        )
+    if code == OPPONENT_AVOIDANCE:
+        return (
+            constraint_identifier,
+            code,
+            str(violation.get("tournament_id") or ""),
+            str(violation.get("date") or ""),
+        )
+    if code == MINIMUM_GAP:
+        return (
+            constraint_identifier,
+            code,
+            *[str(item) for item in (violation.get("tournament_ids") or [])],
+        )
+    return (constraint_identifier, code)
+
+
+def violation_severity(violation: Mapping[str, Any]) -> float:
+    """Return a deterministic higher-is-worse score for one violation.
+
+    Binary violations (an unavailable team, an avoided opponent) are either
+    present at a given identity or not, so they score ``1.0``. A minimum-gap
+    violation scores its shortfall in days, so moving an unchanged pairing
+    closer together is a worsening even though the pair identity is unchanged.
+    """
+
+    if str(violation.get("code") or "") == MINIMUM_GAP:
+        minimum = int(violation.get("min_days") or 0)
+        gap = int(violation.get("gap_days") or 0)
+        return float(max(0, minimum - gap))
+    return 1.0
+
+
+def compare_constraint_violations(
+    baseline_plan: Mapping[str, Any],
+    candidate_plan: Mapping[str, Any],
+    constraints: Iterable[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Classify candidate request-constraint violations against a baseline.
+
+    Returns the full candidate and baseline violation evidence plus explicit
+    ``introduced``/``worsened``/``unchanged``/``improved``/``resolved`` buckets.
+    ``acceptable`` is true exactly when the candidate introduces no new
+    violation and worsens no existing one; pre-existing unchanged violations
+    remain in the result as unresolved, actionable debt.
+    """
+
+    constraint_list = [dict(constraint) for constraint in constraints]
+    baseline_violations = [
+        violation
+        for constraint in constraint_list
+        for violation in constraint_violations(baseline_plan, constraint)
+    ]
+    candidate_violations = [
+        violation
+        for constraint in constraint_list
+        for violation in constraint_violations(candidate_plan, constraint)
+    ]
+    baseline_by_identity = {
+        violation_identity(violation): violation for violation in baseline_violations
+    }
+    candidate_by_identity = {
+        violation_identity(violation): violation for violation in candidate_violations
+    }
+
+    introduced: list[dict[str, Any]] = []
+    worsened: list[dict[str, Any]] = []
+    unchanged: list[dict[str, Any]] = []
+    improved: list[dict[str, Any]] = []
+    for identity, violation in candidate_by_identity.items():
+        previous = baseline_by_identity.get(identity)
+        if previous is None:
+            introduced.append(violation)
+            continue
+        before = violation_severity(previous)
+        after = violation_severity(violation)
+        if after > before:
+            worsened.append(violation)
+        elif after < before:
+            improved.append(violation)
+        else:
+            unchanged.append(violation)
+    resolved = [
+        violation
+        for identity, violation in baseline_by_identity.items()
+        if identity not in candidate_by_identity
+    ]
+
+    regressions = introduced + worsened
+    return {
+        "acceptable": not regressions,
+        "regressions": regressions,
+        "introduced": introduced,
+        "worsened": worsened,
+        "unchanged": unchanged,
+        "improved": improved,
+        "resolved": resolved,
+        "baseline_violations": baseline_violations,
+        "candidate_violations": candidate_violations,
+    }
+
+
+def compare_request_constraint_violations(
+    baseline_plan: Mapping[str, Any],
+    candidate_plan: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Baseline-aware comparison over every active request constraint."""
+
+    return compare_constraint_violations(
+        baseline_plan,
+        candidate_plan,
+        active_request_constraints(decisions),
+    )
+
+
 def request_constraint_report(
     plan: Mapping[str, Any],
     decisions: Mapping[str, Any],
@@ -475,12 +630,16 @@ __all__ = [
     "TEAM_UNAVAILABLE",
     "active_request_constraints",
     "append_request_constraints",
+    "compare_constraint_violations",
+    "compare_request_constraint_violations",
     "constraint_id",
     "constraint_payload",
     "constraint_violations",
     "request_constraint_records",
     "request_constraint_report",
     "request_constraint_violations",
+    "violation_identity",
+    "violation_severity",
     "resolve_team_identity",
     "team_identity",
     "validate_and_normalize",

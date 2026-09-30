@@ -166,98 +166,72 @@ def _tournaments_by_id(root: Path) -> dict[str, dict]:
     return {tournament["id"]: tournament for tournament in schedule["plan"]["tournaments"]}
 
 
-def test_individual_moves_deadlock_then_atomic_batch_repairs(tmp_path: Path) -> None:
+def test_individual_moves_resolve_preexisting_violations_independently(
+    tmp_path: Path,
+) -> None:
+    """A pre-existing violation no longer deadlocks an unrelated single mutation."""
     _work_dir, root = _promote(tmp_path)
     _add_unavailable(root, "winter-A", "2026-09-12")
     _add_unavailable(root, "winter-B", "2026-09-20")
     assert request_constraint_report("2026-2027", root=root)["unsatisfied_count"] == 2
 
-    before_schedule = _schedule_bytes(root)
-    before_decisions = _decisions_bytes(root)
-    c_before = _tournaments_by_id(root)["u10-c-20261018"]
-
-    # 1. Moving A alone is refused because B still violates its constraint.
-    with pytest.raises(SeasonStateError, match="violates an active request constraint"):
-        move_tournament(
-            season="2026-2027",
-            tournament_id="u10-a-20260912",
-            root=root,
-            date="2026-09-13",
-        )
-    # 2. Moving B alone is refused because A still violates its constraint.
-    with pytest.raises(SeasonStateError, match="violates an active request constraint"):
-        move_tournament(
-            season="2026-2027",
-            tournament_id="u10-b-20260920",
-            root=root,
-            date="2026-09-21",
-        )
-    assert _schedule_bytes(root) == before_schedule
-    assert _decisions_bytes(root) == before_decisions
-
-    # 3./4./5. The atomic batch moves both and commits once.
-    result = batch_maintenance(
+    # Moving A resolves A's own constraint. B's unchanged baseline violation is
+    # visible debt and does not veto the unrelated move.
+    moved_a = move_tournament(
         season="2026-2027",
+        tournament_id="u10-a-20260912",
         root=root,
-        operations=[
-            {"op": "move", "tournament_id": "u10-a-20260912", "date": "2026-09-13"},
-            {"op": "move", "tournament_id": "u10-b-20260920", "date": "2026-09-21"},
-        ],
-        scope=["u10-a-20260912", "u10-b-20260920"],
-        request_id="winter-repair-1",
-        actor="tester",
-        note="repair both independent availability requests together",
+        date="2026-09-13",
+        request_id="winter-repair-a",
     )
-    assert result["committed"] is True
-    assert result["refused"] is False
-    assert result["changed_outside_scope"] == []
-    assert result["remaining_request_constraint_violations"] == []
+    assert moved_a["plan"]
+    assert _tournaments_by_id(root)["u10-a-20260912"]["date"] == "2026-09-13"
+    assert request_constraint_report("2026-2027", root=root)["unsatisfied_count"] == 1
+
+    # Repairing B then clears the remaining debt.
+    moved_b = move_tournament(
+        season="2026-2027",
+        tournament_id="u10-b-20260920",
+        root=root,
+        date="2026-09-21",
+        request_id="winter-repair-b",
+    )
+    assert moved_b["plan"]
+    assert _tournaments_by_id(root)["u10-b-20260920"]["date"] == "2026-09-21"
     assert request_constraint_report("2026-2027", root=root)["unsatisfied_count"] == 0
 
-    by_id = _tournaments_by_id(root)
-    assert by_id["u10-a-20260912"]["date"] == "2026-09-13"
-    assert by_id["u10-b-20260920"]["date"] == "2026-09-21"
-    # 5. C is unchanged.
-    assert by_id["u10-c-20261018"] == c_before
-
     decisions = load_decisions("2026-2027", root=root)
-    assert decisions["canonical_state_revision"] == result["canonical_state_revision"]
-    batches = [
+    moves = [
         event
         for event in decisions.get("history", [])
-        if event.get("event") == "batch_maintenance"
+        if event.get("event") == "move"
     ]
-    assert len(batches) == 1
-    assert batches[0]["details"]["request_id"] == "winter-repair-1"
-    assert batches[0]["details"]["changed_tournament_ids"] == [
-        "u10-a-20260912",
-        "u10-b-20260920",
-    ]
+    assert len(moves) == 2
 
 
-def test_batch_repairing_only_one_violation_is_refused_and_writes_nothing(
+def test_batch_partial_repair_keeps_unrelated_preexisting_violation(
     tmp_path: Path,
 ) -> None:
     _work_dir, root = _promote(tmp_path)
     _add_unavailable(root, "winter-A", "2026-09-12")
     _add_unavailable(root, "winter-B", "2026-09-20")
-    before_schedule = _schedule_bytes(root)
-    before_decisions = _decisions_bytes(root)
 
-    with pytest.raises(SeasonStateError, match="request-constraint"):
-        batch_maintenance(
-            season="2026-2027",
-            root=root,
-            operations=[
-                {"op": "move", "tournament_id": "u10-a-20260912", "date": "2026-09-13"}
-            ],
-            scope=["u10-a-20260912"],
-            request_id="partial-repair",
-            actor="tester",
-        )
-    assert _schedule_bytes(root) == before_schedule
-    assert _decisions_bytes(root) == before_decisions
-    assert request_constraint_report("2026-2027", root=root)["unsatisfied_count"] == 2
+    result = batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=[
+            {"op": "move", "tournament_id": "u10-a-20260912", "date": "2026-09-13"}
+        ],
+        scope=["u10-a-20260912"],
+        request_id="partial-repair",
+        actor="tester",
+    )
+    assert result["committed"] is True
+    assert result["refused"] is False
+    assert result["request_constraint_regressions"] == []
+    # B's unchanged violation stays visible as unresolved debt.
+    assert result["remaining_request_constraint_violations"]
+    assert request_constraint_report("2026-2027", root=root)["unsatisfied_count"] == 1
 
 
 def test_batch_operation_outside_declared_scope_is_refused(tmp_path: Path) -> None:
@@ -439,30 +413,29 @@ def test_batch_composes_participant_swap_and_move(tmp_path: Path) -> None:
     assert result["consequence_acceptable"] is True
 
 
-def test_existing_single_operations_keep_the_full_season_constraint_gate(
+def test_existing_single_operations_ignore_unchanged_preexisting_violation(
     tmp_path: Path,
 ) -> None:
     _work_dir, root = _promote(tmp_path)
     _add_unavailable(root, "winter-A", "2026-09-12")
 
-    # Ordinary move still refuses while any active constraint is unsatisfied.
-    with pytest.raises(SeasonStateError, match="violates an active request constraint"):
-        move_tournament(
-            season="2026-2027",
-            tournament_id="u10-b-20260920",
-            root=root,
-            date="2026-09-21",
-        )
-    # A participant swap that does not resolve the active constraint is refused.
-    with pytest.raises(SeasonStateError, match="violates an active request constraint"):
-        swap_participants(
-            season="2026-2027",
-            tournament_a_id="u10-a-20260912",
-            team_a_label="Y1",
-            tournament_b_id="u10-b-20260920",
-            team_b_label="W1",
-            root=root,
-        )
+    # The baseline violation is on u10-a's K1; moving an unrelated tournament
+    # and swapping unrelated participants are both accepted and leave it visible.
+    move_tournament(
+        season="2026-2027",
+        tournament_id="u10-b-20260920",
+        root=root,
+        date="2026-09-21",
+    )
+    swap_participants(
+        season="2026-2027",
+        tournament_a_id="u10-a-20260912",
+        team_a_label="Y1",
+        tournament_b_id="u10-b-20260920",
+        team_b_label="W1",
+        root=root,
+    )
+    assert request_constraint_report("2026-2027", root=root)["unsatisfied_count"] == 1
 
 
 def test_batch_dry_run_reports_without_writing(tmp_path: Path) -> None:
@@ -499,10 +472,12 @@ def test_batch_dry_run_reports_without_writing(tmp_path: Path) -> None:
     assert _decisions_bytes(root) == before_decisions
 
 
-def test_batch_dry_run_reports_partial_repair_refusal(tmp_path: Path) -> None:
+def test_batch_dry_run_reports_unrelated_preexisting_violation(tmp_path: Path) -> None:
     _work_dir, root = _promote(tmp_path)
     _add_unavailable(root, "winter-A", "2026-09-12")
     _add_unavailable(root, "winter-B", "2026-09-20")
+    before_schedule = _schedule_bytes(root)
+    before_decisions = _decisions_bytes(root)
 
     preview = batch_maintenance(
         season="2026-2027",
@@ -516,9 +491,13 @@ def test_batch_dry_run_reports_partial_repair_refusal(tmp_path: Path) -> None:
         dry_run=True,
     )
     assert preview["committed"] is False
-    assert preview["refused"] is True
+    assert preview["refused"] is False
+    assert preview["request_constraint_regressions"] == []
+    # B's unchanged violation is reported as remaining debt, not as a refusal.
     assert preview["remaining_request_constraint_violations"]
-    assert any("request-constraint" in reason for reason in preview["refusal_reasons"])
+    assert preview["request_constraint_acceptable"] is True
+    assert _schedule_bytes(root) == before_schedule
+    assert _decisions_bytes(root) == before_decisions
 
 
 def test_batch_cancellation_is_a_supported_operation(tmp_path: Path) -> None:

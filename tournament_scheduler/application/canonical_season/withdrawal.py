@@ -54,7 +54,7 @@ from tournament_scheduler.participation_withdrawals import (
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning_contract import verify_candidate
-from tournament_scheduler.request_constraints import request_constraint_violations
+from tournament_scheduler.request_constraints import compare_request_constraint_violations
 
 from .removal_policy import (
     evaluate_removal_consequences,
@@ -437,9 +437,13 @@ def _release_withdrawals_decision_only(
         raise SeasonStateError(
             f"Refusing withdrawal release: candidate violates canonical locks: {messages}"
         )
-    constraint_violations = request_constraint_violations(plan, working)
-    if constraint_violations:
-        messages = "; ".join(str(item.get("message")) for item in constraint_violations)
+    constraint_comparison = compare_request_constraint_violations(
+        snapshot.schedule.get("plan") or {}, plan, working
+    )
+    if constraint_comparison["regressions"]:
+        messages = "; ".join(
+            str(item.get("message")) for item in constraint_comparison["regressions"]
+        )
         raise SeasonStateError(
             "Refusing withdrawal release: it violates an active request constraint: " + messages
         )
@@ -724,7 +728,9 @@ def remove_participant(
     guest_integrity_ok = before_guest_signature == after_guest_signature
     reconcile_plan_derived_state(plan, result, problem=verification_problem)
     existing_protection_violations = protection_violations(plan, decisions)
-    constraint_violations = request_constraint_violations(plan, decisions)
+    constraint_comparison = compare_request_constraint_violations(
+        before_plan, plan, decisions
+    )
     candidate_revision = schedule_fingerprint(plan)
     cost = change_cost(baseline, plan)
 
@@ -796,8 +802,10 @@ def remove_participant(
         "regression_acceptance": regression_acceptance,
         "existing_change_protection_violations": existing_protection_violations,
         "change_protection_acceptable": not existing_protection_violations,
-        "request_constraint_violations": constraint_violations,
-        "request_constraint_acceptable": not constraint_violations,
+        "request_constraint_violations": constraint_comparison["candidate_violations"],
+        "request_constraint_regressions": constraint_comparison["regressions"],
+        "request_constraint_unchanged_violations": constraint_comparison["unchanged"],
+        "request_constraint_acceptable": constraint_comparison["acceptable"],
         "protections_to_add": new_protections,
         "withdrawals_to_add": withdrawal_records,
         "request_id": resolved_request_id,
@@ -806,7 +814,7 @@ def remove_participant(
             and guest_integrity_ok
             and not transfers
             and not existing_protection_violations
-            and not constraint_violations
+            and constraint_comparison["acceptable"]
             and consequence_acceptable
         ),
     }
@@ -831,8 +839,10 @@ def remove_participant(
     if existing_protection_violations:
         messages = "; ".join(str(item.get("message")) for item in existing_protection_violations)
         raise SeasonStateError("Refusing canonical participant removal: it would undo an accepted change: " + messages)
-    if constraint_violations:
-        messages = "; ".join(str(item.get("message")) for item in constraint_violations)
+    if constraint_comparison["regressions"]:
+        messages = "; ".join(
+            str(item.get("message")) for item in constraint_comparison["regressions"]
+        )
         raise SeasonStateError(
             "Refusing canonical participant removal: it violates an active request constraint: " + messages
         )

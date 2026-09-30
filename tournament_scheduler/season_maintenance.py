@@ -50,7 +50,7 @@ from .repair_adoption_guard import (
 )
 from .request_constraints import (
     active_request_constraints,
-    constraint_violations,
+    compare_constraint_violations,
     request_constraint_report,
 )
 from .rule_catalog import annotate_findings
@@ -866,18 +866,16 @@ def apply_repair(
             verification=applied.get("verification"),
         )
     result_candidate = applied["candidate"]
-    option_constraint_violations = [
-        violation
-        for constraint in active_request_constraints(decisions)
-        for violation in constraint_violations(result_candidate, constraint)
-    ]
-    if option_constraint_violations:
+    constraint_comparison = compare_constraint_violations(
+        plan, result_candidate, active_request_constraints(decisions)
+    )
+    if constraint_comparison["regressions"]:
         return _rejected_delta(
             season,
             revision,
             "request_constraint_violation",
             option_id=option_id,
-            request_constraint_violations=option_constraint_violations,
+            request_constraint_violations=constraint_comparison["regressions"],
         )
     before_verification = verify_candidate(plan, problem)
     verification = applied.get("verification") or verify_candidate(dict(result_candidate), dict(problem))
@@ -2441,17 +2439,19 @@ def _annotate_pareto(
             option["non_dominated"] = False
             continue
         # Active request constraints are hard maintenance requirements, not
-        # soft weights: a candidate that violates one is reported as rejected
-        # evidence instead of being offered as a Pareto trade-off, and the
-        # canonical apply boundary re-checks the full active set regardless.
-        option_violations = [
-            violation
-            for constraint in constraints
-            for violation in constraint_violations(candidate, constraint)
-        ]
-        option["request_constraint_violations"] = option_violations
-        option["request_constraint_acceptable"] = not option_violations
-        if option_violations:
+        # soft weights: a candidate that introduces or worsens one is reported
+        # as rejected evidence instead of being offered as a Pareto trade-off,
+        # and the canonical apply boundary re-checks the full active set
+        # regardless. Unchanged pre-existing violations stay visible in the
+        # option evidence but do not reject an otherwise valid repair.
+        constraint_comparison = compare_constraint_violations(
+            plan, candidate, constraints
+        )
+        option["request_constraint_violations"] = constraint_comparison["candidate_violations"]
+        option["request_constraint_regressions"] = constraint_comparison["regressions"]
+        option["request_constraint_unchanged_violations"] = constraint_comparison["unchanged"]
+        option["request_constraint_acceptable"] = constraint_comparison["acceptable"]
+        if constraint_comparison["regressions"]:
             option["objectives"] = None
             option["non_dominated"] = False
             continue

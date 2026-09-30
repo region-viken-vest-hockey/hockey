@@ -333,7 +333,10 @@ def reserve_guest_slot(
     reconcile_plan_derived_state(plan, result, problem=resolved_problem)
     if not dry_run:
         service._assert_request_constraints_satisfied(
-            plan, decisions, action="guest reservation"
+            plan,
+            decisions,
+            action="guest reservation",
+            baseline_plan=schedule.get("plan") or {},
         )
 
     fingerprint = schedule_fingerprint(plan)
@@ -455,7 +458,12 @@ def fill_guest_slot(
             f"Refusing canonical guest fill: candidate fails hard verification: {messages}"
         )
     reconcile_plan_derived_state(plan, result, problem=resolved_problem)
-    service._assert_request_constraints_satisfied(plan, decisions, action="guest fill")
+    service._assert_request_constraints_satisfied(
+        plan,
+        decisions,
+        action="guest fill",
+        baseline_plan=schedule.get("plan") or {},
+    )
 
     fingerprint = schedule_fingerprint(plan)
     updated_schedule = {
@@ -587,7 +595,10 @@ def release_guest_slot(
     reconcile_plan_derived_state(plan, result, problem=resolved_problem)
     if not dry_run:
         service._assert_request_constraints_satisfied(
-            plan, decisions, action="guest release"
+            plan,
+            decisions,
+            action="guest release",
+            baseline_plan=schedule.get("plan") or {},
         )
 
     fingerprint = schedule_fingerprint(plan)

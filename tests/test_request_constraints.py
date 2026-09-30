@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 
 import pytest
@@ -7,6 +8,7 @@ import pytest
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.request_constraints import (
     RequestConstraintError,
+    compare_constraint_violations,
     constraint_id,
     constraint_violations,
     validate_and_normalize,
@@ -323,6 +325,40 @@ def test_opponent_avoidance_violation_is_scoped_by_date() -> None:
     assert violations[0]["tournament_id"] == "t-b"
 
 
+def test_compare_constraint_violations_distinguishes_unchanged_worsened_resolved() -> None:
+    plan = _unit_plan()
+    constraint = validate_and_normalize(
+        {
+            "type": "minimum_gap",
+            "request_id": "r",
+            "teams": [{"club": "Kongsberg", "label": "K1", "age_group": "U10"}],
+            "min_days": 21,
+        },
+        plan,
+    )
+
+    baseline = compare_constraint_violations(plan, plan, [constraint])
+    assert baseline["acceptable"] is True
+    assert len(baseline["unchanged"]) == 1
+    assert baseline["introduced"] == []
+
+    # Closing the gap from 7 to 3 days worsens the same pairing.
+    closer = copy.deepcopy(plan)
+    closer["tournaments"][1]["date"] = "2027-02-24"
+    worsened = compare_constraint_violations(plan, closer, [constraint])
+    assert worsened["acceptable"] is False
+    assert len(worsened["worsened"]) == 1
+    assert worsened["unchanged"] == []
+
+    # Widening the gap beyond the minimum resolves it entirely.
+    fixed = copy.deepcopy(plan)
+    fixed["tournaments"][1]["date"] = "2027-03-20"
+    resolved = compare_constraint_violations(plan, fixed, [constraint])
+    assert resolved["acceptable"] is True
+    assert len(resolved["resolved"]) == 1
+    assert resolved["candidate_violations"] == []
+
+
 # -- integration: canonical lifecycle --------------------------------------
 
 
@@ -497,7 +533,8 @@ def test_opponent_avoidance_blocks_a_conflicting_move(tmp_path: Path) -> None:
         )
 
 
-def test_swap_and_generic_apply_are_blocked_by_active_constraint(tmp_path: Path) -> None:
+def test_unrelated_mutation_preserves_preexisting_constraint_violation(tmp_path: Path) -> None:
+    """A pre-existing violation is visible debt, not a season-wide veto."""
     _work_dir, root = _promote(tmp_path)
     add_request_constraint(
         season="2026-2027",
@@ -508,24 +545,90 @@ def test_swap_and_generic_apply_are_blocked_by_active_constraint(tmp_path: Path)
         root=root,
         actor="tester",
     )
+    assert request_constraint_report("2026-2027", root=root)["unsatisfied_count"] == 1
 
-    with pytest.raises(SeasonStateError, match="violates an active request constraint"):
-        swap_participants(
-            season="2026-2027",
-            tournament_a_id="u10-a-20260912",
-            team_a_label="Y1",
-            tournament_b_id="u10-b-20260920",
-            team_b_label="W1",
-            root=root,
-        )
+    # A no-op canonical apply does not newly introduce the baseline violation.
+    apply_candidate(
+        season="2026-2027",
+        candidate=load_schedule("2026-2027", root=root)["plan"],
+        root=root,
+    )
 
-    schedule = load_schedule("2026-2027", root=root)
+    # A Y1 <-> W1 swap is unrelated to K1's unavailability and is accepted.
+    swap_participants(
+        season="2026-2027",
+        tournament_a_id="u10-a-20260912",
+        team_a_label="Y1",
+        tournament_b_id="u10-b-20260920",
+        team_b_label="W1",
+        root=root,
+    )
+
+    report = request_constraint_report("2026-2027", root=root)
+    assert report["unsatisfied_count"] == 1
+    assert report["constraints"][0]["satisfied"] is False
+
+
+def test_move_touching_constrained_scope_still_rejects_new_violation(tmp_path: Path) -> None:
+    """Moving the violating tournament onto another unavailable date is new."""
+    _work_dir, root = _promote(tmp_path)
+    add_request_constraint(
+        season="2026-2027",
+        type="team_unavailable",
+        request_id="club-request-window",
+        teams=[{"club": "Kongsberg", "label": "K1", "age_group": "U10"}],
+        date_from="2026-09-12",
+        date_to="2026-09-13",
+        root=root,
+        actor="tester",
+    )
+    preview = move_tournament(
+        season="2026-2027",
+        tournament_id="u10-a-20260912",
+        root=root,
+        date="2026-09-13",
+        dry_run=True,
+    )
+    # The baseline violation was on 2026-09-12; the candidate keeps the team in
+    # the same window on a different date, so it is a new violation, not an
+    # inherited one.
+    assert preview["move_preview"]["request_constraint_acceptable"] is False
+    assert preview["move_preview"]["request_constraint_regressions"]
+
+    before = (root / "2026-2027" / "schedule.json").read_bytes()
     with pytest.raises(SeasonStateError, match="violates an active request constraint"):
-        apply_candidate(
+        move_tournament(
             season="2026-2027",
-            candidate=schedule["plan"],
+            tournament_id="u10-a-20260912",
             root=root,
+            date="2026-09-13",
         )
+    assert (root / "2026-2027" / "schedule.json").read_bytes() == before
+
+
+def test_worsened_minimum_gap_violation_is_rejected(tmp_path: Path) -> None:
+    _work_dir, root = _promote(tmp_path)
+    add_request_constraint(
+        season="2026-2027",
+        type="minimum_gap",
+        request_id="club-request-gap-worsen",
+        teams=[{"club": "Kongsberg", "label": "K1", "age_group": "U10"}],
+        min_days=21,
+        root=root,
+        actor="tester",
+    )
+    # The baseline gap 2026-09-12 -> 2026-09-20 is 8 days. Moving u10-b to
+    # 2026-09-16 keeps the same pairing but shrinks the gap to 4, worsening the
+    # existing violation and therefore refusing the move.
+    before = (root / "2026-2027" / "schedule.json").read_bytes()
+    with pytest.raises(SeasonStateError, match="violates an active request constraint"):
+        move_tournament(
+            season="2026-2027",
+            tournament_id="u10-b-20260920",
+            root=root,
+            date="2026-09-16",
+        )
+    assert (root / "2026-2027" / "schedule.json").read_bytes() == before
 
 
 def test_release_by_constraint_id_keeps_audit_history(tmp_path: Path) -> None:
