@@ -640,6 +640,46 @@ def test_replace_participant_handles_frisk_asker_one_tournament_substitution(tmp
     assert change_protection_report("2026-2027", root=root)["active_count"] == 2
 
     before_reject = (root / "2026-2027" / "schedule.json").read_bytes()
+    blocked = replace_participant(
+        season="2026-2027",
+        tournament_id="kongsberg-20261018",
+        remove_team_label="Jar 1",
+        add_team_label="Frisk Asker 3",
+        root=root,
+        dry_run=True,
+        request_id="duplicate-dry-run",
+    )
+    assert blocked["verdict"]["status"] == "blocked"
+    assert blocked["verdict"]["applicable"] is False
+    assert "already participates" in blocked["verdict"]["blockers"][0]
+    assert blocked["replacement"]["can_apply_unchanged"] is False
+    assert (root / "2026-2027" / "schedule.json").read_bytes() == before_reject
+
+    from tournament_scheduler.cli.rvv_cli import main as cli_main
+
+    assert (
+        cli_main(
+            [
+                "season",
+                "replace-participant",
+                "--season",
+                "2026-2027",
+                "--tournament-id",
+                "kongsberg-20261018",
+                "--remove-team",
+                "Jar 1",
+                "--add-team",
+                "Frisk Asker 3",
+                "--root",
+                str(root),
+                "--dry-run",
+                "--fail-on-blocked",
+                "--json",
+            ]
+        )
+        == 3
+    )
+
     with pytest.raises(SeasonStateError, match="already participates"):
         replace_participant(
             season="2026-2027",

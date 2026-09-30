@@ -1480,6 +1480,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Validate and preview the replacement without writing canonical state",
     )
     season_replace.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
+    season_replace.add_argument(
+        "--fail-on-blocked",
+        action="store_true",
+        help="With --dry-run, return exit code 3 when the domain verdict is blocked",
+    )
     season_replace.add_argument("--json", action="store_true", help="Print replacement result as JSON")
 
     season_remove = season_sub.add_parser(
@@ -1658,6 +1663,11 @@ def build_parser() -> argparse.ArgumentParser:
     _add_operational_opt_in_flags(season_batch)
     _add_regression_acceptance_flags(season_batch)
     season_batch.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
+    season_batch.add_argument(
+        "--fail-on-blocked",
+        action="store_true",
+        help="With --dry-run, return exit code 3 when the domain verdict is blocked",
+    )
     season_batch.add_argument("--json", action="store_true", help="Print the batch report as JSON")
 
     season_protections = season_sub.add_parser(

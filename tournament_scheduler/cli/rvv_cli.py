@@ -2531,6 +2531,8 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 for blocker in verdict.get("blockers") or []:
                     if blocker not in (verdict.get("checks") or {}):
                         _console.print(f"    ✗ {blocker}")
+            if bool(args.dry_run) and bool(getattr(args, "fail_on_blocked", False)):
+                return 0 if bool((result.get("verdict") or {}).get("applicable")) else 3
             return 0
 
 
@@ -2763,6 +2765,8 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     f"  request-constraint violations remaining: "
                     f"{len(report['remaining_request_constraint_violations'])}"
                 )
+            if bool(args.dry_run) and bool(getattr(args, "fail_on_blocked", False)):
+                return 0 if bool((report.get("verdict") or {}).get("applicable")) else 3
             return 0
 
         if args.season_command == "protections":
