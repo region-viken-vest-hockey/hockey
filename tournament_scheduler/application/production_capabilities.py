@@ -6,7 +6,7 @@ stable public application boundary to use, which focused implementation slice to
 load next, and which tests characterize the behavior. It is **not** a business
 rule engine and it must not duplicate verifier, evidence or publication policy.
 
-The common mutation contract for schedule/decision writes remains
+Deterministic feasibility and hard validity remain owned by repository verifiers (including the planning/final verification contracts and solver-backed capabilities). Semantic audit is residual second-pass judgment over repository-produced evidence; it is not a competing feasibility engine and cannot override verifier results.\n\nThe common mutation contract for schedule/decision writes remains
 ``CanonicalSeasonService`` plus ``application.canonical_season.lifecycle`` and
 ``application.canonical_season.shared``. Capability entries below point at that
 boundary instead of reconstructing their own verification or persistence path.
@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 CapabilityStatus = Literal["active", "via_batch"]
+BoundaryKind = Literal["canonical", "delivery"]
 
 
 @dataclass(frozen=True)
@@ -27,6 +28,7 @@ class ProductionCapability:
     key: str
     tasks: tuple[str, ...]
     public_api: tuple[str, ...]
+    boundary: BoundaryKind
     implementation_owner: str
     invariants: tuple[str, ...]
     focused_tests: tuple[str, ...]
@@ -39,6 +41,7 @@ _COMMON_MUTATION_CONTRACT = (
     "application/canonical_season/shared.py owns shared effective canonical readers/projections.",
     "Rejected mutations leave canonical schedule and decisions unchanged unless a focused ADR 0005 evidence path explicitly records rejected evidence.",
     "Publication/export authorization is separate from accepting a canonical mutation.",
+    "Deterministic feasibility/hard-validity findings come from repository verifier owners; semantic audit cannot replace or override them.",
 )
 
 
@@ -46,6 +49,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
     ProductionCapability(
         key="calendar_evidence",
         tasks=("refresh calendars", "reconcile booking evidence", "assess booking status"),
+        boundary="canonical",
         public_api=(
             "CanonicalSeasonService.refresh_calendars",
             "CanonicalSeasonService.reconcile_calendar_bookings",
@@ -67,6 +71,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
     ProductionCapability(
         key="booking_confirmation",
         tasks=("confirm scraped booking", "release booking association", "record manual booking assertion"),
+        boundary="canonical",
         public_api=(
             "CanonicalSeasonService.calendar_booking_candidates",
             "CanonicalSeasonService.confirm_calendar_booking",
@@ -90,6 +95,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
     ProductionCapability(
         key="request_constraints",
         tasks=("team unavailable", "minimum gap", "opponent avoidance", "global banned/holiday exception dates"),
+        boundary="canonical",
         public_api=(
             "CanonicalSeasonService.request_constraint_report",
             "CanonicalSeasonService.add_request_constraint",
@@ -114,6 +120,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
     ProductionCapability(
         key="placement",
         tasks=("move tournament", "normalize placement state", "apply verified repair candidate"),
+        boundary="canonical",
         public_api=(
             "CanonicalSeasonService.move_tournament",
             "CanonicalSeasonService.normalize_placements",
@@ -135,6 +142,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
     ProductionCapability(
         key="participants",
         tasks=("swap participants", "replace participant", "remove/withdraw team", "release withdrawal"),
+        boundary="canonical",
         public_api=(
             "CanonicalSeasonService.swap_participants",
             "CanonicalSeasonService.replace_participant",
@@ -157,6 +165,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
     ProductionCapability(
         key="cancellation",
         tasks=("cancel one or more tournaments as part of an explicit batch maintenance request",),
+        boundary="canonical",
         public_api=("CanonicalSeasonService.batch_maintenance",),
         implementation_owner="tournament_scheduler/application/canonical_season/batch.py",
         invariants=(
@@ -170,6 +179,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
     ProductionCapability(
         key="audit_export_publication",
         tasks=("mark export fresh", "report publication evidence", "seal/reopen publication lifecycle"),
+        boundary="delivery",
         public_api=(
             "CanonicalSeasonService.mark_export_fresh",
             "CanonicalSeasonService.publication_evidence_report",
