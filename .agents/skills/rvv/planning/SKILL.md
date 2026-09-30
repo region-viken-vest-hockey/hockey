@@ -23,4 +23,18 @@ Use the returned `DecisionContext` as authority for available actions and argume
 
 Planning candidates must be verified independently of the generator that proposed them. Preserve deterministic fingerprints/revisions and the reviewed Stage 4 handoff. Promotion is deliberate; publication is separate.
 
+## Stage gating policy
+
+### Stage 1
+
+Proceed when controlled input parsed into coherent season facts; abort/request correction on material missing dates, groups, clubs, arenas, sources or registrations.
+
+### Stage 2
+
+Proceed when scraping/source recovery produced usable evidence for meaningful planning; retry/recover material gaps and abort/request operator input when availability conclusions are unsafe.
+
+### Stage 3
+
+Proceed only with a hard-verified candidate or explicit repository decision context; do not waive hard violations, locks, hosting responsibility or unresolved placements.
+
 Planner/Stage 3 structural decomposition is next-season work. Keep behavior-preserving refactors separate from scheduling-policy changes.

@@ -3,8 +3,8 @@
 Each builder produces a concise, structured prompt that describes what the
 stage produced and asks whether the pipeline should continue. The
 evaluation criteria are **not** defined here: per issue #260 / ADR 0002,
-``.agents/skills/rvv/SKILL.md`` ("Stage gating policy" section) is the
-single canonical soft-policy source for both interactive harnesses and
+``.agents/skills/rvv/planning/SKILL.md`` ("Stage gating policy" section) is
+the canonical planning soft-policy source for both interactive harnesses and
 this headless judge path. This module only assembles the deterministic
 facts (a :class:`~tournament_scheduler.application.decisions.DecisionContext`)
 and quotes the matching policy section — it must not carry its own
@@ -28,13 +28,13 @@ from typing import Any
 from ..application.decisions import DecisionAction, DecisionContext
 
 # ---------------------------------------------------------------------------
-# Canonical shared policy (.agents/skills/rvv/SKILL.md)
+# Canonical shared planning policy (.agents/skills/rvv/planning/SKILL.md)
 # ---------------------------------------------------------------------------
 
-_SKILL_MD_PATH = Path(__file__).resolve().parents[2] / ".agents" / "skills" / "rvv" / "SKILL.md"
+_SKILL_MD_PATH = Path(__file__).resolve().parents[2] / ".agents" / "skills" / "rvv" / "planning" / "SKILL.md"
 
 # Per-stage headings inside the canonical "## Stage gating policy" section of
-# SKILL.md. Kept as exact heading strings so a documentation edit that breaks a
+# planning/SKILL.md. Kept as exact heading strings so a documentation edit that breaks a
 # heading degrades to the conservative fallback instead of crashing the judge.
 _STAGE_POLICY_HEADINGS: dict[str, str] = {
     "config": "### Stage 1",
@@ -49,7 +49,7 @@ _STAGE_POLICY_HEADINGS: dict[str, str] = {
 # from the expected headings — keeps the judge functional, but should not
 # happen in a normal checkout.
 _FALLBACK_POLICY = (
-    "Canonical policy at .agents/skills/rvv/SKILL.md was unavailable. "
+    "Canonical policy at .agents/skills/rvv/planning/SKILL.md was unavailable. "
     "Use best judgment: proceed only if the stage facts show no hard "
     "problems; abort if the stage produced clearly insufficient or "
     "invalid data."
@@ -81,7 +81,7 @@ def _extract_section(markdown: str, heading: str) -> str | None:
 
 
 def load_stage_gating_policy(stage_key: str) -> str:
-    """Return the canonical soft-policy text for *stage_key* from SKILL.md.
+    """Return the canonical soft-policy text for *stage_key* from planning/SKILL.md.
 
     Falls back to a conservative generic instruction if the shared policy
     document or the expected section heading cannot be found, so a
@@ -224,7 +224,7 @@ def build_decision_prompt(context: DecisionContext) -> str:
 
     lines += [
         "",
-        "Policy (from .agents/skills/rvv/SKILL.md — canonical, do not override):",
+        "Policy (from .agents/skills/rvv/planning/SKILL.md — canonical, do not override):",
         policy,
         "",
         "Respond with exactly one of:",

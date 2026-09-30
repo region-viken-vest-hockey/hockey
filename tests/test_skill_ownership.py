@@ -33,18 +33,18 @@ def _adapter_files():
             yield path
 
 
-def test_skill_md_contains_all_nine_checklist_items_verbatim():
+def test_audit_checklist_stays_in_code_not_always_loaded_router():
     text = SKILL_MD.read_text(encoding="utf-8")
+    assert len(AUDIT_CHECKLIST) == 9
     for item in AUDIT_CHECKLIST:
-        assert item["question"] in text
+        assert item["question"] not in text
 
 
-def test_skill_md_documents_the_audit_execution_model():
-    text = SKILL_MD.read_text(encoding="utf-8")
-    assert "## Semantic safety-net audit" in text
-    assert "audit-context" in text
-    assert "audit-submit" in text
-    assert "audit-run" in text
+def test_operate_procedure_routes_to_audit_execution_model():
+    text = SHARED_OPERATE.read_text(encoding="utf-8")
+    assert "semantic audit contract" in text
+    assert "audit-publication.md" in text
+    assert "operator audit" not in SKILL_MD.read_text(encoding="utf-8")
 
 
 def test_harnesses_expose_only_the_single_operator_entrypoint():
