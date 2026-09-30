@@ -2143,6 +2143,20 @@ def build_parser() -> argparse.ArgumentParser:
     season_inspect_candidates.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
     season_inspect_candidates.add_argument("--tournament-id", required=True, help="Durable tournament id to find candidates for")
     season_inspect_candidates.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_inspect_candidates.add_argument(
+        "--replace",
+        dest="replace_team",
+        default=None,
+        help=(
+            "Participant label being replaced; validates each candidate read-only "
+            "through the replacement gates and returns an explicit verdict"
+        ),
+    )
+    season_inspect_candidates.add_argument(
+        "--legal-only",
+        action="store_true",
+        help="Only include candidates the read-only validation marks safe to apply",
+    )
     season_inspect_candidates.add_argument("--limit", type=int, default=None, help="Maximum number of candidates to return")
     season_inspect_candidates.add_argument("--json", action="store_true", help="Print the candidates as JSON")
 

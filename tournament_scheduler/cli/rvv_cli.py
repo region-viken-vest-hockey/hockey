@@ -2521,6 +2521,16 @@ def _cmd_season(args: argparse.Namespace) -> int:
                 )
                 revision = result.get("candidate_revision") if result["dry_run"] else result.get("revision")
                 _console.print(f"  revision: {revision}")
+                verdict = result.get("verdict") or {}
+                _console.print(
+                    "  verdict: "
+                    + ("[green]SAFE TO APPLY[/green]" if verdict.get("applicable") else "[yellow]BLOCKED[/yellow]")
+                )
+                for name, ok in (verdict.get("checks") or {}).items():
+                    _console.print(f"    {'✓' if ok else '✗'} {name}")
+                for blocker in verdict.get("blockers") or []:
+                    if blocker not in (verdict.get("checks") or {}):
+                        _console.print(f"    ✗ {blocker}")
             return 0
 
 
@@ -2731,9 +2741,19 @@ def _cmd_season(args: argparse.Namespace) -> int:
             else:
                 action = "Validated atomic-batch preview for" if report["dry_run"] else "Applied atomic batch to"
                 revision = report.get("revision") or report.get("candidate_schedule_revision")
+                verdict = report.get("verdict") or {}
+                applicable = bool(verdict.get("applicable"))
+                marker = "[green]✓[/green]" if applicable else "[yellow]✗[/yellow]"
+                _console.print(f"{marker} {action} {args.season}; revision {revision}")
                 _console.print(
-                    f"[green]✓[/green] {action} {args.season}; revision {revision}"
+                    "  verdict: "
+                    + ("[green]SAFE TO APPLY[/green]" if applicable else "[yellow]BLOCKED[/yellow]")
                 )
+                for name, ok in (verdict.get("checks") or {}).items():
+                    _console.print(f"    {'✓' if ok else '✗'} {name}")
+                for blocker in verdict.get("blockers") or []:
+                    if blocker not in (verdict.get("checks") or {}):
+                        _console.print(f"    ✗ {blocker}")
                 _console.print(
                     f"  operations: {len(report['operations'])} · "
                     f"changed: {len(report['changed_tournament_ids'])} · "
@@ -2743,10 +2763,6 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     f"  request-constraint violations remaining: "
                     f"{len(report['remaining_request_constraint_violations'])}"
                 )
-                if report.get("refused"):
-                    _console.print(
-                        "  [yellow]⚠[/yellow] refused: " + "; ".join(report["refusal_reasons"])
-                    )
             return 0
 
         if args.season_command == "protections":
@@ -2938,25 +2954,47 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     season=args.season,
                     tournament_id=args.tournament_id,
                     root=args.root,
+                    replace_team_label=args.replace_team,
+                    legal_only=bool(args.legal_only),
                     limit=args.limit,
                 )
                 if args.json:
                     print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
                 else:
+                    validated = bool(result.get("validated"))
                     _console.print(
                         f"[bold]Erstatningskandidater for {result.get('tournament_id')}[/bold] "
                         f"({result.get('age_group')} {result.get('date')}, "
-                        f"{result.get('candidate_count', 0)} registrerte lag utenfor turneringen)"
+                        f"{result.get('candidate_count', 0)} "
+                        f"{'lovlige ' if args.legal_only else ''}kandidat(er))"
                     )
-                    for candidate in result.get("candidates") or []:
-                        conflict = (
-                            " [yellow](spiller samme dato)[/yellow]"
-                            if candidate.get("plays_on_tournament_date")
-                            else ""
-                        )
+                    if validated:
                         _console.print(
-                            f"  - {candidate.get('label')} ({candidate.get('club')}) "
-                            f"{candidate.get('season_participations', 0)} kamper{conflict}"
+                            f"  erstatter: {result.get('replace_team')}; "
+                            "hver kandidat er validert read-only"
+                        )
+                    for candidate in result.get("candidates") or []:
+                        verdict = candidate.get("verdict") or {}
+                        if validated:
+                            marker = (
+                                "[green]✓[/green]"
+                                if verdict.get("applicable")
+                                else "[yellow]✗[/yellow]"
+                            )
+                            reason = ""
+                            if not verdict.get("applicable"):
+                                blockers = verdict.get("blockers") or []
+                                reason = f" [dim]({' ; '.join(str(b) for b in blockers)})[/dim]"
+                        else:
+                            marker = " "
+                            reason = (
+                                " [yellow](spiller samme dato)[/yellow]"
+                                if candidate.get("plays_on_tournament_date")
+                                else ""
+                            )
+                        _console.print(
+                            f"  {marker} {candidate.get('label')} ({candidate.get('club')}) "
+                            f"{candidate.get('season_participations', 0)} kamper{reason}"
                         )
                 return 0
             _console.print(

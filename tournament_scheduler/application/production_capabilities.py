@@ -155,7 +155,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
         tasks=(
             "inspect one tournament and roster",
             "inspect constraints for a team/tournament/date",
-            "find replacement candidates",
+            "find and validate legal replacement candidates",
             "inspect approval/booking/provenance for one tournament",
         ),
         boundary="canonical_read",
@@ -168,6 +168,7 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
         invariants=(
             *_CANONICAL_READ_CONTRACT,
             "Read-only inspection never mutates canonical schedule or decisions and never invents evidence, approval or candidates.",
+            "Replacement-candidate legality is evaluated through the same read-only replacement gates as the mutation dry-run, not re-derived by callers.",
         ),
         focused_tests=("tests/test_season_inspection.py",),
     ),

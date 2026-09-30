@@ -272,6 +272,8 @@ def replacement_candidates(
     *,
     season: str,
     tournament_id: str,
+    replace_team_label: str | None = None,
+    legal_only: bool = False,
     limit: int | None = None,
 ) -> dict[str, Any]:
     """Read-only registered same-age teams that could replace a participant.
@@ -281,6 +283,12 @@ def replacement_candidates(
     already participating in the tournament and guest participants are excluded;
     each candidate is annotated with its season participation count and whether
     it already plays on the tournament date.
+
+    When ``replace_team_label`` is given the projection evaluates each candidate
+    through the same read-only replacement gates used by the mutation dry-run
+    and returns an explicit ``verdict`` (``safe_to_apply``/``blocked``). This is
+    the supported replacement-candidate discovery path, so callers never need to
+    probe the mutation command themselves.
     """
 
     snapshot = service.load(season)
@@ -335,6 +343,60 @@ def replacement_candidates(
             str(item["label"]),
         )
     )
+    if replace_team_label is not None:
+        participant_labels = {
+            str(team.get("label") or "")
+            for team in tournament.get("teams", []) or []
+        }
+        if str(replace_team_label) not in participant_labels:
+            raise SeasonStateError(
+                f"Team {replace_team_label!r} is not a participant in tournament {tournament_id}"
+            )
+        from .replacement import replace_participant
+
+        for candidate in candidates:
+            if candidate["plays_on_tournament_date"]:
+                # A team cannot play two tournaments on the same date, so a
+                # same-date participant is deterministically blocked without
+                # running the full-season verification.
+                candidate["verdict"] = {
+                    "status": "blocked",
+                    "applicable": False,
+                    "checks": {},
+                    "blockers": ["same_date_participation"],
+                }
+                continue
+            try:
+                preview = replace_participant(
+                    service,
+                    season=season,
+                    tournament_id=tournament_id,
+                    remove_team_label=str(replace_team_label),
+                    add_team_label=str(candidate["label"]),
+                    dry_run=True,
+                )
+                candidate["verdict"] = preview["verdict"]
+            except SeasonStateError as exc:
+                candidate["verdict"] = {
+                    "status": "blocked",
+                    "applicable": False,
+                    "checks": {},
+                    "blockers": [str(exc)],
+                }
+        candidates.sort(
+            key=lambda item: (
+                not bool((item.get("verdict") or {}).get("applicable")),
+                item["season_participations"],
+                str(item["club"]),
+                str(item["label"]),
+            )
+        )
+        if legal_only:
+            candidates = [
+                item
+                for item in candidates
+                if bool((item.get("verdict") or {}).get("applicable"))
+            ]
     if limit is not None and limit >= 0:
         candidates = candidates[:limit]
     return {
@@ -344,6 +406,8 @@ def replacement_candidates(
         "tournament_id": tournament_id,
         "age_group": age_group,
         "date": tournament.get("date"),
+        "replace_team": replace_team_label,
+        "validated": replace_team_label is not None,
         "candidate_count": len(candidates),
         "candidates": candidates,
     }

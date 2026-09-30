@@ -274,12 +274,16 @@ class CanonicalSeasonService:
         *,
         season: str,
         tournament_id: str,
+        replace_team_label: str | None = None,
+        legal_only: bool = False,
         limit: int | None = None,
     ) -> dict[str, Any]:
         return _inspection.replacement_candidates(
             self,
             season=season,
             tournament_id=tournament_id,
+            replace_team_label=replace_team_label,
+            legal_only=legal_only,
             limit=limit,
         )
 

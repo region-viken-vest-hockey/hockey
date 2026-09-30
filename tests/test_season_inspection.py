@@ -231,11 +231,49 @@ def test_replacement_candidates_exclude_participants_and_other_age_groups(
     g1 = next(item for item in report["candidates"] if item["label"] == "G1")
     assert g1["plays_on_tournament_date"] is False
     assert report["age_group"] == "U10"
+    assert report["validated"] is False
+    assert all("verdict" not in candidate for candidate in report["candidates"])
 
 
-def test_inspection_to_replacement_dry_run_is_the_supported_path(
-    tmp_path: Path,
-) -> None:
+def test_replacement_candidate_discovery_validates_legality(tmp_path: Path) -> None:
+    root = _promote(tmp_path)
+
+    report = replacement_candidates(
+        season="2026-2027",
+        tournament_id="t1",
+        replace_team_label="D1",
+        root=root,
+    )
+
+    assert report["validated"] is True
+    assert report["replace_team"] == "D1"
+    by_label = {candidate["label"]: candidate for candidate in report["candidates"]}
+    assert by_label["G1"]["verdict"]["applicable"] is True
+    assert by_label["G1"]["verdict"]["status"] == "safe_to_apply"
+    # A same-date participant is a deterministic hard conflict, reported as a
+    # domain verdict instead of a green-looking candidate.
+    assert by_label["E1"]["verdict"]["applicable"] is False
+    assert "same_date_participation" in by_label["E1"]["verdict"]["blockers"]
+
+    legal = replacement_candidates(
+        season="2026-2027",
+        tournament_id="t1",
+        replace_team_label="D1",
+        legal_only=True,
+        root=root,
+    )
+    assert [candidate["label"] for candidate in legal["candidates"]] == ["G1"]
+
+    with pytest.raises(SeasonStateError, match="not a participant"):
+        replacement_candidates(
+            season="2026-2027",
+            tournament_id="t1",
+            replace_team_label="Not In Tournament",
+            root=root,
+        )
+
+
+def test_inspection_to_replacement_is_the_supported_path(tmp_path: Path) -> None:
     root = _promote(tmp_path)
 
     inspected = tournament_inspection(
@@ -243,12 +281,19 @@ def test_inspection_to_replacement_dry_run_is_the_supported_path(
     )
     assert inspected["tournament"]["team_count"] == 4
 
+    # Replacement discovery is a read-only domain operation with its own
+    # verdict; the harness never probes the mutation command to find a legal
+    # candidate.
     candidates = replacement_candidates(
-        season="2026-2027", tournament_id="t1", root=root
+        season="2026-2027",
+        tournament_id="t1",
+        replace_team_label="D1",
+        legal_only=True,
+        root=root,
     )
-    free = next(
-        item for item in candidates["candidates"] if item["plays_on_tournament_date"] is False
-    )
+    legal = candidates["candidates"]
+    assert [candidate["label"] for candidate in legal] == ["G1"]
+    free = legal[0]
 
     preview = replace_participant(
         season="2026-2027",
@@ -261,6 +306,9 @@ def test_inspection_to_replacement_dry_run_is_the_supported_path(
     )
 
     assert preview["dry_run"] is True
+    assert preview["verdict"]["applicable"] is True
+    assert preview["verdict"]["status"] == "safe_to_apply"
+    assert all(preview["verdict"]["checks"].values())
     assert preview["replacement"]["removed_team"]["label"] == "D1"
     assert preview["replacement"]["added_team"]["label"] == free["label"]
     # The dry-run did not mutate canonical state.
@@ -290,3 +338,34 @@ def test_season_inspect_tournament_cli_emits_domain_json(tmp_path: Path, capsys)
     payload = json.loads(capsys.readouterr().out)
     assert payload["tournament"]["id"] == "t1"
     assert len(payload["tournament"]["teams"]) == 4
+
+
+def test_season_inspect_candidates_cli_returns_legal_verdicts(
+    tmp_path: Path, capsys
+) -> None:
+    root = _promote(tmp_path)
+
+    args = build_parser().parse_args(
+        [
+            "season",
+            "inspect",
+            "candidates",
+            "--season",
+            "2026-2027",
+            "--tournament-id",
+            "t1",
+            "--replace",
+            "D1",
+            "--legal-only",
+            "--root",
+            str(root),
+            "--json",
+        ]
+    )
+    rc = _cmd_season(args)
+
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["validated"] is True
+    assert [candidate["label"] for candidate in payload["candidates"]] == ["G1"]
+    assert payload["candidates"][0]["verdict"]["applicable"] is True
