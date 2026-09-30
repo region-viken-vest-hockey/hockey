@@ -289,6 +289,16 @@ def confirm_calendar_booking(
     )
     if original_tournament is None:
         raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
+    # A cancelled tournament is not an active placement. Binding and approving
+    # it here would leave a spurious approval/placement lock that the candidate
+    # verifier (which excludes cancelled tournaments) never sees, but that
+    # ``canonical_locked_tournament_missing`` then reports as a hard violation.
+    # Validate the lifecycle fact before any alignment or decision write, the
+    # same way the other canonical mutation use cases refuse a cancelled target.
+    if original_tournament.get("cancelled"):
+        raise SeasonStateError(
+            f"Tournament {tournament_id} is cancelled and cannot be confirmed as a booking"
+        )
     event_club = str(event.get("club") or "")
     if not club_calendar_positive_evidence_usable(base_problem, event_club):
         raise SeasonStateError(
