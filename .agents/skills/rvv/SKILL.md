@@ -22,7 +22,7 @@ Load only the capability guidance needed for the task:
 
 Combine capability files only when the task actually crosses those boundaries. For example, reconciling a booking against a refreshed host calendar loads production + sources; republishing a corrected sealed season loads production + publication.
 
-**Default for the current 2026–2027 season:** it is published/sealed, so ordinary operational work routes to `production/SKILL.md`, not planning. Do not load Stage 3/SeasonPlanner guidance merely because a maintenance operation is difficult.
+**Lifecycle routing is state-derived:** establish the authoritative season lifecycle first. A promoted/published/sealed season routes ordinary operational work to `production/SKILL.md`; an initial/new-season planning lifecycle routes to `planning/SKILL.md`. Do not encode a season/year's current lifecycle in permanent instructions, and do not load Stage 3/SeasonPlanner guidance merely because a maintenance operation is difficult.
 
 Exact command execution belongs in [`.agents/commands/rvv-miniputt/`](../../commands/rvv-miniputt/). Load the specific procedure only when executing that workflow; do not preload the entire command directory.
 
