@@ -331,7 +331,7 @@ function render() {
       : '';
     var approvalBadge = '';
     if (t.ap === 'approved') {
-      approvalBadge = '<div class="approval-badge' + (t.apl ? ' approval-badge--locked' : '') + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>GODKJENT' + (t.apl ? ' · LÅST' : '') + '</div>';
+      approvalBadge = '<div class="approval-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>GODKJENT</div>';
     } else if (t.ap === 'stale_approval') {
       approvalBadge = '<div class="approval-badge approval-badge--stale"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>GODKJENNING UTGÅR</div>';
     }
