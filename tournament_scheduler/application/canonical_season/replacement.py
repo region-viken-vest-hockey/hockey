@@ -204,6 +204,56 @@ def _affected_participation_counts(
     }
 
 
+def blocked_replacement_preview(
+    *,
+    season: str,
+    schedule: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+    tournament_id: str,
+    remove_team_label: str,
+    add_team_label: str,
+    reason: str,
+    request_id: str | None = None,
+) -> dict[str, Any]:
+    """Return the stable dry-run shape for a replacement that cannot be built.
+
+    Dry-run is an operational validation interface, not a mutation probe. Domain
+    infeasibility therefore reports a blocked verdict in the normal preview
+    contract instead of forcing callers to catch exceptions and parse messages.
+    Non-dry-run apply still raises and writes nothing.
+    """
+
+    before_revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
+    details = {
+        "tournament_id": tournament_id,
+        "removed_team": {"label": remove_team_label},
+        "added_team": {"label": add_team_label},
+        "before_fingerprint": before_revision,
+        "candidate_revision": None,
+        "request_id": str(request_id or ""),
+        "can_apply_unchanged": False,
+        "refusal_reasons": [reason],
+    }
+    return {
+        "season": season,
+        "dry_run": True,
+        "current_revision": schedule.get("revision"),
+        "current_fingerprint": schedule.get("fingerprint"),
+        "current_canonical_revision": canonical_state_revision(schedule, decisions),
+        "candidate_revision": None,
+        "candidate_fingerprint": None,
+        "verification_result": {"ok": False, "violations": []},
+        "change_cost": None,
+        "verdict": {
+            "status": "blocked",
+            "applicable": False,
+            "checks": {"candidate_constructed": False},
+            "blockers": [reason],
+        },
+        "replacement": details,
+    }
+
+
 def replacement_verdict(
     details: Mapping[str, Any],
     *,
@@ -277,17 +327,41 @@ def replace_participant(
         tournament,
     )
     if resolved["participants_locked"]:
-        raise SeasonStateError(
-            f"Tournament {tournament_id} has an active participant lock; unapprove it explicitly first"
-        )
+        message = f"Tournament {tournament_id} has an active participant lock; unapprove it explicitly first"
+        if dry_run:
+            return blocked_replacement_preview(
+                season=season,
+                schedule=schedule,
+                decisions=decisions,
+                tournament_id=tournament_id,
+                remove_team_label=remove_team_label,
+                add_team_label=add_team_label,
+                reason=message,
+                request_id=request_id,
+            )
+        raise SeasonStateError(message)
 
-    replacement = _apply_replace_participant_to_plan(
-        plan,
-        tournament_id=tournament_id,
-        remove_team_label=remove_team_label,
-        add_team_label=add_team_label,
-        problem=resolved_problem,
-    )
+    try:
+        replacement = _apply_replace_participant_to_plan(
+            plan,
+            tournament_id=tournament_id,
+            remove_team_label=remove_team_label,
+            add_team_label=add_team_label,
+            problem=resolved_problem,
+        )
+    except SeasonStateError as exc:
+        if dry_run:
+            return blocked_replacement_preview(
+                season=season,
+                schedule=schedule,
+                decisions=decisions,
+                tournament_id=tournament_id,
+                remove_team_label=remove_team_label,
+                add_team_label=add_team_label,
+                reason=str(exc),
+                request_id=request_id,
+            )
+        raise
     candidate_tournament = replacement["tournament"]
     removed_team = replacement["removed_team"]
     added_team = replacement["added_team"]
@@ -304,9 +378,19 @@ def replace_participant(
     lock_violations = verify_canonical_locks(baseline, plan)
     if lock_violations:
         messages = "; ".join(str(v.get("message")) for v in lock_violations)
-        raise SeasonStateError(
-            f"Refusing canonical participant replacement: candidate violates canonical locks: {messages}"
-        )
+        message = f"candidate violates canonical locks: {messages}"
+        if dry_run:
+            return blocked_replacement_preview(
+                season=season,
+                schedule=schedule,
+                decisions=decisions,
+                tournament_id=tournament_id,
+                remove_team_label=remove_team_label,
+                add_team_label=add_team_label,
+                reason=message,
+                request_id=request_id,
+            )
+        raise SeasonStateError(f"Refusing canonical participant replacement: {message}")
 
     result = verify_canonical_candidate(plan, resolved_problem)
     if not result.get("ok", True):
@@ -314,9 +398,19 @@ def replace_participant(
             str(v.get("message") or v.get("code"))
             for v in result.get("violations", [])
         )
-        raise SeasonStateError(
-            f"Refusing canonical participant replacement: candidate fails hard verification: {messages}"
-        )
+        message = f"candidate fails hard verification: {messages}"
+        if dry_run:
+            return blocked_replacement_preview(
+                season=season,
+                schedule=schedule,
+                decisions=decisions,
+                tournament_id=tournament_id,
+                remove_team_label=remove_team_label,
+                add_team_label=add_team_label,
+                reason=message,
+                request_id=request_id,
+            )
+        raise SeasonStateError(f"Refusing canonical participant replacement: {message}")
 
     from tournament_scheduler.hosting_responsibility import (
         unexplained_responsibility_transfers,
@@ -329,10 +423,19 @@ def replace_participant(
     )
     if transfers:
         messages = "; ".join(str(entry.get("message")) for entry in transfers)
-        raise SeasonStateError(
-            "Refusing canonical participant replacement: candidate transfers hosting "
-            f"responsibility: {messages}"
-        )
+        message = f"candidate transfers hosting responsibility: {messages}"
+        if dry_run:
+            return blocked_replacement_preview(
+                season=season,
+                schedule=schedule,
+                decisions=decisions,
+                tournament_id=tournament_id,
+                remove_team_label=remove_team_label,
+                add_team_label=add_team_label,
+                reason=message,
+                request_id=request_id,
+            )
+        raise SeasonStateError(f"Refusing canonical participant replacement: {message}")
 
     before_guest_signature = _guest_reservation_signature(before_plan)
     after_guest_signature = _guest_reservation_signature(plan)
