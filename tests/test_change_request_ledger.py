@@ -157,6 +157,46 @@ def test_change_request_ledger_groups_constraints_moves_and_withdrawals(tmp_path
     assert "Ringerike:R1:JU8" in withdrawal["affected_teams"]
 
 
+def test_uncorrelated_legacy_history_uses_separate_unknown_buckets(tmp_path: Path) -> None:
+    _write_state(
+        tmp_path,
+        decisions={
+            "history": [
+                {
+                    "event": "move",
+                    "timestamp": "2026-09-01T08:00:00+00:00",
+                    "actor": "operator",
+                    "tournament_id": "rvv-001",
+                    "details": {
+                        "old_placement": {"date": "2026-11-07"},
+                        "new_placement": {"date": "2026-11-14"},
+                    },
+                },
+                {
+                    "event": "move",
+                    "timestamp": "2026-09-02T08:00:00+00:00",
+                    "actor": "operator",
+                    "tournament_id": "rvv-002",
+                    "details": {
+                        "old_placement": {"date": "2026-12-05"},
+                        "new_placement": {"date": "2026-12-12"},
+                    },
+                },
+            ],
+        },
+    )
+
+    ledger = change_request_ledger(SEASON, root=tmp_path)
+    unknown = [item for item in ledger["requests"] if item["request_id"] is None]
+
+    assert len(unknown) == 2
+    assert {item["bucket_id"] for item in unknown} == {
+        "unknown:move:rvv-001:2026-09-01T08:00:00+00:00:0",
+        "unknown:move:rvv-002:2026-09-02T08:00:00+00:00:1",
+    }
+    assert all(len(item["mutations"]) == 1 for item in unknown)
+
+
 def test_change_log_markdown_is_deterministic_and_cli_can_write(tmp_path: Path, capsys) -> None:
     _write_state(
         tmp_path,

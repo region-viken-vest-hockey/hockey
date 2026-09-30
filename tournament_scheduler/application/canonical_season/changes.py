@@ -84,11 +84,18 @@ def _combine_status(statuses: list[str]) -> str:
     return sorted(values, key=_status_rank)[0]
 
 
-def _request_bucket(requests: dict[str, dict[str, Any]], request_id: str) -> dict[str, Any]:
-    key = request_id.strip() or UNKNOWN_REQUEST_ID
+def _request_bucket(
+    requests: dict[str, dict[str, Any]],
+    request_id: str,
+    *,
+    bucket_key: str | None = None,
+) -> dict[str, Any]:
+    semantic_request_id = request_id.strip() or UNKNOWN_REQUEST_ID
+    key = bucket_key or semantic_request_id
     if key not in requests:
         requests[key] = {
-            "request_id": key,
+            "bucket_id": key,
+            "request_id": None if semantic_request_id == UNKNOWN_REQUEST_ID else semantic_request_id,
             "created_at": None,
             "sources": [],
             "actors": [],
@@ -317,15 +324,33 @@ def change_request_ledger(service, season: str) -> dict[str, Any]:
         "ban_date",
         "unban_date",
     }
-    for event in decisions.get("history", []) or []:
+    for index, event in enumerate(decisions.get("history", []) or []):
         if not isinstance(event, Mapping):
             continue
         event_name = _text(event.get("event"))
         if event_name not in tracked_events:
             continue
         request_id, inferred = _history_request_id(event, protection_index)
-        bucket = _request_bucket(requests, request_id)
-        _touch_created(bucket, event.get("timestamp") or event.get("created_at"))
+        timestamp = event.get("timestamp") or event.get("created_at")
+        tournament_id = _text(event.get("tournament_id")) or "season"
+        bucket_key = None
+        if request_id == UNKNOWN_REQUEST_ID:
+            details = event.get("details") if isinstance(event.get("details"), Mapping) else {}
+            revision = _text(details.get("before_canonical_revision") or details.get("source_revision"))
+            bucket_key = ":".join(
+                part
+                for part in (
+                    UNKNOWN_REQUEST_ID,
+                    event_name,
+                    tournament_id,
+                    _text(timestamp),
+                    revision,
+                    str(index),
+                )
+                if part
+            )
+        bucket = _request_bucket(requests, request_id, bucket_key=bucket_key)
+        _touch_created(bucket, timestamp)
         _add_unique(bucket, "actors", event.get("actor"))
         _add_unique(bucket, "notes", event.get("note"))
         _add_unique(bucket, "types", event_name)
@@ -422,7 +447,7 @@ def render_change_log_markdown(ledger: Mapping[str, Any]) -> str:
             + " | ".join(
                 _md_escape(value)
                 for value in (
-                    f"`{item.get('request_id')}`",
+                    f"`{item.get('request_id') or item.get('bucket_id') or UNKNOWN_REQUEST_ID}`",
                     source,
                     _summarize_request(item),
                     affected,
@@ -436,7 +461,7 @@ def render_change_log_markdown(ledger: Mapping[str, Any]) -> str:
     for item in requests:
         lines.extend(
             [
-                f"### `{item.get('request_id')}`",
+                f"### `{item.get('request_id') or item.get('bucket_id') or UNKNOWN_REQUEST_ID}`",
                 "",
                 f"- Status: **{item.get('status') or 'unknown'}**",
                 f"- Created/received: {item.get('created_at') or 'unknown'}",
