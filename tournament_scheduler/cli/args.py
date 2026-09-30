@@ -1726,6 +1726,20 @@ def build_parser() -> argparse.ArgumentParser:
     season_constraints.add_argument("--all", action="store_true", help="Include released constraints")
     season_constraints.add_argument("--json", action="store_true", help="Print the constraint report as JSON")
 
+    season_changes = season_sub.add_parser(
+        "changes",
+        help="Project canonical decisions into a request-grouped change ledger",
+    )
+    season_changes.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_changes.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_changes.add_argument("--json", action="store_true", help="Print the stable ledger schema as JSON")
+    season_changes.add_argument("--markdown", action="store_true", help="Print the generated Markdown ledger")
+    season_changes.add_argument(
+        "--write",
+        action="store_true",
+        help="Write season/<season>/change-log.md from the projection",
+    )
+
     season_add_constraint = season_sub.add_parser(
         "add-constraint",
         help="Persist one validated typed request constraint (decision-only write)",
