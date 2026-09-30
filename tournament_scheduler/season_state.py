@@ -74,6 +74,7 @@ __all__ = [
     "calendar_booking_candidates",
     "calendar_booking_findings",
     "change_protection_report",
+    "change_request_ledger",
     "clear_ice_time_minutes",
     "clear_manual_booking_assertion",
     "club_booking_sources",
@@ -916,6 +917,16 @@ def request_constraint_report(
         season,
         include_released=include_released,
     )
+
+
+def change_request_ledger(
+    season: str,
+    *,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+) -> dict[str, Any]:
+    """Return the canonical request-grouped change ledger projection."""
+
+    return _service(root).change_request_ledger(season)
 
 
 def add_request_constraint(

@@ -23,7 +23,7 @@ layer that sequences them.
 
 ``CanonicalSeasonService`` is a stable facade. The use-case implementations
 live in the cohesive modules/packages under :mod:`tournament_scheduler.application.canonical_season`
-(``baseline``, ``calendars``, ``constraints``, ``placements``, ``normalization``,
+(``baseline``, ``calendars``, ``changes``, ``constraints``, ``placements``, ``normalization``,
 ``roster``, ``replacement``, ``batch``, ``candidates``, ``guest_slots``,
 ``approvals``), while the one shared load -> verify -> reconcile -> history ->
 revision -> atomic-write lifecycle is owned by
@@ -51,6 +51,7 @@ from .canonical_season import (
     batch as _batch,
     calendars as _calendars,
     candidates as _candidates,
+    changes as _changes,
     config_reconciliation as _config_reconciliation,
     constraints as _constraints,
     export_freshness as _export_freshness,
@@ -236,6 +237,9 @@ class CanonicalSeasonService:
         include_released: bool = False,
     ) -> dict[str, Any]:
         return _constraints.request_constraint_report(self, season=season, include_released=include_released)
+
+    def change_request_ledger(self, season: str) -> dict[str, Any]:
+        return _changes.change_request_ledger(self, season=season)
 
     def tournament_inspection(
         self,
