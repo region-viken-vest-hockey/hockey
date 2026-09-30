@@ -45,6 +45,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
+from .finding_resolution import is_blocking_finding
 from .pipeline.fingerprints import stable_payload_sha256
 from .final_verification import verify_canonical_candidate
 from .planning_contract import score_candidate
@@ -936,8 +937,33 @@ def _accepted_finding_ids(findings: Sequence[Mapping[str, Any]]) -> set[str]:
     return {
         str(finding.get("finding_id") or "")
         for finding in findings
-        if isinstance(finding, Mapping) and (finding.get("accepted") or finding.get("acceptance_id"))
+        if isinstance(finding, Mapping)
+        and (
+            finding.get("accepted")
+            or finding.get("acceptance_id")
+            or (
+                isinstance(finding.get("resolution"), Mapping)
+                and not bool(finding["resolution"].get("blocking", True))
+            )
+        )
     }
+
+
+def _unresolved_findings(findings: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    return [finding for finding in findings if is_blocking_finding(finding)]
+
+
+def _resolved_statuses_by_rule(findings: Sequence[Mapping[str, Any]]) -> dict[str, list[str]]:
+    out: dict[str, set[str]] = {}
+    for finding in findings:
+        resolution = finding.get("resolution")
+        if not isinstance(resolution, Mapping) or bool(resolution.get("blocking", True)):
+            continue
+        rule_id = str(finding.get("rule_id") or "")
+        status = str(resolution.get("status") or "")
+        if rule_id and status:
+            out.setdefault(rule_id, set()).add(status)
+    return {rule_id: sorted(statuses) for rule_id, statuses in out.items()}
 
 
 def _check_rule(
@@ -1038,8 +1064,9 @@ def season_wide_audit(
     audited plan still matches the canonical revision re-read after the audit.
     """
     entries = list(catalog) if catalog is not None else list(CATALOG_BY_ID.values())
-    finding_rule_ids = _finding_rule_ids(findings)
-    finding_codes = _finding_codes(findings)
+    unresolved_findings = _unresolved_findings(findings)
+    finding_rule_ids = _finding_rule_ids(unresolved_findings)
+    finding_codes = _finding_codes(unresolved_findings)
     violation_codes = {
         str(violation.get("code") or "")
         for violation in verification.get("violations") or []
@@ -1052,6 +1079,7 @@ def season_wide_audit(
             if finding.get("finding_id") in _accepted_finding_ids(findings)
         ]
     ) - {""}
+    resolved_statuses_by_rule = _resolved_statuses_by_rule(findings)
     score_paths = _score_paths(score)
     verification_ok = bool(verification.get("ok"))
     covered_owners = set(covered_verifier_owners)
@@ -1076,6 +1104,9 @@ def season_wide_audit(
                 # for a check whose owner did not run.
                 result["status"] = "incomplete"
                 result["incomplete_reason"] = str(reason)
+            resolved_statuses = resolved_statuses_by_rule.get(result["rule_id"])
+            if resolved_statuses:
+                result["resolved_statuses"] = resolved_statuses
             checks.append(result)
 
     incomplete = [check for check in checks if check["status"] == "incomplete" and check["mandatory"]]
@@ -1093,8 +1124,7 @@ def season_wide_audit(
     blocking_findings = [
         finding
         for finding in findings
-        if str(finding.get("severity") or "").lower() == "hard"
-        and str(finding.get("finding_id") or "") not in _accepted_finding_ids(findings)
+        if str(finding.get("severity") or "").lower() == "hard" and is_blocking_finding(finding)
     ]
     reconciliation_ok = (
         None if not reconciliation else bool(reconciliation.get("ok"))
