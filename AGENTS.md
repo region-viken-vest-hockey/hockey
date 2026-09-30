@@ -109,6 +109,20 @@ A persistent scheduling invariant must not live only in a baseline generator, on
 
 For obligations such as hosting, keep **responsibility** separate from **automatic placement**. If the fair/intended host has no trustworthy/legal slot, preserve that host responsibility and surface manual placement; do not silently move the burden to another club merely because its calendar is easier.
 
+### Published-season production architecture
+
+The current 2026–2027 season is published/sealed. **Production maintenance is the default architectural priority until the next initial-planning cycle.** For booking/calendar reconciliation, participant changes, request constraints, scoped moves, cancellations, audit/export and publication work, optimize for safe incremental canonical maintenance rather than planner/Stage 3 cleanup.
+
+- Start from the smallest stable **production capability facade** and load its focused implementation/tests on demand. A facade should make the supported operations, typed contract, invariants, implementation owner and test owner discoverable without requiring the agent to ingest unrelated internals. This is progressive context loading, not abstraction for its own sake.
+- Preserve one shared revision-bound canonical mutation pattern: authoritative baseline -> candidate change in memory -> effective baseline/candidate facts -> classify resolved/unchanged/new/worsened findings -> operation-specific policy -> exact preview -> atomic commit against the same revision -> reload/verify/audit. Do not implement caller-local acceptability shortcuts.
+- Verification, reconciliation, mutation, audit/export and publication must converge on one revision-bound **effective canonical projection**. Their policy gates may differ, but they must not independently reconstruct contradictory season facts or create parallel evidence engines.
+- Keep capability facades thin and implementation slices cohesive. Prefer direct delegation/composition; avoid facade -> service -> manager -> strategy chains that only add navigation. Consumers should use the public capability boundary rather than import private helpers across capabilities when a stable contract exists.
+- Treat #575's canonical calendar package as the reference direction for production decomposition: stable public surface, focused implementation owners, behavior preserved. Track broader production convergence under #576. Concrete defects keep their own acceptance criteria; do not hide semantic changes inside refactors.
+- **Do not opportunistically refactor `SeasonPlanner`, Stage 3 optimization, or initial-planning algorithms while solving published-season maintenance.** That work remains the next-season architecture track (#358) unless the current production task demonstrably requires a shared planner-independent contract. Never invoke planner search/replanning merely to make a maintenance mutation pass.
+- Refactor production code incrementally when it reduces the context/surface needed for the current or clearly recurring maintenance capability. Characterize behavior first, preserve public signatures where practical, and add architecture tests that prevent new private cross-capability coupling or duplicate verification/evidence ownership.
+
+For a normal published-season task, the intended mental model is: **one capability contract + the common canonical mutation/effective-state boundary + focused implementation/tests**. If an implementation agent needs broad Stage 3/SeasonPlanner context for an ordinary booking, calendar, participant, constraint, move or cancellation change, stop and check whether it is crossing the wrong architectural boundary.
+
 ### Design for agent locality and safe change
 
 Before adding a feature or modifying an existing one, briefly identify the **canonical owner, stable caller-facing boundary, adjacent responsibilities, and tests**. Ask whether the proposed change can be understood and verified by reading a small, cohesive set of complete modules. This is a design check, not a requirement to refactor every touched file.
