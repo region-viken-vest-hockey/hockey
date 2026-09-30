@@ -36,6 +36,7 @@ These apply across all capabilities:
 - Never hand-edit canonical season state, decisions, pipeline checkpoints, generated exports or audit artifacts to obtain a desired result.
 - Hard validity and durable identity are repository-owned. A prompt, approval, lock, waiver, booking assertion or semantic audit cannot silently override a different authority.
 - Preserve provenance and revision/fingerprint identity. Reject stale candidate/action/evidence rather than combining state from different revisions.
+- Answer routine season/operational investigation through repository-owned read-only projections and the documented procedures (`season inspect ...`, `season constraints`, `season booking-status`, `season findings`, ...) — not by parsing canonical `schedule.json`/`decisions.json`/export artifacts with `python -c`, `jq`, shell pipelines or temporary scripts. Raw artifact parsing couples the harness to internal schema and duplicates domain semantics outside tests. If a needed query is not exposed, surface the tooling gap and add the projection at its canonical owner with tests; do not silently script around it.
 - Fix defects at the canonical owner. Do not compensate in a caller, renderer, adapter or harness instruction.
 - Generated output is derived data. Correct authoritative input/code/canonical state and regenerate.
 - Planning/export does not imply publication. Publication and rollback require their explicit supported workflow and operator authority.

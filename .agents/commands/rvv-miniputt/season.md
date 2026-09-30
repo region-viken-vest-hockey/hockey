@@ -45,7 +45,15 @@ Never infer or auto-select reopening because a repair/replan path is convenient.
 ```bash
 scripts/rvv-miniputt season status --season <season>
 scripts/rvv-miniputt season approvals --season <season>
+scripts/rvv-miniputt season inspect tournament --season <season> --tournament-id <id>
+scripts/rvv-miniputt season inspect constraints --season <season> --team "<club-or-label>"
+scripts/rvv-miniputt season inspect constraints --season <season> --tournament-id <id>
+scripts/rvv-miniputt season inspect candidates --season <season> --tournament-id <id>
 ```
+
+`season inspect` is the read-only domain interface for routine investigation: one tournament with its roster, approval/booking state, relevant request constraints and decision history; request constraints filtered by team/tournament/date; and registered same-age replacement candidates for a tournament. Every command supports `--json` for exact evidence, and none of them mutate canonical state.
+
+Use these repository-owned projections (and the other documented `season`/`status`/`findings` commands) instead of parsing `season/<season>/schedule.json` or `decisions.json` directly with `python -c`, `jq`, shell pipelines or temporary scripts. Raw parsing bypasses domain resolution (approval staleness, derived constraint satisfaction, registered-team validation) and duplicates it outside tests. If an operational question has no supported projection, treat it as a tooling gap: report it and add the projection at its canonical owner with tests rather than scripting around it. Generic developer debugging on non-operational artifacts is not a substitute for an operational answer.
 
 Treat `season/<season>/schedule.json` and `decisions.json` as the current operational truth. `.pipeline` remains transient run/search/evidence state.
 

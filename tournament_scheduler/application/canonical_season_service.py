@@ -57,6 +57,7 @@ from .canonical_season import (
     guest_slots as _guest_slots,
     history as _history,
     ice_time as _ice_time,
+    inspection as _inspection,
     lifecycle as _lifecycle,
     lifecycle_status as _lifecycle_status,
     normalization as _normalization,
@@ -235,6 +236,52 @@ class CanonicalSeasonService:
         include_released: bool = False,
     ) -> dict[str, Any]:
         return _constraints.request_constraint_report(self, season=season, include_released=include_released)
+
+    def tournament_inspection(
+        self,
+        *,
+        season: str,
+        tournament_id: str,
+        include_released_constraints: bool = False,
+    ) -> dict[str, Any]:
+        return _inspection.tournament_inspection(
+            self,
+            season=season,
+            tournament_id=tournament_id,
+            include_released_constraints=include_released_constraints,
+        )
+
+    def constraint_inspection(
+        self,
+        *,
+        season: str,
+        team: str | None = None,
+        tournament_id: str | None = None,
+        date: str | None = None,
+        include_released: bool = False,
+    ) -> dict[str, Any]:
+        return _inspection.constraint_inspection(
+            self,
+            season=season,
+            team=team,
+            tournament_id=tournament_id,
+            date=date,
+            include_released=include_released,
+        )
+
+    def replacement_candidates(
+        self,
+        *,
+        season: str,
+        tournament_id: str,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        return _inspection.replacement_candidates(
+            self,
+            season=season,
+            tournament_id=tournament_id,
+            limit=limit,
+        )
 
     def add_request_constraint(
         self,

@@ -2108,6 +2108,44 @@ def build_parser() -> argparse.ArgumentParser:
     season_inventory.add_argument("--pipeline-root", default=".pipeline", help="Pipeline work directory (default: .pipeline)")
     season_inventory.add_argument("--json", action="store_true", help="Print the inventory as JSON")
 
+    season_inspect = season_sub.add_parser(
+        "inspect",
+        help="Read-only domain inspection of one tournament/roster/status, filtered constraints or replacement candidates",
+    )
+    season_inspect_sub = season_inspect.add_subparsers(dest="inspect_command", title="inspect commands")
+
+    season_inspect_tournament = season_inspect_sub.add_parser(
+        "tournament",
+        help="Inspect one canonical tournament: placement, roster, approval/booking state and relevant constraints",
+    )
+    season_inspect_tournament.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_inspect_tournament.add_argument("--tournament-id", required=True, help="Durable tournament id to inspect")
+    season_inspect_tournament.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_inspect_tournament.add_argument("--all", action="store_true", help="Include released constraints")
+    season_inspect_tournament.add_argument("--json", action="store_true", help="Print the inspection as JSON")
+
+    season_inspect_constraints = season_inspect_sub.add_parser(
+        "constraints",
+        help="Inspect request constraints filtered by team, tournament or date",
+    )
+    season_inspect_constraints.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_inspect_constraints.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_inspect_constraints.add_argument("--team", default=None, help="Filter by team club or label")
+    season_inspect_constraints.add_argument("--tournament-id", default=None, help="Only constraints relevant to this tournament")
+    season_inspect_constraints.add_argument("--date", default=None, help="Only constraints whose date window contains YYYY-MM-DD")
+    season_inspect_constraints.add_argument("--all", action="store_true", help="Include released constraints")
+    season_inspect_constraints.add_argument("--json", action="store_true", help="Print the constraint report as JSON")
+
+    season_inspect_candidates = season_inspect_sub.add_parser(
+        "candidates",
+        help="List registered same-age replacement candidates for one tournament",
+    )
+    season_inspect_candidates.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_inspect_candidates.add_argument("--tournament-id", required=True, help="Durable tournament id to find candidates for")
+    season_inspect_candidates.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_inspect_candidates.add_argument("--limit", type=int, default=None, help="Maximum number of candidates to return")
+    season_inspect_candidates.add_argument("--json", action="store_true", help="Print the candidates as JSON")
+
     season_repair = season_sub.add_parser(
         "repair-options",
         help="Enumerate deterministic repair options for one selected finding",
