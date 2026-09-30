@@ -431,7 +431,7 @@
     ]
   },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+  "fingerprint": "adf533a8fea3c24c55ba2f4dcc62da451f36b12744f9db756a6f1e7f1687138f",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -11388,7 +11388,7 @@
         },
         {
           "code": "external_calendar_conflicts",
-          "count": 31
+          "count": 13
         },
         {
           "code": "participation_shortfalls",
@@ -16882,7 +16882,7 @@
         ],
         "host_club": "Jutul",
         "id": "rvv-0064",
-        "start_time": "16:00",
+        "start_time": "16:10",
         "teams": [
           {
             "age_group": "U10",
@@ -17932,7 +17932,7 @@
         ],
         "host_club": "Jutul",
         "id": "rvv-0080",
-        "start_time": "14:20",
+        "start_time": "14:30",
         "teams": [
           {
             "age_group": "U12",
@@ -23564,7 +23564,7 @@
         ],
         "host_club": "Jutul",
         "id": "rvv-0146",
-        "start_time": "14:20",
+        "start_time": "14:30",
         "teams": [
           {
             "age_group": "U12",
@@ -29108,7 +29108,7 @@
         ],
         "host_club": "Jutul",
         "id": "rvv-0044",
-        "start_time": "17:20",
+        "start_time": "17:30",
         "teams": [
           {
             "age_group": "U11",
@@ -33443,20 +33443,6 @@
     ],
     "unresolved_external_conflicts": [
       {
-        "age_group": "U8",
-        "date": "2026-12-12",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0015"
-      },
-      {
-        "age_group": "U11",
-        "date": "2027-01-16",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0022"
-      },
-      {
         "age_group": "U9",
         "date": "2026-12-06",
         "host_club": "Sandefjord Penguins",
@@ -33464,67 +33450,11 @@
         "tournament_id": "rvv-0024"
       },
       {
-        "age_group": "U12",
-        "date": "2026-11-28",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0036"
-      },
-      {
         "age_group": "U8",
         "date": "2026-11-01",
         "host_club": "Sandefjord Penguins",
         "reason": "external calendar conflict requires manual resolution",
         "tournament_id": "rvv-0037"
-      },
-      {
-        "age_group": "U10",
-        "date": "2026-11-28",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0043"
-      },
-      {
-        "age_group": "U9",
-        "date": "2026-12-13",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0058"
-      },
-      {
-        "age_group": "U10",
-        "date": "2027-03-13",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0064"
-      },
-      {
-        "age_group": "JU12",
-        "date": "2027-03-13",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0072"
-      },
-      {
-        "age_group": "U11",
-        "date": "2027-01-23",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0074"
-      },
-      {
-        "age_group": "U12",
-        "date": "2026-12-12",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0080"
-      },
-      {
-        "age_group": "JU8",
-        "date": "2026-11-07",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0089"
       },
       {
         "age_group": "U12",
@@ -33541,13 +33471,6 @@
         "tournament_id": "rvv-0102"
       },
       {
-        "age_group": "U12",
-        "date": "2027-01-16",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0106"
-      },
-      {
         "age_group": "U9",
         "date": "2026-11-21",
         "host_club": "Jutul",
@@ -33562,41 +33485,6 @@
         "tournament_id": "rvv-0121"
       },
       {
-        "age_group": "U10",
-        "date": "2027-01-24",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0122"
-      },
-      {
-        "age_group": "JU12",
-        "date": "2027-02-13",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0130"
-      },
-      {
-        "age_group": "U12",
-        "date": "2027-02-13",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0137"
-      },
-      {
-        "age_group": "U12",
-        "date": "2027-03-13",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0146"
-      },
-      {
-        "age_group": "U8",
-        "date": "2027-02-20",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0151"
-      },
-      {
         "age_group": "U12",
         "date": "2027-02-21",
         "host_club": "Frisk Asker",
@@ -33609,13 +33497,6 @@
         "host_club": "Frisk Asker",
         "reason": "external calendar conflict requires manual resolution",
         "tournament_id": "rvv-0157"
-      },
-      {
-        "age_group": "U7",
-        "date": "2027-02-14",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0167"
       },
       {
         "age_group": "U12",
@@ -33651,13 +33532,6 @@
         "host_club": "Frisk Asker",
         "reason": "external calendar conflict requires manual resolution",
         "tournament_id": "rvv-0128"
-      },
-      {
-        "age_group": "U9",
-        "date": "2026-12-19",
-        "host_club": "Jutul",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0092"
       }
     ],
     "unresolved_hosting_obligations": [],
@@ -40604,10 +40478,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "aacca88fa81069c751b4b6be1ea7c809de993df939c7dd6fe13c92be77e3cbb2",
+  "revision": "adf533a8fea3c24c55ba2f4dcc62da451f36b12744f9db756a6f1e7f1687138f",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-30T20:15:29.486280+00:00",
+  "updated_at": "2026-09-30T21:52:10.019152+00:00",
   "verification_context": {
     "calendar_evidence": {
       "blocked_sources": [],
