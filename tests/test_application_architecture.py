@@ -177,12 +177,18 @@ def test_production_capability_map_points_at_public_facade_and_focused_tests():
         assert capability.focused_tests, capability.key
         assert "SeasonPlanner" not in capability.implementation_owner
         assert "stage3" not in capability.implementation_owner.lower()
-        assert any("CanonicalSeasonService" in item for item in capability.invariants)
+        assert capability.boundary in {"canonical", "delivery"}
 
         for api in capability.public_api:
             prefix, _, method_name = api.partition(".")
-            assert prefix == "CanonicalSeasonService", api
-            assert f"def {method_name}(" in service_source, api
+            if prefix == "CanonicalSeasonService":
+                assert f"def {method_name}(" in service_source, api
+            else:
+                assert capability.boundary == "delivery", api
+
+        if capability.boundary == "canonical":
+            assert all(api.startswith("CanonicalSeasonService.") for api in capability.public_api)
+            assert any("CanonicalSeasonService" in item for item in capability.invariants)
 
         for test_path in capability.focused_tests:
             assert Path(test_path).exists(), f"{capability.key} references missing test {test_path}"
@@ -200,7 +206,13 @@ def test_production_capability_map_is_navigation_not_private_policy():
     assert class_defs == ["ProductionCapability"]
     for capability in PRODUCTION_CAPABILITIES:
         assert not any("._" in api for api in capability.public_api), capability
-        assert not any("verify_candidate" in invariant for invariant in capability.invariants), capability
+
+    # Navigation metadata may name verifier ownership, but must never become a
+    # second feasibility implementation or grant semantic audit override authority.
+    source_lower = source.lower()
+    assert "cpmodel(" not in source_lower
+    assert "cpsolver(" not in source_lower
+    assert "semantic audit cannot replace or override" in source_lower
 
 
 def test_canonical_season_state_has_one_persistence_owner():
