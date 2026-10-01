@@ -531,7 +531,7 @@ Once a verified schedule is promoted, normal planning becomes baseline-aware:
   adoption, confirmation/reconciliation and bounded search report identical
   structured evidence. Unchanged *unaccepted* legacy debt is never silently
   approved and remains blocking;
-- `season approve` / `season unapprove` owns the approval lifecycle;
+- `season approve` / `season unapprove` owns the approval lifecycle; an approval verifies the promoted plan against the same overlay-resolved canonical problem as findings/export (accepted booking associations, manual assertions, ice-time overrides, date/participation overlays) and the same `canonical_exception_policy` classifier, so an exact accepted short booking is approvable while an unaccepted below-floor interval stays hard;
 - changed approval fingerprints become `stale_approval` and require explicit reapproval; a placement approval is scoped to its placement (a verified roster-only change leaves it current) while a participant-locked approval also tracks the roster/game structure;
 - `season export` projects the exact current canonical revision before audit/publication and, on success, clears the revision-bound "fresh export required" marker that a calendar refresh or config reconciliation set (a later canonical mutation re-arms it). The clearing is decision-only export provenance, never a schedule mutation, so published-baseline replay treats a `mark_export_fresh` history event as a no-op, and it is idempotent: re-exporting the same revision appends no duplicate history and does not churn canonical state. An export whose snapshot is overtaken by a newer canonical revision is recorded as a failed stage with its artifacts retained for diagnosis, never as a publishable success.
 
