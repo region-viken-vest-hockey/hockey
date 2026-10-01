@@ -44,6 +44,7 @@ SPOND_IMPORT_HEADERS = (
     "Sted",
 )
 HELPER_HEADERS = (
+    "Lag-ID",
     "Lag",
     "Klubb",
     "Aldersgruppe",
@@ -95,6 +96,7 @@ class SpondImportRow:
             self.title,
             self.description,
             self.venue,
+            team_identity(self.team_key),
             self.team,
             self.club,
             self.age_group,
@@ -130,6 +132,11 @@ def project_spond_import_rows(
                 continue
             rows.append(_row_for(tournament, participant.label, participant.club, ice_time))
     return rows
+
+
+def team_identity(key: TeamKey) -> str:
+    """Single-cell durable team identity (club, label, age group) for filtering."""
+    return " · ".join(key)
 
 
 def team_keys(rows: Iterable[SpondImportRow]) -> list[TeamKey]:

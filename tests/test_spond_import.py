@@ -11,6 +11,7 @@ from tournament_scheduler.spond.spond_import import (
     SPOND_IMPORT_HEADERS,
     SPOND_IMPORT_SHEET,
     project_spond_import_rows,
+    team_identity,
     write_per_team_workbooks,
 )
 
@@ -59,7 +60,7 @@ def test_workbook_has_table_over_all_data_rows_with_spond_columns_first(tmp_path
     assert header == list(SPOND_IMPORT_HEADERS + HELPER_HEADERS)
     assert len(sheet.tables) == 1
     table = next(iter(sheet.tables.values()))
-    assert table.ref == f"A1:M{sheet.max_row}"
+    assert table.ref == f"A1:N{sheet.max_row}"
     assert sheet.freeze_panes == "A2"
 
 
@@ -108,8 +109,8 @@ def test_per_team_workbooks_contain_only_that_team(tmp_path):
     sheet = openpyxl.load_workbook(tmp_path / "spond" / "Jar 2.xlsx")[SPOND_IMPORT_SHEET]
     data = list(sheet.iter_rows(min_row=2, values_only=True))
     assert len(data) == 1
-    assert data[0][12] == "rvv-0123"
-    assert data[0][8] == "Jar 2"
+    assert data[0][13] == "rvv-0123"
+    assert data[0][8] == "Jar · Jar 2 · U10"
 
 
 def test_same_label_in_different_age_groups_gets_separate_workbooks(tmp_path):
@@ -125,7 +126,7 @@ def test_same_label_in_different_age_groups_gets_separate_workbooks(tmp_path):
     assert len(jar) == 2 and len(set(jar.values())) == 2
     for (club, label, age), path in jar.items():
         data = list(openpyxl.load_workbook(path)[SPOND_IMPORT_SHEET].iter_rows(min_row=2, values_only=True))
-        assert [row[10] for row in data] == [age]
+        assert [row[11] for row in data] == [age]
     assert len(project_spond_import_rows(plan, team=("Jar", "Jar 1", "U10"))) == 1
 
 
@@ -142,3 +143,13 @@ def test_reexport_removes_stale_team_workbooks_but_keeps_unrelated_files(tmp_pat
     assert (out / "Jar 2.xlsx").exists()
     assert (out / "notes.txt").read_text() == "keep"
     assert not [p for p in out.iterdir() if p.name.startswith(".staging-")]
+
+
+def test_team_identity_column_is_unique_per_team_even_with_duplicate_labels():
+    u10, u12 = Team("Jar", "Jar 1", "U10"), Team("Jar", "Jar 1", "U12")
+    plan = SeasonPlan(tournaments=[
+        Tournament(date=date(2026, 11, 1), arena="A", age_group="U10", id="a", teams=[u10], host_club="Jar"),
+        Tournament(date=date(2026, 11, 8), arena="B", age_group="U12", id="b", teams=[u12], host_club="Jar"),
+    ])
+    rows = project_spond_import_rows(plan)
+    assert [team_identity(r.team_key) for r in rows] == ["Jar · Jar 1 · U10", "Jar · Jar 1 · U12"]
