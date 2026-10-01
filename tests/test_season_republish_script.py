@@ -1,4 +1,4 @@
-"""Tests for the guarded one-command season republish orchestration."""
+"""Tests for the guarded published-season republish orchestration."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def _run(tmp_path: Path, *args: str, fail_on: str | None = None):
     if fail_on:
         env["FAIL_ON"] = fail_on
     result = subprocess.run(
-        [sys.executable, str(SCRIPT), "--season", "2026-2027", "--backend", "llm_bridge", *args],
+        [sys.executable, str(SCRIPT), "--season", "2026-2027", *args],
         cwd=ROOT,
         env=env,
         text=True,
@@ -51,7 +51,7 @@ def _run(tmp_path: Path, *args: str, fail_on: str | None = None):
     return result, calls
 
 
-def test_preview_runs_full_guarded_chain_without_publishing(tmp_path):
+def test_prepare_stops_at_harness_audit_handoff(tmp_path):
     result, calls = _run(tmp_path)
 
     assert result.returncode == 0, result.stderr
@@ -59,14 +59,28 @@ def test_preview_runs_full_guarded_chain_without_publishing(tmp_path):
         ["season", "lifecycle", "--season", "2026-2027", "--json"],
         ["season", "export", "--season", "2026-2027"],
         ["season", "publication-evidence", "--season", "2026-2027", "--json"],
-        ["operator", "audit-run", "--backend", "llm_bridge"],
+        ["operator", "audit-context"],
+    ]
+    assert not any(call[:2] == ["operator", "audit-run"] for call in calls)
+    assert not any(call[:3] == ["operator", "publish", "--dry-run"] for call in calls)
+    assert "active harness must now review" in result.stdout
+
+
+def test_resume_previews_without_regenerating(tmp_path):
+    result, calls = _run(tmp_path, "--resume-after-audit")
+
+    assert result.returncode == 0, result.stderr
+    assert calls == [
+        ["season", "lifecycle", "--season", "2026-2027", "--json"],
+        ["season", "publication-evidence", "--season", "2026-2027", "--json"],
         ["operator", "publish", "--dry-run"],
     ]
+    assert ["season", "export", "--season", "2026-2027"] not in calls
     assert "Nothing was published" in result.stdout
 
 
-def test_confirm_public_publishes_only_after_preview_then_verifies(tmp_path):
-    result, calls = _run(tmp_path, "--confirm-public")
+def test_confirm_public_publishes_only_after_resume_preview_then_verifies(tmp_path):
+    result, calls = _run(tmp_path, "--resume-after-audit", "--confirm-public")
 
     assert result.returncode == 0, result.stderr
     assert calls[-3:] == [
@@ -77,9 +91,8 @@ def test_confirm_public_publishes_only_after_preview_then_verifies(tmp_path):
 
 
 def test_failure_stops_the_chain(tmp_path):
-    result, calls = _run(tmp_path, "--confirm-public", fail_on="operator audit-run")
+    result, calls = _run(tmp_path, "--resume-after-audit", "--confirm-public", fail_on="operator publish --dry-run")
 
     assert result.returncode == 37
-    assert calls[-1] == ["operator", "audit-run", "--backend", "llm_bridge"]
-    assert ["operator", "publish", "--dry-run"] not in calls
+    assert calls[-1] == ["operator", "publish", "--dry-run"]
     assert ["operator", "publish", "--confirm-public"] not in calls
