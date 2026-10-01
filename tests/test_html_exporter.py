@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 
+from tournament_scheduler.html import CANCELLED_TOURNAMENTS_FILENAME
 from tournament_scheduler.html.html_exporter import HtmlExporter
 from tournament_scheduler.models import SeasonPlan
 from tournament_scheduler.serialization.season_plan import season_plan_from_dict
@@ -1014,6 +1015,7 @@ def _plan_with_tournaments(specs: list[dict]) -> SeasonPlan:
                 "host_club": spec.get("host_club", "Kongsberg"),
                 "start_time": spec.get("start_time"),
                 "cancelled": spec.get("cancelled", False),
+                "cancellation_reason": spec.get("cancellation_reason", ""),
                 "requires_host_confirmation": spec.get("requires_host_confirmation", False),
                 "teams": teams,
                 "games": [
@@ -1125,23 +1127,112 @@ class TestChronologicalTournamentOrdering:
         assert first == ["a", "c", "b"]
         assert first == second
 
-    def test_cancelled_and_confirmation_required_use_same_date_order(self, tmp_path):
+    def test_cancelled_leaves_active_timeline_but_keeps_its_order_on_cancelled_page(self, tmp_path):
         specs = [
             {"id": "later", "date": "2027-03-14"},
             {"id": "cancelled", "date": "2026-11-08", "cancelled": True},
             {"id": "confirm", "date": "2026-10-18", "requires_host_confirmation": True},
         ]
         html = _export_schedule_html(_plan_with_tournaments(specs), tmp_path)
-        tournaments = _embedded_tournaments(html)
-        ids = [t["id"] for t in tournaments]
-        assert ids == ["confirm", "cancelled", "later"]
-        assert tournaments[0].get("rhc") is True
-        assert tournaments[1].get("cx") is True
+        active = _embedded_tournaments(html)
+        assert [t["id"] for t in active] == ["confirm", "later"]
+        assert active[0].get("rhc") is True
+
+        cancelled_html = (tmp_path / CANCELLED_TOURNAMENTS_FILENAME).read_text(encoding="utf-8")
+        cancelled = _embedded_tournaments(cancelled_html)
+        assert [t["id"] for t in cancelled] == ["cancelled"]
+        assert cancelled[0].get("cx") is True
 
     def test_browser_has_defensive_chronological_sort(self, tmp_path):
         html = _export_schedule_html(_plan_with_tournaments([{"id": "x", "date": "2026-10-18"}]), tmp_path)
         assert "function compareTournaments(a, b)" in html
         assert "TOURNAMENTS.sort(compareTournaments)" in html
+
+
+class TestCancelledTournamentSplit:
+    """Cancelled tournaments stay canonical but leave the active season page."""
+
+    def _mixed_plan(self) -> SeasonPlan:
+        return _plan_with_tournaments(
+            [
+                {"id": "active-1", "date": "2026-10-18", "age_group": "U10", "host_club": "Kongsberg"},
+                {
+                    "id": "cancelled-1",
+                    "date": "2026-11-08",
+                    "age_group": "U11",
+                    "host_club": "Skien",
+                    "cancelled": True,
+                    "cancellation_reason": "Regionalt sperret helg",
+                },
+            ]
+        )
+
+    def _export(self, tmp_path: Path):
+        out_path = tmp_path / "season_plan.html"
+        HtmlExporter().export(self._mixed_plan(), out_path, age_groups=["U10", "U11"])
+        return out_path, tmp_path / CANCELLED_TOURNAMENTS_FILENAME
+
+    def test_active_page_excludes_cancelled_from_payload_and_counts(self, tmp_path):
+        out_path, _ = self._export(tmp_path)
+        html = out_path.read_text(encoding="utf-8")
+        assert [t["id"] for t in _embedded_tournaments(html)] == ["active-1"]
+        # The cancelled id must not leak into the active page payload/options.
+        assert "cancelled-1" not in html
+        assert '<strong id="totalTournaments">1</strong> turneringer' in html
+        assert "av <strong>1</strong> turneringer" in html
+
+    def test_cancelled_page_renders_reason_and_navigation(self, tmp_path):
+        out_path, cancelled_path = self._export(tmp_path)
+        assert cancelled_path.exists()
+        cancelled_html = cancelled_path.read_text(encoding="utf-8")
+        cancelled = _embedded_tournaments(cancelled_html)
+        assert [t["id"] for t in cancelled] == ["cancelled-1"]
+        assert cancelled[0]["cx"] is True
+        assert cancelled[0]["cr"] == "Regionalt sperret helg"
+        assert "Regionalt sperret helg" in cancelled_html
+        assert 'href="season_plan.html"' in cancelled_html
+
+        html = out_path.read_text(encoding="utf-8")
+        assert f'href="{CANCELLED_TOURNAMENTS_FILENAME}"' in html
+        assert "Avlyste turneringer" in html
+
+        # The dedicated history view must expose the canonical tournament id,
+        # which the active cards do not show. It is rendered client-side from
+        # the shipped template, so assert the template contract here.
+        schedule_js = (
+            Path(__file__).resolve().parents[1]
+            / "tournament_scheduler"
+            / "html"
+            / "templates"
+            / "script_schedule.js"
+        ).read_text(encoding="utf-8")
+        assert "t.cx ? '<span class=\"tag tag--id\">ID: '" in schedule_js
+
+    def test_no_cancelled_page_or_nav_link_when_all_active(self, tmp_path):
+        plan = _plan_with_tournaments([{"id": "only", "date": "2026-10-18"}])
+        out_path = tmp_path / "season_plan.html"
+        HtmlExporter().export(plan, out_path, age_groups=["U10"])
+        assert not (tmp_path / CANCELLED_TOURNAMENTS_FILENAME).exists()
+        html = out_path.read_text(encoding="utf-8")
+        assert "Avlyste turneringer" not in html
+        assert CANCELLED_TOURNAMENTS_FILENAME not in html
+
+    def test_stale_cancelled_page_removed_when_none_remain(self, tmp_path):
+        self._export(tmp_path)
+        assert (tmp_path / CANCELLED_TOURNAMENTS_FILENAME).exists()
+        plan = _plan_with_tournaments([{"id": "only", "date": "2026-10-18"}])
+        HtmlExporter().export(plan, tmp_path / "season_plan.html", age_groups=["U10"])
+        assert not (tmp_path / CANCELLED_TOURNAMENTS_FILENAME).exists()
+
+    def test_cancelled_only_plan_renders_empty_active_page(self, tmp_path):
+        plan = _plan_with_tournaments(
+            [{"id": "cancelled-only", "date": "2026-11-08", "cancelled": True, "cancellation_reason": "Avlyst"}]
+        )
+        out_path = tmp_path / "season_plan.html"
+        HtmlExporter().export(plan, out_path, age_groups=None)
+        assert _embedded_tournaments(out_path.read_text(encoding="utf-8")) == []
+        cancelled_html = (tmp_path / CANCELLED_TOURNAMENTS_FILENAME).read_text(encoding="utf-8")
+        assert [t["id"] for t in _embedded_tournaments(cancelled_html)] == ["cancelled-only"]
 
 
 class TestSharedNavbarStatus:
