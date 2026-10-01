@@ -14,12 +14,25 @@ When the operator asks whether the season is fair, uneven, imbalanced or otherwi
 
 Hosting responsibility and hosting balance are out of scope unless the operator explicitly asks for them. Do not let already-settled hosting differences dominate or distort the participant-facing fairness result.
 
-Evaluate fairness primarily among comparable teams within the same age group and against the current canonical season state. Use accepted/calendar-confirmed reality where it has superseded earlier planning assumptions; do not treat superseded proposal/default dates, times or durations as current truth.
+Evaluate fairness against the current canonical season state, but use the correct comparison unit:
+
+- **Regional allocation fairness (primary):** for clubs with multiple teams in the same age group, compare clubs by total participant opportunity normalized by the number of registered teams in that club/age group. A sibling-team spread by itself is not automatically regional unfairness.
+- **Internal sibling-team distribution (secondary diagnostic):** report how unevenly a multi-team club's opportunities are distributed among its own team labels, but classify this separately from regional allocation fairness unless repository evidence shows those labels are stable, non-interchangeable participant groups or an individual team suffers an extreme deprivation.
+- **Single-team/small-club experience (first-class):** when a club has only one team in an age group, that team's season shape directly represents the club's participant experience and must not be diluted by multi-team normalization.
+- **Extreme individual-team experience:** regardless of club size, flag cases such as very low total participation, no meaningful activity in one half of the season, excessive inactive gaps, or a season that effectively starts or ends far earlier than comparable peers.
+
+Use accepted/calendar-confirmed reality where it has superseded earlier planning assumptions; do not treat superseded proposal/default dates, times or durations as current truth.
+
+For multi-team clubs, calculate and compare a normalized club/age-group opportunity measure where data permits:
+
+`normalized club opportunity = total team-tournament participations for the club/age group / number of registered teams in that club/age group`
+
+Use the same principle for actual game/match opportunities when tournament formats differ.
 
 At minimum quantify:
 - total tournaments per team relative to same-age peers and applicable targets;
 - actual game/match opportunities per team when tournament formats differ, so equal tournament counts are not mistaken for equal participation;
-- distribution before versus after Christmas;
+- distribution before versus after Christmas, both as raw counts and as imbalance/share of the team's or normalized club-age total; treat strongly front-loaded or back-loaded seasons as a major fairness concern, especially for single-team/small clubs (for example 5 tournaments before Christmas and 2 after);
 - season span from first to last tournament;
 - unusually late first tournament or unusually early last tournament;
 - long inactive gaps;
@@ -34,7 +47,17 @@ Where authoritative data exists, also inspect time-of-day/weekend distribution a
 
 Also surface other material participant-facing inequities evidenced by repository-owned findings or projections.
 
-Rank the largest current inequities by measurable deviation and participant impact. For each significant inequity report the affected team(s)/club(s)/age group, the relevant measured value, the same-age comparable baseline/range, the size of the deviation, and whether it appears repairable without violating hard constraints, active accepted requests/protections or accepted calendar-confirmed facts.
+Rank the largest current inequities by measurable deviation and participant impact, using this priority:
+
+1. severe half-season deprivation or imbalance, especially for single-team/small clubs;
+2. regional club/age-group under-allocation after normalizing for registered team count;
+3. extreme individual-team deprivation (very low participation, effectively missing half a season, excessive gaps, very late start or early finish);
+4. internal sibling-team distribution imbalance within an otherwise fairly allocated multi-team club;
+5. other cadence, diversity, travel or churn inequities.
+
+Do not let a large sibling-label spread inside a multi-team club outrank a smaller but more consequential regional or half-season imbalance merely because the raw team-count range is numerically larger.
+
+For each significant inequity report the affected team(s)/club(s)/age group, whether it is **regional allocation**, **half-season balance**, **internal sibling distribution**, or **individual-team experience**, the relevant measured value, the same-age comparable baseline/range, the size of the deviation, and whether it appears repairable without violating hard constraints, active accepted requests/protections or accepted calendar-confirmed facts.
 
 Do not compare unlike age groups as if they had the same expected season shape unless repository policy explicitly defines a shared target.
 
