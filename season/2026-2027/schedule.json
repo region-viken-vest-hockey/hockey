@@ -261,7 +261,7 @@
       "regressions": [],
       "schema_version": 1
     },
-    "previous_revision": "a01cb00b23afab11b3dda8631328881b5a04ae47de0ea1d2e99aa195725155df"
+    "previous_revision": "07b4d5d3f1b1e4a8149e00918eb6284d82d3fd8dbeb0e3f94cf1febd1bba8869"
   },
   "arena_normalization": {
     "changed": true,
@@ -385,7 +385,7 @@
     ]
   },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "07b4d5d3f1b1e4a8149e00918eb6284d82d3fd8dbeb0e3f94cf1febd1bba8869",
+  "fingerprint": "871543dde23d8e9245bd16d8857bdd441c5dafdc21ee91f628fd20b12ccafecf",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -6485,8 +6485,8 @@
         "age_group": "U10",
         "classification": "material_club_pool_shortfall",
         "club": "Frisk Asker",
-        "club_pool_actual": 37,
-        "club_pool_deviation": -11,
+        "club_pool_actual": 38,
+        "club_pool_deviation": -10,
         "club_pool_target": 48,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 4,
@@ -6516,7 +6516,7 @@
             "team": "Frisk Asker 4"
           },
           {
-            "actual": 4,
+            "actual": 5,
             "target": 8,
             "team": "Frisk Asker 5"
           },
@@ -6575,15 +6575,15 @@
       },
       {
         "age_group": "U10",
-        "classification": "minor_club_pool_shortfall",
+        "classification": "intra_club_distribution",
         "club": "Frisk Asker",
-        "club_pool_actual": 23,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 24,
+        "club_pool_deviation": 0,
         "club_pool_target": 24,
-        "counts_as_unresolved_shortfall": true,
+        "counts_as_unresolved_shortfall": false,
         "minor_shortfall_threshold": 2,
         "nominal_target_per_team": 4,
-        "planning_significance": "minor",
+        "planning_significance": "informational",
         "registered_team_count": 6,
         "scope": "after_christmas",
         "team_distribution": [
@@ -6608,7 +6608,7 @@
             "team": "Frisk Asker 4"
           },
           {
-            "actual": 2,
+            "actual": 3,
             "target": 4,
             "team": "Frisk Asker 5"
           },
@@ -8726,8 +8726,8 @@
         "age_group": "U10",
         "classification": "minor_club_pool_shortfall",
         "club": "Jutul",
-        "club_pool_actual": 23,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 22,
+        "club_pool_deviation": -2,
         "club_pool_target": 24,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 4,
@@ -8747,7 +8747,7 @@
             "team": "Jutul Hvit"
           },
           {
-            "actual": 8,
+            "actual": 7,
             "target": 8,
             "team": "Jutul Rød"
           }
@@ -8786,15 +8786,15 @@
       },
       {
         "age_group": "U10",
-        "classification": "over_target",
+        "classification": "complete",
         "club": "Jutul",
-        "club_pool_actual": 13,
-        "club_pool_deviation": 1,
+        "club_pool_actual": 12,
+        "club_pool_deviation": 0,
         "club_pool_target": 12,
         "counts_as_unresolved_shortfall": false,
         "minor_shortfall_threshold": 2,
         "nominal_target_per_team": 4,
-        "planning_significance": "informational",
+        "planning_significance": "resolved",
         "registered_team_count": 3,
         "scope": "after_christmas",
         "team_distribution": [
@@ -8809,7 +8809,7 @@
             "team": "Jutul Hvit"
           },
           {
-            "actual": 5,
+            "actual": 4,
             "target": 4,
             "team": "Jutul Rød"
           }
@@ -11363,7 +11363,7 @@
       "informational_reasons": [
         {
           "code": "intra_club_participation_distribution",
-          "count": 6
+          "count": 8
         },
         {
           "code": "booking_feasibility_warnings",
@@ -11385,16 +11385,12 @@
           "count": 10
         },
         {
-          "code": "stale_approvals",
-          "count": 3
-        },
-        {
           "code": "participation_shortfalls",
-          "count": 131
+          "count": 129
         },
         {
           "code": "participation_target_deviation",
-          "count": 23
+          "count": 20
         },
         {
           "code": "tournament_placement_shortfall",
@@ -28367,13 +28363,13 @@
           },
           {
             "away": "Jar Rød",
-            "home": "Holmen Hockey Rød",
+            "home": "Frisk Asker 5",
             "parallel_slot": 1,
             "round_number": 1
           },
           {
-            "away": "Jutul Rød",
-            "home": "Ringerike 1",
+            "away": "Ringerike 1",
+            "home": "Holmen Hockey Rød",
             "parallel_slot": 2,
             "round_number": 1
           },
@@ -28384,19 +28380,19 @@
             "round_number": 2
           },
           {
-            "away": "Jutul Rød",
+            "away": "Jar Rød",
             "home": "Frisk Asker 4",
             "parallel_slot": 1,
             "round_number": 2
           },
           {
-            "away": "Jar Rød",
+            "away": "Frisk Asker 5",
             "home": "Ringerike 1",
             "parallel_slot": 2,
             "round_number": 2
           },
           {
-            "away": "Ringerike 1",
+            "away": "Frisk Asker 5",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 3
@@ -28409,42 +28405,42 @@
           },
           {
             "away": "Jar Rød",
-            "home": "Jutul Rød",
+            "home": "Ringerike 1",
             "parallel_slot": 2,
             "round_number": 3
           },
           {
-            "away": "Jutul Rød",
+            "away": "Jar Rød",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 4
           },
           {
-            "away": "Jar Rød",
+            "away": "Ringerike 1",
             "home": "Frisk Asker 4",
             "parallel_slot": 1,
             "round_number": 4
           },
           {
-            "away": "Ringerike 1",
+            "away": "Frisk Asker 5",
             "home": "Holmen Hockey Rød",
             "parallel_slot": 2,
             "round_number": 4
           },
           {
-            "away": "Jar Rød",
+            "away": "Ringerike 1",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 5
           },
           {
-            "away": "Ringerike 1",
+            "away": "Frisk Asker 5",
             "home": "Frisk Asker 4",
             "parallel_slot": 1,
             "round_number": 5
           },
           {
-            "away": "Jutul Rød",
+            "away": "Jar Rød",
             "home": "Holmen Hockey Rød",
             "parallel_slot": 2,
             "round_number": 5
@@ -28476,8 +28472,8 @@
           },
           {
             "age_group": "U10",
-            "club": "Jutul",
-            "label": "Jutul Rød"
+            "club": "Frisk Asker",
+            "label": "Frisk Asker 5"
           },
           {
             "age_group": "U10",
@@ -34608,21 +34604,21 @@
         "target": "4"
       },
       {
-        "actual": "2",
+        "actual": "3",
         "age_group": "U10",
         "category": "participation_under_target",
         "club": "Frisk Asker",
         "club_pool": {
           "age_group": "U10",
-          "classification": "minor_club_pool_shortfall",
+          "classification": "intra_club_distribution",
           "club": "Frisk Asker",
-          "club_pool_actual": 23,
-          "club_pool_deviation": -1,
+          "club_pool_actual": 24,
+          "club_pool_deviation": 0,
           "club_pool_target": 24,
-          "counts_as_unresolved_shortfall": true,
+          "counts_as_unresolved_shortfall": false,
           "minor_shortfall_threshold": 2,
           "nominal_target_per_team": 4,
-          "planning_significance": "minor",
+          "planning_significance": "informational",
           "registered_team_count": 6,
           "scope": "after_christmas",
           "team_distribution": [
@@ -34647,7 +34643,7 @@
               "team": "Frisk Asker 4"
             },
             {
-              "actual": 2,
+              "actual": 3,
               "target": 4,
               "team": "Frisk Asker 5"
             },
@@ -34658,9 +34654,9 @@
             }
           ]
         },
-        "club_pool_classification": "minor_club_pool_shortfall",
-        "club_pool_significance": "minor",
-        "counts_as_unresolved_shortfall": true,
+        "club_pool_classification": "intra_club_distribution",
+        "club_pool_significance": "informational",
+        "counts_as_unresolved_shortfall": false,
         "half": "after_christmas",
         "label": "Frisk Asker 5 (Frisk Asker, U10)",
         "reason": "Frisk Asker 3 (Frisk Asker, U10) deltar 3 ganger i after_christmas -- ikke nok ledige turneringsplasser ble funnet i denne halvdelen av sesongen.",
@@ -34786,15 +34782,15 @@
         "club": "Frisk Asker",
         "club_pool": {
           "age_group": "U10",
-          "classification": "minor_club_pool_shortfall",
+          "classification": "intra_club_distribution",
           "club": "Frisk Asker",
-          "club_pool_actual": 23,
-          "club_pool_deviation": -1,
+          "club_pool_actual": 24,
+          "club_pool_deviation": 0,
           "club_pool_target": 24,
-          "counts_as_unresolved_shortfall": true,
+          "counts_as_unresolved_shortfall": false,
           "minor_shortfall_threshold": 2,
           "nominal_target_per_team": 4,
-          "planning_significance": "minor",
+          "planning_significance": "informational",
           "registered_team_count": 6,
           "scope": "after_christmas",
           "team_distribution": [
@@ -34819,7 +34815,7 @@
               "team": "Frisk Asker 4"
             },
             {
-              "actual": 2,
+              "actual": 3,
               "target": 4,
               "team": "Frisk Asker 5"
             },
@@ -34830,9 +34826,9 @@
             }
           ]
         },
-        "club_pool_classification": "minor_club_pool_shortfall",
-        "club_pool_significance": "minor",
-        "counts_as_unresolved_shortfall": true,
+        "club_pool_classification": "intra_club_distribution",
+        "club_pool_significance": "informational",
+        "counts_as_unresolved_shortfall": false,
         "half": "after_christmas",
         "label": "Frisk Asker 6",
         "reason": "Frisk Asker 3 (Frisk Asker, U10) deltar 3 ganger i after_christmas -- ikke nok ledige turneringsplasser ble funnet i denne halvdelen av sesongen.",
@@ -41105,10 +41101,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "07b4d5d3f1b1e4a8149e00918eb6284d82d3fd8dbeb0e3f94cf1febd1bba8869",
+  "revision": "871543dde23d8e9245bd16d8857bdd441c5dafdc21ee91f628fd20b12ccafecf",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-10-01T08:52:41.107391+00:00",
+  "updated_at": "2026-10-01T09:32:25.914723+00:00",
   "verification_context": {
     "calendar_evidence": {
       "blocked_sources": [],
