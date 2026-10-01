@@ -892,6 +892,65 @@ def _metrics(
     pool_classifications = [str(pool.get("classification") or "") for pool in club_pools]
     unresolved_pools = [pool for pool in club_pools if pool.get("counts_as_unresolved_shortfall")]
 
+    # Fairness priority metrics used by candidate comparison and repair
+    # adoption. The common floor is the lowest *positive* configured per-team
+    # target in each half. Zero-target cohorts (for example U7 before
+    # Christmas) must not collapse the floor for everyone else.
+    common_floor_by_scope: Dict[str, int] = {}
+    for scope in HALVES:
+        per_team_targets: List[int] = []
+        for pool in club_pools:
+            if pool.get("scope") != scope:
+                continue
+            registered = int(pool.get("registered_team_count") or 0)
+            pool_target = int(pool.get("club_pool_target") or 0)
+            if registered <= 0 or pool_target <= 0:
+                continue
+            per_team_target = pool_target // registered
+            if per_team_target > 0:
+                per_team_targets.append(per_team_target)
+        if per_team_targets:
+            common_floor_by_scope[scope] = min(per_team_targets)
+
+    common_floor_shortfall_total = 0
+    younger_before_shortfall = 0
+    younger_after_shortfall = 0
+
+    def _age_years(value: Any) -> Optional[int]:
+        digits = "".join(ch for ch in str(value or "") if ch.isdigit())
+        return int(digits) if digits else None
+
+    for pool in club_pools:
+        scope = str(pool.get("scope") or "")
+        if scope not in HALVES:
+            continue
+        registered = int(pool.get("registered_team_count") or 0)
+        actual = int(pool.get("club_pool_actual") or 0)
+        target = int(pool.get("club_pool_target") or 0)
+        floor = common_floor_by_scope.get(scope)
+        if floor is not None and registered > 0:
+            common_floor_shortfall_total += max(0, floor * registered - actual)
+
+        if not pool.get("counts_as_unresolved_shortfall"):
+            continue
+        age = _age_years(pool.get("age_group"))
+        if age is None or age > 9:
+            continue
+        shortfall = max(0, target - actual)
+        if scope == "before_christmas":
+            younger_before_shortfall += shortfall
+        elif scope == "after_christmas":
+            younger_after_shortfall += shortfall
+
+    # For U7-U9/JU7-JU9, an after-Christmas shortfall is deliberately more
+    # costly than an otherwise-equivalent before-Christmas shortfall. This
+    # encodes the developmental preference for somewhat more late-season play
+    # without making a 50/50 split illegal or allowing totals to hide a missing
+    # half-season.
+    younger_half_priority_shortfall = (
+        younger_before_shortfall + 2 * younger_after_shortfall
+    )
+
     return {
         "teams_with_season_target": len(targeted),
         "teams_exact_season_target": teams_exact,
@@ -949,6 +1008,10 @@ def _metrics(
             (abs(int(d.get("deviation") or 0)) for d in unresolved_half_deviations), default=0
         ),
         "club_pool_unresolved_avoidable_deviation_count": unresolved_avoidable,
+        "club_pool_common_floor_shortfall_total": common_floor_shortfall_total,
+        "younger_before_christmas_shortfall": younger_before_shortfall,
+        "younger_after_christmas_shortfall": younger_after_shortfall,
+        "younger_half_priority_shortfall": younger_half_priority_shortfall,
     }
 
 
