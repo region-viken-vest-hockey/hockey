@@ -58,6 +58,7 @@ from .activity_viewer import write_activity_artifacts_from_payload
 from .not_started import NOT_STARTED_MESSAGE
 from ..review.review_packet_exporter import ReviewPacketExporter
 from ..spond.spond_exporter import SpondExporter
+from ..spond.spond_import import write_per_team_workbooks
 from .stage4_export_errors import Stage4Error
 from .stage4_export_timing import (
     DEFAULT_EXPORT_DIR,
@@ -924,6 +925,9 @@ def run(
         # actually written (and vice versa).
         if Path(spond_path).exists():
             output_files["spond"] = spond_path
+        write_per_team_workbooks(
+            plan, primary_export_path / "spond", ice_time_for_age_group
+        )
         exporter.export_public_schedule_attachment(
             plan,
             schedule_path,

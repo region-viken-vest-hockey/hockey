@@ -284,8 +284,13 @@ _ALLOWED_XLSX_PACKAGE_PARTS: frozenset[str] = frozenset(
 _ALLOWED_XLSX_PART_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"^xl/worksheets/sheet\d+\.xml$"),
     re.compile(r"^xl/theme/theme\d+\.xml$"),
+    # Excel Tables (filterable ranges) hold only column names/ranges; their
+    # sheet relationship parts are scanned for external targets below.
+    re.compile(r"^xl/tables/table\d+\.xml$"),
+    re.compile(r"^xl/worksheets/_rels/sheet\d+\.xml\.rels$"),
 )
 _XLSX_RELATIONSHIP_PARTS: tuple[str, ...] = ("_rels/.rels", "xl/_rels/workbook.xml.rels")
+_XLSX_SHEET_RELATIONSHIP_PATTERN = re.compile(r"^xl/worksheets/_rels/sheet\d+\.xml\.rels$")
 
 
 def _xlsx_part_is_allowed(name: str) -> bool:
@@ -343,7 +348,10 @@ def _inspect_xlsx_safety(path: Path, rel: str, allow_findings: frozenset[str]) -
         if not _xlsx_part_is_allowed(name):
             findings.append({"file": rel, "category": _classify_xlsx_part(name), "detail": name})
 
-    for name in _XLSX_RELATIONSHIP_PARTS:
+    relationship_parts = _XLSX_RELATIONSHIP_PARTS + tuple(
+        name for name in entries if _XLSX_SHEET_RELATIONSHIP_PATTERN.match(name)
+    )
+    for name in relationship_parts:
         raw = contents.get(name)
         if raw and b'targetmode="external"' in raw.lower():
             findings.append({"file": rel, "category": "workbook_external_link", "detail": name})
