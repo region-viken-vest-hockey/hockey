@@ -45,6 +45,8 @@ QUALITY_METRIC_PATHS: List[Tuple[str, str]] = [
     ("participation.club_pool_unresolved_max_team_half_deviation", "lower"),
     ("participation.club_pool_unresolved_avoidable_deviation_count", "lower"),
     ("participation.club_pool_unresolved_shortfall_count", "lower"),
+    ("participation.club_pool_common_floor_shortfall_total", "lower"),
+    ("participation.younger_half_priority_shortfall", "lower"),
     ("opponent_diversity.unique_pairs", "higher"),
     ("opponent_diversity.pairwise_novelty", "higher"),
     ("opponent_diversity.pairs_meeting_3_plus", "lower"),
@@ -64,6 +66,7 @@ QUALITY_METRIC_PATHS: List[Tuple[str, str]] = [
     ("opponent_diversity.club_count_excess_over_2", "lower"),
     ("opponent_diversity.tournaments_with_3plus_same_club", "lower"),
     ("turnaround.min_turnaround_days", "higher"),
+    ("turnaround.gaps_under_days.2", "lower"),
     ("turnaround.gaps_under_days.7", "lower"),
     ("turnaround.gaps_under_days.14", "lower"),
     ("hosting.spread", "lower"),
@@ -85,6 +88,8 @@ QUALITY_METRIC_PATHS: List[Tuple[str, str]] = [
 # compliance is a guardrail dimension placed first so a lower-priority quality
 # gain cannot justify a worse bounded deviation.
 QUALITY_OBJECTIVE_DIMENSIONS: Tuple[str, ...] = (
+    "participation_common_floor_shortfall",
+    "participation_younger_half_priority_shortfall",
     "participation_season_deviation",
     "participation_avoidable",
     "participation_club_pool_unresolved_shortfalls",
@@ -92,6 +97,7 @@ QUALITY_OBJECTIVE_DIMENSIONS: Tuple[str, ...] = (
     "max_club_pair_repeat",
     "max_club_exposure_index",
     "same_club_pairing_count",
+    "gaps_under_2",
     "gaps_under_7",
     "gaps_under_14",
     "hosting_spread",
@@ -196,6 +202,12 @@ def quality_objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
         participation.get("avoidable_deviation_count", 0),
     )
     return {
+        "participation_common_floor_shortfall": float(
+            participation.get("club_pool_common_floor_shortfall_total", 0)
+        ),
+        "participation_younger_half_priority_shortfall": float(
+            participation.get("younger_half_priority_shortfall", 0)
+        ),
         "participation_season_deviation": float(season_deviation),
         "participation_avoidable": float(avoidable),
         "participation_club_pool_unresolved_shortfalls": float(
@@ -205,6 +217,7 @@ def quality_objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
         "max_club_pair_repeat": float(opponent.get("max_club_pair_repeat", 0)),
         "max_club_exposure_index": float(opponent.get("max_club_exposure_index", 0)),
         "same_club_pairing_count": float(opponent.get("same_club_pairing_count", 0)),
+        "gaps_under_2": float(gaps.get(2, 0)),
         "gaps_under_7": float(gaps.get(7, 0)),
         "gaps_under_14": float(gaps.get(14, 0)),
         "hosting_spread": float(hosting.get("spread", 0)),
