@@ -24,7 +24,7 @@ SEASON ?= 2026-2027
 export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CONFIRM_CLEANUP CSV ARGS BACKEND RESULT_FILE
 
 PUBLIC_TARGETS := help bootstrap handover install check test dependency-lock secret-scan rules-report rule-catalog kampveileder-markdown \
-	operator-run operator-run-force run status logs calendars calendars-refresh sources-status season-changes \
+	operator-run operator-run-force run status logs calendars calendars-refresh sources-status season-changes season-changes-markdown \
 	waiver \
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
 	questions questions-all answer promote \
@@ -63,6 +63,8 @@ help:
 	@echo "  make sources-status [ARGS='...']   sources status"
 	@echo "  make season-changes [SEASON=2026-2027] [ARGS='--markdown|--write|--json']"
 	@echo "                                      Show canonical request-grouped season change ledger"
+	@echo "  make season-changes-markdown [SEASON=2026-2027]"
+	@echo "                                      Show the human-readable Markdown season change ledger"
 	@echo "  make waiver ARGS='list|create|revoke ...'"
 	@echo "                                      Operator-only, audited hard-rule exception (never agent-created)"
 	@echo "  make aktivitetskalender [ARGS='...']"
@@ -167,6 +169,9 @@ sources-status:
 
 season-changes:
 	@cd "$(ROOT_DIR)" && "$(RVV)" season changes --season "$(SEASON)" $(ARGS)
+
+season-changes-markdown:
+	@cd "$(ROOT_DIR)" && "$(RVV)" season changes --season "$(SEASON)" --markdown $(ARGS)
 
 waiver:
 	@cd "$(ROOT_DIR)" && "$(RVV)" waiver $(ARGS)
