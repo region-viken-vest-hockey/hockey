@@ -78,9 +78,41 @@ The publication boundary refuses to publish when:
 
 - hard verification, artifact parity and freshness are part of the canonical
   export/publish gates and must be `PASS`;
-- run the semantic safety-net audit for the exact fresh export fingerprint
-  (`operator audit-context` / `operator audit-evidence` / `operator
-  audit-submit`, or the documented headless `operator audit-run`).
+- the semantic safety-net audit must be bound to the exact fresh export
+  fingerprint.
+
+### Active harness: semantic audit is in-session
+
+When an interactive agent harness is orchestrating the republish, **do not**
+launch `operator audit-run` and do not require a `BACKEND`. That command is
+the headless cron/CI path and would create a nested model judgment. The active
+harness owns the semantic review:
+
+```bash
+scripts/rvv-miniputt operator audit-context
+scripts/rvv-miniputt operator audit-evidence --item <id>   #/selectors as needed
+scripts/rvv-miniputt operator audit-submit --result-file <result.json>
+```
+
+The harness must inspect the complete published-to-canonical delta and retrieve
+bounded evidence for every material concern before submitting its real verdict.
+It must preserve FAIL/INCOMPLETE evidence rather than replacing it merely to
+enable publication.
+
+For unattended cron/CI only, the documented
+`operator audit-run --backend <claude|openai|llm_bridge>` path may perform the
+same semantic-audit transport headlessly.
+
+The helper `make season-republish SEASON=<season>` prepares the fresh canonical
+export/evidence and stops at this harness handoff. After the harness submits the
+audit for that exact export, resume without regenerating it:
+
+```bash
+make season-republish SEASON=<season> RESUME_AFTER_AUDIT=1
+```
+
+Add `CONFIRM_PUBLIC=1` only when the operator explicitly authorized the public
+replacement.
 
 Export alone never publishes. Publication requires the operator's explicit
 publication request.
