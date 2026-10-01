@@ -4,43 +4,22 @@
     "operational_acceptability": {
       "added_by_category": {},
       "after_counts": {
-        "fixed_busy_placement": 31,
+        "fixed_busy_placement": 10,
         "host_confirmation_dependency": 0,
-        "manual_calendar_placement": 93,
+        "manual_calendar_placement": 91,
         "unresolved_placement_obligation": 9
       },
       "after_profile": {
         "fixed_busy_placement": [
-          "rvv-0015",
-          "rvv-0022",
           "rvv-0024",
-          "rvv-0036",
           "rvv-0037",
-          "rvv-0043",
-          "rvv-0044",
           "rvv-0048",
-          "rvv-0058",
-          "rvv-0064",
-          "rvv-0072",
-          "rvv-0074",
-          "rvv-0080",
-          "rvv-0089",
-          "rvv-0092",
           "rvv-0095",
           "rvv-0102",
-          "rvv-0106",
-          "rvv-0116",
           "rvv-0121",
-          "rvv-0122",
           "rvv-0128",
-          "rvv-0130",
-          "rvv-0137",
-          "rvv-0146",
-          "rvv-0151",
           "rvv-0155",
           "rvv-0157",
-          "rvv-0167",
-          "rvv-0173",
           "rvv-0179"
         ],
         "host_confirmation_dependency": [],
@@ -64,7 +43,6 @@
           "rvv-0029",
           "rvv-0030",
           "rvv-0031",
-          "rvv-0033",
           "rvv-0034",
           "rvv-0035",
           "rvv-0039",
@@ -77,7 +55,6 @@
           "rvv-0052",
           "rvv-0053",
           "rvv-0055",
-          "rvv-0057",
           "rvv-0061",
           "rvv-0062",
           "rvv-0066",
@@ -156,43 +133,22 @@
         "allow_manual_placement": false
       },
       "before_counts": {
-        "fixed_busy_placement": 31,
+        "fixed_busy_placement": 10,
         "host_confirmation_dependency": 0,
-        "manual_calendar_placement": 93,
+        "manual_calendar_placement": 91,
         "unresolved_placement_obligation": 9
       },
       "before_profile": {
         "fixed_busy_placement": [
-          "rvv-0015",
-          "rvv-0022",
           "rvv-0024",
-          "rvv-0036",
           "rvv-0037",
-          "rvv-0043",
-          "rvv-0044",
           "rvv-0048",
-          "rvv-0058",
-          "rvv-0064",
-          "rvv-0072",
-          "rvv-0074",
-          "rvv-0080",
-          "rvv-0089",
-          "rvv-0092",
           "rvv-0095",
           "rvv-0102",
-          "rvv-0106",
-          "rvv-0116",
           "rvv-0121",
-          "rvv-0122",
           "rvv-0128",
-          "rvv-0130",
-          "rvv-0137",
-          "rvv-0146",
-          "rvv-0151",
           "rvv-0155",
           "rvv-0157",
-          "rvv-0167",
-          "rvv-0173",
           "rvv-0179"
         ],
         "host_confirmation_dependency": [],
@@ -216,7 +172,6 @@
           "rvv-0029",
           "rvv-0030",
           "rvv-0031",
-          "rvv-0033",
           "rvv-0034",
           "rvv-0035",
           "rvv-0039",
@@ -229,7 +184,6 @@
           "rvv-0052",
           "rvv-0053",
           "rvv-0055",
-          "rvv-0057",
           "rvv-0061",
           "rvv-0062",
           "rvv-0066",
@@ -307,7 +261,7 @@
       "regressions": [],
       "schema_version": 1
     },
-    "previous_revision": "1c9c4bd206c658cb1336fa85e13fcae0e49432f9e2d0dd312b5550cbfc132141"
+    "previous_revision": "a01cb00b23afab11b3dda8631328881b5a04ae47de0ea1d2e99aa195725155df"
   },
   "arena_normalization": {
     "changed": true,
@@ -431,7 +385,7 @@
     ]
   },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "abfe9ff323d9e6ae98dfc54856143fb5db3b4818ce5562518bf1040426eeb9a0",
+  "fingerprint": "07b4d5d3f1b1e4a8149e00918eb6284d82d3fd8dbeb0e3f94cf1febd1bba8869",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -7657,20 +7611,20 @@
       },
       {
         "age_group": "U9",
-        "classification": "material_club_pool_shortfall",
+        "classification": "minor_club_pool_shortfall",
         "club": "Holmen",
-        "club_pool_actual": 19,
-        "club_pool_deviation": -5,
+        "club_pool_actual": 20,
+        "club_pool_deviation": -4,
         "club_pool_target": 24,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 4,
         "nominal_target_per_team": 8,
-        "planning_significance": "material",
+        "planning_significance": "minor",
         "registered_team_count": 3,
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 6,
+            "actual": 7,
             "target": 8,
             "team": "Holmen Hockey Hvit"
           },
@@ -7721,8 +7675,8 @@
         "age_group": "U9",
         "classification": "minor_club_pool_shortfall",
         "club": "Holmen",
-        "club_pool_actual": 10,
-        "club_pool_deviation": -2,
+        "club_pool_actual": 11,
+        "club_pool_deviation": -1,
         "club_pool_target": 12,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 2,
@@ -7732,7 +7686,7 @@
         "scope": "after_christmas",
         "team_distribution": [
           {
-            "actual": 3,
+            "actual": 4,
             "target": 4,
             "team": "Holmen Hockey Hvit"
           },
@@ -8102,8 +8056,8 @@
         "age_group": "U11",
         "classification": "material_club_pool_shortfall",
         "club": "Jar",
-        "club_pool_actual": 31,
-        "club_pool_deviation": -9,
+        "club_pool_actual": 32,
+        "club_pool_deviation": -8,
         "club_pool_target": 40,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": 2,
@@ -8148,7 +8102,7 @@
             "team": "Jar Rød"
           },
           {
-            "actual": 2,
+            "actual": 3,
             "target": 5,
             "team": "Jar Svart"
           }
@@ -8158,8 +8112,8 @@
         "age_group": "U11",
         "classification": "intra_club_distribution",
         "club": "Jar",
-        "club_pool_actual": 41,
-        "club_pool_deviation": 1,
+        "club_pool_actual": 40,
+        "club_pool_deviation": 0,
         "club_pool_target": 40,
         "counts_as_unresolved_shortfall": false,
         "minor_shortfall_threshold": 2,
@@ -8204,7 +8158,7 @@
             "team": "Jar Rød"
           },
           {
-            "actual": 6,
+            "actual": 5,
             "target": 5,
             "team": "Jar Svart"
           }
@@ -10489,20 +10443,20 @@
       },
       {
         "age_group": "U9",
-        "classification": "complete",
+        "classification": "single_team_deviation",
         "club": "Sandefjord Penguins",
-        "club_pool_actual": 8,
-        "club_pool_deviation": 0,
+        "club_pool_actual": 7,
+        "club_pool_deviation": -1,
         "club_pool_target": 8,
-        "counts_as_unresolved_shortfall": false,
+        "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
         "nominal_target_per_team": 8,
-        "planning_significance": "resolved",
+        "planning_significance": "material",
         "registered_team_count": 1,
         "scope": "season",
         "team_distribution": [
           {
-            "actual": 8,
+            "actual": 7,
             "target": 8,
             "team": "Sandefjord"
           }
@@ -10512,8 +10466,8 @@
         "age_group": "U9",
         "classification": "single_team_deviation",
         "club": "Sandefjord Penguins",
-        "club_pool_actual": 2,
-        "club_pool_deviation": -2,
+        "club_pool_actual": 3,
+        "club_pool_deviation": -1,
         "club_pool_target": 4,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
@@ -10523,7 +10477,7 @@
         "scope": "before_christmas",
         "team_distribution": [
           {
-            "actual": 2,
+            "actual": 3,
             "target": 4,
             "team": "Sandefjord"
           }
@@ -10531,20 +10485,20 @@
       },
       {
         "age_group": "U9",
-        "classification": "single_team_deviation",
+        "classification": "complete",
         "club": "Sandefjord Penguins",
-        "club_pool_actual": 6,
-        "club_pool_deviation": 2,
+        "club_pool_actual": 4,
+        "club_pool_deviation": 0,
         "club_pool_target": 4,
         "counts_as_unresolved_shortfall": false,
         "minor_shortfall_threshold": null,
         "nominal_target_per_team": 4,
-        "planning_significance": "material",
+        "planning_significance": "resolved",
         "registered_team_count": 1,
         "scope": "after_christmas",
         "team_distribution": [
           {
-            "actual": 6,
+            "actual": 4,
             "target": 4,
             "team": "Sandefjord"
           }
@@ -10764,8 +10718,8 @@
         "age_group": "U11",
         "classification": "single_team_deviation",
         "club": "Skien",
-        "club_pool_actual": 4,
-        "club_pool_deviation": -1,
+        "club_pool_actual": 3,
+        "club_pool_deviation": -2,
         "club_pool_target": 5,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
@@ -10775,7 +10729,7 @@
         "scope": "before_christmas",
         "team_distribution": [
           {
-            "actual": 4,
+            "actual": 3,
             "target": 5,
             "team": "Skien"
           }
@@ -10785,8 +10739,8 @@
         "age_group": "U11",
         "classification": "single_team_deviation",
         "club": "Skien",
-        "club_pool_actual": 3,
-        "club_pool_deviation": -2,
+        "club_pool_actual": 4,
+        "club_pool_deviation": -1,
         "club_pool_target": 5,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
@@ -10796,7 +10750,7 @@
         "scope": "after_christmas",
         "team_distribution": [
           {
-            "actual": 3,
+            "actual": 4,
             "target": 5,
             "team": "Skien"
           }
@@ -10888,20 +10842,20 @@
       },
       {
         "age_group": "U9",
-        "classification": "single_team_deviation",
+        "classification": "complete",
         "club": "Skien",
-        "club_pool_actual": 5,
-        "club_pool_deviation": 1,
+        "club_pool_actual": 4,
+        "club_pool_deviation": 0,
         "club_pool_target": 4,
         "counts_as_unresolved_shortfall": false,
         "minor_shortfall_threshold": null,
         "nominal_target_per_team": 4,
-        "planning_significance": "material",
+        "planning_significance": "resolved",
         "registered_team_count": 1,
         "scope": "before_christmas",
         "team_distribution": [
           {
-            "actual": 5,
+            "actual": 4,
             "target": 4,
             "team": "Skien"
           }
@@ -10911,8 +10865,8 @@
         "age_group": "U9",
         "classification": "single_team_deviation",
         "club": "Skien",
-        "club_pool_actual": 2,
-        "club_pool_deviation": -2,
+        "club_pool_actual": 3,
+        "club_pool_deviation": -1,
         "club_pool_target": 4,
         "counts_as_unresolved_shortfall": true,
         "minor_shortfall_threshold": null,
@@ -10922,7 +10876,7 @@
         "scope": "after_christmas",
         "team_distribution": [
           {
-            "actual": 2,
+            "actual": 3,
             "target": 4,
             "team": "Skien"
           }
@@ -11431,12 +11385,16 @@
           "count": 10
         },
         {
+          "code": "stale_approvals",
+          "count": 3
+        },
+        {
           "code": "participation_shortfalls",
-          "count": 132
+          "count": 131
         },
         {
           "code": "participation_target_deviation",
-          "count": 25
+          "count": 23
         },
         {
           "code": "tournament_placement_shortfall",
@@ -12749,7 +12707,7 @@
             "round_number": 1
           },
           {
-            "away": "Skien",
+            "away": "Sandefjord",
             "home": "Frisk Asker 4",
             "parallel_slot": 1,
             "round_number": 1
@@ -12779,7 +12737,7 @@
             "round_number": 2
           },
           {
-            "away": "Skien",
+            "away": "Sandefjord",
             "home": "Holmen Hockey Rød",
             "parallel_slot": 2,
             "round_number": 2
@@ -12791,7 +12749,7 @@
             "round_number": 2
           },
           {
-            "away": "Skien",
+            "away": "Sandefjord",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 3
@@ -12833,7 +12791,7 @@
             "round_number": 4
           },
           {
-            "away": "Skien",
+            "away": "Sandefjord",
             "home": "Jutul Rød",
             "parallel_slot": 3,
             "round_number": 4
@@ -12845,7 +12803,7 @@
             "round_number": 5
           },
           {
-            "away": "Skien",
+            "away": "Sandefjord",
             "home": "Holmen Hockey Hvit",
             "parallel_slot": 1,
             "round_number": 5
@@ -12904,8 +12862,8 @@
           },
           {
             "age_group": "U9",
-            "club": "Skien",
-            "label": "Skien"
+            "club": "Sandefjord Penguins",
+            "label": "Sandefjord"
           }
         ]
       },
@@ -19116,7 +19074,7 @@
             "round_number": 1
           },
           {
-            "away": "Sandefjord",
+            "away": "Skien",
             "home": "Ringerike 1",
             "parallel_slot": 3,
             "round_number": 1
@@ -19128,7 +19086,7 @@
             "round_number": 2
           },
           {
-            "away": "Sandefjord",
+            "away": "Skien",
             "home": "Frisk Asker 4",
             "parallel_slot": 1,
             "round_number": 2
@@ -19158,7 +19116,7 @@
             "round_number": 3
           },
           {
-            "away": "Sandefjord",
+            "away": "Skien",
             "home": "Jar Hvit",
             "parallel_slot": 2,
             "round_number": 3
@@ -19170,7 +19128,7 @@
             "round_number": 3
           },
           {
-            "away": "Sandefjord",
+            "away": "Skien",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 4
@@ -19212,7 +19170,7 @@
             "round_number": 5
           },
           {
-            "away": "Sandefjord",
+            "away": "Skien",
             "home": "Jutul Grønn",
             "parallel_slot": 3,
             "round_number": 5
@@ -19259,8 +19217,8 @@
           },
           {
             "age_group": "U9",
-            "club": "Sandefjord Penguins",
-            "label": "Sandefjord"
+            "club": "Skien",
+            "label": "Skien"
           }
         ]
       },
@@ -27206,25 +27164,25 @@
             "round_number": 1
           },
           {
+            "away": "Jar Hvit",
+            "home": "Holmen Hockey Hvit",
+            "parallel_slot": 1,
+            "round_number": 1
+          },
+          {
             "away": "Ringerike 1",
             "home": "Jutul Hvit",
-            "parallel_slot": 1,
+            "parallel_slot": 2,
             "round_number": 1
           },
           {
             "away": "Jar Rød",
             "home": "Kongsberg",
-            "parallel_slot": 2,
-            "round_number": 1
-          },
-          {
-            "away": "Jar Hvit",
-            "home": "Sandefjord",
             "parallel_slot": 3,
             "round_number": 1
           },
           {
-            "away": "Sandefjord",
+            "away": "Holmen Hockey Hvit",
             "home": "Frisk Asker 2",
             "parallel_slot": 0,
             "round_number": 2
@@ -27260,7 +27218,7 @@
             "round_number": 3
           },
           {
-            "away": "Sandefjord",
+            "away": "Holmen Hockey Hvit",
             "home": "Jutul Rød",
             "parallel_slot": 2,
             "round_number": 3
@@ -27278,7 +27236,7 @@
             "round_number": 4
           },
           {
-            "away": "Sandefjord",
+            "away": "Holmen Hockey Hvit",
             "home": "Jar Rød",
             "parallel_slot": 1,
             "round_number": 4
@@ -27314,7 +27272,7 @@
             "round_number": 5
           },
           {
-            "away": "Sandefjord",
+            "away": "Holmen Hockey Hvit",
             "home": "Kongsberg",
             "parallel_slot": 3,
             "round_number": 5
@@ -27351,8 +27309,8 @@
           },
           {
             "age_group": "U9",
-            "club": "Sandefjord Penguins",
-            "label": "Sandefjord"
+            "club": "Holmen",
+            "label": "Holmen Hockey Hvit"
           },
           {
             "age_group": "U9",
@@ -28666,38 +28624,38 @@
         "date": "2026-11-21",
         "games": [
           {
-            "away": "Jutul Grønn",
-            "home": "Frisk Asker 2",
-            "parallel_slot": 0,
-            "round_number": 1
-          },
-          {
-            "away": "Ringerike Svart",
+            "away": "Frisk Asker 2",
             "home": "Jar Rød",
-            "parallel_slot": 1,
+            "parallel_slot": 0,
             "round_number": 1
           },
           {
             "away": "Jar Oransje",
-            "home": "Skien",
-            "parallel_slot": 2,
+            "home": "Jar Svart",
+            "parallel_slot": 1,
             "round_number": 1
-          },
-          {
-            "away": "Jar Rød",
-            "home": "Jar Oransje",
-            "parallel_slot": 0,
-            "round_number": 2
           },
           {
             "away": "Ringerike Svart",
             "home": "Jutul Grønn",
+            "parallel_slot": 2,
+            "round_number": 1
+          },
+          {
+            "away": "Jutul Grønn",
+            "home": "Frisk Asker 2",
+            "parallel_slot": 0,
+            "round_number": 2
+          },
+          {
+            "away": "Jar Rød",
+            "home": "Jar Oransje",
             "parallel_slot": 1,
             "round_number": 2
           },
           {
-            "away": "Frisk Asker 2",
-            "home": "Skien",
+            "away": "Ringerike Svart",
+            "home": "Jar Svart",
             "parallel_slot": 2,
             "round_number": 2
           },
@@ -28715,12 +28673,12 @@
           },
           {
             "away": "Jar Rød",
-            "home": "Skien",
+            "home": "Jar Svart",
             "parallel_slot": 2,
             "round_number": 3
           },
           {
-            "away": "Frisk Asker 2",
+            "away": "Ringerike Svart",
             "home": "Jar Oransje",
             "parallel_slot": 0,
             "round_number": 4
@@ -28732,26 +28690,26 @@
             "round_number": 4
           },
           {
-            "away": "Ringerike Svart",
-            "home": "Skien",
+            "away": "Frisk Asker 2",
+            "home": "Jar Svart",
             "parallel_slot": 2,
             "round_number": 4
           },
           {
-            "away": "Ringerike Svart",
+            "away": "Frisk Asker 2",
             "home": "Jar Oransje",
             "parallel_slot": 0,
             "round_number": 5
           },
           {
-            "away": "Frisk Asker 2",
+            "away": "Ringerike Svart",
             "home": "Jar Rød",
             "parallel_slot": 1,
             "round_number": 5
           },
           {
             "away": "Jutul Grønn",
-            "home": "Skien",
+            "home": "Jar Svart",
             "parallel_slot": 2,
             "round_number": 5
           }
@@ -28762,8 +28720,8 @@
         "teams": [
           {
             "age_group": "U11",
-            "club": "Skien",
-            "label": "Skien"
+            "club": "Jar",
+            "label": "Jar Svart"
           },
           {
             "age_group": "U11",
@@ -29994,73 +29952,73 @@
             "round_number": 1
           },
           {
-            "away": "Jar Svart",
+            "away": "Tønsberg Rød",
             "home": "Jar Hvit",
             "parallel_slot": 1,
             "round_number": 1
           },
           {
-            "away": "Tønsberg Rød",
+            "away": "Skien",
             "home": "Jutul Grønn",
             "parallel_slot": 2,
             "round_number": 1
           },
           {
-            "away": "Tønsberg Rød",
+            "away": "Jar Hvit",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 2
           },
           {
-            "away": "Jar Hvit",
+            "away": "Skien",
             "home": "Jar Gul",
             "parallel_slot": 1,
             "round_number": 2
           },
           {
-            "away": "Jar Svart",
+            "away": "Tønsberg Rød",
             "home": "Jutul Grønn",
             "parallel_slot": 2,
             "round_number": 2
           },
           {
-            "away": "Jar Hvit",
+            "away": "Jutul Grønn",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
-            "away": "Jutul Grønn",
+            "away": "Jar Hvit",
             "home": "Jar Gul",
             "parallel_slot": 1,
             "round_number": 3
           },
           {
             "away": "Tønsberg Rød",
-            "home": "Jar Svart",
+            "home": "Skien",
             "parallel_slot": 2,
             "round_number": 3
           },
           {
-            "away": "Jutul Grønn",
+            "away": "Tønsberg Rød",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 4
           },
           {
-            "away": "Jar Svart",
+            "away": "Jutul Grønn",
             "home": "Jar Gul",
             "parallel_slot": 1,
             "round_number": 4
           },
           {
-            "away": "Tønsberg Rød",
+            "away": "Skien",
             "home": "Jar Hvit",
             "parallel_slot": 2,
             "round_number": 4
           },
           {
-            "away": "Jar Svart",
+            "away": "Skien",
             "home": "Frisk Asker 1",
             "parallel_slot": 0,
             "round_number": 5
@@ -30104,8 +30062,8 @@
           },
           {
             "age_group": "U11",
-            "club": "Jar",
-            "label": "Jar Svart"
+            "club": "Skien",
+            "label": "Skien"
           },
           {
             "age_group": "U11",
@@ -35384,50 +35342,6 @@
         "target": "4"
       },
       {
-        "actual": "3",
-        "age_group": "U9",
-        "category": "participation_under_target",
-        "club": "Holmen",
-        "club_pool": {
-          "age_group": "U9",
-          "classification": "minor_club_pool_shortfall",
-          "club": "Holmen",
-          "club_pool_actual": 10,
-          "club_pool_deviation": -2,
-          "club_pool_target": 12,
-          "counts_as_unresolved_shortfall": true,
-          "minor_shortfall_threshold": 2,
-          "nominal_target_per_team": 4,
-          "planning_significance": "minor",
-          "registered_team_count": 3,
-          "scope": "after_christmas",
-          "team_distribution": [
-            {
-              "actual": 3,
-              "target": 4,
-              "team": "Holmen Hockey Hvit"
-            },
-            {
-              "actual": 4,
-              "target": 4,
-              "team": "Holmen Hockey Rød"
-            },
-            {
-              "actual": 3,
-              "target": 4,
-              "team": "Holmen Hockey Sort"
-            }
-          ]
-        },
-        "club_pool_classification": "minor_club_pool_shortfall",
-        "club_pool_significance": "minor",
-        "counts_as_unresolved_shortfall": true,
-        "half": "after_christmas",
-        "label": "Holmen Hockey Hvit (Holmen, U9)",
-        "reason": "actual participation count does not match target",
-        "target": "4"
-      },
-      {
         "actual": "1",
         "age_group": "U10",
         "category": "participation_under_target",
@@ -35710,8 +35624,8 @@
           "age_group": "U9",
           "classification": "minor_club_pool_shortfall",
           "club": "Holmen",
-          "club_pool_actual": 10,
-          "club_pool_deviation": -2,
+          "club_pool_actual": 11,
+          "club_pool_deviation": -1,
           "club_pool_target": 12,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -35721,7 +35635,7 @@
           "scope": "after_christmas",
           "team_distribution": [
             {
-              "actual": 3,
+              "actual": 4,
               "target": 4,
               "team": "Holmen Hockey Hvit"
             },
@@ -36107,8 +36021,8 @@
           "age_group": "U11",
           "classification": "material_club_pool_shortfall",
           "club": "Jar",
-          "club_pool_actual": 31,
-          "club_pool_deviation": -9,
+          "club_pool_actual": 32,
+          "club_pool_deviation": -8,
           "club_pool_target": 40,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -36153,7 +36067,7 @@
               "team": "Jar Rød"
             },
             {
-              "actual": 2,
+              "actual": 3,
               "target": 5,
               "team": "Jar Svart"
             }
@@ -36235,8 +36149,8 @@
           "age_group": "U11",
           "classification": "material_club_pool_shortfall",
           "club": "Jar",
-          "club_pool_actual": 31,
-          "club_pool_deviation": -9,
+          "club_pool_actual": 32,
+          "club_pool_deviation": -8,
           "club_pool_target": 40,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -36281,7 +36195,7 @@
               "team": "Jar Rød"
             },
             {
-              "actual": 2,
+              "actual": 3,
               "target": 5,
               "team": "Jar Svart"
             }
@@ -36407,8 +36321,8 @@
           "age_group": "U11",
           "classification": "intra_club_distribution",
           "club": "Jar",
-          "club_pool_actual": 41,
-          "club_pool_deviation": 1,
+          "club_pool_actual": 40,
+          "club_pool_deviation": 0,
           "club_pool_target": 40,
           "counts_as_unresolved_shortfall": false,
           "minor_shortfall_threshold": 2,
@@ -36453,7 +36367,7 @@
               "team": "Jar Rød"
             },
             {
-              "actual": 6,
+              "actual": 5,
               "target": 5,
               "team": "Jar Svart"
             }
@@ -36525,8 +36439,8 @@
           "age_group": "U11",
           "classification": "material_club_pool_shortfall",
           "club": "Jar",
-          "club_pool_actual": 31,
-          "club_pool_deviation": -9,
+          "club_pool_actual": 32,
+          "club_pool_deviation": -8,
           "club_pool_target": 40,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -36571,7 +36485,7 @@
               "team": "Jar Rød"
             },
             {
-              "actual": 2,
+              "actual": 3,
               "target": 5,
               "team": "Jar Svart"
             }
@@ -36594,8 +36508,8 @@
           "age_group": "U11",
           "classification": "intra_club_distribution",
           "club": "Jar",
-          "club_pool_actual": 41,
-          "club_pool_deviation": 1,
+          "club_pool_actual": 40,
+          "club_pool_deviation": 0,
           "club_pool_target": 40,
           "counts_as_unresolved_shortfall": false,
           "minor_shortfall_threshold": 2,
@@ -36640,7 +36554,7 @@
               "team": "Jar Rød"
             },
             {
-              "actual": 6,
+              "actual": 5,
               "target": 5,
               "team": "Jar Svart"
             }
@@ -36810,8 +36724,8 @@
           "age_group": "U11",
           "classification": "intra_club_distribution",
           "club": "Jar",
-          "club_pool_actual": 41,
-          "club_pool_deviation": 1,
+          "club_pool_actual": 40,
+          "club_pool_deviation": 0,
           "club_pool_target": 40,
           "counts_as_unresolved_shortfall": false,
           "minor_shortfall_threshold": 2,
@@ -36856,7 +36770,7 @@
               "team": "Jar Rød"
             },
             {
-              "actual": 6,
+              "actual": 5,
               "target": 5,
               "team": "Jar Svart"
             }
@@ -37112,7 +37026,7 @@
         "target": "4"
       },
       {
-        "actual": "2",
+        "actual": "3",
         "age_group": "U11",
         "category": "participation_under_target",
         "club": "Jar",
@@ -37120,8 +37034,8 @@
           "age_group": "U11",
           "classification": "material_club_pool_shortfall",
           "club": "Jar",
-          "club_pool_actual": 31,
-          "club_pool_deviation": -9,
+          "club_pool_actual": 32,
+          "club_pool_deviation": -8,
           "club_pool_target": 40,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": 2,
@@ -37166,7 +37080,7 @@
               "team": "Jar Rød"
             },
             {
-              "actual": 2,
+              "actual": 3,
               "target": 5,
               "team": "Jar Svart"
             }
@@ -39149,7 +39063,7 @@
         "target": "5"
       },
       {
-        "actual": "2",
+        "actual": "3",
         "age_group": "U9",
         "category": "participation_under_target",
         "club": "Sandefjord Penguins",
@@ -39157,8 +39071,8 @@
           "age_group": "U9",
           "classification": "single_team_deviation",
           "club": "Sandefjord Penguins",
-          "club_pool_actual": 2,
-          "club_pool_deviation": -2,
+          "club_pool_actual": 3,
+          "club_pool_deviation": -1,
           "club_pool_target": 4,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": null,
@@ -39168,7 +39082,7 @@
           "scope": "before_christmas",
           "team_distribution": [
             {
-              "actual": 2,
+              "actual": 3,
               "target": 4,
               "team": "Sandefjord"
             }
@@ -39319,40 +39233,6 @@
         "target": "3"
       },
       {
-        "actual": "4",
-        "age_group": "U11",
-        "category": "participation_under_target",
-        "club": "Skien",
-        "club_pool": {
-          "age_group": "U11",
-          "classification": "single_team_deviation",
-          "club": "Skien",
-          "club_pool_actual": 4,
-          "club_pool_deviation": -1,
-          "club_pool_target": 5,
-          "counts_as_unresolved_shortfall": true,
-          "minor_shortfall_threshold": null,
-          "nominal_target_per_team": 5,
-          "planning_significance": "material",
-          "registered_team_count": 1,
-          "scope": "before_christmas",
-          "team_distribution": [
-            {
-              "actual": 4,
-              "target": 5,
-              "team": "Skien"
-            }
-          ]
-        },
-        "club_pool_classification": "single_team_deviation",
-        "club_pool_significance": "material",
-        "counts_as_unresolved_shortfall": true,
-        "half": "before_christmas",
-        "label": "Skien (Skien, U11)",
-        "reason": "actual participation count does not match target",
-        "target": "5"
-      },
-      {
         "actual": "3",
         "age_group": "U11",
         "category": "participation_under_target",
@@ -39369,10 +39249,44 @@
           "nominal_target_per_team": 5,
           "planning_significance": "material",
           "registered_team_count": 1,
-          "scope": "after_christmas",
+          "scope": "before_christmas",
           "team_distribution": [
             {
               "actual": 3,
+              "target": 5,
+              "team": "Skien"
+            }
+          ]
+        },
+        "club_pool_classification": "single_team_deviation",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Skien (Skien, U11)",
+        "reason": "actual participation count does not match target",
+        "target": "5"
+      },
+      {
+        "actual": "4",
+        "age_group": "U11",
+        "category": "participation_under_target",
+        "club": "Skien",
+        "club_pool": {
+          "age_group": "U11",
+          "classification": "single_team_deviation",
+          "club": "Skien",
+          "club_pool_actual": 4,
+          "club_pool_deviation": -1,
+          "club_pool_target": 5,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": null,
+          "nominal_target_per_team": 5,
+          "planning_significance": "material",
+          "registered_team_count": 1,
+          "scope": "after_christmas",
+          "team_distribution": [
+            {
+              "actual": 4,
               "target": 5,
               "team": "Skien"
             }
@@ -39421,7 +39335,7 @@
         "target": "3"
       },
       {
-        "actual": "2",
+        "actual": "3",
         "age_group": "U9",
         "category": "participation_under_target",
         "club": "Skien",
@@ -39429,8 +39343,8 @@
           "age_group": "U9",
           "classification": "single_team_deviation",
           "club": "Skien",
-          "club_pool_actual": 2,
-          "club_pool_deviation": -2,
+          "club_pool_actual": 3,
+          "club_pool_deviation": -1,
           "club_pool_target": 4,
           "counts_as_unresolved_shortfall": true,
           "minor_shortfall_threshold": null,
@@ -39440,7 +39354,7 @@
           "scope": "after_christmas",
           "team_distribution": [
             {
-              "actual": 2,
+              "actual": 3,
               "target": 4,
               "team": "Skien"
             }
@@ -41191,10 +41105,10 @@
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "abfe9ff323d9e6ae98dfc54856143fb5db3b4818ce5562518bf1040426eeb9a0",
+  "revision": "07b4d5d3f1b1e4a8149e00918eb6284d82d3fd8dbeb0e3f94cf1febd1bba8869",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-09-30T22:00:53.742952+00:00",
+  "updated_at": "2026-10-01T08:52:41.107391+00:00",
   "verification_context": {
     "calendar_evidence": {
       "blocked_sources": [],
