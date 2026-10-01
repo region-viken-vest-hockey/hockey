@@ -16,7 +16,7 @@ Resolve the authoritative published baseline/history through repository commands
 - Export/delivery: `../../../commands/rvv-miniputt/season-delivery.md`
 - Semantic audit/publication scope: `../../../commands/rvv-miniputt/audit-publication.md`
 - First/current publication: `../../../commands/rvv-miniputt/publish.md`
-- Republish sealed season: `../../../commands/rvv-miniputt/republish.md`
+- Republish sealed season: **lazy-load** `../../../commands/rvv-miniputt/republish.md` and `../../../commands/rvv-miniputt/audit-publication.md`; when a harness is active, it performs the semantic audit in-session via audit-context/evidence/submit rather than spawning `audit-run`.
 
 The repository-owned deterministic preflight decides publication eligibility for the exact projection. Full-season planning debt and publication-scope eligibility are related evidence but not interchangeable gates. A failed/incomplete semantic audit remains evidence; do not rewrite it merely to enable publication.
 
