@@ -21,11 +21,11 @@ from tournament_scheduler.change_protections import (
     RELEASED as CHANGE_PROTECTION_RELEASED,
     active_change_protections,
 )
+from tournament_scheduler.final_verification import verify_canonical_candidate
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
 from tournament_scheduler.participation_targets import OPERATOR_ACCEPTED
-from tournament_scheduler.planning_contract import verify_candidate
 
 from .shared import (
     APPROVED_STATUS,
@@ -34,6 +34,7 @@ from .shared import (
     _now_iso,
     _append_decision_history,
     _attributable_blockers,
+    _resolve_plan_problem,
 )
 
 def _acceptance_record_id(record: Mapping[str, Any]) -> str:
@@ -174,7 +175,15 @@ def approve_tournament(
     if tournament is None:
         raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
 
-    verification = verify_candidate(plan, problem) if problem else verify_candidate(plan)
+    # A promoted-season approval must see the same overlay-resolved canonical
+    # facts as findings/export/maintenance. Accepted source-backed booking
+    # evidence and host-confirmed ice-time overrides are projected here (from
+    # the current decisions, not a caller-provided subset), and the
+    # canonical-season verifier reclassifies an exact accepted short interval
+    # as a durable feasibility finding instead of a new-placement violation.
+    # Without accepted evidence the governing planning floor stays hard.
+    resolved_problem = _resolve_plan_problem(schedule, problem, decisions)
+    verification = verify_canonical_candidate(plan, resolved_problem)
     hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
     blockers = hard_blockers + unresolved_blockers
     if blockers:
