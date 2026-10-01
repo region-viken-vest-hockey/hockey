@@ -193,7 +193,7 @@ Approval lives in `decisions.json`, separate from schedule facts.
 - `season approve` re-verifies the current placement; approval is not a hard-rule waiver.
 - Approved placement/participant locks become hard-preserve constraints for all baseline-aware planning paths.
 - `season unapprove` is the explicit route back to editability.
-- A changed protected-fields fingerprint becomes `stale_approval`; the stale lock is dropped and explicit reapproval is required.
+- A changed protected placement fingerprint becomes `stale_approval`; a participant-locked approval also stales when its roster/game structure changes. The stale lock is dropped and explicit reapproval is required.
 - Approval/unapproval history remains durable in canonical decision state.
 
 ### Targeted changes

@@ -20,7 +20,10 @@ from tournament_scheduler.calendar_bookings import (
 )
 from tournament_scheduler.canonical_exception_policy import reclassify_accepted_source_interval
 from tournament_scheduler.calendar_availability import CalendarAvailability, interval_availability
-from tournament_scheduler.canonical_baseline import approval_fingerprint
+from tournament_scheduler.canonical_baseline import (
+    approval_fingerprint,
+    approval_placement_fingerprint,
+)
 from tournament_scheduler.canonical_ice_time_overrides import (
     project_overrides_into_problem,
     override_for_tournament,
@@ -416,6 +419,7 @@ def confirm_calendar_booking(
 
     approved_at = checked_at
     tournament_fingerprint = approval_fingerprint(tournament)
+    placement_fingerprint = approval_placement_fingerprint(tournament)
     previous = dict(decisions["decisions"].get(tournament_id, {}))
     record = dict(previous)
     record.update(
@@ -424,6 +428,7 @@ def confirm_calendar_booking(
             "placement_locked": True,
             "participants_locked": False,
             "approved_fingerprint": tournament_fingerprint,
+            "approved_placement_fingerprint": placement_fingerprint,
             "approved_at": approved_at,
             "approved_by": resolved_actor,
             "note": note,

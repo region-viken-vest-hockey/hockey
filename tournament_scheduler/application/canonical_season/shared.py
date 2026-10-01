@@ -10,7 +10,7 @@ from tournament_scheduler.calendar_bookings import (
     project_associations_into_problem,
     project_manual_assertions_into_problem,
 )
-from tournament_scheduler.canonical_baseline import approval_fingerprint
+from tournament_scheduler.canonical_baseline import resolve_approval
 from tournament_scheduler.canonical_banned_dates import project_banned_dates_into_problem
 from tournament_scheduler.canonical_holiday_exceptions import project_exceptions_into_problem
 from tournament_scheduler.canonical_ice_time_overrides import project_overrides_into_problem
@@ -206,16 +206,18 @@ def _reconcile_decisions(
         elif record.get("status") in (APPROVED_STATUS, STALE_APPROVAL_STATUS) or record.get(
             "approved_fingerprint"
         ):
+            resolved = resolve_approval(record, tournament)
             approved_fingerprint = record.get("approved_fingerprint")
-            fingerprint_matches = bool(approved_fingerprint) and approved_fingerprint == approval_fingerprint(
-                tournament
-            )
+            fingerprint_matches = bool(approved_fingerprint) and not resolved["stale"]
             if record.get("status") == STALE_APPROVAL_STATUS or not fingerprint_matches:
                 record = {
                     "status": STALE_APPROVAL_STATUS,
                     "placement_locked": False,
                     "participants_locked": False,
                     "approved_fingerprint": approved_fingerprint,
+                    "approved_placement_fingerprint": record.get(
+                        "approved_placement_fingerprint"
+                    ),
                     "approved_at": record.get("approved_at"),
                     "approved_by": record.get("approved_by"),
                     "note": record.get("note") or "",

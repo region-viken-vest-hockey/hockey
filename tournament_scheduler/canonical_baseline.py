@@ -92,14 +92,45 @@ def _tournament_snapshot(tournament: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _normalized_approval_payload(tournament: Dict[str, Any]) -> Dict[str, Any]:
-    """Return the exact protected scheduling state an approval covers.
+def _placement_approval_payload(tournament: Dict[str, Any]) -> Dict[str, Any]:
+    """Return the placement-scoped state a placement approval covers.
+
+    Covers identity and placement facts -- id, age group, date, arena,
+    physical host and start time/occupied interval -- plus durable reserved
+    guest capacity. Participant roster and deterministic game/round structure
+    are deliberately excluded so a verified roster change does not invalidate
+    an approval that did not lock participants.
+    """
+    payload: Dict[str, Any] = {
+        "id": str(tournament.get("id") or ""),
+        "age_group": tournament.get("age_group"),
+        "date": tournament.get("date"),
+        "arena": tournament.get("arena"),
+        "host_club": tournament.get("host_club"),
+        "start_time": tournament.get("start_time"),
+    }
+    # A reserved guest place is durable capacity state, so an approval must be
+    # invalidated by a reservation change even when the provisional game list
+    # happens to be identical (an open place does not change the RVV games).
+    # Only added when reservations exist, so pre-existing approvals keep the
+    # exact same fingerprint.
+    active_reservations = sorted(
+        (str(record.get("id") or ""), str(record.get("status") or "open"))
+        for record in (tournament.get("guest_slots") or [])
+        if isinstance(record, dict)
+        and str(record.get("status") or "open") in ("open", "filled")
+    )
+    if active_reservations:
+        payload["guest_slots"] = [list(entry) for entry in active_reservations]
+    return payload
+
+
+def _participants_approval_payload(tournament: Dict[str, Any]) -> Dict[str, Any]:
+    """Return the roster/game structure an approval covers when participants are locked.
 
     Normalized so semantically irrelevant ordering (the sequence teams happen
     to appear in, or the order games are listed) does not invalidate an
-    approval, while any change to a protected field -- id, age group, date,
-    arena, physical host, start time/occupied interval, participant roster or
-    deterministic game/round structure -- does.
+    approval.
     """
     teams = sorted(
         (
@@ -120,30 +151,25 @@ def _normalized_approval_payload(tournament: Dict[str, Any]) -> Dict[str, Any]:
         for game in tournament.get("games", []) or []
         if isinstance(game, dict)
     )
-    payload = {
-        "id": str(tournament.get("id") or ""),
-        "age_group": tournament.get("age_group"),
-        "date": tournament.get("date"),
-        "arena": tournament.get("arena"),
-        "host_club": tournament.get("host_club"),
-        "start_time": tournament.get("start_time"),
+    return {
         "teams": [list(identity) for identity in teams],
         "games": [list(game) for game in games],
     }
-    # A reserved guest place is durable capacity state, so an approval must be
-    # invalidated by a reservation change even when the provisional game list
-    # happens to be identical (an open place does not change the RVV games).
-    # Only added when reservations exist, so pre-existing approvals keep the
-    # exact same fingerprint.
-    active_reservations = sorted(
-        (str(record.get("id") or ""), str(record.get("status") or "open"))
-        for record in (tournament.get("guest_slots") or [])
-        if isinstance(record, dict)
-        and str(record.get("status") or "open") in ("open", "filled")
-    )
-    if active_reservations:
-        payload["guest_slots"] = [list(entry) for entry in active_reservations]
-    return payload
+
+
+def _normalized_approval_payload(tournament: Dict[str, Any]) -> Dict[str, Any]:
+    """Return the exact protected scheduling state an approval covers.
+
+    Normalized so semantically irrelevant ordering (the sequence teams happen
+    to appear in, or the order games are listed) does not invalidate an
+    approval, while any change to a protected field -- id, age group, date,
+    arena, physical host, start time/occupied interval, participant roster or
+    deterministic game/round structure -- does.
+    """
+    return {
+        **_placement_approval_payload(tournament),
+        **_participants_approval_payload(tournament),
+    }
 
 
 def approval_fingerprint(tournament: Dict[str, Any]) -> str:
@@ -154,12 +180,27 @@ def approval_fingerprint(tournament: Dict[str, Any]) -> str:
     field invalidates a stored approval instead of silently keeping it
     "approved".
     """
+    return _approval_payload_fingerprint(_normalized_approval_payload(tournament))
+
+
+def approval_placement_fingerprint(tournament: Dict[str, Any]) -> str:
+    """Return the placement-scoped fingerprint a placement approval records.
+
+    Unlike :func:`approval_fingerprint` this excludes the participant roster
+    and game structure, so a placement approval that did not lock participants
+    stays current across a verified roster change while still becoming stale
+    on any placement/reservation change.
+    """
+    return _approval_payload_fingerprint(_placement_approval_payload(tournament))
+
+
+def _approval_payload_fingerprint(payload: Dict[str, Any]) -> str:
     # Imported lazily: ``tournament_scheduler.pipeline`` eagerly imports the
     # planning contract, which imports this module, so a top-level import
     # here would be a circular import.
     from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
-    return stable_payload_sha256(_normalized_approval_payload(tournament))
+    return stable_payload_sha256(payload)
 
 
 def resolve_approval(
@@ -168,17 +209,34 @@ def resolve_approval(
 ) -> Dict[str, Any]:
     """Resolve a decision record plus the current tournament into effective state.
 
-    A stored approval only counts while its ``approved_fingerprint`` still
-    matches the current tournament.  A mismatch is a deterministic
-    ``stale_approval``: the tournament is reported as no longer approved and
-    its locks are dropped, so a legacy/buggy mutation path can never keep an
-    approval (or its protection) alive unnoticed.  Locks without any stored
-    approval fingerprint keep the legacy explicit-lock behavior.
+    A stored approval only counts while it still matches the tournament state
+    it actually approved. An approval records the scope that was locked:
+
+    - a placement approval (``participants_locked`` false) is ``stale_approval``
+      only when its placement-scoped state changed, so a verified roster-only
+      maintenance change leaves the placement approval/lock intact;
+    - a participant-locked approval is ``stale_approval`` on any change to the
+      full protected payload (placement or roster);
+    - a legacy approval with no stored placement fingerprint keeps the original
+      full-payload comparison.
+
+    A mismatch is a deterministic ``stale_approval``: the tournament is
+    reported as no longer approved and its locks are dropped, so a legacy/buggy
+    mutation path can never keep an approval (or its protection) alive
+    unnoticed. Locks without any stored approval fingerprint keep the legacy
+    explicit-lock behavior.
     """
     record = record or {}
-    current_fingerprint = approval_fingerprint(tournament)
     approved_fingerprint = record.get("approved_fingerprint")
-    stale = bool(approved_fingerprint) and approved_fingerprint != current_fingerprint
+    approved_placement_fingerprint = record.get("approved_placement_fingerprint")
+    current_fingerprint = approval_fingerprint(tournament)
+    current_placement_fingerprint = approval_placement_fingerprint(tournament)
+    participants_locked = bool(record.get("participants_locked"))
+    if approved_placement_fingerprint and not participants_locked:
+        changed = approved_placement_fingerprint != current_placement_fingerprint
+    else:
+        changed = approved_fingerprint != current_fingerprint
+    stale = bool(approved_fingerprint) and changed
     if str(record.get("status") or "") == "stale_approval":
         # An approval invalidated by a mutation stays invalid until the
         # operator explicitly reapproves, even if the tournament later
@@ -194,6 +252,8 @@ def resolve_approval(
         "participants_locked": bool(record.get("participants_locked")) and not stale,
         "approved_fingerprint": approved_fingerprint,
         "current_fingerprint": current_fingerprint,
+        "approved_placement_fingerprint": approved_placement_fingerprint,
+        "current_placement_fingerprint": current_placement_fingerprint,
         "approved_at": record.get("approved_at"),
         "approved_by": record.get("approved_by"),
         "note": record.get("note") or "",
@@ -236,6 +296,8 @@ def build_canonical_baseline(
             "participants_locked": resolved["participants_locked"],
             "approved_fingerprint": resolved["approved_fingerprint"],
             "current_fingerprint": resolved["current_fingerprint"],
+            "approved_placement_fingerprint": resolved["approved_placement_fingerprint"],
+            "current_placement_fingerprint": resolved["current_placement_fingerprint"],
             "approved_at": resolved["approved_at"],
             "approved_by": resolved["approved_by"],
             "note": resolved["note"],

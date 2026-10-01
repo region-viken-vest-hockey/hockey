@@ -5,7 +5,10 @@ from __future__ import annotations
 import copy
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_baseline import approval_fingerprint
+from tournament_scheduler.canonical_baseline import (
+    approval_fingerprint,
+    approval_placement_fingerprint,
+)
 from tournament_scheduler.canonical_state import (
     CHANGE_PROTECTIONS_KEY,
     schedule_fingerprint,
@@ -328,6 +331,9 @@ def normalize_arena_identities(
                 if str(entry.get("id") or "") == change["tournament_id"]
             )
             record["approved_fingerprint"] = approval_fingerprint(tournament)
+            record["approved_placement_fingerprint"] = approval_placement_fingerprint(
+                tournament
+            )
             records[change["tournament_id"]] = record
 
     protections = decisions.get(CHANGE_PROTECTIONS_KEY) or []
