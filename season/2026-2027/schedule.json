@@ -41088,8 +41088,8 @@
   },
   "plan_schema_version": 1,
   "promoted_from": {
-    "export_fresh_at": "2026-09-30T22:02:52.022079+00:00",
-    "export_fresh_revision": "171ed74ee2b69813eebadf5437fef95e7d9e18ccd0b39931b9a639f3a0411ed0",
+    "export_fresh_at": "2026-10-01T10:55:33.668119+00:00",
+    "export_fresh_revision": "5861205f95389f2288c6c99715289757310161d07448326811b386097a012986",
     "public_export_context_fingerprint": "f5ac564e3b0f7eac33196110185cb082556676d5fe9f8bbd33ea0be77bbfc415",
     "run_id": "20260918T135604Z-8d38f146",
     "stage3_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
