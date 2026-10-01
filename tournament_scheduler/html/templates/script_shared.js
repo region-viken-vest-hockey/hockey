@@ -157,9 +157,22 @@ function operationalStateOf(t) {
   return '';
 }
 
+// Manual confirmation is a compact qualifier on the one booked badge, not a
+// second operational state. The full authority/source label stays in the
+// expandable booking details. Self-contained so the shipped helper can be
+// evaluated in isolation by the presentation tests.
+function isManualConfirmedBooking(t) {
+  if (!t) return false;
+  var authority = t.bauth;
+  if (authority === 'manual_club_confirmation' || authority === 'manual_club_confirmation_interpretation') return true;
+  // Legacy/hand-built payloads may carry the manual projection without the
+  // typed authority field; a manually-booked record is still manual.
+  return t.bs === 'manually_booked';
+}
+
 function operationalStateLabel(t, state) {
   t = t || {};
-  if (state === 'booked') return 'BOOKET · LÅST';
+  if (state === 'booked') return isManualConfirmedBooking(t) ? 'BOOKET · LÅST (M)' : 'BOOKET · LÅST';
   if (state === 'changed_slot_review') return 'ENDRET TID · MÅ VURDERES';
   if (state === 'presumed_unscheduled') return 'TROLIG IKKE SATT OPP';
   if (state === 'unknown') return 'UKJENT BOOKING';

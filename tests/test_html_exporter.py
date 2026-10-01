@@ -176,7 +176,7 @@ def _shared_operational_helpers_js() -> str:
     """Extract the shared operational-state helpers from the shipped bundle."""
 
     source = _SHARED_TEMPLATE.read_text(encoding="utf-8")
-    names = ("operationalStateOf", "operationalStateLabel", "bookingStatusLabel", "escapeHtml")
+    names = ("operationalStateOf", "isManualConfirmedBooking", "operationalStateLabel", "bookingStatusLabel", "escapeHtml")
     parts = []
     for name in names:
         match = re.search(rf"function {name}\([^)]*\) \{{.*?\n\}}", source, re.S)
@@ -256,6 +256,37 @@ def _render_heatmap(
             ]
         )
     return "\n".join(parts)
+
+
+def _render_schedule_cards(tournaments: list[dict]) -> str:
+    """Run the shipped season-plan card renderer against a minimal DOM stub.
+
+    ``script_schedule.js`` renders every card into ``#timeline``; the returned
+    string is that card HTML, so tests can assert the top-level badge projection
+    that an operator actually sees.
+    """
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.fail("node is required to execute the shipped schedule template")
+
+    schedule = _SCHEDULE_TEMPLATE.read_text(encoding="utf-8")
+    script = (
+        _shared_operational_helpers_js()
+        + "function getClubFromTeam(team) { return String(team).split(' ')[0]; }\n"
+        + "const TOURNAMENTS = "
+        + json.dumps(tournaments)
+        + ";\nvar __timelineHtml = '';\n"
+        + "var document = { getElementById: function(id) {\n"
+        + "  if (id === 'timeline') return {set innerHTML(v) {__timelineHtml = v;}, get innerHTML() {return __timelineHtml;}};\n"
+        + "  if (id === 'totalTournaments' || id === 'visibleCount' || id === 'totalCount' || id === 'monthRange') return {textContent: ''};\n"
+        + "  return null;\n"
+        + "} };\n"
+        + schedule
+        + "\nconsole.log(JSON.stringify({cards: __timelineHtml}));\n"
+    )
+    completed = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+    return str(json.loads(completed.stdout)["cards"])
 
 
 # ---------------------------------------------------------------------------
@@ -839,6 +870,126 @@ console.log(buildBookingDetails(item));
         # Interval values are escaped too; the omitted title never renders.
         assert "&lt;b&gt;2025-11-01&lt;/b&gt;" in rendered
         assert "evil" not in rendered
+
+    def _booked_card(self, **overrides) -> dict:
+        card = {
+            "id": "rvv-0001",
+            "d": "2026-10-05",
+            "a": "Holmen ishall",
+            "g": "U10",
+            "h": "Holmen",
+            "p": [
+                {"c": "Holmen", "l": "Holmen U10A", "g": "U10"},
+                {"c": "Jar", "l": "Jar U10A", "g": "U10"},
+            ],
+            "m": [["Holmen U10A", "Jar U10A", 0, 1]],
+            "obs": "booked",
+            "bs": "confirmed_booked",
+            "bauth": "calendar_event_association",
+            "ap": "approved",
+            "apl": True,
+        }
+        card.update(overrides)
+        return card
+
+    def test_manual_booking_authority_is_a_qualifier_not_a_second_state(self):
+        """Manual confirmation adds ``(M)`` to the booked label; it is not a badge."""
+
+        node = shutil.which("node")
+        if node is None:
+            pytest.fail("node is required to execute the shipped schedule template")
+
+        cases = [
+            ({"obs": "booked", "bs": "confirmed_booked", "bauth": "calendar_event_association"}, "BOOKET · LÅST"),
+            ({"obs": "booked", "bs": "manually_booked", "bauth": "manual_club_confirmation"}, "BOOKET · LÅST (M)"),
+            (
+                {"obs": "booked", "bs": "manually_booked", "bauth": "manual_club_confirmation_interpretation"},
+                "BOOKET · LÅST (M)",
+            ),
+            # Legacy payload without the typed authority still reads as manual.
+            ({"obs": "booked", "bs": "manually_booked"}, "BOOKET · LÅST (M)"),
+        ]
+        script = _shared_operational_helpers_js() + (
+            "const cases = "
+            + json.dumps(cases)
+            + ";\nconsole.log(JSON.stringify(cases.map(function(c){"
+            "var s = operationalStateOf(c[0]); return [s, operationalStateLabel(c[0], s), c[1]]; })));\n"
+        )
+        completed = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
+        for state, label, expected in json.loads(completed.stdout):
+            assert state == "booked"
+            assert label == expected
+
+    def test_booked_card_renders_one_primary_badge(self):
+        """A booked/locked card shows one operational badge and no competing approval badge."""
+
+        calendar = _render_schedule_cards([self._booked_card()])
+        assert calendar.count('class="booking-badge booking-badge--booked') == 1
+        assert "BOOKET · LÅST" in calendar
+        assert "(M)" not in calendar
+        assert 'class="approval-badge' not in calendar
+        assert "GODKJENT" not in calendar
+
+        manual = _render_schedule_cards(
+            [self._booked_card(bs="manually_booked", bauth="manual_club_confirmation")]
+        )
+        assert manual.count('class="booking-badge booking-badge--booked') == 1
+        assert "BOOKET · LÅST (M)" in manual
+        assert 'class="approval-badge' not in manual
+        assert "GODKJENT" not in manual
+        # The full authority remains inspectable in the expanded booking details.
+        assert "Autoritet:" in manual
+        assert "manuell klubbekreftelse" in manual
+
+    def test_stale_approval_stays_visible_alongside_the_booked_badge(self):
+        """A stale approval is actionable and must not be suppressed by the booking badge."""
+
+        stale = _render_schedule_cards([self._booked_card(ap="stale_approval")])
+        assert stale.count('class="booking-badge booking-badge--booked') == 1
+        assert 'class="approval-badge approval-badge--stale"' in stale
+        assert "GODKJENNING UTGÅR" in stale
+
+    def test_unbooked_approved_card_keeps_its_approval_badge(self):
+        """Placement approval stays visible when the ticket is not an operational booking."""
+
+        pending = _render_schedule_cards(
+            [self._booked_card(obs="not_booked", bs="unknown", bauth=None, ap="approved")]
+        )
+        assert 'class="approval-badge"' in pending
+        assert "GODKJENT" in pending
+        assert 'class="booking-badge booking-badge--not_booked"' in pending
+
+    def test_heatmap_marks_manual_authority_with_the_same_booked_label(self):
+        """The heatmap tooltip shares the card's manual ``(M)`` qualifier."""
+
+        manual = {
+            "id": "t1",
+            "obs": "booked",
+            "bs": "manually_booked",
+            "bauth": "manual_club_confirmation",
+            "ba": False,
+        }
+        heatmap = {
+            "2025-W40": {
+                "Holmen": [
+                    {
+                        "age_group": "U10",
+                        "tournament_id": "t1",
+                        "operational_state": "booked",
+                        "booking_status": "manually_booked",
+                        "needs_attention": False,
+                    }
+                ]
+            }
+        }
+        colors = {
+            "dark": {"Holmen": {"bg": "#111111", "text": "#ffffff"}},
+            "light": {"Holmen": {"bg": "#eeeeee", "text": "#111111"}},
+        }
+        rendered = _render_heatmap(
+            [manual], heatmap, clubs=["Holmen"], weeks=["2025-W40"], colors=colors
+        )
+        assert "BOOKET · LÅST (M)" in rendered
 
 
 class TestTeamFilter:

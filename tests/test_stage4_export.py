@@ -88,10 +88,13 @@ def _rendered_booking_badge_label(tournament_payload: dict) -> tuple[str, str]:
         / "script_shared.js"
     ).read_text(encoding="utf-8")
     state_match = re.search(r"function operationalStateOf\(t\) \{.*?\n\}", source, re.S)
+    manual_match = re.search(r"function isManualConfirmedBooking\(t\) \{.*?\n\}", source, re.S)
     label_match = re.search(r"function operationalStateLabel\(t, state\) \{.*?\n\}", source, re.S)
-    assert state_match and label_match, "shared template must expose booking badge helpers"
+    assert state_match and manual_match and label_match, "shared template must expose booking badge helpers"
     script = (
         state_match.group(0)
+        + "\n"
+        + manual_match.group(0)
         + "\n"
         + label_match.group(0)
         + "\nconst t = "
@@ -462,6 +465,8 @@ class TestRunStage4:
         embedded = _html_tournament_payload(result["output_files"]["html"])
         assert embedded[0]["obs"] == "booked"
         assert embedded[0]["bs"] == "manually_booked"
+        assert embedded[0]["bauth"] == "manual_club_confirmation"
+        assert _rendered_booking_badge_label(embedded[0]) == ("booked", "BOOKET · LÅST (M)")
 
     def test_canonical_export_keeps_frozen_booking_candidates_out_of_schedule_artifacts(self, tmp_path, monkeypatch):
         """Frozen real-shaped assessment candidates stay diagnostics-only.
