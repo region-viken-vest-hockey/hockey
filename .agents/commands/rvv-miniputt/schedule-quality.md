@@ -17,14 +17,20 @@ Hosting responsibility and hosting balance are out of scope unless the operator 
 Evaluate fairness primarily among comparable teams within the same age group and against the current canonical season state. Use accepted/calendar-confirmed reality where it has superseded earlier planning assumptions; do not treat superseded proposal/default dates, times or durations as current truth.
 
 At minimum quantify:
-- total tournaments/games per team relative to same-age peers and applicable targets;
+- total tournaments per team relative to same-age peers and applicable targets;
+- actual game/match opportunities per team when tournament formats differ, so equal tournament counts are not mistaken for equal participation;
 - distribution before versus after Christmas;
 - season span from first to last tournament;
 - unusually late first tournament or unusually early last tournament;
 - long inactive gaps;
-- unusually compressed periods or clusters;
+- unusually compressed periods or clusters, including consecutive-day/weekend load where relevant;
 - cadence/frequency through the active season;
-- material participation deviations from comparable teams in the same age group.
+- opponent repetition and opponent diversity within the same age group;
+- participant travel burden and repeated long-away trips, independently of who has hosting responsibility;
+- material participation deviations from comparable teams in the same age group;
+- schedule stability/churn when repository history supports it: repeated moves, cancellations or late changes that disproportionately affect the same team.
+
+Where authoritative data exists, also inspect time-of-day/weekend distribution and major school-holiday exposure if those differ materially between comparable teams. Do not invent fairness findings from unavailable or unreliable data, and do not infer competitive strength/skill balance unless the repository has an explicit authoritative classification for it.
 
 Also surface other material participant-facing inequities evidenced by repository-owned findings or projections.
 
