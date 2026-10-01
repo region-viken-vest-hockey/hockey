@@ -1564,17 +1564,18 @@ BEGIN:VEVENT
 SUMMARY:U10 — Jar Isforum
 DTSTART:20270214T110000Z
 DTEND:20270214T132000Z
-UID:b2f2afab-517c-5918-a93f-96eba58771a5
+UID:d575a05b-55d7-553e-bd6b-810def2f2d06
 CATEGORIES:U10
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: U10\nVert: Jar\nDeltakende l
- ag (6): Jar Svart\, Jar Rød\, Holmen Hockey Blå\, Jutul Grønn\, Ringeri
- ke 4\, Ringerike 2\n\nKamper:\n  Holmen Hockey Blå vs Ringerike 4\n  Jar 
- Svart vs Jar Rød\n  Jutul Grønn vs Ringerike 2\n  Jar Rød vs Jutul Grø
- nn\n  Jar Svart vs Holmen Hockey Blå\n  Ringerike 4 vs Ringerike 2\n  Jar
-  Rød vs Holmen Hockey Blå\n  Jar Svart vs Ringerike 2\n  Jutul Grønn vs
-  Ringerike 4\n  Holmen Hockey Blå vs Jutul Grønn\n  Jar Rød vs Ringerik
- e 2\n  Jar Svart vs Ringerike 4\n  Holmen Hockey Blå vs Ringerike 2\n  Ja
- r Rød vs Ringerike 4\n  Jar Svart vs Jutul Grønn
+ ag (6): Jar Svart\, Jar Rød\, Holmen Hockey Blå\, Jutul Grønn\, Holmen 
+ Hockey Sort\, Jar Grønn\n\nKamper:\n  Holmen Hockey Blå vs Jar Grønn\n 
+  Jar Svart vs Jar Rød\n  Jutul Grønn vs Holmen Hockey Sort\n  Holmen Hoc
+ key Sort vs Jar Grønn\n  Jar Rød vs Holmen Hockey Blå\n  Jar Svart vs J
+ utul Grønn\n  Jar Rød vs Holmen Hockey Sort\n  Jar Svart vs Holmen Hocke
+ y Blå\n  Jutul Grønn vs Jar Grønn\n  Holmen Hockey Blå vs Jutul Grønn
+ \n  Jar Rød vs Jar Grønn\n  Jar Svart vs Holmen Hockey Sort\n  Holmen Ho
+ ckey Blå vs Holmen Hockey Sort\n  Jar Rød vs Jutul Grønn\n  Jar Svart v
+ s Jar Grønn
 LOCATION:Jar Isforum
 END:VEVENT
 BEGIN:VEVENT
