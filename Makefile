@@ -19,12 +19,13 @@ PYTHON ?= $(ROOT_DIR)/venv/bin/python3
 SECRET_SCAN ?= $(ROOT_DIR)/scripts/secret-scan.sh
 RULES_REPORT ?= $(ROOT_DIR)/scripts/rules-report.sh
 KAMPVEILEDER_CONVERT ?= $(ROOT_DIR)/scripts/convert-kampveileder.sh
+SEASON_REPUBLISH ?= $(ROOT_DIR)/scripts/season-republish.py
 SEASON ?= 2026-2027
 
 export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CONFIRM_CLEANUP CSV ARGS BACKEND RESULT_FILE
 
 PUBLIC_TARGETS := help bootstrap handover install check test dependency-lock secret-scan rules-report rule-catalog kampveileder-markdown \
-	operator-run operator-run-force run status logs calendars calendars-refresh sources-status season-export season-changes season-changes-markdown \
+	operator-run operator-run-force run status logs calendars calendars-refresh sources-status season-export season-republish season-changes season-changes-markdown \
 	waiver \
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
 	questions questions-all answer promote \
@@ -63,6 +64,8 @@ help:
 	@echo "  make sources-status [ARGS='...']   sources status"
 	@echo "  make season-export [SEASON=2026-2027] [ARGS='...']"
 	@echo "                                      Regenerate export artifacts from canonical season state (does not publish)"
+	@echo "  make season-republish SEASON=2026-2027 BACKEND=<name> [CONFIRM_PUBLIC=1]"
+	@echo "                                      Export + audit + publish preview; CONFIRM_PUBLIC=1 also publishes and verifies"
 	@echo "  make season-changes [SEASON=2026-2027] [ARGS='--markdown|--write|--json']"
 	@echo "                                      Show canonical request-grouped season change ledger"
 	@echo "  make season-changes-markdown [SEASON=2026-2027]"
@@ -171,6 +174,10 @@ sources-status:
 
 season-export:
 	@cd "$(ROOT_DIR)" && "$(RVV)" season export --season "$(SEASON)" $(ARGS)
+
+season-republish:
+	@if [ -z "${BACKEND:-}" ]; then echo "ERROR: make season-republish requires BACKEND=claude|openai|llm_bridge" >&2; exit 2; fi
+	@cd "$(ROOT_DIR)" && RVV="$(RVV)" "$(PYTHON)" "$(SEASON_REPUBLISH)" --season "$(SEASON)" --backend "$BACKEND" $(if $(filter 1,$(CONFIRM_PUBLIC)),--confirm-public,)
 
 season-changes:
 	@cd "$(ROOT_DIR)" && "$(RVV)" season changes --season "$(SEASON)" $(ARGS)
