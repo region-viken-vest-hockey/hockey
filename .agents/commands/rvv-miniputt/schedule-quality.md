@@ -59,6 +59,8 @@ For every single-team club/age-group in scope, emit an exhaustive half-season ro
 
 Also surface other material participant-facing inequities evidenced by repository-owned findings or projections.
 
+When the operator explicitly supplies a club/opponent affinity group for the current balancing task, use it only as a low-priority tie-breaker among otherwise acceptable repairs: prefer those clubs sharing tournaments when doing so does not materially worsen participation, half-season balance, spacing/clustering, travel, accepted constraints/protections, or booked facts for other clubs. Never infer affinity/skill groupings from team names or results, and do not persist a season-specific affinity as universal RVV policy unless the repository gains an explicit canonical preference capability.
+
 Rank the largest current inequities by measurable deviation and participant impact, using this priority:
 
 1. severe half-season deprivation or imbalance, especially for single-team/small clubs;
