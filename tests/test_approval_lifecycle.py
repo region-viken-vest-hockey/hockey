@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 from datetime import date
 
@@ -32,6 +33,7 @@ from tournament_scheduler.season_state import (
     move_tournament,
     promote_from_stage3,
     set_manual_booking_assertion,
+    swap_participants,
     unapprove_tournament,
 )
 
@@ -75,6 +77,42 @@ def _promote(tmp_path, tournaments):
     write_reviewed_stage4_export(state)
     promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
     return root
+
+
+def _rename_team(tournament, old_label, new_label):
+    """Return a placement-identical copy with one roster identity renamed.
+
+    Renames the team and every game reference so the change is a genuine
+    participant-only mutation (no placement field or game structure change).
+    """
+    changed = copy.deepcopy(tournament)
+    for team in changed.get("teams", []) or []:
+        if team.get("label") == old_label:
+            team["label"] = new_label
+    for game in changed.get("games", []) or []:
+        if game.get("home") == old_label:
+            game["home"] = new_label
+        if game.get("away") == old_label:
+            game["away"] = new_label
+    return changed
+
+
+def _scoped_approval_record(tournament, *, participants_locked=False):
+    from tournament_scheduler.canonical_baseline import (
+        approval_fingerprint,
+        approval_placement_fingerprint,
+    )
+
+    return {
+        "status": "approved",
+        "placement_locked": True,
+        "participants_locked": participants_locked,
+        "approved_fingerprint": approval_fingerprint(tournament),
+        "approved_placement_fingerprint": approval_placement_fingerprint(tournament),
+        "approved_at": "2026-09-15T00:00:00+00:00",
+        "approved_by": "booker",
+        "note": "",
+    }
 
 
 def test_unapprove_restores_editability_and_clears_locks(tmp_path):
@@ -1438,6 +1476,177 @@ def test_apply_candidate_marks_changed_unlocked_approval_stale(tmp_path):
     assert record["status"] == "stale_approval"
     assert record["approved_fingerprint"] is not None
     assert record["stale_reason"]
+
+
+def test_placement_only_approval_survives_roster_change_at_owner_boundary():
+    from tournament_scheduler.canonical_baseline import resolve_approval
+
+    tournament = _tournament("t1")
+    record = _scoped_approval_record(tournament, participants_locked=False)
+
+    resolved = resolve_approval(record, _rename_team(tournament, "D1", "D9"))
+
+    assert resolved["stale"] is False
+    assert resolved["status"] == "approved"
+    assert resolved["placement_locked"] is True
+    assert resolved["participants_locked"] is False
+
+
+def test_placement_only_approval_stales_on_placement_change_at_owner_boundary():
+    from tournament_scheduler.canonical_baseline import resolve_approval
+
+    tournament = _tournament("t1")
+    record = _scoped_approval_record(tournament, participants_locked=False)
+    moved = copy.deepcopy(tournament)
+    moved["date"] = "2026-09-19"
+
+    resolved = resolve_approval(record, moved)
+
+    assert resolved["stale"] is True
+    assert resolved["status"] == "stale_approval"
+    assert resolved["placement_locked"] is False
+
+
+def test_participant_locked_approval_stales_on_roster_change_at_owner_boundary():
+    from tournament_scheduler.canonical_baseline import resolve_approval
+
+    tournament = _tournament("t1")
+    record = _scoped_approval_record(tournament, participants_locked=True)
+
+    resolved = resolve_approval(record, _rename_team(tournament, "D1", "D9"))
+
+    assert resolved["stale"] is True
+    assert resolved["status"] == "stale_approval"
+    assert resolved["participants_locked"] is False
+
+
+def test_legacy_approval_without_placement_scope_keeps_full_payload_staleness():
+    from tournament_scheduler.canonical_baseline import (
+        approval_fingerprint,
+        resolve_approval,
+    )
+
+    tournament = _tournament("t1")
+    # A pre-scope approval record stored only the full protected fingerprint.
+    legacy = {
+        "status": "approved",
+        "placement_locked": True,
+        "participants_locked": False,
+        "approved_fingerprint": approval_fingerprint(tournament),
+        "approved_at": "2026-09-15T00:00:00+00:00",
+        "approved_by": "booker",
+        "note": "",
+    }
+
+    resolved = resolve_approval(legacy, _rename_team(tournament, "D1", "D9"))
+
+    assert resolved["stale"] is True
+    assert resolved["status"] == "stale_approval"
+
+
+def test_placement_only_approval_survives_out_of_band_roster_change(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    approve_tournament(
+        season="2026-2027",
+        tournament_id="t1",
+        root=root,
+        actor="booker",
+        placement_locked=True,
+        participants_locked=False,
+    )
+
+    schedule_path = root / "2026-2027" / "schedule.json"
+    schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+    schedule["plan"]["tournaments"][0] = _rename_team(
+        schedule["plan"]["tournaments"][0], "D1", "D9"
+    )
+    schedule_path.write_text(json.dumps(schedule), encoding="utf-8")
+
+    report = approval_report("2026-2027", root=root)
+    assert report["counts"]["stale"] == 0
+    assert report["counts"]["approved"] == 1
+    entry = report["tournaments"][0]
+    assert entry["status"] == "approved"
+    assert entry["placement_locked"] is True
+
+
+def test_participant_locked_approval_stales_on_out_of_band_roster_change(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    approve_tournament(
+        season="2026-2027",
+        tournament_id="t1",
+        root=root,
+        actor="booker",
+        placement_locked=True,
+        participants_locked=True,
+    )
+
+    schedule_path = root / "2026-2027" / "schedule.json"
+    schedule = json.loads(schedule_path.read_text(encoding="utf-8"))
+    schedule["plan"]["tournaments"][0] = _rename_team(
+        schedule["plan"]["tournaments"][0], "D1", "D9"
+    )
+    schedule_path.write_text(json.dumps(schedule), encoding="utf-8")
+
+    report = approval_report("2026-2027", root=root)
+    assert report["counts"]["stale"] == 1
+    assert report["counts"]["approved"] == 0
+
+
+def test_placement_only_approval_survives_verified_participant_swap(tmp_path):
+    first = _tournament("t1", host="A", teams=_teams(("A", "B", "C", "D")))
+    second = _tournament(
+        "t2",
+        date_str="2026-09-20",
+        arena="Arena B",
+        host="E",
+        teams=[
+            {"club": club, "label": f"{club}1", "age_group": "U10"}
+            for club in ("E", "F", "G", "H")
+        ],
+    )
+    root = _promote(tmp_path, [first, second])
+    approve_tournament(
+        season="2026-2027",
+        tournament_id="t1",
+        root=root,
+        actor="booker",
+        placement_locked=True,
+        participants_locked=False,
+    )
+
+    result = swap_participants(
+        season="2026-2027",
+        tournament_a_id="t1",
+        team_a_label="D1",
+        tournament_b_id="t2",
+        team_b_label="H1",
+        root=root,
+        actor="tester",
+        note="fairness repair",
+    )
+    assert result["dry_run"] is False
+    assert result["verification_result"]["ok"] is True
+
+    schedule = load_schedule("2026-2027", root=root)
+    t1 = next(t for t in schedule["plan"]["tournaments"] if t["id"] == "t1")
+    assert {team["label"] for team in t1["teams"]} == {"A1", "B1", "C1", "H1"}
+    # Placement itself is untouched by the verified roster repair.
+    assert (t1["date"], t1["arena"], t1["host_club"], t1["start_time"]) == (
+        first["date"],
+        first["arena"],
+        first["host_club"],
+        first["start_time"],
+    )
+
+    decisions = load_decisions("2026-2027", root=root)
+    record = decisions["decisions"]["t1"]
+    assert record["status"] == "approved"
+    assert record["placement_locked"] is True
+    assert record.get("stale_at") is None
+    report = approval_report("2026-2027", root=root)
+    assert report["counts"]["stale"] == 0
+    assert report["counts"]["approved"] == 1
 
 
 def test_approved_tournament_still_participates_in_collision_verification(tmp_path):

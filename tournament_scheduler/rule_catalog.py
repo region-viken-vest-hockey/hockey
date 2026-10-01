@@ -1089,8 +1089,9 @@ _EVIDENCE: tuple[RuleEntry, ...] = (
         classification=FACT_EVIDENCE_SEMANTIC,
         meaning=(
             "Operator approvals/locks live in decisions.json separately from schedule facts. A "
-            "protected placement whose fingerprint changed becomes a stale approval whose lock is "
-            "dropped; an approval whose tournament is gone becomes orphaned. Both require re-review."
+            "changed placement fingerprint becomes a stale approval whose lock is dropped; a "
+            "participant-locked approval also stales when its roster/game structure changes. An "
+            "approval whose tournament is gone becomes orphaned. Both require re-review."
         ),
         canonical_owner="tournament_scheduler.canonical_baseline",
         input_source="canonical decisions.json approvals",

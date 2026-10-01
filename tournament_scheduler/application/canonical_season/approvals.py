@@ -5,7 +5,11 @@ from __future__ import annotations
 import copy
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_baseline import approval_fingerprint, resolve_approval
+from tournament_scheduler.canonical_baseline import (
+    approval_fingerprint,
+    approval_placement_fingerprint,
+    resolve_approval,
+)
 from tournament_scheduler.canonical_state import (
     CHANGE_PROTECTIONS_KEY,
     PARTICIPATION_ACCEPTANCES_KEY,
@@ -184,6 +188,7 @@ def approve_tournament(
     approved_at = _now_iso()
     resolved_actor = _operator_identity(actor)
     tournament_fingerprint = approval_fingerprint(tournament)
+    placement_fingerprint = approval_placement_fingerprint(tournament)
     previous = dict(decisions["decisions"].get(tournament_id, {}))
     record = dict(previous)
     record.update(
@@ -192,6 +197,7 @@ def approve_tournament(
             "placement_locked": bool(placement_locked),
             "participants_locked": bool(participants_locked),
             "approved_fingerprint": tournament_fingerprint,
+            "approved_placement_fingerprint": placement_fingerprint,
             "approved_at": approved_at,
             "approved_by": resolved_actor,
             "note": note,
@@ -250,6 +256,7 @@ def unapprove_tournament(
             "placement_locked": False,
             "participants_locked": False,
             "approved_fingerprint": None,
+            "approved_placement_fingerprint": None,
             "approved_at": None,
             "approved_by": None,
             "note": note or existing.get("note") or "",
@@ -414,6 +421,8 @@ def approval_report(service, season: str) -> dict[str, Any]:
             "participants_locked": resolved["participants_locked"],
             "approved_fingerprint": resolved["approved_fingerprint"],
             "current_fingerprint": resolved["current_fingerprint"],
+            "approved_placement_fingerprint": resolved["approved_placement_fingerprint"],
+            "current_placement_fingerprint": resolved["current_placement_fingerprint"],
             "approved_at": resolved["approved_at"],
             "approved_by": resolved["approved_by"],
             "note": resolved["note"],
@@ -427,6 +436,8 @@ def approval_report(service, season: str) -> dict[str, Any]:
                     "tournament_id": tournament_id,
                     "approved_fingerprint": resolved["approved_fingerprint"],
                     "current_fingerprint": resolved["current_fingerprint"],
+                    "approved_placement_fingerprint": resolved["approved_placement_fingerprint"],
+                    "current_placement_fingerprint": resolved["current_placement_fingerprint"],
                     "stale_reason": resolved.get("stale_reason"),
                 }
             )
