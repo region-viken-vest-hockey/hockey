@@ -22,7 +22,7 @@ KAMPVEILEDER_CONVERT ?= $(ROOT_DIR)/scripts/convert-kampveileder.sh
 SEASON_REPUBLISH ?= $(ROOT_DIR)/scripts/season-republish.py
 SEASON ?= 2026-2027
 
-export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CONFIRM_CLEANUP CSV ARGS BACKEND RESULT_FILE
+export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CONFIRM_CLEANUP CSV ARGS BACKEND RESULT_FILE RESUME_AFTER_AUDIT
 
 PUBLIC_TARGETS := help bootstrap handover install check test dependency-lock secret-scan rules-report rule-catalog kampveileder-markdown \
 	operator-run operator-run-force run status logs calendars calendars-refresh sources-status season-export season-republish season-changes season-changes-markdown \
@@ -176,8 +176,7 @@ season-export:
 	@cd "$(ROOT_DIR)" && "$(RVV)" season export --season "$(SEASON)" $(ARGS)
 
 season-republish:
-	@if [ -z "$(BACKEND)" ]; then echo "ERROR: make season-republish requires BACKEND=claude|openai|llm_bridge" >&2; exit 2; fi
-	@cd "$(ROOT_DIR)" && RVV="$(RVV)" "$(PYTHON)" "$(SEASON_REPUBLISH)" --season "$(SEASON)" --backend "$(BACKEND)" $(if $(filter 1,$(CONFIRM_PUBLIC)),--confirm-public,)
+	@cd "$(ROOT_DIR)" && RVV="$(RVV)" "$(PYTHON)" "$(SEASON_REPUBLISH)" --season "$(SEASON)" $(if $(filter 1,$(RESUME_AFTER_AUDIT)),--resume-after-audit,) $(if $(filter 1,$(CONFIRM_PUBLIC)),--confirm-public,)
 
 season-changes:
 	@cd "$(ROOT_DIR)" && "$(RVV)" season changes --season "$(SEASON)" $(ARGS)
