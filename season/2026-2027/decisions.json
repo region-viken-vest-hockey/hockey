@@ -3181,7 +3181,7 @@
       }
     }
   ],
-  "canonical_state_revision": "e1e1d7223f0060ed31ff1e7e5d71218e7714792ad5186eac9fa69178b36c38d0",
+  "canonical_state_revision": "e58d86fd59ef8049bcf3da5df682a572d73aa75642d92d777811297382ea23ac",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -8359,6 +8359,262 @@
         "label": "Frisk Asker 3"
       },
       "tournament_id": "rvv-0178"
+    },
+    {
+      "created_at": "2026-10-01T12:46:04.960429+00:00",
+      "created_by": "niclasl",
+      "id": "change:74f069c7eda0abbc",
+      "kind": "must_participate",
+      "note": "Frisk Asker JU12: remove same-club pairing on 6 Mar and reduce Svart November load",
+      "request_id": "club-feedback:frisk-asker:ju12:nov-load-and-6mar",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Ringerike",
+        "label": "Ringerike 1"
+      },
+      "tournament_id": "rvv-0025"
+    },
+    {
+      "created_at": "2026-10-01T12:46:04.960429+00:00",
+      "created_by": "niclasl",
+      "id": "change:f13d94c2cd85a4c7",
+      "kind": "must_not_participate",
+      "note": "Frisk Asker JU12: remove same-club pairing on 6 Mar and reduce Svart November load",
+      "request_id": "club-feedback:frisk-asker:ju12:nov-load-and-6mar",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Frisk Asker",
+        "label": "Frisk Asker Svart"
+      },
+      "tournament_id": "rvv-0025"
+    },
+    {
+      "created_at": "2026-10-01T12:46:04.960429+00:00",
+      "created_by": "niclasl",
+      "id": "change:c7e8b2b3e814ddab",
+      "kind": "must_participate",
+      "note": "Frisk Asker JU12: remove same-club pairing on 6 Mar and reduce Svart November load",
+      "request_id": "club-feedback:frisk-asker:ju12:nov-load-and-6mar",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Frisk Asker",
+        "label": "Frisk Asker Orange"
+      },
+      "tournament_id": "rvv-0152"
+    },
+    {
+      "created_at": "2026-10-01T12:46:04.960429+00:00",
+      "created_by": "niclasl",
+      "id": "change:633a16a4ae2cd940",
+      "kind": "must_participate",
+      "note": "Frisk Asker JU12: remove same-club pairing on 6 Mar and reduce Svart November load",
+      "request_id": "club-feedback:frisk-asker:ju12:nov-load-and-6mar",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Frisk Asker",
+        "label": "Frisk Asker Svart"
+      },
+      "tournament_id": "rvv-0152"
+    },
+    {
+      "created_at": "2026-10-01T12:46:04.960429+00:00",
+      "created_by": "niclasl",
+      "id": "change:fa5c042331559e32",
+      "kind": "must_not_participate",
+      "note": "Frisk Asker JU12: remove same-club pairing on 6 Mar and reduce Svart November load",
+      "request_id": "club-feedback:frisk-asker:ju12:nov-load-and-6mar",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Jutul",
+        "label": "Jutul/Jar Kittens"
+      },
+      "tournament_id": "rvv-0152"
+    },
+    {
+      "created_at": "2026-10-01T12:46:04.960429+00:00",
+      "created_by": "niclasl",
+      "id": "change:17f230e774932ce2",
+      "kind": "must_not_participate",
+      "note": "Frisk Asker JU12: remove same-club pairing on 6 Mar and reduce Svart November load",
+      "request_id": "club-feedback:frisk-asker:ju12:nov-load-and-6mar",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Ringerike",
+        "label": "Ringerike 1"
+      },
+      "tournament_id": "rvv-0152"
+    },
+    {
+      "created_at": "2026-10-01T12:46:04.960429+00:00",
+      "created_by": "niclasl",
+      "id": "change:1235d8f192412f23",
+      "kind": "must_participate",
+      "note": "Frisk Asker JU12: remove same-club pairing on 6 Mar and reduce Svart November load",
+      "request_id": "club-feedback:frisk-asker:ju12:nov-load-and-6mar",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Jutul",
+        "label": "Jutul/Jar Kittens"
+      },
+      "tournament_id": "rvv-0170"
+    },
+    {
+      "created_at": "2026-10-01T12:46:04.960429+00:00",
+      "created_by": "niclasl",
+      "id": "change:93ad59547c2865a3",
+      "kind": "must_not_participate",
+      "note": "Frisk Asker JU12: remove same-club pairing on 6 Mar and reduce Svart November load",
+      "request_id": "club-feedback:frisk-asker:ju12:nov-load-and-6mar",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Frisk Asker",
+        "label": "Frisk Asker Orange"
+      },
+      "tournament_id": "rvv-0170"
+    },
+    {
+      "created_at": "2026-10-01T12:58:47.952302+00:00",
+      "created_by": "niclasl",
+      "id": "change:e68e491a4dd82fe8",
+      "kind": "must_participate",
+      "note": "Kongsberg U11 opponent variety: fewer Jar, meet Sandefjord and Skien; Skien dates/hosts unchanged",
+      "request_id": "club-feedback:kongsberg:u11:opponent-variety",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "U11",
+        "club": "Kongsberg",
+        "label": "Kongsberg"
+      },
+      "tournament_id": "rvv-0013"
+    },
+    {
+      "created_at": "2026-10-01T12:58:47.952302+00:00",
+      "created_by": "niclasl",
+      "id": "change:c2584a5db434ce00",
+      "kind": "must_not_participate",
+      "note": "Kongsberg U11 opponent variety: fewer Jar, meet Sandefjord and Skien; Skien dates/hosts unchanged",
+      "request_id": "club-feedback:kongsberg:u11:opponent-variety",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "U11",
+        "club": "Tønsberg",
+        "label": "Tønsberg Hvit"
+      },
+      "tournament_id": "rvv-0013"
+    },
+    {
+      "created_at": "2026-10-01T12:58:47.952302+00:00",
+      "created_by": "niclasl",
+      "id": "change:87563c05bdaa9b30",
+      "kind": "must_participate",
+      "note": "Kongsberg U11 opponent variety: fewer Jar, meet Sandefjord and Skien; Skien dates/hosts unchanged",
+      "request_id": "club-feedback:kongsberg:u11:opponent-variety",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "U11",
+        "club": "Tønsberg",
+        "label": "Tønsberg Hvit"
+      },
+      "tournament_id": "rvv-0094"
+    },
+    {
+      "created_at": "2026-10-01T12:58:47.952302+00:00",
+      "created_by": "niclasl",
+      "id": "change:78c9e2b4950d03d7",
+      "kind": "must_not_participate",
+      "note": "Kongsberg U11 opponent variety: fewer Jar, meet Sandefjord and Skien; Skien dates/hosts unchanged",
+      "request_id": "club-feedback:kongsberg:u11:opponent-variety",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "U11",
+        "club": "Kongsberg",
+        "label": "Kongsberg"
+      },
+      "tournament_id": "rvv-0094"
+    },
+    {
+      "created_at": "2026-10-01T12:58:47.952302+00:00",
+      "created_by": "niclasl",
+      "id": "change:6b3f0ec032d4cc63",
+      "kind": "must_participate",
+      "note": "Kongsberg U11 opponent variety: fewer Jar, meet Sandefjord and Skien; Skien dates/hosts unchanged",
+      "request_id": "club-feedback:kongsberg:u11:opponent-variety",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "U11",
+        "club": "Sandefjord Penguins",
+        "label": "Sandefjord"
+      },
+      "tournament_id": "rvv-0113"
+    },
+    {
+      "created_at": "2026-10-01T12:58:47.952302+00:00",
+      "created_by": "niclasl",
+      "id": "change:4d792d0a9df0ea45",
+      "kind": "must_not_participate",
+      "note": "Kongsberg U11 opponent variety: fewer Jar, meet Sandefjord and Skien; Skien dates/hosts unchanged",
+      "request_id": "club-feedback:kongsberg:u11:opponent-variety",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "U11",
+        "club": "Jar",
+        "label": "Jar Blå"
+      },
+      "tournament_id": "rvv-0113"
+    },
+    {
+      "created_at": "2026-10-01T12:58:47.952302+00:00",
+      "created_by": "niclasl",
+      "id": "change:c00377d055b76306",
+      "kind": "must_participate",
+      "note": "Kongsberg U11 opponent variety: fewer Jar, meet Sandefjord and Skien; Skien dates/hosts unchanged",
+      "request_id": "club-feedback:kongsberg:u11:opponent-variety",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "U11",
+        "club": "Jar",
+        "label": "Jar Blå"
+      },
+      "tournament_id": "rvv-0127"
+    },
+    {
+      "created_at": "2026-10-01T12:58:47.952302+00:00",
+      "created_by": "niclasl",
+      "id": "change:002f7b6374b69d5a",
+      "kind": "must_not_participate",
+      "note": "Kongsberg U11 opponent variety: fewer Jar, meet Sandefjord and Skien; Skien dates/hosts unchanged",
+      "request_id": "club-feedback:kongsberg:u11:opponent-variety",
+      "source_event": "participant_swap",
+      "status": "active",
+      "team": {
+        "age_group": "U11",
+        "club": "Sandefjord Penguins",
+        "label": "Sandefjord"
+      },
+      "tournament_id": "rvv-0127"
     }
   ],
   "club_booking_source_assertions": [
@@ -8673,10 +8929,13 @@
       "approved_at": "2026-09-29T17:10:52.224531+00:00",
       "approved_by": "Niclas Lindgren",
       "approved_fingerprint": "bde5224687939a480807c606e1fe55d62839106d830f5cc851c825b104220c8d",
+      "approved_placement_fingerprint": null,
       "note": "Operator confirmed all Ringerike tournaments as booked; bound to Ringerike's own calendar posting",
       "participants_locked": false,
-      "placement_locked": true,
-      "status": "approved"
+      "placement_locked": false,
+      "stale_at": "2026-10-01T12:46:04.960429+00:00",
+      "stale_reason": "approval invalidated by schedule change",
+      "status": "stale_approval"
     },
     "rvv-0026": {
       "approved_at": null,
@@ -9248,10 +9507,13 @@
       "approved_at": "2026-09-25T11:05:49.002417+00:00",
       "approved_by": "nicli",
       "approved_fingerprint": "11a859b5ce9d912428ccee46252c532dd878a250f95e7e08bc9b48ff143e224e",
+      "approved_placement_fingerprint": null,
       "note": "Tønsberg confirmed: 'Rest is booked as per season_plan' (changes_and_confirmations/2026-27/Tønsberg.txt).",
       "participants_locked": false,
-      "placement_locked": true,
-      "status": "approved"
+      "placement_locked": false,
+      "stale_at": "2026-10-01T12:58:47.952302+00:00",
+      "stale_reason": "approval invalidated by schedule change",
+      "status": "stale_approval"
     },
     "rvv-0095": {
       "approved_at": null,
@@ -9768,10 +10030,13 @@
       "approved_at": "2026-09-29T17:11:01.203700+00:00",
       "approved_by": "Niclas Lindgren",
       "approved_fingerprint": "91fe0aab6ec6cb6a76cbe44f1f9c7b4815fcda6d8f6d1775d3c13d602af1666f",
+      "approved_placement_fingerprint": null,
       "note": "Operator confirmed all Ringerike tournaments as booked; bound to Ringerike's own calendar posting",
       "participants_locked": false,
-      "placement_locked": true,
-      "status": "approved"
+      "placement_locked": false,
+      "stale_at": "2026-10-01T12:46:04.960429+00:00",
+      "stale_reason": "approval invalidated by schedule change",
+      "status": "stale_approval"
     },
     "rvv-0153": {
       "approved_at": null,
@@ -9933,10 +10198,13 @@
       "approved_at": "2026-09-29T17:11:02.721317+00:00",
       "approved_by": "Niclas Lindgren",
       "approved_fingerprint": "c04bbf15721f9f42c78b55f7fbbc4023b47fbbc341167b0787ca39d8d8aa074d",
+      "approved_placement_fingerprint": null,
       "note": "Operator confirmed all Ringerike tournaments as booked; bound to Ringerike's own calendar posting",
       "participants_locked": false,
-      "placement_locked": true,
-      "status": "approved"
+      "placement_locked": false,
+      "stale_at": "2026-10-01T12:46:04.960429+00:00",
+      "stale_reason": "approval invalidated by schedule change",
+      "status": "stale_approval"
     },
     "rvv-0171": {
       "approved_at": "2026-09-22T14:40:27.546013+00:00",
@@ -61194,6 +61462,228 @@
       "schedule_fingerprint": "e209fdf996b5471467ab2fc8e584f01e985b007c174cc988e90f929889a6c1ee",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-01T12:46:04.960429+00:00",
+      "details": {
+        "accepted_regressions": [],
+        "after_schedule_revision": "b9228bdd8879d57fa2f6a7c1abccb92833bab0634e258220edcaa49e3d9056c5",
+        "before_canonical_revision": "e1e1d7223f0060ed31ff1e7e5d71218e7714792ad5186eac9fa69178b36c38d0",
+        "before_schedule_revision": "e209fdf996b5471467ab2fc8e584f01e985b007c174cc988e90f929889a6c1ee",
+        "cancellations": [],
+        "changed_tournament_ids": [
+          "rvv-0025",
+          "rvv-0152",
+          "rvv-0170"
+        ],
+        "declared_scope": [
+          "rvv-0025",
+          "rvv-0152",
+          "rvv-0170"
+        ],
+        "moves": [],
+        "operational_acceptable": true,
+        "operations": [
+          {
+            "op": "swap_participants",
+            "team_a": "Frisk Asker Orange",
+            "team_b": "Jutul/Jar Kittens",
+            "tournament_a": "rvv-0170",
+            "tournament_b": "rvv-0152"
+          },
+          {
+            "op": "swap_participants",
+            "team_a": "Frisk Asker Svart",
+            "team_b": "Ringerike 1",
+            "tournament_a": "rvv-0025",
+            "tournament_b": "rvv-0152"
+          }
+        ],
+        "protections_added": [
+          "change:74f069c7eda0abbc",
+          "change:f13d94c2cd85a4c7",
+          "change:c7e8b2b3e814ddab",
+          "change:633a16a4ae2cd940",
+          "change:fa5c042331559e32",
+          "change:17f230e774932ce2",
+          "change:1235d8f192412f23",
+          "change:93ad59547c2865a3"
+        ],
+        "removals": [],
+        "request_id": "club-feedback:frisk-asker:ju12:nov-load-and-6mar",
+        "swaps": [
+          {
+            "age_group": "JU12",
+            "identity_a": [
+              "Frisk Asker",
+              "Frisk Asker Orange",
+              "JU12"
+            ],
+            "identity_b": [
+              "Jutul",
+              "Jutul/Jar Kittens",
+              "JU12"
+            ],
+            "team_a": {
+              "age_group": "JU12",
+              "club": "Frisk Asker",
+              "label": "Frisk Asker Orange"
+            },
+            "team_b": {
+              "age_group": "JU12",
+              "club": "Jutul",
+              "label": "Jutul/Jar Kittens"
+            },
+            "tournament_a_id": "rvv-0170",
+            "tournament_b_id": "rvv-0152"
+          },
+          {
+            "age_group": "JU12",
+            "identity_a": [
+              "Frisk Asker",
+              "Frisk Asker Svart",
+              "JU12"
+            ],
+            "identity_b": [
+              "Ringerike",
+              "Ringerike 1",
+              "JU12"
+            ],
+            "team_a": {
+              "age_group": "JU12",
+              "club": "Frisk Asker",
+              "label": "Frisk Asker Svart"
+            },
+            "team_b": {
+              "age_group": "JU12",
+              "club": "Ringerike",
+              "label": "Ringerike 1"
+            },
+            "tournament_a_id": "rvv-0025",
+            "tournament_b_id": "rvv-0152"
+          }
+        ],
+        "verification_ok": true
+      },
+      "event": "batch_maintenance",
+      "note": "Frisk Asker JU12: remove same-club pairing on 6 Mar and reduce Svart November load",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "b9228bdd8879d57fa2f6a7c1abccb92833bab0634e258220edcaa49e3d9056c5",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-01T12:58:47.952302+00:00",
+      "details": {
+        "accepted_regressions": [],
+        "after_schedule_revision": "3d720784d44b77619c92cc6da9bda017c558a5aa28e7ecbc104800254b810b10",
+        "before_canonical_revision": "2bb8d2391537f84671f5de3f42f1f16bb52ee3ca71b35cf8090430eab132d8d7",
+        "before_schedule_revision": "b9228bdd8879d57fa2f6a7c1abccb92833bab0634e258220edcaa49e3d9056c5",
+        "cancellations": [],
+        "changed_tournament_ids": [
+          "rvv-0013",
+          "rvv-0094",
+          "rvv-0113",
+          "rvv-0127"
+        ],
+        "declared_scope": [
+          "rvv-0013",
+          "rvv-0094",
+          "rvv-0113",
+          "rvv-0127"
+        ],
+        "moves": [],
+        "operational_acceptable": true,
+        "operations": [
+          {
+            "op": "swap_participants",
+            "team_a": "Jar Blå",
+            "team_b": "Sandefjord",
+            "tournament_a": "rvv-0113",
+            "tournament_b": "rvv-0127"
+          },
+          {
+            "op": "swap_participants",
+            "team_a": "Kongsberg",
+            "team_b": "Tønsberg Hvit",
+            "tournament_a": "rvv-0094",
+            "tournament_b": "rvv-0013"
+          }
+        ],
+        "protections_added": [
+          "change:e68e491a4dd82fe8",
+          "change:c2584a5db434ce00",
+          "change:87563c05bdaa9b30",
+          "change:78c9e2b4950d03d7",
+          "change:6b3f0ec032d4cc63",
+          "change:4d792d0a9df0ea45",
+          "change:c00377d055b76306",
+          "change:002f7b6374b69d5a"
+        ],
+        "removals": [],
+        "request_id": "club-feedback:kongsberg:u11:opponent-variety",
+        "swaps": [
+          {
+            "age_group": "U11",
+            "identity_a": [
+              "Jar",
+              "Jar Blå",
+              "U11"
+            ],
+            "identity_b": [
+              "Sandefjord Penguins",
+              "Sandefjord",
+              "U11"
+            ],
+            "team_a": {
+              "age_group": "U11",
+              "club": "Jar",
+              "label": "Jar Blå"
+            },
+            "team_b": {
+              "age_group": "U11",
+              "club": "Sandefjord Penguins",
+              "label": "Sandefjord"
+            },
+            "tournament_a_id": "rvv-0113",
+            "tournament_b_id": "rvv-0127"
+          },
+          {
+            "age_group": "U11",
+            "identity_a": [
+              "Kongsberg",
+              "Kongsberg",
+              "U11"
+            ],
+            "identity_b": [
+              "Tønsberg",
+              "Tønsberg Hvit",
+              "U11"
+            ],
+            "team_a": {
+              "age_group": "U11",
+              "club": "Kongsberg",
+              "label": "Kongsberg"
+            },
+            "team_b": {
+              "age_group": "U11",
+              "club": "Tønsberg",
+              "label": "Tønsberg Hvit"
+            },
+            "tournament_a_id": "rvv-0094",
+            "tournament_b_id": "rvv-0013"
+          }
+        ],
+        "verification_ok": true
+      },
+      "event": "batch_maintenance",
+      "note": "Kongsberg U11 opponent variety: fewer Jar, meet Sandefjord and Skien; Skien dates/hosts unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "3d720784d44b77619c92cc6da9bda017c558a5aa28e7ecbc104800254b810b10",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ],
   "holiday_date_exceptions": [
@@ -70834,7 +71324,7 @@
       "type": "team_unavailable"
     }
   ],
-  "schedule_fingerprint": "e209fdf996b5471467ab2fc8e584f01e985b007c174cc988e90f929889a6c1ee",
+  "schedule_fingerprint": "3d720784d44b77619c92cc6da9bda017c558a5aa28e7ecbc104800254b810b10",
   "schema_version": 1,
   "season": "2026-2027",
   "season_lifecycle": {
@@ -179198,5 +179688,5 @@
       "tournament_id": "rvv-0031"
     }
   ],
-  "updated_at": "2026-10-01T12:35:49.244553+00:00"
+  "updated_at": "2026-10-01T12:58:47.952302+00:00"
 }
