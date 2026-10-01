@@ -1,8 +1,8 @@
-"""Spond Excel exporter — produces a single-sheet workbook for Spond's Season Planner import.
+"""Spond Excel exporter — workbook with the Spond import grid plus a metadata sheet.
 
-The workbook keeps Spond's expected core columns (Dato/Aktivitet/Sted/
-Start/Slutt) but adds filter-friendly tournament metadata so organizers can
-sort and filter the sheet before importing.
+The ``Spond import`` sheet (owned by :mod:`.spond_import`) matches Spond's
+paste grid. The ``Sesongplan`` sheet is the richer one-row-per-tournament
+metadata view that downstream export-projection checks read.
 
 Two output modes are supported:
 
@@ -26,6 +26,11 @@ from rich.console import Console
 
 from ..models import SeasonPlan, Tournament
 from ..occupancy import tournament_end_time
+from .spond_import import (
+    SPOND_IMPORT_SHEET,
+    populate_spond_import_sheet,
+    project_spond_import_rows,
+)
 
 console = Console()
 
@@ -70,8 +75,13 @@ class SpondExporter:
     ) -> str:
         """Build and save a Spond-compatible Excel workbook to *output_path*."""
         wb = openpyxl.Workbook()
-        sheet = wb.active
-        sheet.title = "Sesongplan"
+        import_sheet = wb.active
+        import_sheet.title = SPOND_IMPORT_SHEET
+        populate_spond_import_sheet(
+            import_sheet,
+            project_spond_import_rows(plan, ice_time_for_age_group, club=club),
+        )
+        sheet = wb.create_sheet("Sesongplan")
 
         self._write_sheet(
             sheet,
