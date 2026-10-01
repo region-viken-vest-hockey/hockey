@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forespurte endringer — RVV Hockey</title>
+<script>
+(function() {
+  var saved = localStorage.getItem('rvv-theme');
+  document.documentElement.dataset.theme = saved === 'dark' ? 'dark' : 'light';
+})();
+</script>
+<style>
+$STYLES$
+</style>
+</head>
+<body>
+<script>if (window.self !== window.top) { document.documentElement.classList.add('rvv-embedded'); }</script>
+<div class="navbar">
+  <span class="brand">RVV Miniputt</span>
+  $CALENDAR_NAV$$SEASON_PLAN_NAV$$REPORT_NAV$$CANCELLED_NAV$$MANUAL_NAV$$INPUT_NAV$$SCRAPE_META$
+  <button id="themeToggle" class="theme-toggle" type="button" aria-label="Bytt tema" title="Bytt tema">
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+</div>
+<div class="app">
+  <header class="header-main">
+    <div class="header-icon">$ICON_CLIPBOARD$</div>
+    <div class="header-text"><h1>Forespurte endringer</h1><p>$SUBTITLE$</p></div>
+  </header>
+  <div class="report-overview" id="reportOverview">
+    <div class="report-hero $HERO_TONE$">
+      <div>
+        <p class="eyebrow">Endringslogg</p>
+        <h2>Hva er endret, hvorfor, og hva gjenstår?</h2>
+        <p class="report-hero-note">$INTRO$</p>
+      </div>
+      <span class="report-status-pill $PILL_TONE$">$SUMMARY_PILL$</span>
+    </div>
+    <section class="report-section" id="changesOverview">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Oversikt</p>
+          <h2>Forespørsler</h2>
+        </div>
+        <p class="section-note">Én rad per forespørsel. Grupperingen og statusene kommer fra samme kanoniske endringslogg som Markdown-visningen.</p>
+      </div>
+      <div class="table-wrap"><table class="report-table"><thead><tr>
+        <th>Forespørsel</th><th>Opprettet</th><th>Kilde/aktør</th><th>Type</th><th>Berørte turneringer</th><th>Berørte lag</th><th>Resultat</th><th>Status</th>
+      </tr></thead><tbody>$ROWS$</tbody></table></div>
+    </section>
+    $DETAILS$
+    <p class="report-hidden-context" aria-hidden="true">$HIDDEN_CONTEXT$</p>
+  </div>
+</div>
+<script>
+(function() {
+  var THEME_KEY = 'rvv-theme';
+  var toggle = document.getElementById('themeToggle');
+  if (!toggle) return;
+  toggle.addEventListener('click', function() {
+    var current = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+    var next = current === 'light' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem(THEME_KEY, next);
+  });
+})();
+</script>
+</body>
+</html>

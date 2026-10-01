@@ -10,6 +10,7 @@ and writes three output files:
 - ``<export_dir>/cancelled_tournaments.html``   — dedicated history view of cancelled tournaments, written only when the plan has cancellations
 - ``<export_dir>/season_plan_report.html``   — companion diagnostics report with fairness / travel / hosting summaries
 - ``<export_dir>/manual_schedule.html``   — “Må planlegges manuelt” view listing hall time that must be booked/verified by hand: tournaments that could not be placed without an arena/sequence collision, plus tournaments hosted by clubs whose calendar could not be scraped (provisional start times). Only written when such items exist; they no longer block the export
+- ``<export_dir>/season_changes.html``   — read-only projection of the canonical request-grouped change ledger (the same ledger as ``make season-changes-markdown``). Only written when the seasonal canonical state has recorded requests
 - ``<export_dir>/season_plan_spond_games.xlsx`` — printable tournament-by-tournament schedule attachment for Spond
 - ``<export_dir>/review_packets/`` — per-club approval folders with review workbook, Spond import, schedule attachment, and response template
 
@@ -46,7 +47,7 @@ from ..excel.plan_exporter import SeasonPlanExporter
 from ..ical.ical_exporter import ICalExporter
 from ..csv.csv_exporter import CsvExporter
 from ..html.html_exporter import HtmlExporter
-from ..html import CANCELLED_TOURNAMENTS_FILENAME
+from ..html import CANCELLED_TOURNAMENTS_FILENAME, SEASON_CHANGES_FILENAME
 from .stage1_config import load_effective_config
 from .state import PipelineState, StageName, StageStatus
 from ..serialization.season_plan import season_plan_from_dict
@@ -73,6 +74,7 @@ from .stage4_export_manual_schedule import (
     _manual_schedule_html,
 )
 from .stage4_export_verification import _build_export_verification_problem
+from .season_changes_view import write_html as _write_season_changes_html
 from .verification_context import build_verification_context
 from .public_export_context import (
     build_public_export_context,
@@ -400,6 +402,7 @@ def run(
             approval_report,
             booking_status_report,
             calendar_booking_assessment,
+            change_request_ledger,
         )
     except Exception as exc:  # noqa: BLE001
         errors.append(f"Kunne ikke laste kanoniske beslutningsprojeksjoner: {exc}")
@@ -407,6 +410,7 @@ def run(
         approval_report = None
         booking_status_report = None
         calendar_booking_assessment = None
+        change_request_ledger = None
 
     plan_start = getattr(plan, "start_date", None)
     plan_end = getattr(plan, "end_date", None)
@@ -985,9 +989,44 @@ def run(
         except Exception as exc:  # noqa: BLE001
             errors.append(f"Manuell-oppfølgingsvisning feilet: {exc}")
 
-    # Re-export the season_plan/report pages when the manual view was written so
-    # their navbars pick up the manual-schedule link (the manual page links back).
-    if _manual_schedule_path and not errors:
+    # --- Season change-request page (season_changes.html) ---
+    # A presentation-only projection of the canonical request-grouped ledger
+    # behind `make season-changes-markdown`. It is generated from the same
+    # resolved canonical season used for the approval/booking overlays, so the
+    # published site answers "what changed, why, and what is still open?"
+    # without a second change-tracking model. Written only when the ledger has
+    # requests; a stale page from an earlier export is removed.
+    _changes_path: str | None = None
+    if resolved is not None and change_request_ledger is not None:
+        try:
+            _progress("Genererer endringslogg-side")
+            ledger = change_request_ledger(season=resolved["season"], root=resolved["root"])
+            if int(ledger.get("request_count") or 0) > 0:
+                _changes_path = _write_season_changes_html(
+                    ledger,
+                    str(primary_export_path),
+                    season_plan_href=f"{basename}.html",
+                    report_href=f"{basename}_report.html",
+                    calendars_href="calendars.html" if (_calendars_path and os.path.exists(_calendars_path)) else "",
+                    cancelled_href=(
+                        CANCELLED_TOURNAMENTS_FILENAME
+                        if (primary_export_path / CANCELLED_TOURNAMENTS_FILENAME).exists()
+                        else ""
+                    ),
+                    manual_href=MANUAL_SCHEDULE_FILENAME if _manual_schedule_path else "",
+                    input_href="input.html" if (_input_html_path and os.path.exists(_input_html_path)) else "",
+                )
+                output_files["changes_html"] = _changes_path
+            else:
+                _stale_changes = primary_export_path / SEASON_CHANGES_FILENAME
+                if _stale_changes.exists():
+                    _stale_changes.unlink()
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"Endringslogg-side feilet: {exc}")
+
+    # Re-export the season_plan/report pages when the manual view or the
+    # change-request page was written so their navbars pick up those links.
+    if (_manual_schedule_path or _changes_path) and not errors:
         try:
             _progress("Genererer HTML-rapport med manuell-lenke")
             HtmlExporter().export(
@@ -1000,6 +1039,7 @@ def run(
                 calendars_path=_calendars_path,
                 input_html_path=_input_html_path,
                 manual_schedule_path=_manual_schedule_path,
+                changes_path=_changes_path,
             )
             output_files["html"] = html_path
             output_files["html_report"] = str(Path(html_path).with_name(f"{Path(html_path).stem}_report{Path(html_path).suffix}"))
