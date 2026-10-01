@@ -24,7 +24,7 @@ SEASON ?= 2026-2027
 export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CONFIRM_CLEANUP CSV ARGS BACKEND RESULT_FILE
 
 PUBLIC_TARGETS := help bootstrap handover install check test dependency-lock secret-scan rules-report rule-catalog kampveileder-markdown \
-	operator-run operator-run-force run status logs calendars calendars-refresh sources-status season-changes season-changes-markdown \
+	operator-run operator-run-force run status logs calendars calendars-refresh sources-status season-export season-changes season-changes-markdown \
 	waiver \
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
 	questions questions-all answer promote \
@@ -61,6 +61,8 @@ help:
 	@echo "  make calendars [ARGS='...']        scripts/rvv-miniputt calendars"
 	@echo "  make calendars-refresh             calendars --refresh"
 	@echo "  make sources-status [ARGS='...']   sources status"
+	@echo "  make season-export [SEASON=2026-2027] [ARGS='...']"
+	@echo "                                      Regenerate export artifacts from canonical season state (does not publish)"
 	@echo "  make season-changes [SEASON=2026-2027] [ARGS='--markdown|--write|--json']"
 	@echo "                                      Show canonical request-grouped season change ledger"
 	@echo "  make season-changes-markdown [SEASON=2026-2027]"
@@ -166,6 +168,9 @@ calendars-refresh:
 
 sources-status:
 	@cd "$(ROOT_DIR)" && "$(RVV)" sources status $(ARGS)
+
+season-export:
+	@cd "$(ROOT_DIR)" && "$(RVV)" season export --season "$(SEASON)" $(ARGS)
 
 season-changes:
 	@cd "$(ROOT_DIR)" && "$(RVV)" season changes --season "$(SEASON)" $(ARGS)
