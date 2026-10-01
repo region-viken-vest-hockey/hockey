@@ -1409,6 +1409,189 @@ def test_cli_approve_honours_calendar_booking_confirmed_after_promotion(tmp_path
     assert load_decisions("2026-2027", root=root)["decisions"]["t1"]["status"] == "approved"
 
 
+def _promote_with_problem(tmp_path, tournaments, problem):
+    """Promote a plan whose verification context carries *problem*."""
+
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+    state.write_stage(StageName.PLANNING, {"plan": _plan(tournaments)}, status=StageStatus.DONE)
+    write_reviewed_stage4_export(state, problem=problem)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    return root
+
+
+def _confirm_short_calendar_booking(root, problem):
+    """Confirm a 90-minute event (below the U10 120-minute floor) for t1."""
+
+    event = {
+        "date": "2026-09-12",
+        "start": "11:00",
+        "end": "12:30",
+        "availability": "fixed_busy",
+        "calendar_event": "Miniputt U10 bekreftet",
+        "club": "A",
+    }
+    result = confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint(event),
+        tournament_id="t1",
+        problem=problem,
+        note="Accepted authoritative calendar interval",
+    )
+    return event, result
+
+
+def _short_booking_problem():
+    return _host_a_problem(
+        [
+            {
+                "date": "2026-09-12",
+                "start": "11:00",
+                "end": "12:30",
+                "availability": "fixed_busy",
+                "calendar_event": "Miniputt U10 bekreftet",
+                "club": "A",
+            }
+        ]
+    )
+
+
+def test_approve_accepts_calendar_confirmed_short_booking_cli(tmp_path):
+    """``season approve`` must not refuse an accepted factual short booking.
+
+    Repro of the U10 110-minute booked interval: once the accepted calendar
+    evidence and canonical ice-time override are current, a placement-only
+    re-approval must verify against the same overlay-resolved problem that
+    findings/export use instead of the raw planning floor.
+    """
+
+    problem = _short_booking_problem()
+    root = _promote_with_problem(tmp_path, [_tournament("t1")], problem)
+    _confirm_short_calendar_booking(root, problem)
+    unapprove_tournament(season="2026-2027", tournament_id="t1", root=root)
+
+    from tournament_scheduler.cli.rvv_cli import main as cli_main
+
+    exit_code = cli_main(
+        [
+            "season",
+            "approve",
+            "--season",
+            "2026-2027",
+            "--tournament-id",
+            "t1",
+            "--root",
+            str(root),
+            "--actor",
+            "tester",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_decisions("2026-2027", root=root)["decisions"]["t1"]["status"] == "approved"
+
+
+def test_approve_owner_resolves_canonical_overlays_for_short_booking(tmp_path):
+    """The application boundary itself resolves overlays; callers need not."""
+
+    problem = _short_booking_problem()
+    root = _promote_with_problem(tmp_path, [_tournament("t1")], problem)
+    _confirm_short_calendar_booking(root, problem)
+    unapprove_tournament(season="2026-2027", tournament_id="t1", root=root)
+
+    # This matches what a pre-projected caller supplies: the canonical ice-time
+    # override is visible, but the accepted-booking association is not. The
+    # owner must still re-project the current decisions so the exact accepted
+    # interval is classified as a durable finding instead of a hard floor
+    # violation.
+    caller_problem = {**_short_booking_problem(), "ice_time_minutes_overrides": {"t1": 90}}
+    approve_tournament(
+        season="2026-2027",
+        tournament_id="t1",
+        root=root,
+        actor="booker",
+        problem=caller_problem,
+    )
+
+    assert load_decisions("2026-2027", root=root)["decisions"]["t1"]["status"] == "approved"
+
+
+def test_approve_accepts_manual_confirmed_short_booking(tmp_path):
+    """Manual-booking confirmation evidence authorizes a short interval too."""
+
+    problem = _host_a_problem([])
+    root = _promote_with_problem(tmp_path, [_tournament("t1")], problem)
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="clubrep",
+        reference="email:booking",
+        stated_start="11:00",
+        stated_end="12:30",
+        problem=problem,
+    )
+
+    from tournament_scheduler.cli.rvv_cli import main as cli_main
+
+    exit_code = cli_main(
+        [
+            "season",
+            "approve",
+            "--season",
+            "2026-2027",
+            "--tournament-id",
+            "t1",
+            "--root",
+            str(root),
+            "--actor",
+            "tester",
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_decisions("2026-2027", root=root)["decisions"]["t1"]["status"] == "approved"
+
+
+def test_approve_refuses_short_interval_without_accepted_booking_evidence(tmp_path):
+    """The governing planning floor still applies without accepted evidence."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    problem["ice_time_minutes"] = {"U10": 110}
+
+    with pytest.raises(SeasonStateError, match="governing minimum"):
+        approve_tournament(
+            season="2026-2027",
+            tournament_id="t1",
+            root=root,
+            actor="booker",
+            problem=problem,
+        )
+
+    assert load_decisions("2026-2027", root=root)["decisions"]["t1"]["status"] != "approved"
+
+
+def test_approve_normal_duration_booking_unchanged(tmp_path):
+    """A normal-duration approval keeps its prior behaviour."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+
+    approve_tournament(
+        season="2026-2027",
+        tournament_id="t1",
+        root=root,
+        actor="booker",
+        problem=problem,
+    )
+
+    assert load_decisions("2026-2027", root=root)["decisions"]["t1"]["status"] == "approved"
+
+
 def test_changed_approval_is_deterministic_stale_approval(tmp_path):
     root = _promote(tmp_path, [_tournament("t1")])
     approve_tournament(season="2026-2027", tournament_id="t1", root=root, actor="booker")
