@@ -199,12 +199,12 @@ date,arena,age_group,home,away,parallel_slot
 2026-12-06,Bugården ishall,U9,Frisk Asker 3,Kongsberg,1
 2026-12-06,Bugården ishall,U9,Sandefjord,Tønsberg,2
 2026-12-06,Bugården ishall,U9,Skien,Holmen Hockey Sort,3
-2026-11-08,Schjongshallen,JU12,Frisk Asker Orange,Frisk Asker Svart,0
-2026-11-08,Schjongshallen,JU12,Ringerike 2,Jutul/Jar Kittens,1
-2026-11-08,Schjongshallen,JU12,Frisk Asker Svart,Jutul/Jar Kittens,0
-2026-11-08,Schjongshallen,JU12,Ringerike 2,Frisk Asker Orange,1
 2026-11-08,Schjongshallen,JU12,Frisk Asker Orange,Jutul/Jar Kittens,0
-2026-11-08,Schjongshallen,JU12,Ringerike 2,Frisk Asker Svart,1
+2026-11-08,Schjongshallen,JU12,Ringerike 2,Ringerike 1,1
+2026-11-08,Schjongshallen,JU12,Ringerike 1,Jutul/Jar Kittens,0
+2026-11-08,Schjongshallen,JU12,Ringerike 2,Frisk Asker Orange,1
+2026-11-08,Schjongshallen,JU12,Frisk Asker Orange,Ringerike 1,0
+2026-11-08,Schjongshallen,JU12,Ringerike 2,Jutul/Jar Kittens,1
 2026-10-25,Askerhallen,U11,Frisk Asker 1,Jar Grønn,0
 2026-10-25,Askerhallen,U11,Ringerike Gul,Skien,1
 2026-10-25,Askerhallen,U11,Tønsberg Grå,Jar Svart,2
@@ -920,21 +920,21 @@ date,arena,age_group,home,away,parallel_slot
 2027-01-23,Jar Isforum,U10,Frisk Asker 3,Ringerike 2,0
 2027-01-23,Jar Isforum,U10,Jar Blå,Tønsberg,1
 2027-01-23,Jar Isforum,U10,Ringerike 3,Jutul Grønn,2
-2027-01-23,Kongsberghallen,U11,Frisk Asker 2,Holmen Hockey Hvit,0
-2027-01-23,Kongsberghallen,U11,Jar Oransje,Frisk Asker 1,1
-2027-01-23,Kongsberghallen,U11,Kongsberg,Jar Blå,2
-2027-01-23,Kongsberghallen,U11,Jar Blå,Frisk Asker 1,0
-2027-01-23,Kongsberghallen,U11,Jar Oransje,Holmen Hockey Hvit,1
-2027-01-23,Kongsberghallen,U11,Kongsberg,Frisk Asker 2,2
-2027-01-23,Kongsberghallen,U11,Holmen Hockey Hvit,Frisk Asker 1,0
-2027-01-23,Kongsberghallen,U11,Jar Blå,Frisk Asker 2,1
-2027-01-23,Kongsberghallen,U11,Kongsberg,Jar Oransje,2
 2027-01-23,Kongsberghallen,U11,Frisk Asker 2,Frisk Asker 1,0
-2027-01-23,Kongsberghallen,U11,Jar Blå,Jar Oransje,1
-2027-01-23,Kongsberghallen,U11,Kongsberg,Holmen Hockey Hvit,2
+2027-01-23,Kongsberghallen,U11,Jar Oransje,Holmen Hockey Hvit,1
+2027-01-23,Kongsberghallen,U11,Kongsberg,Sandefjord,2
+2027-01-23,Kongsberghallen,U11,Jar Oransje,Frisk Asker 1,0
+2027-01-23,Kongsberghallen,U11,Kongsberg,Frisk Asker 2,1
+2027-01-23,Kongsberghallen,U11,Sandefjord,Holmen Hockey Hvit,2
+2027-01-23,Kongsberghallen,U11,Holmen Hockey Hvit,Frisk Asker 1,0
+2027-01-23,Kongsberghallen,U11,Kongsberg,Jar Oransje,1
+2027-01-23,Kongsberghallen,U11,Sandefjord,Frisk Asker 2,2
+2027-01-23,Kongsberghallen,U11,Frisk Asker 2,Holmen Hockey Hvit,0
+2027-01-23,Kongsberghallen,U11,Kongsberg,Frisk Asker 1,1
+2027-01-23,Kongsberghallen,U11,Sandefjord,Jar Oransje,2
 2027-01-23,Kongsberghallen,U11,Frisk Asker 2,Jar Oransje,0
-2027-01-23,Kongsberghallen,U11,Jar Blå,Holmen Hockey Hvit,1
-2027-01-23,Kongsberghallen,U11,Kongsberg,Frisk Asker 1,2
+2027-01-23,Kongsberghallen,U11,Kongsberg,Holmen Hockey Hvit,1
+2027-01-23,Kongsberghallen,U11,Sandefjord,Frisk Asker 1,2
 2027-01-23,Schjongshallen,U12,Jar Svart,Ringerike 1,0
 2027-01-23,Schjongshallen,U12,Tønsberg Hvit,Jutul Grønn,1
 2027-01-23,Schjongshallen,U12,Jutul Grønn,Ringerike 1,0
@@ -1321,12 +1321,12 @@ date,arena,age_group,home,away,parallel_slot
 2027-02-20,Baerum ishall,U8,Jutul Gul,Ringerike 2,1
 2027-02-20,Baerum ishall,U8,Jutul Hvit,Skien,2
 2027-02-20,Baerum ishall,U8,Kongsberg,Tønsberg,3
-2027-02-21,Schjongshallen,JU12,Ringerike 1,Kongsberg/Tønsberg,0
-2027-02-21,Schjongshallen,JU12,Ringerike 2,Jutul/Jar Kittens,1
-2027-02-21,Schjongshallen,JU12,Jutul/Jar Kittens,Kongsberg/Tønsberg,0
-2027-02-21,Schjongshallen,JU12,Ringerike 2,Ringerike 1,1
-2027-02-21,Schjongshallen,JU12,Ringerike 1,Jutul/Jar Kittens,0
+2027-02-21,Schjongshallen,JU12,Frisk Asker Svart,Frisk Asker Orange,0
 2027-02-21,Schjongshallen,JU12,Ringerike 2,Kongsberg/Tønsberg,1
+2027-02-21,Schjongshallen,JU12,Frisk Asker Orange,Kongsberg/Tønsberg,0
+2027-02-21,Schjongshallen,JU12,Ringerike 2,Frisk Asker Svart,1
+2027-02-21,Schjongshallen,JU12,Frisk Asker Svart,Kongsberg/Tønsberg,0
+2027-02-21,Schjongshallen,JU12,Ringerike 2,Frisk Asker Orange,1
 2027-02-20,Jar Isforum,U10,Holmen Hockey Rød,Ringerike 2,0
 2027-02-20,Jar Isforum,U10,Jar Rød,Frisk Asker 2,1
 2027-02-20,Jar Isforum,U10,Jutul Hvit,Frisk Asker 3,2
@@ -1478,12 +1478,12 @@ date,arena,age_group,home,away,parallel_slot
 2027-03-06,Jar Isforum,JU10,(Pause),Frisk Asker Orange,
 2027-03-06,Jar Isforum,JU10,(Pause),Ringerike 1,
 2027-03-06,Jar Isforum,JU10,(Pause),Skien,
-2027-03-06,Schjongshallen,JU12,Ringerike 1,Frisk Asker Orange,0
+2027-03-06,Schjongshallen,JU12,Ringerike 1,Jutul/Jar Kittens,0
 2027-03-06,Schjongshallen,JU12,Ringerike 2,Frisk Asker Svart,1
-2027-03-06,Schjongshallen,JU12,Frisk Asker Orange,Frisk Asker Svart,0
+2027-03-06,Schjongshallen,JU12,Jutul/Jar Kittens,Frisk Asker Svart,0
 2027-03-06,Schjongshallen,JU12,Ringerike 1,Ringerike 2,1
 2027-03-06,Schjongshallen,JU12,Ringerike 1,Frisk Asker Svart,0
-2027-03-06,Schjongshallen,JU12,Ringerike 2,Frisk Asker Orange,1
+2027-03-06,Schjongshallen,JU12,Ringerike 2,Jutul/Jar Kittens,1
 2027-03-06,Holmen ishall,U10,Frisk Asker 1,Holmen Hockey Sort,0
 2027-03-06,Holmen ishall,U10,Frisk Asker 4,Jar Blå,1
 2027-03-06,Holmen ishall,U10,Ringerike 4,Tønsberg,2
@@ -1902,18 +1902,18 @@ date,arena,age_group,home,away,parallel_slot
 2026-11-14,Jar Isforum,U11,Jar Grønn,Ringerike Gul,1
 2026-11-14,Jar Isforum,U11,Jar Rød,Frisk Asker 2,2
 2027-01-31,Tonsberghallen,U11,Holmen Hockey Rød,Jar Lilla,0
-2027-01-31,Tonsberghallen,U11,Kongsberg,Ringerike Svart,1
+2027-01-31,Tonsberghallen,U11,Tønsberg Hvit,Ringerike Svart,1
 2027-01-31,Tonsberghallen,U11,Tønsberg Rød,Jar Grønn,2
 2027-01-31,Tonsberghallen,U11,Jar Grønn,Holmen Hockey Rød,0
 2027-01-31,Tonsberghallen,U11,Ringerike Svart,Jar Lilla,1
-2027-01-31,Tonsberghallen,U11,Tønsberg Rød,Kongsberg,2
+2027-01-31,Tonsberghallen,U11,Tønsberg Rød,Tønsberg Hvit,2
 2027-01-31,Tonsberghallen,U11,Jar Grønn,Ringerike Svart,0
-2027-01-31,Tonsberghallen,U11,Kongsberg,Jar Lilla,1
+2027-01-31,Tonsberghallen,U11,Tønsberg Hvit,Jar Lilla,1
 2027-01-31,Tonsberghallen,U11,Tønsberg Rød,Holmen Hockey Rød,2
 2027-01-31,Tonsberghallen,U11,Holmen Hockey Rød,Ringerike Svart,0
-2027-01-31,Tonsberghallen,U11,Jar Grønn,Kongsberg,1
+2027-01-31,Tonsberghallen,U11,Jar Grønn,Tønsberg Hvit,1
 2027-01-31,Tonsberghallen,U11,Tønsberg Rød,Jar Lilla,2
-2027-01-31,Tonsberghallen,U11,Holmen Hockey Rød,Kongsberg,0
+2027-01-31,Tonsberghallen,U11,Holmen Hockey Rød,Tønsberg Hvit,0
 2027-01-31,Tonsberghallen,U11,Jar Grønn,Jar Lilla,1
 2027-01-31,Tonsberghallen,U11,Tønsberg Rød,Ringerike Svart,2
 2027-03-07,Askerhallen,U11,Frisk Asker 4,Jar Svart,0
@@ -1933,19 +1933,19 @@ date,arena,age_group,home,away,parallel_slot
 2027-03-07,Askerhallen,U11,Ringerike Gul,Jar Lilla,2
 2027-02-06,Askerhallen,U11,Frisk Asker 1,Jar Grønn,0
 2027-02-06,Askerhallen,U11,Holmen Hockey Rød,Jutul Rød,1
-2027-02-06,Askerhallen,U11,Sandefjord,Tønsberg Grå,2
-2027-02-06,Askerhallen,U11,Frisk Asker 1,Sandefjord,0
-2027-02-06,Askerhallen,U11,Jar Grønn,Holmen Hockey Rød,1
-2027-02-06,Askerhallen,U11,Jutul Rød,Tønsberg Grå,2
+2027-02-06,Askerhallen,U11,Jar Blå,Tønsberg Grå,2
 2027-02-06,Askerhallen,U11,Frisk Asker 1,Holmen Hockey Rød,0
-2027-02-06,Askerhallen,U11,Jar Grønn,Tønsberg Grå,1
-2027-02-06,Askerhallen,U11,Sandefjord,Jutul Rød,2
-2027-02-06,Askerhallen,U11,Frisk Asker 1,Jutul Rød,0
-2027-02-06,Askerhallen,U11,Holmen Hockey Rød,Tønsberg Grå,1
-2027-02-06,Askerhallen,U11,Jar Grønn,Sandefjord,2
+2027-02-06,Askerhallen,U11,Jar Grønn,Jar Blå,1
+2027-02-06,Askerhallen,U11,Jutul Rød,Tønsberg Grå,2
 2027-02-06,Askerhallen,U11,Frisk Asker 1,Tønsberg Grå,0
-2027-02-06,Askerhallen,U11,Holmen Hockey Rød,Sandefjord,1
+2027-02-06,Askerhallen,U11,Jar Blå,Jutul Rød,1
+2027-02-06,Askerhallen,U11,Jar Grønn,Holmen Hockey Rød,2
+2027-02-06,Askerhallen,U11,Frisk Asker 1,Jar Blå,0
+2027-02-06,Askerhallen,U11,Holmen Hockey Rød,Tønsberg Grå,1
 2027-02-06,Askerhallen,U11,Jar Grønn,Jutul Rød,2
+2027-02-06,Askerhallen,U11,Frisk Asker 1,Jutul Rød,0
+2027-02-06,Askerhallen,U11,Holmen Hockey Rød,Jar Blå,1
+2027-02-06,Askerhallen,U11,Jar Grønn,Tønsberg Grå,2
 2027-01-16,Tonsberghallen,U11,Frisk Asker 2,Frisk Asker 3,0
 2027-01-16,Tonsberghallen,U11,Jar Gul,Jar Grønn,1
 2027-01-16,Tonsberghallen,U11,Tønsberg Hvit,Tønsberg Grå,2
@@ -2160,19 +2160,19 @@ date,arena,age_group,home,away,parallel_slot
 2026-10-10,Tonsberghallen,U12,Jutul Rød,Tønsberg Hvit,1
 2027-01-17,Skien ishall,U11,Holmen Hockey Hvit,Skien,0
 2027-01-17,Skien ishall,U11,Jar Gul,Ringerike Gul,1
-2027-01-17,Skien ishall,U11,Tønsberg Hvit,Jar Lilla,2
+2027-01-17,Skien ishall,U11,Kongsberg,Jar Lilla,2
 2027-01-17,Skien ishall,U11,Jar Lilla,Jar Gul,0
-2027-01-17,Skien ishall,U11,Skien,Ringerike Gul,1
-2027-01-17,Skien ishall,U11,Tønsberg Hvit,Holmen Hockey Hvit,2
+2027-01-17,Skien ishall,U11,Kongsberg,Holmen Hockey Hvit,1
+2027-01-17,Skien ishall,U11,Skien,Ringerike Gul,2
 2027-01-17,Skien ishall,U11,Holmen Hockey Hvit,Ringerike Gul,0
 2027-01-17,Skien ishall,U11,Jar Lilla,Skien,1
-2027-01-17,Skien ishall,U11,Tønsberg Hvit,Jar Gul,2
+2027-01-17,Skien ishall,U11,Kongsberg,Jar Gul,2
 2027-01-17,Skien ishall,U11,Jar Gul,Skien,0
 2027-01-17,Skien ishall,U11,Jar Lilla,Holmen Hockey Hvit,1
-2027-01-17,Skien ishall,U11,Tønsberg Hvit,Ringerike Gul,2
+2027-01-17,Skien ishall,U11,Kongsberg,Ringerike Gul,2
 2027-01-17,Skien ishall,U11,Jar Gul,Holmen Hockey Hvit,0
 2027-01-17,Skien ishall,U11,Jar Lilla,Ringerike Gul,1
-2027-01-17,Skien ishall,U11,Tønsberg Hvit,Skien,2
+2027-01-17,Skien ishall,U11,Kongsberg,Skien,2
 2026-12-13,Bugården ishall,U11,Holmen Hockey Rød,Sandefjord,0
 2026-12-13,Bugården ishall,U11,Jar Blå,Jar Oransje,1
 2026-12-13,Bugården ishall,U11,Skien,Tønsberg Grå,2
