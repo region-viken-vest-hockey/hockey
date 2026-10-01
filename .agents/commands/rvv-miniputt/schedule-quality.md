@@ -14,14 +14,24 @@ When the operator asks whether the season is fair, uneven, imbalanced or otherwi
 
 Hosting responsibility and hosting balance are out of scope unless the operator explicitly asks for them. Do not let already-settled hosting differences dominate or distort the participant-facing fairness result.
 
-Evaluate fairness against the current canonical season state, but use the correct comparison unit:
+### Fairness population: booked reality only
+
+By default, participant-fairness metrics must be computed only from tournaments that the repository classifies as actually booked/confirmed through accepted source-backed booking evidence for the effective interval. Use repository-owned booking-status/evidence projections to establish that population.
+
+Do **not** count merely planned, proposed, unplaced, awaiting-confirmation, default-duration, or otherwise unconfirmed tournaments in fairness totals, before/after-Christmas balance, season span, gaps, clustering, opponent diversity, travel, or game-opportunity metrics. A canonical placement is not evidence that the tournament will actually happen.
+
+Unbooked/planned tournaments may be reported separately as planning coverage or future potential, but they must not make the real season look fairer or less fair. If the operator explicitly asks for a planning-view fairness audit, label that view clearly and keep it separate from the default booked-reality audit.
+
+If booking evidence is too incomplete to support a meaningful fairness conclusion for an age group or club, report the audit as incomplete for that scope rather than filling the gaps with planned tournaments.
+
+Evaluate fairness against this booked-reality population, using the correct comparison unit:
 
 - **Regional allocation fairness (primary):** for clubs with multiple teams in the same age group, compare clubs by total participant opportunity normalized by the number of registered teams in that club/age group. A sibling-team spread by itself is not automatically regional unfairness.
 - **Internal sibling-team distribution (secondary diagnostic):** report how unevenly a multi-team club's opportunities are distributed among its own team labels, but classify this separately from regional allocation fairness unless repository evidence shows those labels are stable, non-interchangeable participant groups or an individual team suffers an extreme deprivation.
 - **Single-team/small-club experience (first-class):** when a club has only one team in an age group, that team's season shape directly represents the club's participant experience and must not be diluted by multi-team normalization.
 - **Extreme individual-team experience:** regardless of club size, flag cases such as very low total participation, no meaningful activity in one half of the season, excessive inactive gaps, or a season that effectively starts or ends far earlier than comparable peers.
 
-Use accepted/calendar-confirmed reality where it has superseded earlier planning assumptions; do not treat superseded proposal/default dates, times or durations as current truth.
+Within the booked-reality population, use the accepted/calendar-confirmed effective date/start/end and participants as truth where they supersede earlier planning assumptions. Do not treat superseded proposal/default dates, times, durations or placements as current truth.
 
 For multi-team clubs, calculate and compare a normalized club/age-group opportunity measure where data permits:
 
@@ -57,7 +67,7 @@ Rank the largest current inequities by measurable deviation and participant impa
 
 Do not let a large sibling-label spread inside a multi-team club outrank a smaller but more consequential regional or half-season imbalance merely because the raw team-count range is numerically larger.
 
-For each significant inequity report the affected team(s)/club(s)/age group, whether it is **regional allocation**, **half-season balance**, **internal sibling distribution**, or **individual-team experience**, the relevant measured value, the same-age comparable baseline/range, the size of the deviation, and whether it appears repairable without violating hard constraints, active accepted requests/protections or accepted calendar-confirmed facts.
+For each significant inequity report the affected team(s)/club(s)/age group, whether it is **regional allocation**, **half-season balance**, **internal sibling distribution**, or **individual-team experience**, the relevant measured value, the same-age comparable baseline/range, the size of the deviation, the booked-evidence coverage behind the comparison, and whether it appears repairable without violating hard constraints, active accepted requests/protections or accepted calendar-confirmed facts.
 
 Do not compare unlike age groups as if they had the same expected season shape unless repository policy explicitly defines a shared target.
 
