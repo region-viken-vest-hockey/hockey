@@ -1591,7 +1591,7 @@ def verify_candidate(
 
 def score_candidate(
     candidate: Dict[str, Any],
-    gap_thresholds: Iterable[int] = (7, 14),
+    gap_thresholds: Iterable[int] = (2, 7, 14),
     *,
     problem: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
