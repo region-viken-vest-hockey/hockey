@@ -215,7 +215,31 @@ def _solve_slot_group(
     # (`AddHint` below). Identities with no configured target (non-canonical
     # age groups) keep the original exact baseline-lock behavior as a
     # defensive fallback.
+    resolved_participation_targets: "dict[TeamIdentity, int | None]" = {
+        identity: _resolve_participation_target(identity, team_map, problem, half_label)
+        for identity in eligible_identities
+    }
+    positive_targets = [
+        target
+        for target in resolved_participation_targets.values()
+        if isinstance(target, int) and target > 0
+    ]
+    # Scarce participation capacity is allocated in two bands:
+    #
+    # 1. bring every age group toward the lowest positive configured target
+    #    for this half (the common Miniputt participation floor);
+    # 2. only then spend remaining capacity closing the higher targets that
+    #    older age groups may have.
+    #
+    # This keeps the configured values soft goals while preventing an older
+    # group's 9th/10th appearance from outranking a younger group's basic
+    # season opportunity. A zero target (for example U7 before Christmas) is
+    # intentionally excluded from the common floor.
+    common_participation_floor = min(positive_targets) if positive_targets else None
     participation_deficit_terms: "list[Any]" = []
+    participation_floor_deficit_terms: "list[Any]" = []
+    max_total_participation_deficit = sum(positive_targets)
+
     for identity in eligible_identities:
         baseline_count = baseline_participations.get(identity, 0)
         vars_for_identity = [
@@ -226,7 +250,7 @@ def _solve_slot_group(
         if not vars_for_identity:
             continue
         count_expr = sum(vars_for_identity)
-        target = _resolve_participation_target(identity, team_map, problem, half_label)
+        target = resolved_participation_targets[identity]
         if target is None:
             model.Add(count_expr == baseline_count)
             continue
@@ -235,6 +259,16 @@ def _solve_slot_group(
             deficit = model.NewIntVar(0, target, f"participation_deficit_team{team_index[identity]}")
             model.Add(deficit >= target - count_expr)
             participation_deficit_terms.append(deficit)
+
+            if common_participation_floor is not None and target > 0:
+                floor_target = min(target, common_participation_floor)
+                floor_deficit = model.NewIntVar(
+                    0,
+                    floor_target,
+                    f"participation_floor_deficit_team{team_index[identity]}",
+                )
+                model.Add(floor_deficit >= floor_target - count_expr)
+                participation_floor_deficit_terms.append(floor_deficit)
 
     # No duplicate participation on one date.
     slots_by_age_date: "dict[tuple[str, date], list[int]]" = defaultdict(list)
@@ -314,10 +348,17 @@ def _solve_slot_group(
 
     pair_serial = 0
     objective_terms: "list[Any]" = []
-    # Closing a configured participation gap outranks pairing
-    # quality (repeat-opponent penalties below top out at 2000) so the
-    # solver prioritizes meeting the target over tie-breaking on variety.
-    objective_terms.extend(5000 * term for term in participation_deficit_terms)
+    # Participation is lexicographic by policy. One unit of common-floor
+    # deficit must cost more than *all* possible age-specific extra-target
+    # deficit combined. Within the feasible common floor, the ordinary target
+    # deficit then moves older groups toward their higher configured goals.
+    # Both remain soft: hard feasibility can still force a miss.
+    target_deficit_weight = 5000
+    floor_deficit_weight = target_deficit_weight * (max_total_participation_deficit + 1)
+    objective_terms.extend(
+        floor_deficit_weight * term for term in participation_floor_deficit_terms
+    )
+    objective_terms.extend(target_deficit_weight * term for term in participation_deficit_terms)
     baseline_same_club = _baseline_same_club_pairings(slots)
 
     if feasibility_only:
