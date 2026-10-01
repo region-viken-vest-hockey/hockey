@@ -329,28 +329,31 @@ def compute_club_stats(plan: object, team_travel: dict[str, int]) -> tuple[dict[
 
 
 def build_export_links_html(output_files: dict[str, str] | None) -> str:
-    """Build the header export-download link buttons HTML."""
+    """Build the operator-facing Spond download buttons.
+
+    Stage 4 still generates Excel/CSV/iCal artifacts for verification,
+    diagnostics and integrations, but those generic formats are not useful
+    operator actions in the season-plan UI. Keep the public header focused on
+    the two supported Spond workflows.
+    """
     if not output_files:
         return ""
 
-    links_parts = ['<div class="export-links">']
     link_defs = [
-        ("excel", ICON_DOWNLOAD + " Last ned Excel (.xlsx)", "#38bdf8"),
-        ("csv_overview", ICON_BAR_CHART + " Last ned CSV", "#34d399"),
-        ("csv_games", ICON_FILE_SPREADSHEET + " Last ned CSV (kamper)", "#fbbf24"),
-        ("ical", ICON_CALENDAR + " Last ned iCal (.ics)", "#f87171"),
         ("spond", ICON_FILE_SPREADSHEET + " Last ned Spond sesongplan (.xlsx)", "#a78bfa"),
         ("spond_games", ICON_FILE_SPREADSHEET + " Last ned Spond kampoppsett (.xlsx)", "#c084fc"),
     ]
+    links = []
     for key, label, color in link_defs:
         if key in output_files:
             filename = Path(output_files[key]).name
-            links_parts.append(
+            links.append(
                 f'<a href="{filename}" class="export-link-btn" '
                 f'style="--link-color:{color}" download>{label}</a>'
             )
-    links_parts.append('</div>')
-    return "".join(links_parts)
+    if not links:
+        return ""
+    return '<div class="export-links">' + "".join(links) + "</div>"
 
 
 # ---------------------------------------------------------------------------
