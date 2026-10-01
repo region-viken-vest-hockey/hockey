@@ -7,3 +7,30 @@ Compare current and proposed state for every affected team and relevant season/a
 Compare multiple meaningfully distinct feasible candidates, including alternatives on both sides of Christmas where relevant. Prefer non-dominated, minimally disruptive acceptable candidates; a first hard-valid or nearest date is not automatically preferable. Do not present a candidate with a new material regression as acceptable without the repository's explicit authorized opt-in. Bounded search is not proof of global optimality or infeasibility.
 
 Produce a before/after impact report with source/revision, affected teams, objective and consequence deltas, remaining findings, evidence gaps and rationale. For an investigation-only request, do not mutate. After an authorized mutation rerun canonical verification and fresh findings; audit the derived export when required.
+
+## Participant fairness audit
+
+When the operator asks whether the season is fair, uneven, imbalanced or otherwise disadvantaged from the player/team perspective, treat that as a stable participant-fairness audit.
+
+Hosting responsibility and hosting balance are out of scope unless the operator explicitly asks for them. Do not let already-settled hosting differences dominate or distort the participant-facing fairness result.
+
+Evaluate fairness primarily among comparable teams within the same age group and against the current canonical season state. Use accepted/calendar-confirmed reality where it has superseded earlier planning assumptions; do not treat superseded proposal/default dates, times or durations as current truth.
+
+At minimum quantify:
+- total tournaments/games per team relative to same-age peers and applicable targets;
+- distribution before versus after Christmas;
+- season span from first to last tournament;
+- unusually late first tournament or unusually early last tournament;
+- long inactive gaps;
+- unusually compressed periods or clusters;
+- cadence/frequency through the active season;
+- material participation deviations from comparable teams in the same age group.
+
+Also surface other material participant-facing inequities evidenced by repository-owned findings or projections.
+
+Rank the largest current inequities by measurable deviation and participant impact. For each significant inequity report the affected team(s)/club(s)/age group, the relevant measured value, the same-age comparable baseline/range, the size of the deviation, and whether it appears repairable without violating hard constraints, active accepted requests/protections or accepted calendar-confirmed facts.
+
+Do not compare unlike age groups as if they had the same expected season shape unless repository policy explicitly defines a shared target.
+
+A fairness audit is read-only by default. If the operator asks only to investigate, compare or identify unfairness, do not mutate the season. If repair is later requested, use the normal verified mutation flow and compare before/after participant-fairness consequences rather than optimizing one metric in isolation.
+
