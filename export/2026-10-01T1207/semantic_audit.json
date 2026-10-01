@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "audit_id": "2077b04233994fd7",
+  "generated_at": "2026-10-01T12:08:59.265414+00:00",
+  "run_id": "20260918T135604Z-8d38f146",
+  "export_fingerprint": "871543dde23d8e9245bd16d8857bdd441c5dafdc21ee91f628fd20b12ccafecf",
+  "audit_context_fingerprint": "816cdfd2f41659c141fd1525442476cb5dc2eee61954a0489b764d96303f2ff8",
+  "status": "REVIEW_REQUIRED",
+  "operator_assessment": {
+    "accepted_tradeoffs": [
+      "Unchanged full-season planning debt outside the (empty) public delta"
+    ],
+    "remaining_actions": [],
+    "limitations": [
+      "No fresh live calendar scrape",
+      "Public HTML exception marking for 3-club tournaments not independently verified"
+    ],
+    "operator_summary": "Regeneration of the export after export-code changes; canonical state and public delta are unchanged. Hard verification clean, parity PASS, scope ELIGIBLE."
+  },
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "Re-export of unchanged canonical state: the delta against published 2026-10-01T1055 is empty (0 added/removed/changed, 183 unchanged), so per-team participation is identical to what is already public. Remaining shortfalls (participation_shortfalls 137 unresolved, target deviations) are unchanged full-season planning debt.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "publication_scope.delta summary 0/0/0",
+        "publication-evidence delta changed=false"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "Hosting identical to published baseline; no hosting responsibility transferred. unresolved_hosting_obligations=0; 16 hosting_balance_imbalances are known full-season debt outside this delta.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "deterministic_verify_result.unresolved_hosting_obligations=[]",
+        "delta field_changes=[]"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "No duration or interval changed (duration_changes=0). Min 100 / max 155 minutes, no missing durations.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "duration_summary.missing_duration_count=0",
+        "delta duration_changes=[]"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "No placement changed, so ice occupancy is exactly as already published. No fresh live calendar scrape was performed (sources_scanned=0), so ice availability was not re-verified independently.",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        "delta placement_changes=[]",
+        "calendar_evidence_summary.sources_scanned=0"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "Host club participates in its own tournament in all 183 tournaments.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "host_participation_summary.tournaments_where_host_club_not_in_participants=0"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt én gang per dag?",
+      "finding": "No team plays twice on one day (duplicate_team_day_count=0).",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "team_daily_participation_summary.duplicate_team_day_count=0"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "Hard maximum of 3 per club respected; 13 tournaments have 3 teams from one club, unchanged vs the published plan. I did not independently verify how the public HTML marks the exception.",
+      "severity": "minor",
+      "confidence": "medium",
+      "evidence": [
+        "same_club_per_tournament_summary max distribution 1:64, 2:106, 3:13"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "Export formats consistent and fresh: export_parity PASS (xlsx season_revision equals current canonical revision 15b3b508..., 183 tournaments); csv_games 2337, csv_overview 183, team counts 142, ical 183, excel overview 183 all match the plan; no mismatches.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "export-parity status=PASS",
+        "export_consistency_summary.mismatches=[]"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?",
+      "finding": "Publication scope ELIGIBLE with an empty delta; deterministic hard verification ok with 0 violations; canonical reconciliation clean. Overall readiness remains REVIEW_REQUIRED only due to unchanged full-season planning debt (hosting_balance_imbalances 16, manual_calendar_placements 91, external_calendar_conflicts 10, participation_shortfalls 129, participation_target_deviation 20, tournament_placement_shortfall 9). Verdict not upgraded to PASS for publishing purposes.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence": [
+        "publication_scope.status=ELIGIBLE",
+        "publication_readiness.status=REVIEW_REQUIRED"
+      ],
+      "could_not_establish": false
+    }
+  ],
+  "potential_missing_rule": [],
+  "could_not_independently_establish": [
+    "Live calendar availability (no fresh scrape requested)"
+  ],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "871543dde23d8e9245bd16d8857bdd441c5dafdc21ee91f628fd20b12ccafecf",
+  "publication_gate_status": "operator_review_required"
+}
