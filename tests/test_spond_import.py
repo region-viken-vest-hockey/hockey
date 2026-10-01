@@ -76,7 +76,7 @@ def test_rows_are_per_team_and_deterministic():
 
 
 def test_selected_team_gets_one_event_per_tournament():
-    rows = project_spond_import_rows(_plan(), {"U10": 60}, team="Jar 2")
+    rows = project_spond_import_rows(_plan(), {"U10": 60}, team=("Jar", "Jar 2", "U10"))
     assert [r.tournament_id for r in rows] == ["rvv-0123", "rvv-0200"]
     assert len({r.tournament_id for r in rows}) == len(rows)
 
@@ -87,7 +87,7 @@ def test_cancelled_tournaments_are_not_importable():
 
 
 def test_date_time_and_end_time_mapping_and_description():
-    row = project_spond_import_rows(_plan(), {"U10": 60}, team="Holmen 1")[0]
+    row = project_spond_import_rows(_plan(), {"U10": 60}, team=("Holmen", "Holmen 1", "U10"))[0]
     assert row.start_date == date(2026, 11, 14)
     assert row.start_time == time(9, 0)
     assert row.end_date == date(2026, 11, 14)
@@ -102,10 +102,43 @@ def test_date_time_and_end_time_mapping_and_description():
 def test_per_team_workbooks_contain_only_that_team(tmp_path):
     written = write_per_team_workbooks(_plan(cancel_second=True), tmp_path / "spond", {"U10": 60})
 
-    assert sorted(written) == ["Frisk Asker 3", "Holmen 1", "Jar 2"]  # Jar 1 only had the cancelled one
+    # Jar 1 only had the cancelled tournament
+    assert sorted(label for _club, label, _age in written) == ["Frisk Asker 3", "Holmen 1", "Jar 2"]
     assert (tmp_path / "spond" / "Jar 2.xlsx").exists()
     sheet = openpyxl.load_workbook(tmp_path / "spond" / "Jar 2.xlsx")[SPOND_IMPORT_SHEET]
     data = list(sheet.iter_rows(min_row=2, values_only=True))
     assert len(data) == 1
     assert data[0][12] == "rvv-0123"
     assert data[0][8] == "Jar 2"
+
+
+def test_same_label_in_different_age_groups_gets_separate_workbooks(tmp_path):
+    u10, u12 = Team("Jar", "Jar 1", "U10"), Team("Jar", "Jar 1", "U12")
+    other = Team("Holmen", "Holmen 1", "U10"), Team("Holmen", "Holmen 1", "U12")
+    plan = SeasonPlan(tournaments=[
+        Tournament(date=date(2026, 11, 1), arena="A", age_group="U10", id="a", teams=[u10, other[0]], host_club="Jar", start_time="09:00"),
+        Tournament(date=date(2026, 11, 8), arena="B", age_group="U12", id="b", teams=[u12, other[1]], host_club="Jar", start_time="09:00"),
+    ])
+    written = write_per_team_workbooks(plan, tmp_path, {"U10": 60, "U12": 60})
+
+    jar = {key: path for key, path in written.items() if key[1] == "Jar 1"}
+    assert len(jar) == 2 and len(set(jar.values())) == 2
+    for (club, label, age), path in jar.items():
+        data = list(openpyxl.load_workbook(path)[SPOND_IMPORT_SHEET].iter_rows(min_row=2, values_only=True))
+        assert [row[10] for row in data] == [age]
+    assert len(project_spond_import_rows(plan, team=("Jar", "Jar 1", "U10"))) == 1
+
+
+def test_reexport_removes_stale_team_workbooks_but_keeps_unrelated_files(tmp_path):
+    out = tmp_path / "spond"
+    out.mkdir()
+    (out / "notes.txt").write_text("keep")
+    write_per_team_workbooks(_plan(), out, {"U10": 60})
+    assert (out / "Jar 1.xlsx").exists()
+
+    write_per_team_workbooks(_plan(cancel_second=True), out, {"U10": 60})
+
+    assert not (out / "Jar 1.xlsx").exists()
+    assert (out / "Jar 2.xlsx").exists()
+    assert (out / "notes.txt").read_text() == "keep"
+    assert not [p for p in out.iterdir() if p.name.startswith(".staging-")]

@@ -13,7 +13,11 @@ Cancelled tournaments are never projected as importable events.
 
 from __future__ import annotations
 
+import json
+import os
 import re
+import shutil
+import tempfile
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from pathlib import Path
@@ -47,10 +51,16 @@ HELPER_HEADERS = (
     "RVV-ID",
 )
 
+MANAGED_MANIFEST = ".spond_managed.json"
+
 _DATE_FORMAT = "DD.MM.YYYY"
 _TIME_FORMAT = "HH:MM"
 _DATE_COLUMNS = (1, 4)
 _TIME_COLUMNS = (2, 3, 5)
+
+
+# Canonical team identity: (club, label, age group).
+TeamKey = tuple[str, str, str]
 
 
 @dataclass(frozen=True)
@@ -70,6 +80,10 @@ class SpondImportRow:
     age_group: str
     host_club: str
     tournament_id: str
+
+    @property
+    def team_key(self) -> TeamKey:
+        return (self.club, self.team, self.age_group)
 
     def cells(self) -> list[object]:
         return [
@@ -93,17 +107,24 @@ def project_spond_import_rows(
     plan: SeasonPlan,
     ice_time_for_age_group: Optional[Mapping[str, int]] = None,
     *,
-    team: str | None = None,
+    team: TeamKey | None = None,
     club: str | None = None,
 ) -> list[SpondImportRow]:
-    """Project the plan to deterministic per-team tournament import rows."""
+    """Project the plan to deterministic per-team tournament import rows.
+
+    *team* selects one canonical team identity ``(club, label, age_group)``.
+    """
     ice_time = ice_time_for_age_group or {}
     rows: list[SpondImportRow] = []
     for tournament in sorted(plan.tournaments, key=lambda t: (t.date, t.start_time or "", t.id)):
         if tournament.cancelled:
             continue
         for participant in sorted(tournament.teams, key=lambda t: t.label):
-            if team is not None and participant.label != team:
+            if team is not None and (
+                participant.club,
+                participant.label,
+                participant.age_group,
+            ) != team:
                 continue
             if club is not None and participant.club != club:
                 continue
@@ -111,8 +132,8 @@ def project_spond_import_rows(
     return rows
 
 
-def team_labels(rows: Iterable[SpondImportRow]) -> list[str]:
-    return sorted({row.team for row in rows})
+def team_keys(rows: Iterable[SpondImportRow]) -> list[TeamKey]:
+    return sorted({row.team_key for row in rows})
 
 
 def _row_for(
@@ -213,16 +234,70 @@ def write_per_team_workbooks(
     plan: SeasonPlan,
     output_dir: str | Path,
     ice_time_for_age_group: Optional[Mapping[str, int]] = None,
-) -> dict[str, str]:
-    """Write ``<output_dir>/<team label>.xlsx`` for every participating team."""
+) -> dict[TeamKey, str]:
+    """Reconcile ``<output_dir>`` to one workbook per participating team.
+
+    Files written by a previous run (tracked in a manifest) that no longer
+    have a projected team are removed, so a cancelled/removed team never
+    leaves a stale importable workbook. Unrelated files are left alone. New
+    files are built in a staging directory and moved into place afterwards.
+    """
+    out_dir = Path(output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
     rows = project_spond_import_rows(plan, ice_time_for_age_group)
-    written: dict[str, str] = {}
-    for label in team_labels(rows):
-        team_rows = [row for row in rows if row.team == label]
-        written[label] = write_spond_import_workbook(
-            team_rows, Path(output_dir) / f"{_safe_filename(label)}.xlsx"
-        )
-    return written
+    keys = team_keys(rows)
+    names = _unique_filenames(keys)
+
+    staging = Path(tempfile.mkdtemp(prefix=".staging-", dir=out_dir))
+    try:
+        for key in keys:
+            write_spond_import_workbook(
+                [row for row in rows if row.team_key == key], staging / names[key]
+            )
+        previous = _read_manifest(out_dir)
+        for key in keys:
+            os.replace(staging / names[key], out_dir / names[key])
+        for stale in previous - set(names.values()):
+            (out_dir / stale).unlink(missing_ok=True)
+        _write_manifest(out_dir, sorted(names.values()))
+    finally:
+        shutil.rmtree(staging, ignore_errors=True)
+    return {key: str(out_dir / names[key]) for key in keys}
+
+
+def _read_manifest(out_dir: Path) -> set[str]:
+    try:
+        data = json.loads((out_dir / MANAGED_MANIFEST).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return set()
+    return {name for name in data if isinstance(name, str) and Path(name).name == name}
+
+
+def _write_manifest(out_dir: Path, names: list[str]) -> None:
+    tmp = out_dir / f"{MANAGED_MANIFEST}.tmp"
+    tmp.write_text(json.dumps(names, ensure_ascii=False, indent=1), encoding="utf-8")
+    os.replace(tmp, out_dir / MANAGED_MANIFEST)
+
+
+def _unique_filenames(keys: list[TeamKey]) -> dict[TeamKey, str]:
+    """Deterministic collision-safe filenames; plain label when unambiguous."""
+    by_label: dict[str, list[TeamKey]] = {}
+    for key in keys:
+        by_label.setdefault(_safe_filename(key[1]).casefold(), []).append(key)
+    names: dict[TeamKey, str] = {}
+    used: set[str] = set()
+    for group in by_label.values():
+        for key in group:
+            club, label, age_group = key
+            base = _safe_filename(label)
+            if len(group) > 1:
+                base = f"{base} ({_safe_filename(age_group)}, {_safe_filename(club)})"
+            name, n = f"{base}.xlsx", 2
+            while name.casefold() in used:
+                name, n = f"{base} {n}.xlsx", n + 1
+            used.add(name.casefold())
+            names[key] = name
+    return names
 
 
 def _safe_filename(label: str) -> str:
