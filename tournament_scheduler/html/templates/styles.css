@@ -162,6 +162,12 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 .rules-status--ok { color: var(--emerald); background: rgba(16,185,129,.08); }
 .rules-status--warn { color: var(--amber); background: rgba(245,158,11,.08); }
 .rules-status--attention { color: var(--rose); background: rgba(244,63,94,.08); }
+.rules-status--info { color: var(--accent); background: var(--accent-glow); }
+.rules-status--muted { color: var(--text-muted); background: var(--bg); }
+.change-notes { margin-bottom: 12px; }
+.change-block { margin-bottom: 12px; }
+.change-notes ul { margin: 4px 0 0; padding-left: 18px; }
+.change-notes li { color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
 .rules-catalog-id { margin-top: 4px; font-size: 10px; color: var(--text-muted); }
 .rules-catalog-id a { color: inherit; }
 .rules-catalog-class { padding: 0 5px; border-radius: var(--radius-pill); border: 1px solid var(--border-dim); }

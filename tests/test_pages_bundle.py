@@ -93,6 +93,21 @@ class TestDefaultAllowlist:
         assert "input.html" in included
         assert (tmp_path / "public" / "input.html").exists()
 
+    def test_season_changes_html_is_included_by_default(self, tmp_path):
+        export_dir = _export_dir(tmp_path)
+        (export_dir / "season_plan.html").write_text(
+            '<a href="season_changes.html">Forespurte endringer</a>', encoding="utf-8"
+        )
+        (export_dir / "season_changes.html").write_text("<h1>Forespurte endringer</h1>", encoding="utf-8")
+
+        result = build_public_bundle(str(export_dir), str(tmp_path / "public"))
+
+        assert result.status == "ok"
+        assert "season_changes.html" in DEFAULT_ALLOWED_FILENAMES
+        included = set(json.loads(Path((tmp_path / "pages_privacy_report.json")).read_text())["included_files"])
+        assert "season_changes.html" in included
+        assert (tmp_path / "public" / "season_changes.html").exists()
+
     def test_registered_team_artifacts_are_included_without_private_validation_report(self, tmp_path):
         export_dir = _export_dir(tmp_path)
         registered_dir = export_dir / "registered-teams"

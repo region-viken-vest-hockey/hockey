@@ -1235,6 +1235,32 @@ class TestCancelledTournamentSplit:
         assert [t["id"] for t in _embedded_tournaments(cancelled_html)] == ["cancelled-only"]
 
 
+class TestSeasonChangesNav:
+    """The season export links to the change-request page only when it exists."""
+
+    def test_changes_nav_link_present_when_page_exists(self, tmp_path: Path):
+        from tournament_scheduler.html import SEASON_CHANGES_FILENAME
+
+        changes_path = tmp_path / SEASON_CHANGES_FILENAME
+        changes_path.write_text("<h1>Forespurte endringer</h1>", encoding="utf-8")
+        out_path = tmp_path / "season_plan.html"
+        HtmlExporter().export(
+            _make_minimal_plan(), out_path, age_groups=["U10"], changes_path=str(changes_path)
+        )
+        html = out_path.read_text(encoding="utf-8")
+        assert f'href="{SEASON_CHANGES_FILENAME}"' in html
+        assert "Forespurte endringer" in html
+
+    def test_changes_nav_link_absent_without_page(self, tmp_path: Path):
+        from tournament_scheduler.html import SEASON_CHANGES_FILENAME
+
+        out_path = tmp_path / "season_plan.html"
+        HtmlExporter().export(_make_minimal_plan(), out_path, age_groups=["U10"])
+        html = out_path.read_text(encoding="utf-8")
+        assert SEASON_CHANGES_FILENAME not in html
+        assert "Forespurte endringer" not in html
+
+
 class TestSharedNavbarStatus:
     """The shared navbar status must combine plan-local and source counts."""
 

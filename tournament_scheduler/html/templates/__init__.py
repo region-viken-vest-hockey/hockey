@@ -44,6 +44,7 @@ REGISTERED_TEAMS = _load("registered_teams.html")
 PAGES_ROOT_INDEX = _load("pages_root_index.html")
 PAGES_EMPTY_INDEX = _load("pages_empty_index.html")
 MANUAL_SCHEDULE = _load("manual_schedule.html")
+SEASON_CHANGES = _load("season_changes.html")
 
 # JavaScript for interactivity
 JAVASCRIPT = _load("script.js")

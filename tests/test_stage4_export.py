@@ -361,6 +361,11 @@ class TestRunStage4:
         monkeypatch.setattr(season_state, "approval_report", lambda *_args, **_kwargs: {"tournaments": []})
         monkeypatch.setattr(
             season_state,
+            "change_request_ledger",
+            lambda *_args, **_kwargs: {"request_count": 0, "requests": []},
+        )
+        monkeypatch.setattr(
+            season_state,
             "booking_status_report",
             lambda *_args, **_kwargs: {
                 "counts": {"confirmed_booked": 1, "unknown": 0},
@@ -422,6 +427,11 @@ class TestRunStage4:
             lambda _config, _start, _end: {"season": "2026-2027", "root": str(tmp_path / "season")},
         )
         monkeypatch.setattr(season_state, "approval_report", lambda *_args, **_kwargs: {"tournaments": []})
+        monkeypatch.setattr(
+            season_state,
+            "change_request_ledger",
+            lambda *_args, **_kwargs: {"request_count": 0, "requests": []},
+        )
         monkeypatch.setattr(
             season_state,
             "booking_status_report",
@@ -542,6 +552,11 @@ class TestRunStage4:
             lambda _config, _start, _end: {"season": "fixture-2026", "root": str(tmp_path / "season")},
         )
         monkeypatch.setattr(season_state, "approval_report", lambda *_args, **_kwargs: {"tournaments": []})
+        monkeypatch.setattr(
+            season_state,
+            "change_request_ledger",
+            lambda *_args, **_kwargs: {"request_count": 0, "requests": []},
+        )
         monkeypatch.setattr(
             season_state,
             "booking_status_report",

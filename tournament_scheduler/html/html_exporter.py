@@ -24,7 +24,7 @@ from ..guest_slots import guest_slot_summary
 from ..models import SeasonPlan, chronological_tournaments
 from ..occupancy import tournament_end_time
 
-from . import CANCELLED_TOURNAMENTS_FILENAME
+from . import CANCELLED_TOURNAMENTS_FILENAME, SEASON_CHANGES_FILENAME
 
 from .data_computation import (
     ICON_CALENDAR,
@@ -89,6 +89,7 @@ class HtmlExporter:
         calendars_path: str | None = None,
         input_html_path: str | None = None,
         manual_schedule_path: str | None = None,
+        changes_path: str | None = None,
     ) -> str:
         """Write an interactive HTML overview to *path*, return the path.
 
@@ -109,6 +110,8 @@ class HtmlExporter:
             input.html is included.
         manual_schedule_path: Absolute path to the generated manual_schedule.html file. When
             provided and the file exists, a navbar link to the manual scheduling view is included.
+        changes_path: Absolute path to the generated season_changes.html file. When provided
+            and the file exists, a navbar link to the season change-request view is included.
         """
         pipeline = pipeline_meta or {}
         approval_status = pipeline.get("approval_status") if isinstance(pipeline.get("approval_status"), dict) else {}
@@ -304,6 +307,7 @@ class HtmlExporter:
         calendars_href = "calendars.html" if (calendars_path and os.path.exists(calendars_path)) else ""
         input_href = "input.html" if (input_html_path and os.path.exists(input_html_path)) else ""
         manual_href = "manual_schedule.html" if (manual_schedule_path and os.path.exists(manual_schedule_path)) else ""
+        changes_href = SEASON_CHANGES_FILENAME if (changes_path and os.path.exists(changes_path)) else ""
         dest = Path(path)
         season_plan_href = dest.name
         report_href = f"{dest.stem}_report{dest.suffix}"
@@ -376,6 +380,10 @@ class HtmlExporter:
                 "$CANCELLED_NAV_ITEM$": (
                     f'<a href="{cancelled_href}" class="{"active" if active_page == "cancelled" else ""}"><span class="nav-icon">{ICON_WARNING}</span> Avlyste turneringer</a>'
                     if cancelled_href else ""
+                ),
+                "$CHANGES_NAV_ITEM$": (
+                    f'<a href="{changes_href}" class="{"active" if active_page == "changes" else ""}"><span class="nav-icon">{ICON_CLIPBOARD}</span> Forespurte endringer</a>'
+                    if changes_href else ""
                 ),
                 "$INPUT_NAV_ITEM$": (
                     f'<a href="{input_href}" class="{"active" if active_page == "input" else ""}"><span class="nav-icon">{ICON_USERS}</span> Påmeldte lag</a>'
