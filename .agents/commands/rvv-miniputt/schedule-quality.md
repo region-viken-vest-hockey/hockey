@@ -46,14 +46,16 @@ At minimum quantify:
 - season span from first to last tournament;
 - unusually late first tournament or unusually early last tournament;
 - long inactive gaps;
-- unusually compressed periods or clusters, including consecutive-day/weekend load where relevant;
+- unusually compressed periods or clusters, including explicit consecutive-day and consecutive-weekend streaks; Saturday+Sunday participation for the same participant group is a particularly undesirable form of clustering and should be surfaced separately from generic <7/<14-day spacing;
 - cadence/frequency through the active season;
-- opponent repetition and opponent diversity within the same age group;
+- opponent repetition and opponent diversity within the same age group; for multi-team clubs whose sibling labels are operationally interchangeable, treat exact sibling-team opponent repetition as near-zero-weight diagnostic noise and evaluate repeated exposure primarily at opposing-club level; do not reject an otherwise materially fairer repair merely because a different sibling label now meets the same opposing club/team again;
 - participant travel burden and repeated long-away trips, independently of who has hosting responsibility;
 - material participation deviations from comparable teams in the same age group;
 - schedule stability/churn when repository history supports it: repeated moves, cancellations or late changes that disproportionately affect the same team.
 
 Where authoritative data exists, also inspect time-of-day/weekend distribution and major school-holiday exposure if those differ materially between comparable teams. Do not invent fairness findings from unavailable or unreliable data, and do not infer competitive strength/skill balance unless the repository has an explicit authoritative classification for it.
+
+For every single-team club/age-group in scope, emit an exhaustive half-season row rather than only mentioning selected outliers: booked total, before-Christmas count, after-Christmas count, before/after shares, first date, last date, longest gap, and consecutive-weekend/back-to-back count. This table is part of the audit evidence and must be inspected before ranking the largest inequities. Do the analogous normalized club/age-group view for multi-team clubs.
 
 Also surface other material participant-facing inequities evidenced by repository-owned findings or projections.
 
@@ -63,7 +65,7 @@ Rank the largest current inequities by measurable deviation and participant impa
 2. regional club/age-group under-allocation after normalizing for registered team count;
 3. extreme individual-team deprivation (very low participation, effectively missing half a season, excessive gaps, very late start or early finish);
 4. internal sibling-team distribution imbalance within an otherwise fairly allocated multi-team club;
-5. other cadence, diversity, travel or churn inequities.
+5. other cadence, travel or churn inequities; opponent-diversity differences are subordinate when sibling-team rotation makes exact-label repetition operationally cheap.
 
 Do not let a large sibling-label spread inside a multi-team club outrank a smaller but more consequential regional or half-season imbalance merely because the raw team-count range is numerically larger.
 
