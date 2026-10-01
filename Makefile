@@ -176,8 +176,8 @@ season-export:
 	@cd "$(ROOT_DIR)" && "$(RVV)" season export --season "$(SEASON)" $(ARGS)
 
 season-republish:
-	@if [ -z "${BACKEND:-}" ]; then echo "ERROR: make season-republish requires BACKEND=claude|openai|llm_bridge" >&2; exit 2; fi
-	@cd "$(ROOT_DIR)" && RVV="$(RVV)" "$(PYTHON)" "$(SEASON_REPUBLISH)" --season "$(SEASON)" --backend "$BACKEND" $(if $(filter 1,$(CONFIRM_PUBLIC)),--confirm-public,)
+	@if [ -z "$(BACKEND)" ]; then echo "ERROR: make season-republish requires BACKEND=claude|openai|llm_bridge" >&2; exit 2; fi
+	@cd "$(ROOT_DIR)" && RVV="$(RVV)" "$(PYTHON)" "$(SEASON_REPUBLISH)" --season "$(SEASON)" --backend "$(BACKEND)" $(if $(filter 1,$(CONFIRM_PUBLIC)),--confirm-public,)
 
 season-changes:
 	@cd "$(ROOT_DIR)" && "$(RVV)" season changes --season "$(SEASON)" $(ARGS)
