@@ -1,0 +1,3062 @@
+{
+  "schema_version": 1,
+  "season": "2026-2027",
+  "publication_id": "2026-10-01T1341",
+  "canonical_revision": "773122575098df010d5d01d18421194d905fbd993db9e4f2963dcc97b0a4adf6",
+  "publication_evidence": {
+    "schema_version": 1,
+    "run_id": "20260918T135604Z-8d38f146",
+    "canonical_revision": "773122575098df010d5d01d18421194d905fbd993db9e4f2963dcc97b0a4adf6",
+    "projection_fingerprint": "7cf3f18217fbed9a56161b427fa1055803207cba0054b47ebb134f1984c3f540",
+    "bundle_fingerprint": "e1222577560fabda6e70d7c28105aa3c9eb28509c96cbb623b5dac03a21fb0ee",
+    "export_id": "2026-10-01T1341",
+    "export_fingerprint": "c0a3cc0befbc51109c906a972d3d089f745d8ab01aedf175e793ddf8de2205f0",
+    "pages_branch": "gh-pages",
+    "pages_commit": "ac4bb13e8e9c1b502b8c5e4f66ddaf35b0045494",
+    "published_at": "2026-10-01T13:44:07+00:00",
+    "artifacts": [],
+    "decision_snapshot": {
+      "schema_version": 1,
+      "approvals": {
+        "mp_unplaced_placement_U11_2026_10_18_1": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0001": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0002": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0003": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0004": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0005": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "a84420387ab4c04c5ea8a1781942edb3f05d45a4286bbf0d7ab21e588715a621"
+        },
+        "rvv-0006": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "666d030f7f7c1af82d20a631800f70815b6776ced855405d883d3813312621fc"
+        },
+        "rvv-0007": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0008": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "1e2e7d4487dd79a010c7a0e1c1e900a7162041abb3aae96f37290e09c5881254"
+        },
+        "rvv-0009": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0010": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "8d32b0529f149432311b406d143109f5cfc60007597db4e2d10f8d9fdc380548"
+        },
+        "rvv-0011": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "355c89578209274ca20aff78eaca46e4150636e2aea949d6366b890c1aa78fd5"
+        },
+        "rvv-0012": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "d8fa944ff2535e327d1f48a9b02e1ae902c75d13e946b0680a4b72f95c8dbf85"
+        },
+        "rvv-0013": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0015": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0016": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0017": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "b3a53a5efebb62d2301748247fd4f828fb334a00655b287b9cfba52cd1839e16"
+        },
+        "rvv-0018": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "fc1f57772be20b0f00203c5b8aaf1641f9fbdcbd8403f995b33018d395a13287"
+        },
+        "rvv-0019": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0020": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0021": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "1fdbb198a56cef22162283d97c611275d8c3ea29ac057cbf75a978020f6093e4"
+        },
+        "rvv-0022": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "1fe23be3f4c48d1330fad98e6db771c639bbc3b0348459c3e236dfa64615a033"
+        },
+        "rvv-0023": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "d590e9b258db318d7c281296c5460384d2d9acc0e11c81fbd81b52a7fe65be05"
+        },
+        "rvv-0024": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0025": {
+          "status": "stale_approval",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": "bde5224687939a480807c606e1fe55d62839106d830f5cc851c825b104220c8d"
+        },
+        "rvv-0026": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0027": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0028": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "490590de179fc73790be9e39140511b8b3dfa631908bab0ed0bb55ea18d8602c"
+        },
+        "rvv-0029": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0030": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0031": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0032": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "b3606ec33a7b6d83e6c9dfa536b9cf3f1f1ae23197c0b2ec64a3fc3612bdf220"
+        },
+        "rvv-0033": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0034": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "a547f5485283e789a6ec0769ac8ca291441efcf283d3ba0f4117fe6461dd8e66"
+        },
+        "rvv-0035": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "45efd8b2c5223f2bdb15699cc35216b48aa5b9513933a3f46c50766fb62aba93"
+        },
+        "rvv-0036": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "9da75088aad85c8f83d8ef7958306919bd6a2eaf905c8a30baaf57a275b6031a"
+        },
+        "rvv-0037": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0038": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0039": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "2941d6034ebff702d5b7be1cdad7479420b3fe097e13e1e50cb0d0fff30f03a2"
+        },
+        "rvv-0040": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "e768bad5cfbe17578ea262527782e01bd391a551829c738576294ce45b40ef3e"
+        },
+        "rvv-0041": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0042": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0043": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "713c20ad684380e4b03818ce3a8165247852e13517b96183e2fd878a6db126d6"
+        },
+        "rvv-0044": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0045": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "2ae93dd09cffa9577fa88fcb3ae7395b13c94ba157a2ad4383e36b63f58fae64"
+        },
+        "rvv-0046": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0048": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0049": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "6ec76db5451596520446cf0f127b4767070bb3bce75724ae2702439df5253bad"
+        },
+        "rvv-0050": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0051": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "fef3fadfa2f4194ddb8612ca89aa9d54c38de11f8e438b37a108cba1b1bd7029"
+        },
+        "rvv-0052": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "f10306d434e9c58da4386f7a7fc0341501e64598cc4bbfe0aeffa28dbc4d25cf"
+        },
+        "rvv-0053": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0054": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0055": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "8628e3797d88b7df547f444624112a645dfce2fcddd4648a313ebc36911e9cfe"
+        },
+        "rvv-0056": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "35a277450006fc92bceb67dc12752b4d1d39104c5ba84e5ceeeaa90fe1b165e7"
+        },
+        "rvv-0057": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0058": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0059": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "b6a5912d836e6451675d5ec8542e8c793b04dcefbcc744e087e5318735f5f9a0"
+        },
+        "rvv-0060": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "fb8572ca71d5768654cfd2ea8bcb3cff5c8fb21c20aff60661c434dc08d8ba48"
+        },
+        "rvv-0061": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "390c9304d181c029ae91513997ab66818da098cb7cf5bdbafb98dcb637fb6830"
+        },
+        "rvv-0062": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0063": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "9d5fd411b6b072990156e6db5a06d4b35f7fac162431ad365553b6d4c00bcfd3"
+        },
+        "rvv-0064": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0065": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0066": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "d928c23a2f7bfdec22409c89b55c7cb203684cd80dc1f44c0cebcc9a558e8c15"
+        },
+        "rvv-0068": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "43308088bec44b74c6cb75f3a7d1b5a5b1b8054175f1c7f43a55570b264031b5"
+        },
+        "rvv-0070": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0071": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "473622832dc6619fb90e7c5b8c5ce96005d4f772809dc7f35eb0f857854c4e9e"
+        },
+        "rvv-0072": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0073": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "4c159e576bd7b2ef851d39b170ee57ffc6dfa2b5cd209ae8a3eeb3bdd88a0867"
+        },
+        "rvv-0074": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "ae11461df9dbfaddf0151ea794921046c3b64c48325acc561c81b6e78c8d0b48"
+        },
+        "rvv-0075": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "b3c35172f032d17cae120c34b4651cff2aebe0a3445f214399bced7468210c7f"
+        },
+        "rvv-0076": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "9e0795e339ce35d662ddc6673b60deeaf7ce9762350efafb07535d84df131222"
+        },
+        "rvv-0077": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "c747f8f792ef7489c15935130b6e168f3fcc10d791cbca1215b30ff3c19909e4"
+        },
+        "rvv-0078": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0080": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0081": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "a295b8a719bf4bc94fe32758e89e313f1adae1768d14cb823d2cf84778594ce4"
+        },
+        "rvv-0082": {
+          "status": "stale_approval",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": "4d5cf7758d23dda2942cce988704243256f99a5e74c915c02a6f3a605464408a"
+        },
+        "rvv-0083": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "92a053a50ae4d00f0432957b3de73ab42b32c94c679758eb4d875229e0c53b60"
+        },
+        "rvv-0085": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "771c7f1ecd7fb78b2b635c2489d00c719db76a793d333b7f0ce9b3eb5c1a4ed6"
+        },
+        "rvv-0087": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0088": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "7372bb387c10e5c66f192a2fb11a9ce938dfa376ad93477957c5efdb2f258904"
+        },
+        "rvv-0089": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0090": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "3b6af03a0c7610c3489225d6d2a20c4b655dc1a6157f77eb49b2837f1a627ba5"
+        },
+        "rvv-0091": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "48d1155b1160499932d1e49af9ff79cbb09efe67581e0a081ae7f245eadb73a3"
+        },
+        "rvv-0092": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "6c72f73e1eabcdf796b2680d70f04674935b0e31020623d79602869068799c1c"
+        },
+        "rvv-0093": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "4ba651f0dac7f6bead8ea705147019db441d56d68a44db86a95391fcfd972e56"
+        },
+        "rvv-0094": {
+          "status": "stale_approval",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": "11a859b5ce9d912428ccee46252c532dd878a250f95e7e08bc9b48ff143e224e"
+        },
+        "rvv-0095": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0096": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "040229df48548fa4d88b5546a8b23027728d439585655566200c57024f99dd98"
+        },
+        "rvv-0097": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0098": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "66bcc979b26ab195ebb17d0422a11829f3774efa90d02e7bae577d16f5f757d2"
+        },
+        "rvv-0099": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "0d291fed87af2a7c1cab639e99f475431e948163f7c943fc0f7e65dfecc4bda9"
+        },
+        "rvv-0100": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0101": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "a86070ff30b31fb98ab6918190eb5fd4c0e4f0021b05e60db3ddc8062a8e52ae"
+        },
+        "rvv-0102": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0103": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0104": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0105": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "2c602c2c3c640f0af090a3323236af6297fb4e515a63bea022091f39ad4ef193"
+        },
+        "rvv-0106": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "56a156aa979e05d85d71939c9a36bff51cba06c5a2fd327b30aa633e9902abe0"
+        },
+        "rvv-0107": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "48dcf67b57048323811bd2daa7446d4fbc6253f62c7884ecea8b611fdc860c08"
+        },
+        "rvv-0108": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "ec5608d08d539842de619f83dff730f36ab9022037a5472a5e1878fa458f5b20"
+        },
+        "rvv-0109": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0110": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "b580a754b18e24e8fec5dbfd18b9db05ae425959ab260c5f27d3d488c0f9cb18"
+        },
+        "rvv-0111": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "e308302f37adf1ca6f5231984a13c21085a07dc6cae9541cec6894bb5cdb7c45"
+        },
+        "rvv-0112": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "db93c2d12e3052f3ee2696c122ac4723a9a5e02c5226949a3a6b8d3238a0b7e1"
+        },
+        "rvv-0113": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0114": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "9363375083002434025ebb752591c3a0a789faca00d46bb9294e0ac95206c995"
+        },
+        "rvv-0115": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "894172d11c06c0884bc48e6e7385fe221e2db0460eaf62c4265884ef681e282e"
+        },
+        "rvv-0116": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0117": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0118": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "a9df97db67ff9daf38f33ad9c4e2ac6db32af630b49d79ef5ae158cd8fb9abe3"
+        },
+        "rvv-0119": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "2a91ae91bb69cccee6bcac1654c211ec358df149f9e05c40bcc0cc74f2e3a647"
+        },
+        "rvv-0120": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0121": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0122": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "883a8509d9350f4f631bd17568efb09c86338c22af8216937e65086b67a5b9ec"
+        },
+        "rvv-0123": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "62bf9549144f64f866e97958c94b0abc688ebec606587da11168a9fc3dd605e4"
+        },
+        "rvv-0124": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "b3ae2a16d510fd9a01e740656524aa85b092f4cb4039035e293e9e2427ccea9f"
+        },
+        "rvv-0125": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0126": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "c0995fa19bd7c12eff681486559252c767676a0a4f3aa18f7b58ba23c508a749"
+        },
+        "rvv-0127": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0128": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0129": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "4dd74aca9d14dfc4cf5d28b6e531a46afa189d1c281814d70053a8576e68723d"
+        },
+        "rvv-0130": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "2daa45f73cd481ea2a26cf3299a6c4cd7165088785ef6c766065db998e8ef389"
+        },
+        "rvv-0131": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "7ceceed8e7f4577575f4a15a4fc2db33be3c5412d88838a0f858fc576762be5a"
+        },
+        "rvv-0132": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "b22409883539080ce7b29c7efde01ba1adcff5a0e45e162ea1e16666e9537a51"
+        },
+        "rvv-0133": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "e16837180716eaa3b5f17c437344ae019fa23064d16e3ebf6e6f3d3c5cf48e1c"
+        },
+        "rvv-0134": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0135": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "089e0b3bf8d52f81403505800e90bd74366d15aab25c3aec26cc1c76b5613601"
+        },
+        "rvv-0136": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "a787454820fd54d1692011a353f55775b20cfc43416e122a45d15187476a6dee"
+        },
+        "rvv-0137": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "7d679a738ba16b45fa94839a77918f01f0fafd1ea476ed3a125349a2b7a9031c"
+        },
+        "rvv-0138": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "9abae728fd292b93f64646c0ecba09364892e445ce28d86f334672189120f6c1"
+        },
+        "rvv-0139": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "8a6e6af92ce64c7531d0b1df918e7c461aaec2ad818849a46e666d365c7f2236"
+        },
+        "rvv-0140": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "a8cb35232dd3778c892c84949883277a4d06ccf11f9294e374b21227b296fbe7"
+        },
+        "rvv-0141": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "16f9700266c81fd61e696f9159288064dfe8ecb5ad6c6a476dd206f8d28b905a"
+        },
+        "rvv-0142": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0143": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0144": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0145": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "b89188740be09feb7a9f8b76767b60743beebcffc25456f6f622baebdf58e6dd"
+        },
+        "rvv-0146": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0147": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0149": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "7a209cdf6e9750c1204cdd04f51224be0d715e329f76b6347e12fef4ed25c5d8"
+        },
+        "rvv-0150": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "a7a22d4a65e1eb0d12ffbc720185e9ccca3843e3f31b00b96f9544a81c83d175"
+        },
+        "rvv-0151": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0152": {
+          "status": "stale_approval",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": "91fe0aab6ec6cb6a76cbe44f1f9c7b4815fcda6d8f6d1775d3c13d602af1666f"
+        },
+        "rvv-0153": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0154": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "b0b390ec3069c26215dba594ba812c771062647d93079a84c5cb50ac507d39bb"
+        },
+        "rvv-0155": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0156": {
+          "status": "stale_approval",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": "8a9d37416f38920aa08175f5e1b5cd466a0bb12b57bfb48846bf013b4de9e7f3"
+        },
+        "rvv-0157": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0158": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0159": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "d30d669d9f22b6f51e2587c42f4f587c8feebb751aecf01710d4c40a2fa28d14"
+        },
+        "rvv-0160": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "8ebb060dd8ef2997b70cf8a5b5d775fbe2c8a3eaf5a2c6a9cdfddc4e1e257c87"
+        },
+        "rvv-0161": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "37a4d0f89f8a7a0d5f591a9e2ff719434ad4d3ee7c0b00ac89b49adf0e04887c"
+        },
+        "rvv-0162": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0163": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0164": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "cd4b4898b131e47fd313715db33430e017c92da37b23a74f7c621efdcf98a2ec"
+        },
+        "rvv-0165": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "9923dca0545a4f24a5670fbd2f6c60b03376cde2f65cfc38ebe96474b52794e8"
+        },
+        "rvv-0166": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "cfa0ca7325825e6ee3da7634cf2c50d5feb992cc87e9640fe96ae3ea6db92786"
+        },
+        "rvv-0167": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0168": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "a48807d6bd6935a5a302d994557b5b41ae8b7f71eb46ff275f1dc940fa780ee3"
+        },
+        "rvv-0169": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "92f2881e81698406bd8ce518553ab7055c637e7972a681f0a2a3b18e32a5a413"
+        },
+        "rvv-0170": {
+          "status": "stale_approval",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": "c04bbf15721f9f42c78b55f7fbbc4023b47fbbc341167b0787ca39d8d8aa074d"
+        },
+        "rvv-0171": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "a9993a25e585296073ce53feb6fe395b3fd429411203f933f02dbafc5c4e2cf6"
+        },
+        "rvv-0172": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "1cfd373841cfe3dcbfec4cae819a5bf9c7d149ea1aa98f5df2f8267d87971797"
+        },
+        "rvv-0173": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0174": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0175": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "cbe4cc2c725ed680ffc484cb83794ced0bcbafa9a02a3e9dc4f0da1e4358517e"
+        },
+        "rvv-0176": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0177": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "33c5742d0fe7ac88207aea6d09bc91a7ca900bbf410ee51890654e49a020f42a"
+        },
+        "rvv-0178": {
+          "status": "stale_approval",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": "fb9d0e14683a93ab456e7908da1c049e8a1a35fe98b292f7db35ce8b7416b0a9"
+        },
+        "rvv-0179": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0180": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "1d4339280a786fc0e653a5b36f442d2fd22a8333e0378acd87116244aa65497f"
+        },
+        "rvv-0181": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0182": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "548884a63b83a99a5860d18776d7b13b966792df220b4fd856e19677dbced924"
+        },
+        "rvv-0183": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "ab117f2c9cbe955f5a0fc8eada0d700708403da05f035ca4292725dc61685fcd"
+        },
+        "rvv-0184": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0185": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": true,
+          "approved_fingerprint": "76032b9b24e0d1f68cc7eedc63214d98a02d031cf3c7fa5ad464cb0d32805544"
+        },
+        "rvv-0186": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0187": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "f5c2d2501d2066398b15412571a6785519deaa56294568d9fc1c928709218fa1"
+        },
+        "rvv-0189": {
+          "status": "approved",
+          "placement_locked": true,
+          "participants_locked": false,
+          "approved_fingerprint": "98ac728ccf884cdc9b8cc24eedb87a02711d2faa6b1901ab74e3b09c62badff9"
+        },
+        "rvv-0190": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        },
+        "rvv-0191": {
+          "status": "pending_review",
+          "placement_locked": false,
+          "participants_locked": false,
+          "approved_fingerprint": null
+        }
+      },
+      "change_protections": [
+        "change:002f7b6374b69d5a",
+        "change:018a717fb2d74015",
+        "change:0243085a5c468385",
+        "change:0482d3038a82a36a",
+        "change:05278ab6b765f2d2",
+        "change:0675bd08fe733a9a",
+        "change:06ae767539c12f40",
+        "change:0781f6cd8da238b2",
+        "change:07ffde0bfc9b4cbe",
+        "change:0aeacb0d3ccee3ec",
+        "change:0cbc7fd1a3425b2c",
+        "change:0d442c904a48174b",
+        "change:0d885b678a032969",
+        "change:0fb9326453705785",
+        "change:100206440b779fd4",
+        "change:10d7efbff65e3767",
+        "change:1235d8f192412f23",
+        "change:148f33f314134d58",
+        "change:14b080106c41da06",
+        "change:15c9a350ef20d539",
+        "change:1669ceef09e10493",
+        "change:17caa978aea3da22",
+        "change:17f230e774932ce2",
+        "change:1853d3599e570b0f",
+        "change:19269e6de500eec2",
+        "change:1be520b4a59d243f",
+        "change:1cbcb0c842f65c2e",
+        "change:1e277153d39b2ead",
+        "change:1ef4d194c36107d1",
+        "change:1fc8c86f95d477a8",
+        "change:2081479c9cb72192",
+        "change:295f9e6e83a741ab",
+        "change:2b8ab7b4143f805c",
+        "change:2d167114a78fa842",
+        "change:3128949752099be1",
+        "change:33d21a1a6972aaca",
+        "change:3475276a39898578",
+        "change:34ccb9743bcece23",
+        "change:35f509e5cfa6480c",
+        "change:370c65c63445dd01",
+        "change:387057cb62edebb4",
+        "change:3a9a254da536da55",
+        "change:3c60308949727d95",
+        "change:3d02f174714a2c37",
+        "change:3de1b1c9bc44ba4f",
+        "change:3f6854c400caaf57",
+        "change:42e38b9afa97a49f",
+        "change:433f57853e8679e4",
+        "change:435792dd79e8322e",
+        "change:448da15abd8b1c31",
+        "change:44ca339a4dc3d23f",
+        "change:4778875c051e99eb",
+        "change:47e990ec7e9677b6",
+        "change:4ae048f0c667aada",
+        "change:4c5723bcf2a9791f",
+        "change:4cecccb5166afff1",
+        "change:4d792d0a9df0ea45",
+        "change:4e3601517d04ebbc",
+        "change:4f2bba9bdc1fbc4e",
+        "change:508adb3eac3e0438",
+        "change:50dd5839b32fb33e",
+        "change:51e83b1b3a7e49b5",
+        "change:52c2e3e642d68ff1",
+        "change:5390a302e0b52feb",
+        "change:53e75a2bfb5f81d5",
+        "change:55bbbe04cc4568cf",
+        "change:57ee99be43b67c40",
+        "change:5a74cbcc9342e882",
+        "change:5addea42db6d4fad",
+        "change:5b0ab7069d741733",
+        "change:5f9d6452ba6cb946",
+        "change:5fb29844010d24c6",
+        "change:6004200f232ef570",
+        "change:633311b3edf2ce77",
+        "change:633a16a4ae2cd940",
+        "change:639749ba42ef64b6",
+        "change:65ef2997894d5e83",
+        "change:664ee7fb0e53c80c",
+        "change:666ff82df1bf0ee7",
+        "change:66d33ebd33050567",
+        "change:67acb7e21533f41b",
+        "change:68f1d5cfdafa8aa7",
+        "change:6a5d6d3293ac73ba",
+        "change:6ab4e693439fb4f8",
+        "change:6ab85c0f6e793dff",
+        "change:6af1482a8e1a7598",
+        "change:6b3f0ec032d4cc63",
+        "change:6b52caafc83ea417",
+        "change:6b7aaf2b5b5d109f",
+        "change:6ba87acddcb7533d",
+        "change:6c08ee0d007c8042",
+        "change:6c5eb389d0adfd63",
+        "change:6ccf6c20c42233d5",
+        "change:6d84ca7dd6658d26",
+        "change:6f10e23f2aefe9fe",
+        "change:6f38e3d63cc5d49d",
+        "change:6fab44bcabfebf8e",
+        "change:7023c747414940ff",
+        "change:725bc34cd4150bdf",
+        "change:74f069c7eda0abbc",
+        "change:763a062df108d874",
+        "change:77e88dbf472cb4f4",
+        "change:78523fe6cd92512a",
+        "change:787f8dea536a08e5",
+        "change:78c9e2b4950d03d7",
+        "change:7bd872026315e089",
+        "change:7cb309a489a98d60",
+        "change:7d55dcf0f03b9ceb",
+        "change:7e67dc561f4e72a7",
+        "change:81d92fd9a7eb0855",
+        "change:83ab7ff0942fd0d4",
+        "change:84642c675c778617",
+        "change:865e592a0f587ff8",
+        "change:86b328a1353113a5",
+        "change:86ff3aed5b10b6e1",
+        "change:87563c05bdaa9b30",
+        "change:8964ee4c64572a28",
+        "change:8967597d9b64f270",
+        "change:8ac3b450f4488e20",
+        "change:8cc9ca5a3120b704",
+        "change:8de911f0a6a919cb",
+        "change:8f11bbc613275c0d",
+        "change:8f5837f7d8884d0c",
+        "change:9057101f005314ce",
+        "change:90a54c26ddf5b249",
+        "change:90dd1c693d3d73f9",
+        "change:92093219f5aafb70",
+        "change:92991534bce72bf7",
+        "change:93ad59547c2865a3",
+        "change:9532054378165f0b",
+        "change:956feaffb7fc84d3",
+        "change:96ca589e10acf82b",
+        "change:985288374447e873",
+        "change:9a4ebc9e3ab0b3fa",
+        "change:a625fa8784e260ca",
+        "change:a73a02db2026c48a",
+        "change:a7a6ea88bae17c4d",
+        "change:a973dc31a927a292",
+        "change:a9cde2accaa9fc57",
+        "change:a9fc227d52d16200",
+        "change:aa48ae4c11c89647",
+        "change:aa54e44fa0799ee2",
+        "change:ac80931ade62e934",
+        "change:ad1391b6f845fe0c",
+        "change:b078dab94ae2fa59",
+        "change:b12db6c51ca03f6f",
+        "change:b18f695012344504",
+        "change:b5851a140c88dcc8",
+        "change:b7d7d8111d706844",
+        "change:b96378aa34bdc3ef",
+        "change:b9827b83e393a293",
+        "change:ba0e7b107cab3359",
+        "change:baa6fedd50665d99",
+        "change:bdf1ca0d8f56a766",
+        "change:c00377d055b76306",
+        "change:c17a40c029c88a53",
+        "change:c2584a5db434ce00",
+        "change:c56431c8e018f175",
+        "change:c7b56a947146c7b0",
+        "change:c7e8b2b3e814ddab",
+        "change:c8b688d954c1b81a",
+        "change:cb7db57624fb8cc7",
+        "change:ce3ac2b20ae4a96d",
+        "change:ce8bc8a53b8cbb0d",
+        "change:cf96e52cf2bb5ff3",
+        "change:d2e47c6fc79162e0",
+        "change:d7f999eae687d786",
+        "change:d95b89494812ba49",
+        "change:d9b6a9300c384e89",
+        "change:da67f55c58437691",
+        "change:db160c2f046bb6b1",
+        "change:dd18d20085b4bc24",
+        "change:dda0363edbe3155e",
+        "change:df51d09b233fa972",
+        "change:df89c3ebb96c0bc8",
+        "change:e56a15f49ebaecdd",
+        "change:e5cfb65185734240",
+        "change:e68e491a4dd82fe8",
+        "change:e6e86315923a9840",
+        "change:e7b3c35a76dda378",
+        "change:e93c69fb030dbbbf",
+        "change:ea4260613bc45d8f",
+        "change:eb30750ce99a5b59",
+        "change:ed2a4ecaa4987105",
+        "change:ed47d641ff3fb22e",
+        "change:ee28556d580e21eb",
+        "change:efcbe389699507ef",
+        "change:f0e53b23c6aef7de",
+        "change:f13d94c2cd85a4c7",
+        "change:f62028c8ee93b3d0",
+        "change:fa5c042331559e32",
+        "change:fab7bc61775e194c",
+        "change:fb5bfb9f72ff08af",
+        "change:fd2407a1d44f90f1",
+        "change:fdc7717e8c67aafd",
+        "change:fe9e451f17c9e89e",
+        "change:fed1817b4e5a724c"
+      ],
+      "request_constraints": [
+        "request:08c08b84aa75ee68",
+        "request:10d1807ebc677952",
+        "request:11b0543005df9124",
+        "request:1ccd37ef3cd5bc94",
+        "request:22e96a3f4d8e9939",
+        "request:2b6286afebaa4ff7",
+        "request:48e5062e296b95f3",
+        "request:49a9e9442b376bb1",
+        "request:51fa00515e4dc0fb",
+        "request:5333aea04e0c7c6f",
+        "request:5470ee048ca7c735",
+        "request:55f565116701ce2e",
+        "request:63126dc545a560b8",
+        "request:65bf5f5aa298df11",
+        "request:79a1e868239768a6",
+        "request:7b84db8b28113c55",
+        "request:7f8ac660d947384f",
+        "request:c255cc36953d4137",
+        "request:d976a767cf0112b7",
+        "request:def2c5fd01cff1c5",
+        "request:f16273300cedc28b"
+      ],
+      "booking_evidence": [
+        {
+          "tournament_id": "mp_unplaced_placement_U11_2026_10_18_1",
+          "evidence_id": "booking_evidence:mp_unplaced_placement_U11_2026_10_18_1:2026-09-30T19:21:48.123920+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "d5f1b9cb2bc060447cb9b901a7b8e6aa744ea6d4021500ee5cfba8f381a11300",
+          "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+          "checked_at": "2026-09-30T19:21:48.123920+00:00"
+        },
+        {
+          "tournament_id": "rvv-0001",
+          "evidence_id": "booking_evidence:rvv-0001:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "multiple_overlapping_events",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0002",
+          "evidence_id": "booking_evidence:rvv-0002:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "fbed1cf3e202f6a4a2bdaeaecf5f97e7ec566da23cdaeb6d5b63deb94bc7abb1",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0003",
+          "evidence_id": "booking_evidence:rvv-0003:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0004",
+          "evidence_id": "booking_evidence:rvv-0004:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0005",
+          "evidence_id": "booking_evidence:rvv-0005:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0006",
+          "evidence_id": "booking_evidence:rvv-0006:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "cc2012e56260e300bbd1998c2979e83378548e6caea2f32e8b16867152201c06",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0007",
+          "evidence_id": "booking_evidence:rvv-0007:2026-09-30T20:17:14.617834+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "e9428c5767f4dfcfa5571f8e45b14e6f84a186975a6fa4f4fb3a3c1cda37d233",
+          "checked_at": "2026-09-30T20:17:14.617834+00:00"
+        },
+        {
+          "tournament_id": "rvv-0008",
+          "evidence_id": "booking_evidence:rvv-0008:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0009",
+          "evidence_id": "booking_evidence:rvv-0009:2026-09-30T20:17:25.018765+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0010",
+          "evidence_id": "booking_evidence:rvv-0010:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "d50c6cd2c04f60fdb2f267d10b4d9f11a2557a658c6e31389c7a8da00acb48ad",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0011",
+          "evidence_id": "booking_evidence:rvv-0011:2026-09-30T19:21:11.444731+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "1c5d2fe3969c5991090554c823142a0b21bca99c10c46c5d42dd868ba3dac7e4",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0012",
+          "evidence_id": "booking_evidence:rvv-0012:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "7e6804935b6959b5fe2721638ad436ec710665eb651ecb907b62a059f0cfb450",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0013",
+          "evidence_id": "booking_evidence:rvv-0013:2026-09-30T20:17:14.617834+00:00",
+          "status": "ambiguous",
+          "reason": "multiple_overlapping_events",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "e9428c5767f4dfcfa5571f8e45b14e6f84a186975a6fa4f4fb3a3c1cda37d233",
+          "checked_at": "2026-09-30T20:17:14.617834+00:00"
+        },
+        {
+          "tournament_id": "rvv-0015",
+          "evidence_id": "booking_evidence:rvv-0015:2026-09-30T19:37:01.229755+00:00",
+          "status": "ambiguous",
+          "reason": "multiple_overlapping_events",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0016",
+          "evidence_id": "booking_evidence:rvv-0016:2026-09-30T19:21:48.123920+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "f576283e461b3d1c609fd6c46d25831eb336068be49219f26f7f77d0e4ec07cc",
+          "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+          "checked_at": "2026-09-30T19:21:48.123920+00:00"
+        },
+        {
+          "tournament_id": "rvv-0017",
+          "evidence_id": "booking_evidence:rvv-0017:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "2c38fc05e72a50c0ac834b8b65b53d85477760fc6dd9244d79926f09481a0229",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0018",
+          "evidence_id": "booking_evidence:rvv-0018:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0019",
+          "evidence_id": "booking_evidence:rvv-0019:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "6dcd253528117dcd3da07a3ded7ba7e9b7d3d65f2c28ea071d0f47fd84dfd17e",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0020",
+          "evidence_id": "booking_evidence:rvv-0020:2026-09-30T20:17:14.617834+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "e9428c5767f4dfcfa5571f8e45b14e6f84a186975a6fa4f4fb3a3c1cda37d233",
+          "checked_at": "2026-09-30T20:17:14.617834+00:00"
+        },
+        {
+          "tournament_id": "rvv-0021",
+          "evidence_id": "booking_evidence:rvv-0021:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0022",
+          "evidence_id": "booking_evidence:rvv-0022:2026-09-30T19:37:01.229755+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "a85bee0ed6b616411629965ce790c35155b9c372adb74bd0d3ec4de2424b8435",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0023",
+          "evidence_id": "booking_evidence:rvv-0023:2026-09-28T18:50:07.326548+00:00",
+          "status": "confirmed_booked",
+          "reason": "operator_confirmed_calendar_booking_association",
+          "event_fingerprint": "7d1ce9aa3bc5a6cc122b10d077b38537d337d585a4a9086125b1a71c75ab7117",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T18:50:07.326548+00:00"
+        },
+        {
+          "tournament_id": "rvv-0025",
+          "evidence_id": "booking_evidence:rvv-0025:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "7f444dd53710c7ea88b46d868efc0172a254a0550a32a386338fb0c2b26b2576",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0026",
+          "evidence_id": "booking_evidence:rvv-0026:2026-09-30T20:17:25.018765+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0027",
+          "evidence_id": "booking_evidence:rvv-0027:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "no_covering_event_for_current_slot",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0028",
+          "evidence_id": "booking_evidence:rvv-0028:2026-09-30T19:21:11.444731+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "175e011138d8759ea77e438b73a38303c4976d634841bceb2148e5f3ba2e9961",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0029",
+          "evidence_id": "booking_evidence:rvv-0029:2026-09-30T19:21:48.123920+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+          "checked_at": "2026-09-30T19:21:48.123920+00:00"
+        },
+        {
+          "tournament_id": "rvv-0030",
+          "evidence_id": "booking_evidence:rvv-0030:2026-09-30T20:17:14.617834+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "e9428c5767f4dfcfa5571f8e45b14e6f84a186975a6fa4f4fb3a3c1cda37d233",
+          "checked_at": "2026-09-30T20:17:14.617834+00:00"
+        },
+        {
+          "tournament_id": "rvv-0031",
+          "evidence_id": "booking_evidence:rvv-0031:2026-09-30T20:17:25.018765+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0032",
+          "evidence_id": "booking_evidence:rvv-0032:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "da002c1da4183ad66254d52cb7bce4101b3ff55b416d3b27a596ffb8398f9dc7",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0033",
+          "evidence_id": "booking_evidence:rvv-0033:2026-09-30T20:17:25.018765+00:00",
+          "status": "ambiguous",
+          "reason": "multiple_overlapping_events",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0034",
+          "evidence_id": "booking_evidence:rvv-0034:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "95f763e88404bd1b0aae1855a9d9827e9a6ada8893588c577441f19b62d106a5",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0035",
+          "evidence_id": "booking_evidence:rvv-0035:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0036",
+          "evidence_id": "booking_evidence:rvv-0036:2026-09-30T19:37:01.229755+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "15c819a0c91541df8c1311d8f825afa1accb129473394798ea6260bada143a9e",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0038",
+          "evidence_id": "booking_evidence:rvv-0038:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "16b8ce1ebff62ede9c5b52f632d398255051ac32af3c0c9eeca098ec948c00da",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0039",
+          "evidence_id": "booking_evidence:rvv-0039:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0040",
+          "evidence_id": "booking_evidence:rvv-0040:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "fc27887d1d43122a6cba5b5178243c7375880740b9064d0fb43efcb37420a766",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0041",
+          "evidence_id": "booking_evidence:rvv-0041:2026-09-30T20:17:14.617834+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "e9428c5767f4dfcfa5571f8e45b14e6f84a186975a6fa4f4fb3a3c1cda37d233",
+          "checked_at": "2026-09-30T20:17:14.617834+00:00"
+        },
+        {
+          "tournament_id": "rvv-0042",
+          "evidence_id": "booking_evidence:rvv-0042:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "c6c7195927fdd32a71ca92b623ffa678963fa1bb62a75dd194c9a7e7efdb50d1",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0043",
+          "evidence_id": "booking_evidence:rvv-0043:2026-09-30T19:37:01.229755+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "a71c5235b9e74ad219ce05223227cd869d5fce017a9479b757ed4a3a9c2d8a95",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0044",
+          "evidence_id": "booking_evidence:rvv-0044:2026-09-30T19:37:01.229755+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "b6e5fbea14637e9791c6cf86a649e5190faeb70e11e32cf42f35c8baf774b0bf",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0045",
+          "evidence_id": "booking_evidence:rvv-0045:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0046",
+          "evidence_id": "booking_evidence:rvv-0046:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "0f9c5b2a94e26b0729a12cdc3b4cabbaa51229f7d80bc15016c461d07467b5e3",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0048",
+          "evidence_id": "booking_evidence:rvv-0048:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "multiple_overlapping_events",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0049",
+          "evidence_id": "booking_evidence:rvv-0049:2026-09-30T19:21:11.444731+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "f0c605482660a7194cb4806525bc2656e2f8a6b8eb9858f11fb9d3c775f9eef8",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0050",
+          "evidence_id": "booking_evidence:rvv-0050:2026-09-30T20:17:14.617834+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "e9428c5767f4dfcfa5571f8e45b14e6f84a186975a6fa4f4fb3a3c1cda37d233",
+          "checked_at": "2026-09-30T20:17:14.617834+00:00"
+        },
+        {
+          "tournament_id": "rvv-0051",
+          "evidence_id": "booking_evidence:rvv-0051:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "b1546bdc5ac438fc413fca860b2731a6308c5914c91a382a1d6520feb4dba26b",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0052",
+          "evidence_id": "booking_evidence:rvv-0052:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "00e0cd2185f8f59d4bd02202fb9ecb924d8be56ffca7318d3cda26c19fd3c98f",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0053",
+          "evidence_id": "booking_evidence:rvv-0053:2026-09-30T19:21:48.123920+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "2cee1e84ccf92a2c0f91b8e5fda186d3b077ad5d2c50d2e2e452d8f4a8c8eba2",
+          "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+          "checked_at": "2026-09-30T19:21:48.123920+00:00"
+        },
+        {
+          "tournament_id": "rvv-0054",
+          "evidence_id": "booking_evidence:rvv-0054:2026-09-30T20:17:19.638404+00:00",
+          "status": "ambiguous",
+          "reason": "no_covering_event_for_current_slot",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0055",
+          "evidence_id": "booking_evidence:rvv-0055:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0056",
+          "evidence_id": "booking_evidence:rvv-0056:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "d6ad1c326ec9a015253672246a8dbc1114a1ed41b793e81b5a09c8f4d0b528e9",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0057",
+          "evidence_id": "booking_evidence:rvv-0057:2026-09-30T20:17:25.018765+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "ab0dcbc9ad95628fd9085a0bb6edf2255e6cebe00e56f7238c1e834b50fcbeea",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0058",
+          "evidence_id": "booking_evidence:rvv-0058:2026-09-30T19:37:01.229755+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "8d45285bb1d04061035ba319af33ddbec1f3482f835b503c361d526249fd5b73",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0059",
+          "evidence_id": "booking_evidence:rvv-0059:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "c2a7db965e63876612ae348f285bce8c922cf0b3657a6cbcfde97d1754d2d633",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0061",
+          "evidence_id": "booking_evidence:rvv-0061:2026-09-30T19:21:11.444731+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "934ff8f723b9068afa3b70a9e84608291b2ef681ac9564a800196c11e83d9c6f",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0062",
+          "evidence_id": "booking_evidence:rvv-0062:2026-09-30T20:17:14.617834+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "e9428c5767f4dfcfa5571f8e45b14e6f84a186975a6fa4f4fb3a3c1cda37d233",
+          "checked_at": "2026-09-30T20:17:14.617834+00:00"
+        },
+        {
+          "tournament_id": "rvv-0063",
+          "evidence_id": "booking_evidence:rvv-0063:2026-09-28T18:50:46.531143+00:00",
+          "status": "confirmed_booked",
+          "reason": "operator_confirmed_calendar_booking_association",
+          "event_fingerprint": "015e03bed089b5cfdf91d6168f4b16358b7c5753699ddce7ea9041e21691de0e",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T18:50:46.531143+00:00"
+        },
+        {
+          "tournament_id": "rvv-0064",
+          "evidence_id": "booking_evidence:rvv-0064:2026-09-30T19:37:01.229755+00:00",
+          "status": "ambiguous",
+          "reason": "multiple_overlapping_events",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0065",
+          "evidence_id": "booking_evidence:rvv-0065:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "multiple_overlapping_events",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0066",
+          "evidence_id": "booking_evidence:rvv-0066:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0068",
+          "evidence_id": "booking_evidence:rvv-0068:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "c35e266d7a8d4bf883d1afe46b77f004f3dd5219142a5d9e79b764f0c8c6eb8d",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0070",
+          "evidence_id": "booking_evidence:rvv-0070:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "f2243b97a6df5ae811052a4d575d312ca1943461edde592dd1a06b1afd63bd91",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0071",
+          "evidence_id": "booking_evidence:rvv-0071:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0072",
+          "evidence_id": "booking_evidence:rvv-0072:2026-09-30T19:37:01.229755+00:00",
+          "status": "ambiguous",
+          "reason": "multiple_overlapping_events",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0073",
+          "evidence_id": "booking_evidence:rvv-0073:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "3b2b183fff325f0b0c104dabde1c3e7e0491c5d206cab6ceb0350f1be1bfe035",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0074",
+          "evidence_id": "booking_evidence:rvv-0074:2026-09-30T19:37:01.229755+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "52916c9c482bacede898352d2a04cdddf4ae3d59511579931912b6ac117b8801",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0075",
+          "evidence_id": "booking_evidence:rvv-0075:2026-09-28T18:50:41.934326+00:00",
+          "status": "confirmed_booked",
+          "reason": "operator_confirmed_calendar_booking_association",
+          "event_fingerprint": "4795e01660a118540496c3732a15ef3428404e44fe807303dde500ba81f6783f",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T18:50:41.934326+00:00"
+        },
+        {
+          "tournament_id": "rvv-0076",
+          "evidence_id": "booking_evidence:rvv-0076:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0077",
+          "evidence_id": "booking_evidence:rvv-0077:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "c815adba3ff979b050759819e4594b3c85c3293fcde9771e22b9e66b9b819ddb",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0078",
+          "evidence_id": "booking_evidence:rvv-0078:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "279e0ef25481cb1e97bce1c571d7b190443bb10a33289ba4262e85bdb0b44ee3",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0080",
+          "evidence_id": "booking_evidence:rvv-0080:2026-09-30T19:37:01.229755+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "d0eec1eef39d5dd4c10ebdea7bb28656c8f15d722f7bcaa20e5d8a3f57a4ce24",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0081",
+          "evidence_id": "booking_evidence:rvv-0081:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "49b29f10ed788d1e10b85176af2d2cd19bc5460df85573d9cbcb25128e77f6e3",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0082",
+          "evidence_id": "booking_evidence:rvv-0082:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0083",
+          "evidence_id": "booking_evidence:rvv-0083:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "6f1b6ea1241e35d02401d91258bce2b36dac59972207ba2193f1c94dd7470f6c",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0085",
+          "evidence_id": "booking_evidence:rvv-0085:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "81de163ef99f3b2b6576bae5ce30504968ff7e316c8b1a2b3b7725d0767eece4",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0087",
+          "evidence_id": "booking_evidence:rvv-0087:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "multiple_overlapping_events",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0088",
+          "evidence_id": "booking_evidence:rvv-0088:2026-09-28T18:50:44.853648+00:00",
+          "status": "confirmed_booked",
+          "reason": "operator_confirmed_calendar_booking_association",
+          "event_fingerprint": "a85289bfb66559975a15aa7ffac060b879a930dc8c5268db7033c4e84ac6f96a",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T18:50:44.853648+00:00"
+        },
+        {
+          "tournament_id": "rvv-0089",
+          "evidence_id": "booking_evidence:rvv-0089:2026-09-30T19:37:01.229755+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "e7136ba97e4bf889cbe70df3307d4ecfdfdc6fd13ecaf823c5ef51a5c5f71e95",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0090",
+          "evidence_id": "booking_evidence:rvv-0090:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "7ab75ff642eb2cc6af556162e5796258cb0d74e00551dc60a7034eb3eed0cc5c",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0091",
+          "evidence_id": "booking_evidence:rvv-0091:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0092",
+          "evidence_id": "booking_evidence:rvv-0092:2026-09-30T19:37:01.229755+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "c9a0295eb757044345716a5423e079567ce011eb05b0504eb732236d4bc8ac42",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0093",
+          "evidence_id": "booking_evidence:rvv-0093:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0094",
+          "evidence_id": "booking_evidence:rvv-0094:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0095",
+          "evidence_id": "booking_evidence:rvv-0095:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "multiple_overlapping_events",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0096",
+          "evidence_id": "booking_evidence:rvv-0096:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "4402ce123ab7b46cef022c1757bc546777e2748a9dd56451e9c4158662dfadb7",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0097",
+          "evidence_id": "booking_evidence:rvv-0097:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "57dc2c96f4b86803cb2b0e81171ac2d13b8ffc512c0d1bff01e5638c46946b24",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0098",
+          "evidence_id": "booking_evidence:rvv-0098:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "d530cf84c723164bb61006b696d024d6d6eef7b5a60ccf51f4d771bf0b6eb5f1",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0099",
+          "evidence_id": "booking_evidence:rvv-0099:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "c9ded70c5c9e593a2da0404d8fa4752bcef45bdb6646374db273275de7a64711",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0100",
+          "evidence_id": "booking_evidence:rvv-0100:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "b862b98e51b0c67949abd367f2207669b3242803960d8b7973aa74e1a52d0545",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0101",
+          "evidence_id": "booking_evidence:rvv-0101:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "afbeecfd626a19e1a5137dc7bd19741bc5c2c488e7413a5a521fb9ff9054aa8e",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0103",
+          "evidence_id": "booking_evidence:rvv-0103:2026-09-30T19:21:48.123920+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "43b97872ccdba74072592342760bf2ad5a314f352774066f8557bfe4a548dd3e",
+          "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+          "checked_at": "2026-09-30T19:21:48.123920+00:00"
+        },
+        {
+          "tournament_id": "rvv-0104",
+          "evidence_id": "booking_evidence:rvv-0104:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "cda77066d2b21884577e84029eddc4bbb81b36788234ceb4dca511c46b96ed99",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0105",
+          "evidence_id": "booking_evidence:rvv-0105:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "e2d12742f0b4b87d7fef6c37cfd82d0b2f106c239fcb05f45bd5708ddbaa5e93",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0106",
+          "evidence_id": "booking_evidence:rvv-0106:2026-09-30T19:37:01.229755+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "5967015227fbd67f34eea6ea7c788607d86a0a9e902780269e59977862c512cc",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0107",
+          "evidence_id": "booking_evidence:rvv-0107:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0108",
+          "evidence_id": "booking_evidence:rvv-0108:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0109",
+          "evidence_id": "booking_evidence:rvv-0109:2026-09-30T20:17:14.617834+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "e9428c5767f4dfcfa5571f8e45b14e6f84a186975a6fa4f4fb3a3c1cda37d233",
+          "checked_at": "2026-09-30T20:17:14.617834+00:00"
+        },
+        {
+          "tournament_id": "rvv-0110",
+          "evidence_id": "booking_evidence:rvv-0110:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0111",
+          "evidence_id": "booking_evidence:rvv-0111:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "eb8f4317d4ed61617c194a8aa840c73b45af089afa8cbdad00d7fafd12ed74db",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0112",
+          "evidence_id": "booking_evidence:rvv-0112:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "54ac999b7c7a2a300798f152c2ad0a7ad2ae27a375562da26f512eba5af8b912",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0113",
+          "evidence_id": "booking_evidence:rvv-0113:2026-09-30T19:21:48.123920+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "6d5185ce5ffaf872e338b99265b547c44755b09b6efb03174cf718367822f086",
+          "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+          "checked_at": "2026-09-30T19:21:48.123920+00:00"
+        },
+        {
+          "tournament_id": "rvv-0114",
+          "evidence_id": "booking_evidence:rvv-0114:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "7f6539485aa997fd36ef57ea0117f958d1f7d5f8c6a55b5b5d88a2c454ae6367",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0115",
+          "evidence_id": "booking_evidence:rvv-0115:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0116",
+          "evidence_id": "booking_evidence:rvv-0116:2026-09-30T19:37:01.229755+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "1051d10fce94bd46f43a438127f8f01223e96640dfe7a39835d6841cbb1446b6",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0117",
+          "evidence_id": "booking_evidence:rvv-0117:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "f747345a9bc64592451c293023973107686cd9ac58d0b3a41ee8a333650338b8",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0119",
+          "evidence_id": "booking_evidence:rvv-0119:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "cae96b2ed9ee57e9c3010f7656c085c355e31be1e0ed03466044df6138391d8e",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0120",
+          "evidence_id": "booking_evidence:rvv-0120:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "d2fb0fa1f30f9577ed09903942be0c598a53a487ef56df243806df52c2447104",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0121",
+          "evidence_id": "booking_evidence:rvv-0121:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "b858aefdd5e404909cf251199862860db0883567a0abd1848528d8dd14fb478f",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0122",
+          "evidence_id": "booking_evidence:rvv-0122:2026-09-30T19:37:01.229755+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "c77b120df07e06f3ed1ddafc66de87723035366d31fffd2d0a9f227f4febe87a",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0123",
+          "evidence_id": "booking_evidence:rvv-0123:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "a6b76f6e308fe505806f88e622fd6432aff2a8db078db5eae6eab2f5d09025c8",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0124",
+          "evidence_id": "booking_evidence:rvv-0124:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0125",
+          "evidence_id": "booking_evidence:rvv-0125:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "6f5f4becb026d09fc321a028f253af988f51c7eec6524226426f5249516ea329",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0126",
+          "evidence_id": "booking_evidence:rvv-0126:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "ea68dc100f2b88c26e5cc9e7ce9ffd26f3e39c0b0c5e30a1369ab75096bf586b",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0127",
+          "evidence_id": "booking_evidence:rvv-0127:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "837cff4ac0214472d9a7c19b4bd5cee9629d5a8925de843f052e6771317c5e4e",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0128",
+          "evidence_id": "booking_evidence:rvv-0128:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "multiple_overlapping_events",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0129",
+          "evidence_id": "booking_evidence:rvv-0129:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "020f6fb38a331789ea30b38968a331859cab1e581b4571512832c82efdd98736",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0130",
+          "evidence_id": "booking_evidence:rvv-0130:2026-09-30T19:37:01.229755+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "5a390b4d5243b76cf3511e335afb6882e81dad9ad3956f7485436d8ab31fdcce",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0131",
+          "evidence_id": "booking_evidence:rvv-0131:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0132",
+          "evidence_id": "booking_evidence:rvv-0132:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0133",
+          "evidence_id": "booking_evidence:rvv-0133:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "cef02f27793a0bf1d84e4b2d261ac7ee19ddc7d2ae604105747677ade1a926c9",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0134",
+          "evidence_id": "booking_evidence:rvv-0134:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "5974590e2f139ee7f36835e46af86c742c07e4a2ac770a80494cdb9b19ca8c16",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0135",
+          "evidence_id": "booking_evidence:rvv-0135:2026-09-29T06:49:25.133378+00:00",
+          "status": "confirmed_booked",
+          "reason": "operator_confirmed_calendar_booking_association",
+          "event_fingerprint": "6b2c7e62c37b31ddf0f62e67707a83410dd83fbc834a8e4e1c839d49ec9c733f",
+          "calendar_fingerprint": "c5c1f09c10fb78cc1d485b798feb05e229bc50dd7b85a19d25f1c64b13c74484",
+          "checked_at": "2026-09-29T06:49:25.133378+00:00"
+        },
+        {
+          "tournament_id": "rvv-0136",
+          "evidence_id": "booking_evidence:rvv-0136:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "dd9292af125ab25ac6c22a35090db87e7cde7f53e8c3e66535dd040d0d9ef227",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0137",
+          "evidence_id": "booking_evidence:rvv-0137:2026-09-30T19:37:01.229755+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "0a26dabdc4ef6868d2e361b846f073794c5d2c9fcdc2cafd459850fd502dc630",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0138",
+          "evidence_id": "booking_evidence:rvv-0138:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "72dbe4423647dfaddcf927ac543c13c9571dbf9f09bce774c5948cb84a9c9029",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0139",
+          "evidence_id": "booking_evidence:rvv-0139:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "b3bc71fae085ff14fcee27521d71858ee992099dd481e4849e3df547f5d0ac6d",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0140",
+          "evidence_id": "booking_evidence:rvv-0140:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "15341e02dfd7550d1a58e4e835bd045dd5478a599b9afbb618e95336ba5adce2",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0141",
+          "evidence_id": "booking_evidence:rvv-0141:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0142",
+          "evidence_id": "booking_evidence:rvv-0142:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "multiple_overlapping_events",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0143",
+          "evidence_id": "booking_evidence:rvv-0143:2026-09-28T07:50:02.633552+00:00",
+          "status": "confirmed_booked",
+          "reason": "operator_confirmed_calendar_booking_association",
+          "event_fingerprint": "6b2c7e62c37b31ddf0f62e67707a83410dd83fbc834a8e4e1c839d49ec9c733f",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:50:02.633552+00:00"
+        },
+        {
+          "tournament_id": "rvv-0144",
+          "evidence_id": "booking_evidence:rvv-0144:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "dc7e1cd873b83bbf06aa50d6e6a57720e356b317d510d394f1a3c53d516e8dfc",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0145",
+          "evidence_id": "booking_evidence:rvv-0145:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0146",
+          "evidence_id": "booking_evidence:rvv-0146:2026-09-30T19:37:01.229755+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "a094f97e4fecea7837b66ea47e61f8d67574562a8c8965487c61967378b4ed55",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0147",
+          "evidence_id": "booking_evidence:rvv-0147:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "5f9c3b1caece5c7037515dc06486a3790923171c353ef536f337f4b2cd3aa621",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0149",
+          "evidence_id": "booking_evidence:rvv-0149:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "4cac2bdcc19b141eee523f4cef731166b965f7b127e28eee7ae6f5d238f7e114",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0150",
+          "evidence_id": "booking_evidence:rvv-0150:2026-09-30T19:21:11.444731+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "37130be5c74e9a4536831c0bd5e65c8a1976f23e631506a2c348e37a5d9ad26d",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0151",
+          "evidence_id": "booking_evidence:rvv-0151:2026-09-30T19:37:01.229755+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "ddda6d853dce2d1652f1dd4a4c8cb7743e9277bd009072defeb599aa20301318",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0152",
+          "evidence_id": "booking_evidence:rvv-0152:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "049741b986ef07097334326c529d4bef437883c8b32e3bdcb42ef86063f2ac96",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0153",
+          "evidence_id": "booking_evidence:rvv-0153:2026-09-30T20:17:25.018765+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0154",
+          "evidence_id": "booking_evidence:rvv-0154:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "2bda2145ed2d6c99385de05351470db165ab6ec461066a94c711ea7a9db7a6d8",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0155",
+          "evidence_id": "booking_evidence:rvv-0155:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "multiple_overlapping_events",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0156",
+          "evidence_id": "booking_evidence:rvv-0156:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0157",
+          "evidence_id": "booking_evidence:rvv-0157:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "multiple_overlapping_events",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0158",
+          "evidence_id": "booking_evidence:rvv-0158:2026-09-30T19:21:48.123920+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "94ceec0d46cb7c7b37ec7cc27d1d0df4e982647722448ec03389758fe1faa82f",
+          "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+          "checked_at": "2026-09-30T19:21:48.123920+00:00"
+        },
+        {
+          "tournament_id": "rvv-0159",
+          "evidence_id": "booking_evidence:rvv-0159:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0160",
+          "evidence_id": "booking_evidence:rvv-0160:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "5d352532ceadb0e4f7418a0846bcd9691786e5b8ab4688b39e371cfe0e175127",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0161",
+          "evidence_id": "booking_evidence:rvv-0161:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "183bbd272e548817fbf34399ce8041ab72abe476c3e0ab4e6313f4dfc189c918",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0162",
+          "evidence_id": "booking_evidence:rvv-0162:2026-09-30T19:21:48.123920+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "bc0ba6bc01f6cf4178e156a63a712ce37b13f9a66c505cf3ab3f30fabd0fdf85",
+          "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+          "checked_at": "2026-09-30T19:21:48.123920+00:00"
+        },
+        {
+          "tournament_id": "rvv-0163",
+          "evidence_id": "booking_evidence:rvv-0163:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "no_covering_event_for_current_slot",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0164",
+          "evidence_id": "booking_evidence:rvv-0164:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "43c6fbabb57e362c4dad22f10569765e1e6e3928caacb7e12ae16e9508080736",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0165",
+          "evidence_id": "booking_evidence:rvv-0165:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "e352b6958c62465bb4fbb6aa09631151df6ecf5269ccf47ebb8db04428d7b173",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0166",
+          "evidence_id": "booking_evidence:rvv-0166:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "b912f4c12a79f3557dda5a0b785199cc6b7c7fe5c56f5e3dda0baab5f74622bd",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0167",
+          "evidence_id": "booking_evidence:rvv-0167:2026-09-30T19:37:01.229755+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "bc1a09aafc18dd7288b6a667ade9b40b90de50b932eb92fde94da8c9d81e9855",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0168",
+          "evidence_id": "booking_evidence:rvv-0168:2026-09-30T19:21:11.444731+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "603f6415e7703f06201799b428a5904195356e89a79fd03570af1cea28d76994",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0169",
+          "evidence_id": "booking_evidence:rvv-0169:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "df77740f37fd5ddabc6cafc1ebb501011d93fe87ff6ed2cc09cb82e3354935ff",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0170",
+          "evidence_id": "booking_evidence:rvv-0170:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "1fdefecb4c8e91e4d3d522d8b163fe6fedc2fbffdbcaa509a2fc2ea3865f925d",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0171",
+          "evidence_id": "booking_evidence:rvv-0171:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0172",
+          "evidence_id": "booking_evidence:rvv-0172:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0173",
+          "evidence_id": "booking_evidence:rvv-0173:2026-09-30T19:37:01.229755+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "cb5c52c956e60c2827d50b42bc6616334b26a3025f42efe70c7dcab276acbf0b",
+          "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
+          "checked_at": "2026-09-30T19:37:01.229755+00:00"
+        },
+        {
+          "tournament_id": "rvv-0174",
+          "evidence_id": "booking_evidence:rvv-0174:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "2b4136033082045bd25a07ea9c15f74208c0af806b20dd64a604b93f40692e50",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0175",
+          "evidence_id": "booking_evidence:rvv-0175:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "048fadb2c1e2abcc2195002b94042948cde4b2a215854ad6aa294da854d5265d",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0176",
+          "evidence_id": "booking_evidence:rvv-0176:2026-09-30T19:21:48.123920+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "8e9be13ba232eabb77b126f700c706cfc75c6b3be429b853d3724c0d00a14bf4",
+          "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+          "checked_at": "2026-09-30T19:21:48.123920+00:00"
+        },
+        {
+          "tournament_id": "rvv-0177",
+          "evidence_id": "booking_evidence:rvv-0177:2026-09-30T19:21:11.444731+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
+          "checked_at": "2026-09-30T19:21:11.444731+00:00"
+        },
+        {
+          "tournament_id": "rvv-0178",
+          "evidence_id": "booking_evidence:rvv-0178:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "6a298c872aafc5fec7d97b93570a18152a6605134b2929ddb009fb7c745ed133",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0179",
+          "evidence_id": "booking_evidence:rvv-0179:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "35aaf86a3e682e054672d4ff58e32c9b90075fc54dec4ac0c473f400bc5cb7c2",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0180",
+          "evidence_id": "booking_evidence:rvv-0180:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "26b580728c729e2ca05dd6ed255de18771a99c1d5f8034387d379f11c2a99fb2",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0181",
+          "evidence_id": "booking_evidence:rvv-0181:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "e786ab6bcea2aa0bc4096ac12f3591bf44fb6a224818cadd59d75f7b9059ad66",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0182",
+          "evidence_id": "booking_evidence:rvv-0182:2026-09-30T20:17:19.638404+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "71c4b92b794386742594e13bd147e0c8d47ff356273f20c96bdc8dc345395436",
+          "calendar_fingerprint": "96cfb81779bb66cadd0a27160b990a13522448f06d0cdef559175248c3371a0c",
+          "checked_at": "2026-09-30T20:17:19.638404+00:00"
+        },
+        {
+          "tournament_id": "rvv-0183",
+          "evidence_id": "booking_evidence:rvv-0183:2026-09-24T16:50:47.199107+00:00",
+          "status": "not_checkable",
+          "reason": "calendar_status:untrusted",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "47977a4b515bb68ec753d67c594864e58b660e6772619f0fa9161760c4f38fb6",
+          "checked_at": "2026-09-24T16:50:47.199107+00:00"
+        },
+        {
+          "tournament_id": "rvv-0184",
+          "evidence_id": "booking_evidence:rvv-0184:2026-09-30T19:21:48.123920+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "12950c8b7ae936cf19ea0458cdadc07091567b994fc449262e34036311abec03",
+          "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
+          "checked_at": "2026-09-30T19:21:48.123920+00:00"
+        },
+        {
+          "tournament_id": "rvv-0185",
+          "evidence_id": "booking_evidence:rvv-0185:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "c62bdc0ad95407ef89decf2ec437a8da8a623d42799121148d8aecc6c54e8af3",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0186",
+          "evidence_id": "booking_evidence:rvv-0186:2026-09-30T20:17:25.018765+00:00",
+          "status": "ambiguous",
+          "reason": "source_coverage_unproven",
+          "event_fingerprint": "",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0187",
+          "evidence_id": "booking_evidence:rvv-0187:2026-09-28T18:53:25.166240+00:00",
+          "status": "confirmed_booked",
+          "reason": "operator_confirmed_calendar_booking_association",
+          "event_fingerprint": "9199fb48790778528481eff1ea16bc8e1be60c53158b1f56b71b732a620d32b1",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T18:53:25.166240+00:00"
+        },
+        {
+          "tournament_id": "rvv-0189",
+          "evidence_id": "booking_evidence:rvv-0189:2026-09-30T20:17:25.018765+00:00",
+          "status": "confirmed_booked",
+          "reason": "explicit_calendar_booking_association",
+          "event_fingerprint": "5f18ebbbc47ede66126586f3e9cd62deb1263f68704c8fe346377021cd4ea7b0",
+          "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
+          "checked_at": "2026-09-30T20:17:25.018765+00:00"
+        },
+        {
+          "tournament_id": "rvv-0190",
+          "evidence_id": "booking_evidence:rvv-0190:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "a268b1e0f8e1f3cb888a529d775597d6fa3943dcefe0db8376b76d1cc65b4cc7",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        },
+        {
+          "tournament_id": "rvv-0191",
+          "evidence_id": "booking_evidence:rvv-0191:2026-09-28T07:30:59.502406+00:00",
+          "status": "ambiguous",
+          "reason": "single_overlapping_event_requires_confirmation",
+          "event_fingerprint": "151a45e0bf71db3605fdb9216b038e341b140e558684e4939d449c5bf86ff367",
+          "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
+          "checked_at": "2026-09-28T07:30:59.502406+00:00"
+        }
+      ]
+    }
+  },
+  "previous_publication": {
+    "publication_id": "2026-10-01T1259",
+    "canonical_revision": "e58d86fd59ef8049bcf3da5df682a572d73aa75642d92d777811297382ea23ac",
+    "published_at": "2026-10-01T12:59:51+00:00",
+    "projection_fingerprint": "6fd6e7bd00243c40a60d766e1d26cec91d91a76f3df1cd580e499c20c9e814fa",
+    "tournament_count": 183,
+    "publication_evidence": {
+      "artifacts": [],
+      "bundle_fingerprint": "b3bdea689bbbe79c0e1f7bfed0f308a4eb389a99578140567827825aa2c1e5f1",
+      "canonical_revision": "e58d86fd59ef8049bcf3da5df682a572d73aa75642d92d777811297382ea23ac",
+      "export_fingerprint": "3d720784d44b77619c92cc6da9bda017c558a5aa28e7ecbc104800254b810b10",
+      "export_id": "2026-10-01T1259",
+      "pages_branch": "gh-pages",
+      "pages_commit": "14b91dbbadf0d6aae7c87b423a7d5c2cf00379f3",
+      "projection_fingerprint": "6fd6e7bd00243c40a60d766e1d26cec91d91a76f3df1cd580e499c20c9e814fa",
+      "published_at": "2026-10-01T12:59:51+00:00",
+      "run_id": "20260918T135604Z-8d38f146",
+      "schema_version": 1
+    }
+  },
+  "republish_delta": {
+    "delta": {
+      "removed_tournament_ids": [],
+      "added_tournament_ids": [],
+      "schema_errors": [],
+      "field_changes": [
+        {
+          "tournament_id": "rvv-0144",
+          "fields": {
+            "participants": {
+              "before": [
+                "Holmen\u001fHolmen Hockey Blå\u001fU10",
+                "Jar\u001fJar Rød\u001fU10",
+                "Jar\u001fJar Svart\u001fU10",
+                "Jutul\u001fJutul Grønn\u001fU10",
+                "Ringerike\u001fRingerike 2\u001fU10",
+                "Ringerike\u001fRingerike 4\u001fU10"
+              ],
+              "after": [
+                "Holmen\u001fHolmen Hockey Blå\u001fU10",
+                "Holmen\u001fHolmen Hockey Sort\u001fU10",
+                "Jar\u001fJar Grønn\u001fU10",
+                "Jar\u001fJar Rød\u001fU10",
+                "Jar\u001fJar Svart\u001fU10",
+                "Jutul\u001fJutul Grønn\u001fU10"
+              ]
+            }
+          }
+        }
+      ],
+      "placement_changes": [],
+      "participant_changes": [
+        {
+          "tournament_id": "rvv-0144",
+          "before": [
+            "Holmen\u001fHolmen Hockey Blå\u001fU10",
+            "Jar\u001fJar Rød\u001fU10",
+            "Jar\u001fJar Svart\u001fU10",
+            "Jutul\u001fJutul Grønn\u001fU10",
+            "Ringerike\u001fRingerike 2\u001fU10",
+            "Ringerike\u001fRingerike 4\u001fU10"
+          ],
+          "after": [
+            "Holmen\u001fHolmen Hockey Blå\u001fU10",
+            "Holmen\u001fHolmen Hockey Sort\u001fU10",
+            "Jar\u001fJar Grønn\u001fU10",
+            "Jar\u001fJar Rød\u001fU10",
+            "Jar\u001fJar Svart\u001fU10",
+            "Jutul\u001fJutul Grønn\u001fU10"
+          ]
+        }
+      ],
+      "guest_slot_changes": [],
+      "cancellation_changes": [],
+      "duration_changes": [],
+      "changed": true
+    },
+    "summary": {
+      "published_tournament_count": 183,
+      "current_tournament_count": 183,
+      "added": 0,
+      "removed": 0,
+      "changed": 1,
+      "unchanged": 182,
+      "schema_errors": 0
+    }
+  },
+  "decision_changes": {
+    "available": true,
+    "reason": null,
+    "approval_changes": [],
+    "booking_changes": [],
+    "change_protections": {
+      "added": [
+        "change:2d167114a78fa842",
+        "change:d2e47c6fc79162e0",
+        "change:d95b89494812ba49",
+        "change:d9b6a9300c384e89"
+      ],
+      "removed": []
+    },
+    "request_constraints": {
+      "added": [
+        "request:1ccd37ef3cd5bc94",
+        "request:55f565116701ce2e",
+        "request:79a1e868239768a6",
+        "request:def2c5fd01cff1c5"
+      ],
+      "removed": []
+    },
+    "changed": true
+  },
+  "recorded_at": "2026-10-01T13:44:07+00:00",
+  "record_fingerprint": "4d660585640fdfb5f7661fc95f42ba61904d3cc4068cb84fa15622867960f505"
+}
