@@ -412,13 +412,21 @@ def test_spond_download_buttons_render_when_present():
 
     assert 'href="season_plan_spond.xlsx"' in links
     assert 'href="season_plan_spond_games.xlsx"' in links
+    assert 'href="season_plan.xlsx"' not in links
     assert "data-excluded" not in links
 
 
 def test_spond_download_buttons_omitted_when_absent():
-    links = build_export_links_html({"excel": "/tmp/export/season_plan.xlsx"})
+    links = build_export_links_html(
+        {
+            "excel": "/tmp/export/season_plan.xlsx",
+            "csv_overview": "/tmp/export/season_plan_overview.csv",
+            "csv_games": "/tmp/export/season_plan.csv",
+            "ical": "/tmp/export/season_plan.ics",
+        }
+    )
 
-    assert "spond" not in links
+    assert links == ""
 
 
 class TestSpondPublicBundle:
