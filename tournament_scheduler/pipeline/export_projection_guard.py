@@ -17,6 +17,7 @@ from typing import Any, Mapping
 from tournament_scheduler.guest_slots import (
     guest_slot_records,
 )
+from tournament_scheduler.html import CANCELLED_TOURNAMENTS_FILENAME
 
 
 @dataclass(frozen=True)
@@ -299,6 +300,27 @@ def projection_from_export_artifacts(
                 "export_dir": str(export_dir),
             }
         )
+    # The active page no longer carries cancelled tournaments; their payload
+    # lives on the companion page. Merge it so the reconstructed projection
+    # stays complete instead of silently dropping canonical cancellations.
+    companion_path = html_path.with_name(CANCELLED_TOURNAMENTS_FILENAME)
+    if companion_path.exists():
+        companion_match = _TOURNAMENTS_RE.search(companion_path.read_text(encoding="utf-8"))
+        if companion_match:
+            try:
+                companion_rendered = json.loads(companion_match.group(1))
+            except json.JSONDecodeError as exc:
+                raise ExportProjectionError(
+                    {
+                        "summary": (
+                            "Refusing season export: ``"
+                            f"{companion_path.name}`` contains invalid embedded TOURNAMENTS JSON"
+                        ),
+                        "export_dir": str(export_dir),
+                    }
+                ) from exc
+            if isinstance(companion_rendered, list):
+                rendered = rendered + companion_rendered
     canonical_by_id = {
         str(tournament.get("id") or ""): tournament
         for tournament in (published_canonical_plan or {}).get("tournaments", []) or []

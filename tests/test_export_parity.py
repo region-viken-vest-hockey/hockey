@@ -13,6 +13,7 @@ from pathlib import Path
 import openpyxl
 
 from tournament_scheduler.excel.plan_exporter import SeasonPlanExporter
+from tournament_scheduler.html import CANCELLED_TOURNAMENTS_FILENAME
 from tournament_scheduler.html.html_exporter import HtmlExporter
 from tournament_scheduler.models import SeasonPlan, Team, Tournament
 from tournament_scheduler.pipeline.export_parity import (
@@ -441,6 +442,47 @@ def test_three_cancelled_rows_compare_despite_different_presentation(tmp_path):
     assert report["status"] == STATUS_PASS, report["reasons"]
 
 
+def test_cancelled_tournament_moves_to_companion_page_but_stays_in_parity(tmp_path):
+    export_dir, _, html = _export_pair(tmp_path)
+
+    active_text = html.read_text(encoding="utf-8")
+    assert '"id": "rvv-0004"' not in active_text
+    companion = export_dir / CANCELLED_TOURNAMENTS_FILENAME
+    assert companion.exists()
+    assert '"id": "rvv-0004"' in companion.read_text(encoding="utf-8")
+
+    report = verify_export_parity(export_dir)
+
+    assert report["status"] == STATUS_PASS, report["reasons"]
+    assert report["secondary"]["tournament_count"] == 4
+
+
+def test_missing_cancelled_page_fails_parity_fail_closed(tmp_path):
+    export_dir, _, _ = _export_pair(tmp_path)
+    (export_dir / CANCELLED_TOURNAMENTS_FILENAME).unlink()
+
+    report = verify_export_parity(export_dir)
+
+    assert report["status"] == STATUS_FAIL
+    assert "rvv-0004" in report["comparison"]["missing_ids"]
+
+
+def test_edited_cancelled_reason_fails_parity(tmp_path):
+    export_dir, _, _ = _export_pair(tmp_path)
+    companion = export_dir / CANCELLED_TOURNAMENTS_FILENAME
+    text = companion.read_text(encoding="utf-8")
+    text = text.replace('"cr": "Regionalt sperret helg"', '"cr": "Feil \u00e5rsak"', 1)
+    companion.write_text(text, encoding="utf-8")
+
+    report = verify_export_parity(export_dir)
+
+    assert report["status"] == STATUS_FAIL
+    assert any(
+        m["tournament_id"] == "rvv-0004" and m["field"] == "cancellation_reason"
+        for m in report["comparison"]["mismatches"]
+    )
+
+
 # ---------------------------------------------------------------------------
 # Review regressions: fail-closed publication invariant
 # ---------------------------------------------------------------------------
@@ -563,6 +605,13 @@ def test_canonical_publication_requires_each_revision_and_fails_closed(tmp_path)
     assert revision_meta is not None
     blank_html = html.read_text(encoding="utf-8").replace(revision_meta.group(1), "")
     (blank / "season_plan.html").write_text(blank_html, encoding="utf-8")
+    # The cancelled-tournament page is part of the same HTML projection; copy
+    # it too so this revision test isolates missing revision metadata rather
+    # than tripping over an incomplete artifact set.
+    companion = html.with_name(CANCELLED_TOURNAMENTS_FILENAME)
+    if companion.exists():
+        companion_text = companion.read_text(encoding="utf-8").replace(revision_meta.group(1), "")
+        (blank / companion.name).write_text(companion_text, encoding="utf-8")
 
     report = verify_export_parity(
         blank,
@@ -638,6 +687,9 @@ def test_published_bundle_is_reverified_after_sanitization(tmp_path):
     bundle_dir = tmp_path / "public_bundle"
     result = pages_bundle.build_public_bundle(str(export_dir), str(bundle_dir))
     assert result.is_terminal_success
+    # The cancellation page is part of the public projection and must travel
+    # with the bundle; otherwise the published navbar link would be dead.
+    assert (bundle_dir / CANCELLED_TOURNAMENTS_FILENAME).exists()
 
     manifest = json.loads((export_dir / "export_manifest.json").read_text(encoding="utf-8"))
     assert publish_parity_gate(export_dir=bundle_dir, repo_dir=tmp_path, manifest=manifest) is None

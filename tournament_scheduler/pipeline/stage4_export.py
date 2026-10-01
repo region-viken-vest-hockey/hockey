@@ -7,6 +7,7 @@ and writes three output files:
 - ``<export_dir>/season_plan.ics``    — iCal feed via :class:`ICalExporter`
 - ``<export_dir>/season_plan.csv``    — flat game CSV + ``_overview.csv`` via :class:`CsvExporter`
 - ``<export_dir>/season_plan.html``   — interactive HTML overview via :class:`~tournament_scheduler.html.html_exporter.HtmlExporter`
+- ``<export_dir>/cancelled_tournaments.html``   — dedicated history view of cancelled tournaments, written only when the plan has cancellations
 - ``<export_dir>/season_plan_report.html``   — companion diagnostics report with fairness / travel / hosting summaries
 - ``<export_dir>/manual_schedule.html``   — “Må planlegges manuelt” view listing hall time that must be booked/verified by hand: tournaments that could not be placed without an arena/sequence collision, plus tournaments hosted by clubs whose calendar could not be scraped (provisional start times). Only written when such items exist; they no longer block the export
 - ``<export_dir>/season_plan_spond_games.xlsx`` — printable tournament-by-tournament schedule attachment for Spond
@@ -45,6 +46,7 @@ from ..excel.plan_exporter import SeasonPlanExporter
 from ..ical.ical_exporter import ICalExporter
 from ..csv.csv_exporter import CsvExporter
 from ..html.html_exporter import HtmlExporter
+from ..html import CANCELLED_TOURNAMENTS_FILENAME
 from .stage1_config import load_effective_config
 from .state import PipelineState, StageName, StageStatus
 from ..serialization.season_plan import season_plan_from_dict
@@ -945,6 +947,9 @@ def run(
         )
         output_files["html"] = html_path
         output_files["html_report"] = str(Path(html_path).with_name(f"{Path(html_path).stem}_report{Path(html_path).suffix}"))
+        _cancelled_html = Path(html_path).with_name(CANCELLED_TOURNAMENTS_FILENAME)
+        if _cancelled_html.exists():
+            output_files["cancelled_html"] = str(_cancelled_html)
     except Exception as exc:  # noqa: BLE001
         errors.append(f"HTML-eksport feilet: {exc}")
 
@@ -998,6 +1003,9 @@ def run(
             )
             output_files["html"] = html_path
             output_files["html_report"] = str(Path(html_path).with_name(f"{Path(html_path).stem}_report{Path(html_path).suffix}"))
+            _cancelled_html = Path(html_path).with_name(CANCELLED_TOURNAMENTS_FILENAME)
+            if _cancelled_html.exists():
+                output_files["cancelled_html"] = str(_cancelled_html)
         except Exception as exc:  # noqa: BLE001
             errors.append(f"HTML-eksport (manuell-oppfølgingsvisning) feilet: {exc}")
 

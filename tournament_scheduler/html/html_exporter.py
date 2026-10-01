@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from dataclasses import replace
 from html import escape as _html_escape
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,8 @@ from tournament_scheduler.club_distances import furthest_traveling_team
 from ..guest_slots import guest_slot_summary
 from ..models import SeasonPlan, chronological_tournaments
 from ..occupancy import tournament_end_time
+
+from . import CANCELLED_TOURNAMENTS_FILENAME
 
 from .data_computation import (
     ICON_CALENDAR,
@@ -157,24 +160,58 @@ class HtmlExporter:
                 '<option value="not_approved">Ikke godkjente</option>'
                 '</select>'
             )
+        # Cancelled tournaments are historical/audit context, not part of the
+        # active season timeline. Split them out at the source so every
+        # operational metric on the season page (counts, filters, heatmap,
+        # travel, club stats, timeline range) is derived from active
+        # tournaments only, while the dedicated cancelled page keeps the
+        # cancellation evidence. Canonical season state is untouched.
+        cancelled_tournaments = [t for t in plan.tournaments if t.cancelled]
+        active_plan = (
+            replace(plan, tournaments=[t for t in plan.tournaments if not t.cancelled])
+            if cancelled_tournaments else plan
+        )
+        cancelled_plan = (
+            replace(plan, tournaments=cancelled_tournaments)
+            if cancelled_tournaments else None
+        )
+        active_tournament_count = len(active_plan.tournaments)
+        active_game_count = sum(len(t.games) for t in active_plan.tournaments)
+
         tournaments_json = self._plan_to_json(
-            plan,
+            active_plan,
             ice_time_for_age_group,
             approval_by_tournament=approval_by_tournament,
             booking_by_tournament=booking_by_tournament,
         )
+        cancelled_tournaments_json = (
+            self._plan_to_json(
+                cancelled_plan,
+                ice_time_for_age_group,
+                approval_by_tournament=approval_by_tournament,
+                booking_by_tournament=booking_by_tournament,
+            )
+            if cancelled_plan is not None else "[]"
+        )
+        cancelled_game_count = sum(len(t.games) for t in cancelled_tournaments)
+        cancelled_team_count = (
+            len(compute_team_game_counts(cancelled_plan)) if cancelled_plan is not None else 0
+        )
+        cancelled_display_age_groups = (
+            compute_display_age_groups(cancelled_plan, None) if cancelled_plan is not None else []
+        )
 
-        # Count unique teams
+        # Count unique teams (active tournaments only)
         all_teams: set[str] = set()
-        for t in plan.tournaments:
+        for t in active_plan.tournaments:
             for g in t.games:
                 all_teams.add(g.home.label)
                 all_teams.add(g.away.label)
 
         # Team game counts
-        team_game_counts = compute_team_game_counts(plan)
+        team_game_counts = compute_team_game_counts(active_plan)
         label_to_identities: dict[str, set[tuple[str, str]]] = {}
-        for tournament in plan.tournaments:
+        for tournament in active_plan.tournaments:
             for game in tournament.games:
                 for team_obj in (game.home, game.away):
                     identity = (getattr(team_obj, "club", ""), getattr(team_obj, "age_group", ""))
@@ -184,12 +221,12 @@ class HtmlExporter:
 
         # Travel info
         team_travel, most_travel_team, most_travel_km, total_travel_km, travel_count_estimate_html = (
-            compute_team_travel_info(plan)
+            compute_team_travel_info(active_plan)
         )
         team_travel_json = json.dumps(team_travel, ensure_ascii=False)
 
         # Heatmap data
-        heatmap, heatmap_weeks, heatmap_clubs = compute_heatmap_data(plan, booking_by_tournament=booking_by_tournament)
+        heatmap, heatmap_weeks, heatmap_clubs = compute_heatmap_data(active_plan, booking_by_tournament=booking_by_tournament)
         heatmap_json = json.dumps(heatmap, ensure_ascii=False)
         heatmap_weeks_json = json.dumps(heatmap_weeks, ensure_ascii=False)
         heatmap_clubs_json = json.dumps(heatmap_clubs, ensure_ascii=False)
@@ -199,16 +236,12 @@ class HtmlExporter:
         heatmap_club_colors_json = json.dumps(club_color_maps, ensure_ascii=False)
 
         # Club stats
-        club_stats, all_clubs_list = compute_club_stats(plan, team_travel)
+        club_stats, all_clubs_list = compute_club_stats(active_plan, team_travel)
         club_stats_json = json.dumps(club_stats, ensure_ascii=False)
         all_clubs_json = json.dumps(all_clubs_list, ensure_ascii=False)
 
-        season_label_str = season_label(plan)
-        display_age_groups = compute_display_age_groups(plan, age_groups)
-        age_group_options = "".join(
-            f'<option value="{ag}">{ag}</option>'
-            for ag in display_age_groups
-        )
+        season_label_str = season_label(active_plan)
+        display_age_groups = compute_display_age_groups(active_plan, age_groups)
 
         # Pipeline metrics
         pipeline = pipeline_meta or {}
@@ -224,8 +257,8 @@ class HtmlExporter:
             str(pipeline.get("scrape_updated_at") or generated_at)
         )
         scrape_meta = build_nav_status(
-            tournament_count=len(plan.tournaments),
-            game_count=sum(len(t.games) for t in plan.tournaments),
+            tournament_count=active_tournament_count,
+            game_count=active_game_count,
             team_count=len(team_game_counts),
             source_count=source_count,
             event_count=event_count,
@@ -271,10 +304,33 @@ class HtmlExporter:
         calendars_href = "calendars.html" if (calendars_path and os.path.exists(calendars_path)) else ""
         input_href = "input.html" if (input_html_path and os.path.exists(input_html_path)) else ""
         manual_href = "manual_schedule.html" if (manual_schedule_path and os.path.exists(manual_schedule_path)) else ""
-        season_plan_href = "season_plan.html"
-        report_href = "season_plan_report.html"
+        dest = Path(path)
+        season_plan_href = dest.name
+        report_href = f"{dest.stem}_report{dest.suffix}"
+        cancelled_href = CANCELLED_TOURNAMENTS_FILENAME if cancelled_tournaments else ""
 
-        def _render_page(*, page_title: str, page_subtitle: str, include_diagnostics: bool, include_timeline: bool, active_page: str) -> str:
+        def _render_page(
+            *,
+            page_title: str,
+            page_subtitle: str,
+            include_diagnostics: bool,
+            include_timeline: bool,
+            include_filters: bool,
+            include_heatmap: bool,
+            active_page: str,
+            page_tournaments_json: str,
+            page_tournament_count: int,
+            page_game_count: int,
+            page_team_count: int,
+            page_age_groups: list[str],
+            page_approval_count: str = "",
+            page_approval_filter: str = "",
+            page_booking_filter: str = "",
+        ) -> str:
+            page_age_group_options = "".join(
+                f'<option value="{ag}">{ag}</option>'
+                for ag in page_age_groups
+            )
             parts = {
                 "$STYLES$": STYLES_CSS,
                 "$NAVBAR$": NAVBAR,
@@ -292,9 +348,9 @@ class HtmlExporter:
                 # top, not repeated on the report (issue #277). It renders via
                 # the same $HEATMAP_JSON$ data/script on both pages, so this
                 # only controls whether the markup slot is present.
-                "$HEATMAP$": HEATMAP if not include_diagnostics else "",
+                "$HEATMAP$": HEATMAP if include_heatmap else "",
                 "$JUDGMENT$": "",
-                "$FILTERS$": FILTERS if include_timeline else "",
+                "$FILTERS$": FILTERS if include_filters else "",
                 "$COUNT_BAR$": COUNT_BAR if include_timeline else "",
                 "$TIMELINE$": '<div class="timeline" id="timeline"></div>' if include_timeline else "",
                 "$SCRIPT$": (
@@ -317,6 +373,10 @@ class HtmlExporter:
                 ),
                 "$SEASON_PLAN_HREF$": season_plan_href,
                 "$REPORT_HREF$": report_href,
+                "$CANCELLED_NAV_ITEM$": (
+                    f'<a href="{cancelled_href}" class="{"active" if active_page == "cancelled" else ""}"><span class="nav-icon">{ICON_WARNING}</span> Avlyste turneringer</a>'
+                    if cancelled_href else ""
+                ),
                 "$INPUT_NAV_ITEM$": (
                     f'<a href="{input_href}" class="{"active" if active_page == "input" else ""}"><span class="nav-icon">{ICON_USERS}</span> Påmeldte lag</a>'
                     if input_href else ""
@@ -333,11 +393,11 @@ class HtmlExporter:
                 "$SEASON_LABEL$": season_label_str,
                 "$SEASON_REVISION_META$": season_revision_meta,
                 "$SCRAPE_META$": scrape_meta,
-                "$AGE_GROUPS$": " + ".join(display_age_groups),
-                "$TOURNAMENT_COUNT$": str(len(plan.tournaments)),
-                "$GAME_COUNT$": str(sum(len(t.games) for t in plan.tournaments)),
-                "$UNIQUE_TEAMS$": str(len(team_game_counts)),
-                "$TEAM_COUNT$": str(len(team_game_counts)),
+                "$AGE_GROUPS$": " + ".join(page_age_groups),
+                "$TOURNAMENT_COUNT$": str(page_tournament_count),
+                "$GAME_COUNT$": str(page_game_count),
+                "$UNIQUE_TEAMS$": str(page_team_count),
+                "$TEAM_COUNT$": str(page_team_count),
                 "$GAME_COUNT_SPREAD$": (
                     f"{max(team_game_counts.values()) - min(team_game_counts.values())} spread"
                     if team_game_counts else "-"
@@ -368,11 +428,11 @@ class HtmlExporter:
                 "$FAIRNESS_GATE_SCORE$": str(int((plan.fairness_gate.get("score", 0) if isinstance(plan.fairness_gate, dict) else 0))),
                 "$FAIRNESS_GATE_STATUS$": str((plan.fairness_gate.get("status", "pass") if isinstance(plan.fairness_gate, dict) else "pass")),
                 "$FAIRNESS_GATE_STATUS_LABEL$": str({"pass": "PASS", "warn": "VARSEL", "fail": "FEIL"}.get(plan.fairness_gate.get("status", "pass") if isinstance(plan.fairness_gate, dict) else "pass", "PASS")),
-                "$AGE_GROUP_OPTIONS$": age_group_options,
-                "$TOURNAMENTS_JSON$": tournaments_json,
-                "$APPROVAL_COUNT$": approval_count_html,
-                "$APPROVAL_FILTER$": approval_filter_html,
-                "$BOOKING_FILTER$": booking_filter_html,
+                "$AGE_GROUP_OPTIONS$": page_age_group_options,
+                "$TOURNAMENTS_JSON$": page_tournaments_json,
+                "$APPROVAL_COUNT$": page_approval_count,
+                "$APPROVAL_FILTER$": page_approval_filter,
+                "$BOOKING_FILTER$": page_booking_filter,
             }
 
             html = PAGE_TEMPLATE
@@ -387,22 +447,63 @@ class HtmlExporter:
             page_subtitle=f"RVV Hockey &mdash; {' + '.join(display_age_groups)}",
             include_diagnostics=False,
             include_timeline=True,
+            include_filters=True,
+            include_heatmap=True,
             active_page="season",
+            page_tournaments_json=tournaments_json,
+            page_tournament_count=active_tournament_count,
+            page_game_count=active_game_count,
+            page_team_count=len(team_game_counts),
+            page_age_groups=display_age_groups,
+            page_approval_count=approval_count_html,
+            page_approval_filter=approval_filter_html,
+            page_booking_filter=booking_filter_html,
         )
         report_html = _render_page(
             page_title="Regler",
             page_subtitle=f"RVV Hockey &mdash; {' + '.join(display_age_groups)} &middot; hva styrte planen?",
             include_diagnostics=True,
             include_timeline=False,
+            include_filters=False,
+            include_heatmap=False,
             active_page="report",
+            page_tournaments_json=tournaments_json,
+            page_tournament_count=active_tournament_count,
+            page_game_count=active_game_count,
+            page_team_count=len(team_game_counts),
+            page_age_groups=display_age_groups,
         )
         report_html = self._strip_schedule_controls(report_html)
 
-        dest = Path(path)
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(schedule_html, encoding="utf-8")
         report_dest = dest.with_name(f"{dest.stem}_report{dest.suffix}")
         report_dest.write_text(report_html, encoding="utf-8")
+
+        # A separate, dedicated page carries the cancelled tournaments so the
+        # active season timeline/options stay unpolluted while cancellation
+        # evidence remains auditable. The page is only written when there are
+        # cancellations, and a stale page from an earlier export is removed so
+        # the navbar link can never point at history that no longer exists.
+        cancelled_dest = dest.with_name(CANCELLED_TOURNAMENTS_FILENAME)
+        if cancelled_tournaments:
+            cancelled_html = _render_page(
+                page_title="Avlyste turneringer",
+                page_subtitle=f"RVV Hockey &mdash; {' + '.join(cancelled_display_age_groups) or 'avlyste turneringer'}",
+                include_diagnostics=False,
+                include_timeline=True,
+                include_filters=False,
+                include_heatmap=False,
+                active_page="cancelled",
+                page_tournaments_json=cancelled_tournaments_json,
+                page_tournament_count=len(cancelled_tournaments),
+                page_game_count=cancelled_game_count,
+                page_team_count=cancelled_team_count,
+                page_age_groups=cancelled_display_age_groups,
+            )
+            cancelled_dest.write_text(cancelled_html, encoding="utf-8")
+        elif cancelled_dest.exists():
+            cancelled_dest.unlink()
         return str(dest)
 
     @staticmethod

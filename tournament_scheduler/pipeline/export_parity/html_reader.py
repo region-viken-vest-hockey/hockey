@@ -3,6 +3,12 @@
 Only the embedded machine-readable tournament payload and the
 ``season-revision`` meta tag are read; the renderers' business policy is not
 duplicated. Legacy HTML without a stable-id payload is reported uncheckable.
+
+The active season plan no longer carries cancelled tournaments. Their
+canonical evidence lives on the companion ``cancelled_tournaments.html`` page
+(same directory), so this reader merges both payloads into one projection.
+Without the companion the cancelled ids would read as missing and parity would
+(fail-closed) refuse the export instead of silently passing an incomplete plan.
 """
 
 from __future__ import annotations
@@ -12,6 +18,8 @@ import json
 import re
 from pathlib import Path
 from typing import Any
+
+from tournament_scheduler.html import CANCELLED_TOURNAMENTS_FILENAME
 
 from .records import (
     ArtifactProjection,
@@ -38,6 +46,23 @@ def _file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _parse_payload(text: str) -> tuple[str, list[Any] | None, str]:
+    """Return ``(season_revision, payload, error)`` for one HTML document."""
+
+    revision_match = _REVISION_RE.search(text)
+    revision = normalize_text(revision_match.group(1)) if revision_match else ""
+    payload_match = _TOURNAMENTS_RE.search(text)
+    if payload_match is None:
+        return revision, None, "embedded TOURNAMENTS payload is missing"
+    try:
+        payload = json.loads(payload_match.group(1))
+    except json.JSONDecodeError:
+        return revision, None, "embedded TOURNAMENTS payload is invalid JSON"
+    if not isinstance(payload, list):
+        return revision, None, "embedded TOURNAMENTS payload is not a list"
+    return revision, payload, ""
+
+
 def read_html(path: str | Path) -> ArtifactProjection:
     file_path = Path(path)
     projection = ArtifactProjection(kind="html", path=str(file_path), exists=file_path.exists())
@@ -46,17 +71,26 @@ def read_html(path: str | Path) -> ArtifactProjection:
     try:
         projection.sha256 = _file_sha256(file_path)
         text = file_path.read_text(encoding="utf-8")
-        revision_match = _REVISION_RE.search(text)
-        projection.season_revision = normalize_text(revision_match.group(1)) if revision_match else ""
-        payload_match = _TOURNAMENTS_RE.search(text)
-        if payload_match is None:
-            projection.read_error = "embedded TOURNAMENTS payload is missing"
+        revision, payload, error = _parse_payload(text)
+        if revision:
+            projection.season_revision = revision
+        if error or payload is None:
+            projection.read_error = error
             return projection
-        payload = json.loads(payload_match.group(1))
-        if not isinstance(payload, list):
-            projection.read_error = "embedded TOURNAMENTS payload is not a list"
-            return projection
-        projection.records = _read_payload(payload)
+        records = _read_payload(payload)
+
+        companion = file_path.with_name(CANCELLED_TOURNAMENTS_FILENAME)
+        if companion != file_path and companion.exists():
+            companion_text = companion.read_text(encoding="utf-8")
+            _companion_revision, companion_payload, companion_error = _parse_payload(companion_text)
+            if companion_error or companion_payload is None:
+                projection.read_error = (
+                    f"companion {companion.name}: {companion_error or 'unreadable payload'}"
+                )
+                return projection
+            records = records + _read_payload(companion_payload)
+
+        projection.records = records
         if any(not record.tournament_id for record in projection.records):
             projection.unsupported_fields.append("tournament_id")
     except (OSError, ValueError, json.JSONDecodeError) as exc:  # noqa: BLE001 - unreadable bytes are NOT_CHECKABLE
