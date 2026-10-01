@@ -27,7 +27,7 @@ Load only the relevant family, then the required sections of the canonical proce
 | Approve/unapprove, constraints, protections, exception or undo | `governance.md` | Relevant mutation family |
 | Season health, reconciliation, export, audit, publish/republish/rollback | `season-delivery.md` | `booking-management.md` for evidence gaps |
 
-For publication/republish, including a failed audit, load `audit-publication.md` alongside `season-delivery.md`; inspect the actual delta and audit evidence instead of escalating unrelated historic debt. Preserve the repository's actual FAIL/INCOMPLETE gate.
+For publication/republish, including a failed audit, load `audit-publication.md` alongside `season-delivery.md`. For an already published/sealed season, additionally lazy-load `republish.md`. When an interactive harness is active, that harness owns the semantic audit through `operator audit-context` / selective `audit-evidence` / `audit-submit`; do not spawn the headless `audit-run` backend from the republish helper. Inspect the actual delta and audit evidence instead of escalating unrelated historic debt, and preserve the repository's actual FAIL/INCOMPLETE verdict.
 
 For any schedule mutation with material downstream consequences, load `schedule-quality.md` before selecting/applying the candidate. A proposed change must be previewed without mutation when the operator asks to investigate or compare. A safe reversal is a new verified canonical action, not deletion of history. Do not infer permission for publication, unapproval, regression acceptance or planning reopen.
 
