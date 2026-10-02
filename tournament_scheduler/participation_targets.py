@@ -645,7 +645,7 @@ def evaluate_participation(
             ):
                 return str(explicit_status), dict(evidence)
         evidence: Dict[str, Any] = {}
-        if direction == "under_target" and available_tournaments <= target:
+        if direction == "under_target" and available_tournaments < target:
             # No assignment of participants can give a team more participations
             # than there are distinct tournaments in the scope, so within the
             # current (fixed) tournament skeleton the target is provably
