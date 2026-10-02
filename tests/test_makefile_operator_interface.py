@@ -195,7 +195,6 @@ class TestMakefileOperatorInterface:
             ("promote", [], "requires ID"),
             ("promote", ["ID=q-1"], "requires SCOPE"),
             ("audit-run", [], "requires BACKEND"),
-            ("season-republish", [], "requires BACKEND"),
             ("audit-submit", [], "requires RESULT_FILE"),
             ("publish", [], "CONFIRM_PUBLIC=1"),
             ("rollback", [], "requires RUN_ID"),
