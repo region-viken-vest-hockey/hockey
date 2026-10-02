@@ -119,6 +119,90 @@ def test_under_target_with_fewer_tournaments_than_target_is_proven_infeasible():
     assert under[0]["evidence"]["reason"] == "fewer_tournaments_than_target"
 
 
+def test_under_target_equality_is_not_proven_infeasible():
+    """When available_tournaments == target, it should not be proven infeasible.
+    Equality is not proof that the missing participation cannot be filled.
+    """
+    a, b = _team("Jar", "Jar 1"), _team("Kongsberg", "Kongsberg 1")
+    # Exactly target number of tournaments (3) for before_christmas
+    # But only 2 teams actually participated (so we're under target)
+    candidate = {
+        "tournaments": [
+            _tournament("t1", "2025-09-06", [a, b]),
+            _tournament("t2", "2025-10-11", [a, b]),
+            _tournament("t3", "2025-12-24", [a]),  # Only Jar participates
+        ]
+    }
+    problem = _problem(teams=[a, b], targets={"before_christmas": 3, "after_christmas": 3})
+    evaluation = evaluate_participation(candidate, problem)
+    under = [d for d in evaluation.deviations if d["direction"] == "under_target" and d["scope"] == "before_christmas"]
+    assert under
+    # Should be BOUNDED_SEARCH_EXHAUSTED, not PROVEN_INFEASIBLE
+    assert under[0]["avoidability"] == BOUNDED_SEARCH_EXHAUSTED
+    assert under[0]["evidence"]["reason"] == "no_better_candidate_verified_within_search"
+    assert under[0]["evidence"]["available_tournaments"] == 3
+    assert under[0]["evidence"]["target"] == 3
+
+
+def test_under_target_boundary_conditions():
+    """Test boundary conditions for available_tournaments relative to target.
+    For target=3 in before_christmas scope:
+    - available=2 (target-1): should be PROVEN_INFEASIBLE
+    - available=3 (target): should be BOUNDED_SEARCH_EXHAUSTED (not proven infeasible)
+    - available=4 (target+1): should be BOUNDED_SEARCH_EXHAUSTED
+    """
+    a, b = _team("Jar", "Jar 1"), _team("Kongsberg", "Kongsberg 1")
+    problem = _problem(teams=[a, b], targets={"before_christmas": 3, "after_christmas": 3})
+    
+    # Test available = target - 1 (should be proven infeasible)
+    candidate = {
+        "tournaments": [
+            _tournament("t1", "2025-09-06", [a, b]),
+            _tournament("t2", "2025-10-11", [a, b]),
+        ]
+    }
+    evaluation = evaluate_participation(candidate, problem)
+    under = [d for d in evaluation.deviations if d["direction"] == "under_target" and d["scope"] == "before_christmas"]
+    assert under
+    assert under[0]["avoidability"] == PROVEN_INFEASIBLE
+    assert under[0]["evidence"]["reason"] == "fewer_tournaments_than_target"
+    assert under[0]["evidence"]["available_tournaments"] == 2
+    assert under[0]["evidence"]["target"] == 3
+    
+    # Test available = target (should NOT be proven infeasible)
+    candidate = {
+        "tournaments": [
+            _tournament("t1", "2025-09-06", [a, b]),
+            _tournament("t2", "2025-10-11", [a, b]),
+            _tournament("t3", "2025-12-24", [a]),  # Only Jar participates
+        ]
+    }
+    evaluation = evaluate_participation(candidate, problem)
+    under = [d for d in evaluation.deviations if d["direction"] == "under_target" and d["scope"] == "before_christmas"]
+    assert under
+    assert under[0]["avoidability"] == BOUNDED_SEARCH_EXHAUSTED
+    assert under[0]["evidence"]["reason"] == "no_better_candidate_verified_within_search"
+    assert under[0]["evidence"]["available_tournaments"] == 3
+    assert under[0]["evidence"]["target"] == 3
+    
+    # Test available = target + 1 (should NOT be proven infeasible)
+    candidate = {
+        "tournaments": [
+            _tournament("t1", "2025-09-06", [a, b]),
+            _tournament("t2", "2025-10-11", [a, b]),
+            _tournament("t3", "2025-12-24", [a]),  # Only Jar participates
+            _tournament("t4", "2025-12-28", [a]),  # Only Jar participates
+        ]
+    }
+    evaluation = evaluate_participation(candidate, problem)
+    under = [d for d in evaluation.deviations if d["direction"] == "under_target" and d["scope"] == "before_christmas"]
+    assert under
+    assert under[0]["avoidability"] == BOUNDED_SEARCH_EXHAUSTED
+    assert under[0]["evidence"]["reason"] == "no_better_candidate_verified_within_search"
+    assert under[0]["evidence"]["available_tournaments"] == 4
+    assert under[0]["evidence"]["target"] == 3
+
+
 def test_over_target_with_available_capacity_is_only_search_exhausted():
     a, b = _team("Jar", "Jar 1"), _team("Kongsberg", "Kongsberg 1")
     candidate = {
