@@ -1328,14 +1328,12 @@ class TestRunStage4:
         assert 'Alle (U10 + U11 + U12 + JU11)' in html
         assert 'id="themeToggle"' in html
         assert 'class="theme-toggle"' in html
-        assert 'href="season_plan.xlsx"' in html
-        assert 'href="season_plan.csv"' in html
-        assert 'href="season_plan.ics"' in html
-        assert 'href="season_plan.csv" class="export-link-btn"' in html or 'href="season_plan.csv"' in html
-        # Spond workbooks are generated before the HTML pages so the download
-        # header links to the artifacts named by the output_files manifest.
+        # The HTML report includes links to the Spond workbooks and the main HTML pages.
         assert 'href="season_plan_spond.xlsx"' in html
         assert 'href="season_plan_spond_games.xlsx"' in html
+        assert 'href="season_plan.html"' in html
+        assert 'href="season_plan_report.html"' in html
+        assert 'href="input.html"' in html
         assert Path(files["spond"]).exists()
         assert Path(files["spond_games"]).exists()
         assert html.index('class="export-links"') < html.index('class="header-main"')
