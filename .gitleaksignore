@@ -1,0 +1,5 @@
+# Reviewed false positives in history: fake AKIA/token fixtures for redaction tests and a stage-name string
+d3d6bf11d4fe47a7b2fd8cde87a4c0639ac8c647:tests/test_operator_action.py:aws-access-token:293
+d3d6bf11d4fe47a7b2fd8cde87a4c0639ac8c647:tests/test_pages_bundle.py:aws-access-token:71
+d3d6bf11d4fe47a7b2fd8cde87a4c0639ac8c647:tests/test_pages_bundle.py:generic-api-key:83
+19fca813b5684bec247f5455837b2e449038c24b:tournament_scheduler/cli/checkpoint_printer.py:generic-api-key:31
