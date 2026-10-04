@@ -24,7 +24,7 @@ SEASON ?= 2026-2027
 
 export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CONFIRM_CLEANUP CSV ARGS BACKEND RESULT_FILE RESUME_AFTER_AUDIT
 
-PUBLIC_TARGETS := help bootstrap handover install check test dependency-lock secret-scan rules-report rule-catalog kampveileder-markdown \
+PUBLIC_TARGETS := help bootstrap handover install sync check test dependency-lock secret-scan rules-report rule-catalog kampveileder-markdown \
 	operator-run operator-run-force run status logs calendars calendars-refresh sources-status season-export season-republish season-changes season-changes-markdown \
 	waiver \
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
@@ -45,6 +45,7 @@ help:
 	@echo "  make bootstrap                     Set up a new machine/checkout with Python 3.12"
 	@echo "  make handover [ARGS=\x27--issue N --json\x27]  Read-only verified session handover"
 	@echo "  make install                       Reinstall Python/project dependencies"
+	@echo "  make sync                          Alias for dependency convergence"
 	@echo "  make check [ARGS='...']            Run canonical verification via scripts/check"
 	@echo "  make test [ARGS='...']             Run pytest directly for local iteration"
 	@echo "  make dependency-lock               Verify requirements.lock is fresh"
@@ -115,7 +116,7 @@ help:
 	@echo "release paths retain explicit target-specific safeguards."
 
 bootstrap:
-	@cd "$(ROOT_DIR)" && "$(BOOTSTRAP)" $(ARGS)
+	@cd "$(ROOT_DIR)" && BOOTSTRAP='$(BOOTSTRAP)' ARGS='$(ARGS)' mise run bootstrap
 
 # Deliberately uses the system python3, not $(PYTHON): handover is stdlib-only and
 # must work before `make bootstrap` has provisioned the venv.
@@ -123,13 +124,16 @@ handover:
 	@cd "$(ROOT_DIR)" && python3 "$(HANDOVER)" $(ARGS)
 
 install:
-	@cd "$(ROOT_DIR)" && sh "$(INSTALL)" $(ARGS)
+	@cd "$(ROOT_DIR)" && INSTALL='$(INSTALL)' ARGS='$(ARGS)' mise run install
+
+sync:
+	@cd "$(ROOT_DIR)" && INSTALL='$(INSTALL)' ARGS='$(ARGS)' mise run sync
 
 check:
-	@cd "$(ROOT_DIR)" && "$(CHECK)" $(ARGS)
+	@cd "$(ROOT_DIR)" && CHECK='$(CHECK)' ARGS='$(ARGS)' mise run check
 
 test:
-	@cd "$(ROOT_DIR)" && "$(PYTHON)" -m pytest $(ARGS)
+	@cd "$(ROOT_DIR)" && PYTHON='$(PYTHON)' ARGS='$(ARGS)' mise run test
 
 dependency-lock:
 	@cd "$(ROOT_DIR)" && "$(CHECK)" dependency-lock
@@ -157,7 +161,7 @@ run:
 
 
 status:
-	@cd "$(ROOT_DIR)" && "$(RVV)" status $(ARGS)
+	@cd "$(ROOT_DIR)" && RVV='$(RVV)' ARGS='$(ARGS)' mise run status
 
 logs:
 	@cd "$(ROOT_DIR)" && "$(RVV)" logs list $(ARGS)

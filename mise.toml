@@ -1,0 +1,25 @@
+min_version = "2026.8.0"
+
+[tasks.bootstrap]
+description = "Set up a new machine/checkout with Python 3.12"
+run = "${BOOTSTRAP:-scripts/bootstrap} $ARGS"
+
+[tasks.sync]
+description = "Reinstall Python and project dependencies"
+run = "sh ${INSTALL:-scripts/install.sh} $ARGS"
+
+[tasks.install]
+description = "Alias for dependency convergence"
+depends = ["sync"]
+
+[tasks.check]
+description = "Run canonical repository verification"
+run = "${CHECK:-scripts/check} $ARGS"
+
+[tasks.test]
+description = "Run pytest directly for local iteration"
+run = "${PYTHON:-venv/bin/python3} -m pytest $ARGS"
+
+[tasks.status]
+description = "Show RVV Miniputt runtime status"
+run = "${RVV:-scripts/rvv-miniputt} status $ARGS"

@@ -12,6 +12,14 @@ Before architectural changes, read [engineering principles](docs/engineering-pri
 
 Do **not** preload every RVV skill, command or architecture document. Progressive context loading is the repository standard.
 
+## Repository tasks
+
+`mise.toml` is the canonical task definition/runtime; the root `Makefile` is
+the human-facing shorthand and delegates to it. Start with `make help`; the
+`help`, `check`, `test`, `bootstrap`, `install`, `sync`, and `status` names stay
+stable. Behavioral Make-specific safeguards remain in the Makefile/Taskfile
+wrapper where they cannot move cleanly.
+
 ## Source-of-truth order
 
 When facts/instructions disagree:
