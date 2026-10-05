@@ -39,6 +39,9 @@ jobs:
             requirements.lock
             pyproject.toml
 
+      - name: Install mise task runtime
+        uses: jdx/mise-action@v3
+
       - name: Install locked Python dependencies
         run: |
           python -m pip install --disable-pip-version-check --upgrade "pip<26"

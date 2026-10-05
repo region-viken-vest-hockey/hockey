@@ -14,6 +14,7 @@ on:
       - "docs/**"
       - "AGENTS.md"
       - "Makefile"
+      - "mise.toml"
       - "pyproject.toml"
       - "requirements*.txt"
       - "requirements.lock"
@@ -32,6 +33,7 @@ on:
       - "docs/**"
       - "AGENTS.md"
       - "Makefile"
+      - "mise.toml"
       - "pyproject.toml"
       - "requirements*.txt"
       - "requirements.lock"
@@ -114,6 +116,9 @@ jobs:
           cache-dependency-path: |
             requirements.lock
             pyproject.toml
+
+      - name: Install mise task runtime
+        uses: jdx/mise-action@v3
 
       - name: Install locked Python dependencies
         run: |
