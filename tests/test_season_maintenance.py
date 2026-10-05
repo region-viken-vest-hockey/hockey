@@ -25,6 +25,9 @@ from tournament_scheduler.season_maintenance import (
     PARETO_DIMENSIONS,
     TRAVEL_OBJECTIVE_DIMENSIONS,
     SeasonMaintenanceError,
+    _effective_search_coverage,
+    _escalation,
+    _option_is_applicable,
     _travel_metrics,
     accept_finding,
     apply_repair,
@@ -1111,6 +1114,115 @@ def test_bounded_search_exhausted_is_not_proven_infeasible() -> None:
 
     proven = _classification({"avoidability": "proven_infeasible"})
     assert proven["proven_infeasible"] is True
+
+
+def _annotated_option(
+    *,
+    consequence_acceptable: bool = True,
+    request_constraint_acceptable: bool = True,
+    operational_acceptable: bool = True,
+) -> Dict[str, Any]:
+    return {
+        "option_id": "option:1",
+        "effects": {"consequence_acceptable": consequence_acceptable},
+        "request_constraint_acceptable": request_constraint_acceptable,
+        "operational_acceptable": operational_acceptable,
+    }
+
+
+def test_escalation_ignores_consequence_rejected_options() -> None:
+    finding = {"category": "home_representation"}
+    rejected = _annotated_option(consequence_acceptable=False)
+
+    assert _option_is_applicable(rejected) is False
+    assert _escalation([rejected], [], finding) == {
+        "needed": True,
+        "reason": "no_verified_sibling_swap",
+        "next": (
+            "inspect rejected_candidates; simple rotations and coupled "
+            "home + away swaps were enumerated before treating the skew as unavoidable"
+        ),
+    }
+
+
+def test_escalation_stays_clear_when_one_option_is_applicable() -> None:
+    options = [
+        _annotated_option(consequence_acceptable=False),
+        _annotated_option(),
+    ]
+
+    assert _option_is_applicable(options[1]) is True
+    assert _escalation(options, [], {"category": "home_representation"}) == {
+        "needed": False,
+        "reason": "legal_option_available",
+    }
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"request_constraint_acceptable": False},
+        {"operational_acceptable": False},
+    ],
+)
+def test_escalation_ignores_request_and_operationally_rejected_options(
+    override: Dict[str, bool],
+) -> None:
+    option = {**_annotated_option(), **override}
+
+    assert _option_is_applicable(option) is False
+    assert _escalation([option], [], {"category": "hard_violation"}) == {
+        "needed": True,
+        "reason": "no_cheap_local_option",
+    }
+
+
+def test_non_applicable_bounded_search_options_report_exhaustion_not_infeasibility() -> None:
+    finding = {
+        "category": "participation",
+        "search_coverage": {
+            "status": "option_available",
+            "search_requested": True,
+            "proven_infeasible": False,
+        },
+    }
+    coverage = _effective_search_coverage(
+        finding,
+        [_annotated_option(operational_acceptable=False)],
+    )
+
+    assert coverage["status"] == "bounded_search_exhausted"
+    assert coverage["applicable_option_count"] == 0
+    assert coverage["non_applicable_option_count"] == 1
+    assert coverage["proven_infeasible"] is False
+
+
+@pytest.mark.parametrize(
+    ("finding", "reason"),
+    [
+        ({"category": "hosting"}, "no_direct_rehost"),
+        (
+            {"category": "participation", "avoidability": "bounded_search_exhausted"},
+            "no_search_improvement_yet",
+        ),
+        ({"category": "home_representation"}, "no_verified_sibling_swap"),
+        ({"category": "club_distribution"}, "no_verified_sibling_substitution"),
+    ],
+)
+def test_non_applicable_options_preserve_category_escalation_reasons(
+    finding: Dict[str, Any], reason: str
+) -> None:
+    result = _escalation(
+        [_annotated_option(consequence_acceptable=False)],
+        [],
+        finding,
+    )
+
+    assert result["needed"] is True
+    assert result["reason"] == reason
+    if finding["category"] == "participation":
+        assert result["proven_infeasible"] is False
+        assert "not proof of infeasibility" in result["note"]
 
 
 def test_hard_finding_reuses_the_common_stage3_repair_providers(tmp_path: Path) -> None:
