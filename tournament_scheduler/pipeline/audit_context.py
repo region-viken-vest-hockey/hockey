@@ -34,6 +34,7 @@ from ..plan_derived_state import (
 )
 from ..planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
 from ..participation_targets import INTRA_CLUB_DISTRIBUTION
+from ..participation_withdrawals import withdrawn_team_count_for_tournament
 from . import audit_evidence
 from .audit_result import current_export_fingerprint, current_run_id
 from .fingerprints import stable_payload_sha256
@@ -301,6 +302,7 @@ def _collect_plan_audit_facts(
     *,
     plan_dict: dict[str, Any] | None,
     config_checkpoint: dict[str, Any] | None,
+    verification_problem: dict[str, Any] | None,
 ) -> dict[str, Any]:
     """Derive the complete cross-check fact set from the persisted selected plan.
 
@@ -316,18 +318,20 @@ def _collect_plan_audit_facts(
 
     tournaments = [t for t in plan_dict.get("tournaments") or [] if isinstance(t, dict)]
     ice_times = {}
-    # Effective-shape rule: the complete registered pool per age group, needed to tell
-    # an avoidable bye/underscheduling shape apart from a genuine
-    # input-constrained one -- degrades to the unconditional previous check
-    # when unavailable (audit evidence, not a gate, so a graceful fallback is
-    # fine here).
+    # Effective-shape rule: use the exact revision-bound problem Stage 4
+    # verified when available. In particular, that problem carries the shared
+    # canonical participation-withdrawal projection; the raw Stage 1 config
+    # deliberately still contains withdrawn teams as registration history.
+    # Falling back to the config keeps pre-export/non-canonical audit evidence
+    # available without turning this evidence path into another verifier.
+    shape_problem = verification_problem if isinstance(verification_problem, dict) else config_checkpoint
     registered_count_by_age_group: Counter[str] = Counter()
     registered_teams: list[dict[str, Any]] = []
     rounds_per_tournament: dict[str, Any] = {}
-    if isinstance(config_checkpoint, dict):
-        ice_times = dict(config_checkpoint.get("ice_time_minutes") or {})
-        rounds_per_tournament = dict(config_checkpoint.get("rounds_per_tournament") or {})
-        for team in config_checkpoint.get("teams") or []:
+    if isinstance(shape_problem, dict):
+        ice_times = dict(shape_problem.get("ice_time_minutes") or {})
+        rounds_per_tournament = dict(shape_problem.get("rounds_per_tournament") or {})
+        for team in shape_problem.get("teams") or []:
             if isinstance(team, dict) and team.get("age_group"):
                 registered_teams.append(team)
                 registered_count_by_age_group[str(team["age_group"])] += 1
@@ -383,8 +387,8 @@ def _collect_plan_audit_facts(
         team_count = rvv_team_count(tournament) + active_guest_slot_count(tournament)
         open_reservations = open_guest_slot_count(tournament)
         configured_capacity = None
-        if isinstance(config_checkpoint, dict):
-            pg = (config_checkpoint.get("parallel_games") or {}).get(age_group)
+        if isinstance(shape_problem, dict):
+            pg = (shape_problem.get("parallel_games") or {}).get(age_group)
             if isinstance(pg, int) and pg > 0:
                 configured_capacity = pg * 2
         full_team_count = configured_capacity or team_count
@@ -413,9 +417,19 @@ def _collect_plan_audit_facts(
         if utilisation_row["underfilled"]:
             underfilled_by_age[age_group] += 1
         if registered_count_by_age_group:
+            eligible_registered_count = max(
+                0,
+                registered_count_by_age_group.get(age_group, 0)
+                - withdrawn_team_count_for_tournament(
+                    shape_problem,
+                    str(tournament.get("id") or ""),
+                    age_group,
+                    str(tournament.get("date") or ""),
+                ),
+            )
             shape = compute_effective_tournament_shape(
                 age_group,
-                registered_count_by_age_group.get(age_group, 0),
+                eligible_registered_count,
                 configured_rounds=rounds_per_tournament.get(age_group),
                 parallel_game_capacity=configured_capacity // 2 if configured_capacity else None,
             )
@@ -937,9 +951,20 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
     calendar_evidence_summary = (evidence_bundle or {}).get("source_summary") or {}
     if not calendar_evidence_summary:
         calendar_evidence_summary = _summarize_scraping_checkpoint(scraping_checkpoint)
+    verification_context = (
+        export_checkpoint.get("verification_context")
+        if isinstance(export_checkpoint, dict)
+        else None
+    )
+    verification_problem = (
+        verification_context.get("problem")
+        if isinstance(verification_context, dict)
+        else None
+    )
     plan_audit_facts = _collect_plan_audit_facts(
         plan_dict=plan_dict,
         config_checkpoint=config_checkpoint,
+        verification_problem=(verification_problem if isinstance(verification_problem, dict) else None),
     )
     plan_audit_summary = _summarize_plan_facts(plan_audit_facts)
     export_consistency_summary = _summarize_export_consistency(
@@ -961,12 +986,7 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
         from ..canonical_baseline import default_season_root
         from .publication_scope import resolve_publication_scope
 
-        bound_context = (
-            export_checkpoint.get("verification_context")
-            if isinstance(export_checkpoint, dict)
-            else None
-        )
-        bound_problem = bound_context.get("problem") if isinstance(bound_context, dict) else None
+        bound_problem = verification_problem
         readiness_reasons = (
             publication_readiness.get("reasons") if isinstance(publication_readiness, dict) else None
         )

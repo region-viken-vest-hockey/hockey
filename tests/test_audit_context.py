@@ -326,6 +326,64 @@ def test_context_includes_selected_plan_cross_checks(tmp_path):
     assert item_1["counts"]["participation_shortfalls"] == 1
 
 
+def test_shape_evidence_uses_export_verification_eligible_pool_after_withdrawal(tmp_path):
+    teams = [
+        {"club": club, "label": f"{club} 1", "age_group": "U10"}
+        for club in ("Alfa", "Bravo", "Charlie", "Delta", "Echo")
+    ]
+    config = {
+        "teams": teams,
+        "ice_time_minutes": {"U10": 120},
+        "rounds_per_tournament": {"U10": 3},
+        "parallel_games": {"U10": 3},
+    }
+    tournament = {
+        "id": "u10-after-withdrawal",
+        "date": "2026-10-10",
+        "age_group": "U10",
+        "arena": "Alfa Arena",
+        "host_club": "Alfa",
+        "start_time": "10:00",
+        "teams": teams[:4],
+        "games": [],
+    }
+    PipelineState(tmp_path).write_stage(StageName.CONFIG, config, status=StageStatus.DONE)
+    PipelineState(tmp_path).write_stage(
+        StageName.PLANNING,
+        {"plan": {"tournaments": [tournament]}},
+        status=StageStatus.DONE,
+    )
+    _write_export(tmp_path, fingerprint="fp-withdrawal")
+    export_checkpoint = PipelineState(tmp_path).read_stage(StageName.EXPORT)
+    export_checkpoint["verification_context"] = {
+        "problem": {
+            **config,
+            "withdrawn_tournament_teams": [
+                {
+                    "scope": "age_group",
+                    "tournament_ids": ["u10-after-withdrawal"],
+                    "effective_from": "2026-10-10",
+                    "club": "Echo",
+                    "label": "Echo 1",
+                    "age_group": "U10",
+                }
+            ],
+        }
+    }
+    PipelineState(tmp_path).write_stage(
+        StageName.EXPORT,
+        export_checkpoint,
+        status=StageStatus.DONE,
+    )
+
+    summary = build_audit_context(work_dir=tmp_path)["plan_audit_summary"]
+    utilisation = summary["tournament_utilisation_summary"]
+
+    assert utilisation["tournaments_with_byes_or_invalid_no_bye_roster"] == 0
+    assert utilisation["input_constrained_shape_count"] == 1
+    assert utilisation["input_constrained_shape_examples"][0]["registered_team_count"] == 4
+
+
 def test_unresolved_tournament_placements_reach_the_audit_context(tmp_path):
     """issue #330: a concrete tournament-placement search failure (a real
     roster/date that could not get a participant-host arena/time) must
