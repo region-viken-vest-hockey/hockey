@@ -170,12 +170,21 @@ def test_operator_assessment_shape_is_validated():
 
 
 def test_canonical_export_evidence_bundle_is_self_describing():
-    plan = {"tournaments": [], "publication_readiness": {"status": "PASS"}}
+    stale_plan = {
+        "tournaments": [],
+        "publication_readiness": {"status": "REVIEW_REQUIRED"},
+        "unresolved_hosting_obligations": [{"club": "Old", "age_group": "U10"}],
+    }
+    reviewed_plan = {
+        "tournaments": [],
+        "publication_readiness": {"status": "PUBLISHABLE", "publishable": True},
+        "unresolved_hosting_obligations": [],
+    }
     fingerprint = stable_payload_sha256([])
     schedule = {
         "season": "2026-2027",
         "revision": "rev-1",
-        "plan": plan,
+        "plan": stale_plan,
         "verification_context": {"run_id": "run-1", "problem": None},
     }
     checkpoint = {
@@ -183,6 +192,7 @@ def test_canonical_export_evidence_bundle_is_self_describing():
         "output_files": {"html": "/tmp/export/season_plan.html"},
         "export_fingerprint": fingerprint,
         "verify_result": {"ok": True, "violations": []},
+        "reviewed_plan": reviewed_plan,
         "public_export_context": {"scrape": {"source_count": 2, "blocked": ["down-source"]}},
     }
     bundle = build_canonical_export_evidence(schedule=schedule, export_checkpoint=checkpoint)
@@ -193,6 +203,8 @@ def test_canonical_export_evidence_bundle_is_self_describing():
     assert bundle["fingerprint_consistent"] is True
     assert bundle["export"]["fingerprint"] == fingerprint
     assert bundle["final_operator_evidence"]["export_fingerprint"] == fingerprint
+    assert bundle["final_operator_evidence"]["publication_readiness"]["status"] == "PUBLISHABLE"
+    assert bundle["final_operator_evidence"]["unresolved_hosting_obligations"] == []
     assert bundle["source_summary"]["blocked_sources"] == ["down-source"]
 
 

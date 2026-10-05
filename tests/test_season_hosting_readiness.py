@@ -123,14 +123,30 @@ def test_audit_context_reflects_the_mutation_not_the_stale_plan(tmp_path: Path) 
         host_club="B",
         problem=problem,
     )
-    run_export(
-        {"plan": moved["plan"]},
+    # Reproduce an old canonical snapshot after a verifier-rule/input change:
+    # placements need no normalization, but the descriptive projection does.
+    moved["plan"]["unresolved_hosting_obligations"] = [
+        {"club": "B", "age_group": "U10", "reason": "stale"}
+    ]
+    moved["plan"]["hosting_balance_imbalances"] = [{"club": "B", "age_group": "U10"}]
+    moved["plan"]["publication_readiness"] = {
+        "status": "REVIEW_REQUIRED",
+        "publishable": False,
+        "reasons": [{"code": "unresolved_hosting", "count": 1}],
+    }
+    export = run_export(
+        {"plan": moved["plan"], "canonical_state": {"season": "2026-2027", "revision": "rev-1"}},
         PipelineState(work_dir),
         export_dir=str(tmp_path / "export"),
         timestamped_export=False,
         verification_problem=problem,
         use_pipeline_metadata=False,
     )
+
+    assert export["placement_normalization"]["changed"] is False
+    assert export["reviewed_plan"]["unresolved_hosting_obligations"] == []
+    assert export["reviewed_plan"]["hosting_balance_imbalances"] == []
+    assert export["reviewed_plan"]["publication_readiness"]["reasons"] == []
 
     context = build_audit_context(work_dir=work_dir)
     verify = context["deterministic_verify_result"]

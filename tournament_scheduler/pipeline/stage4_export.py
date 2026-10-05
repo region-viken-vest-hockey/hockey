@@ -293,7 +293,15 @@ def run(
     # and would otherwise re-block an export that reconciliation/apply already
     # accepted as valid (issue #504).
     export_verify_result = verify_final_candidate(export_candidate, export_problem)
-    if normalization_report.get("changed"):
+    # Verification-derived fields are a canonical-export projection, not a
+    # placement-normalization side effect. Refresh them for every canonical
+    # export so an unchanged placement set cannot carry stale hosting/readiness
+    # evidence into the reviewed plan and its fingerprint-bound evidence bundle.
+    # Initial planning exports retain richer planner-only diagnostics that a
+    # partial verification problem cannot necessarily reconstruct.
+    canonical_state = plan_checkpoint.get("canonical_state")
+    is_canonical_export = isinstance(canonical_state, dict) and bool(canonical_state.get("season"))
+    if normalization_report.get("changed") or is_canonical_export:
         from ..plan_derived_state import reconcile_plan_derived_state
 
         reconcile_plan_derived_state(plan_dict, export_verify_result, problem=export_problem)

@@ -32,7 +32,13 @@ def build_canonical_export_evidence(
     from ..planning_contract import extract_candidate, score_candidate
     from .fingerprints import stable_payload_sha256
 
-    plan_dict = schedule.get("plan") if isinstance(schedule.get("plan"), dict) else None
+    # Stage 4 independently verifies the canonical candidate and refreshes its
+    # verifier-derived descriptive projections without mutating canonical
+    # schedule state.  Bind evidence to that exact reviewed projection rather
+    # than copying a potentially stale cached snapshot from ``schedule``.
+    reviewed_plan = export_checkpoint.get("reviewed_plan")
+    plan_dict = reviewed_plan if isinstance(reviewed_plan, dict) else schedule.get("plan")
+    plan_dict = plan_dict if isinstance(plan_dict, dict) else None
     verification_context = schedule.get("verification_context")
     verification_context = verification_context if isinstance(verification_context, dict) else {}
     problem = verification_context.get("problem")
