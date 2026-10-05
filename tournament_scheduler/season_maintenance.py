@@ -2364,8 +2364,46 @@ def _collect(
     return options, rejected, families
 
 
+def _option_is_applicable(option: Mapping[str, Any]) -> bool:
+    """Return whether an annotated option survives every maintenance gate.
+
+    ``_annotate_pareto`` reproduces each option before populating the request
+    constraint and operational fields below.  Requiring explicit positive
+    results therefore also excludes options which could not be reproduced or
+    verified.  Consequence acceptability is provider-owned and defaults to
+    acceptable for option families which do not expose that narrower policy.
+    """
+
+    return (
+        option.get("request_constraint_acceptable") is True
+        and option.get("operational_acceptable") is True
+        and (option.get("effects") or {}).get("consequence_acceptable") is not False
+    )
+
+
+def _effective_search_coverage(
+    finding: Mapping[str, Any], options: Iterable[Mapping[str, Any]]
+) -> Dict[str, Any]:
+    """Reclassify raw provider coverage using effectively applicable options."""
+
+    coverage = dict(finding.get("search_coverage") or {})
+    option_list = list(options)
+    applicable_count = sum(1 for option in option_list if _option_is_applicable(option))
+    raw_option_count = len(option_list)
+    coverage["applicable_option_count"] = applicable_count
+    coverage["non_applicable_option_count"] = raw_option_count - applicable_count
+    if applicable_count:
+        coverage["status"] = SEARCH_COVERAGE_OPTION_AVAILABLE
+    elif coverage.get("search_requested"):
+        coverage["status"] = SEARCH_COVERAGE_BOUNDED_EXHAUSTED
+        coverage["proven_infeasible"] = False
+    elif coverage.get("status") == SEARCH_COVERAGE_OPTION_AVAILABLE:
+        coverage["status"] = SEARCH_COVERAGE_INCOMPLETE
+    return coverage
+
+
 def _escalation(options: List[Dict[str, Any]], rejected: List[Dict[str, Any]], finding: Mapping[str, Any]) -> Dict[str, Any]:
-    if options:
+    if any(_option_is_applicable(option) for option in options):
         return {"needed": False, "reason": "legal_option_available"}
     if finding["category"] == HOSTING:
         return {
@@ -2534,9 +2572,12 @@ def _annotate_pareto(
         # operationally acceptable yet still materially regress an affected
         # team's own schedule. That is a deterministic rejection owned by the
         # consequence policy, not a Pareto trade-off: keep it off the
-        # auto-applicable front and let the apply boundary refuse it.
-        if (option.get("effects") or {}).get("consequence_acceptable") is False:
-            option["consequence_acceptable"] = False
+        # auto-applicable front and let the apply boundary refuse it.  Use the
+        # same complete predicate escalation uses, so raw rejected option
+        # objects can never hide the need for operator action.
+        if not _option_is_applicable(option):
+            if (option.get("effects") or {}).get("consequence_acceptable") is False:
+                option["consequence_acceptable"] = False
             option["objectives"] = None
             option["non_dominated"] = False
             continue
@@ -2554,6 +2595,8 @@ def _annotate_pareto(
         )
         option["travel"] = travel
         measured.append((index, vector))
+
+    finding["search_coverage"] = _effective_search_coverage(finding, options)
 
     vectors = [vector for _index, vector in measured]
     front = non_dominated_indices(vectors)
