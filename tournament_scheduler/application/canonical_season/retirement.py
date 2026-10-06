@@ -29,9 +29,12 @@ from tournament_scheduler.canonical_state import (
     schedule_fingerprint,
 )
 from tournament_scheduler.change_protections import (
+    MUST_NOT_PARTICIPATE,
+    active_change_protections,
     build_net_roster_protections,
     protection_violations,
 )
+from tournament_scheduler.guest_slots import release_guest_slots_for_cancellation
 from tournament_scheduler.hosting_responsibility import (
     unexplained_responsibility_transfers,
 )
@@ -44,7 +47,7 @@ from tournament_scheduler.participation_withdrawals import (
     project_into_problem,
 )
 
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.final_verification import verify_canonical_candidate
 from tournament_scheduler.request_constraints import compare_request_constraint_violations
 
 from .shared import (
@@ -66,6 +69,8 @@ def _transform_plan_for_retirement(
     rebalance_proposals: list[RebalanceProposal],
     accept_rebalance: bool,
     problem: Mapping[str, Any],
+    actor: str = "",
+    now: str = "",
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """Pure plan transformation for team retirement.
 
@@ -78,6 +83,8 @@ def _transform_plan_for_retirement(
             plan,
             tournament_id=hosted_t.tournament_id,
             retiring_team_identity=identity,
+            actor=actor,
+            now=now,
         )
         cancelled_hosted.append(
             {
@@ -87,6 +94,8 @@ def _transform_plan_for_retirement(
                 "host_club": hosted_t.host_club,
                 "was_on_roster": result["retired_team_was_on_roster"],
                 "before_fingerprint": hosted_t.before_fingerprint,
+                "released_guest_reservations": result["released_guest_reservations"],
+                "notifications_required": result["notifications_required"],
             }
         )
 
@@ -232,15 +241,31 @@ def _classify_hosted_vs_away(
     *,
     retiring_club: str,
     retiring_team_label: str,
+    hosting_club: str | None = None,
 ) -> tuple[list[HostedTournament], list[AwayTournament]]:
-    """Classify future tournaments as hosted obligations vs away participation."""
+    """Classify future tournaments as hosted obligations vs away participation.
+
+    ``hosting_club`` is the identity recorded on ``tournament.host_club`` for
+    this team's home tournaments; it defaults to ``retiring_club`` (the
+    ordinary case, where a team's registration club and host club are the
+    same string). A cooperative/joint team can be registered under a combined
+    club identity (e.g. ``"Kongsberg/Tønsberg"``) while its hosting
+    responsibility -- and therefore its tournaments' literal ``host_club``
+    field -- is deliberately assigned to just one of the two clubs (e.g.
+    ``"Kongsberg"``). Without ``hosting_club`` naming that assignment, those
+    tournaments would silently fall through to "away" and get a substitute
+    participant proposed instead of being cancelled as the retiring team's
+    own hosting obligation -- leaving an active home tournament with only
+    visiting teams, which a genuine retirement must never do.
+    """
     hosted: list[HostedTournament] = []
     away: list[AwayTournament] = []
+    resolved_hosting_club = str(hosting_club) if hosting_club else retiring_club
 
     for tournament in future_tournaments:
         host_club = str(tournament.get("host_club") or "")
         tournament_id = str(tournament.get("id") or "")
-        if host_club == retiring_club:
+        if host_club == resolved_hosting_club:
             hosted.append(
                 HostedTournament(
                     tournament_id=tournament_id,
@@ -289,6 +314,8 @@ def _cancel_hosted_tournament(
     *,
     tournament_id: str,
     retiring_team_identity: tuple[str, str, str],
+    actor: str = "",
+    now: str = "",
 ) -> dict[str, Any]:
     """Cancel a hosted tournament (mark cancelled, preserve provenance)."""
     tournaments = plan.get("tournaments", []) or []
@@ -307,6 +334,14 @@ def _cancel_hosted_tournament(
         for team in target.get("teams", []) or []
     )
 
+    # A cancelled hosting obligation no longer needs any reserved guest
+    # place; release them as part of the same cancellation rather than
+    # leaving a dangling active reservation (see `batch._apply_cancel_to_plan`
+    # for the matching batch-cancel behaviour and rationale).
+    released_guest_reservations = release_guest_slots_for_cancellation(
+        target, now=now, actor=actor, reason="team_retirement"
+    )
+
     target["cancelled"] = True
     target["cancellation_reason"] = "team_retirement"
     target["retired_team_identity"] = {
@@ -319,7 +354,26 @@ def _cancel_hosted_tournament(
     # Clear games since tournament is cancelled
     target["games"] = []
 
+    notifications_required = [
+        f"Inform host club {str(target.get('host_club') or '')!r} "
+        f"(arena {str(target.get('arena') or '')!r}) that the "
+        f"{target.get('date')} {target.get('age_group')} tournament {tournament_id} is cancelled "
+        "due to team retirement and the booked ice is no longer needed."
+    ]
+    for record in released_guest_reservations:
+        holder = str(record.get("reserved_by") or record.get("filled_by") or "")
+        note = str(record.get("note") or "")
+        detail = f"guest reservation {record.get('id')} on {tournament_id}"
+        if note:
+            detail += f" -- {note}"
+        notifications_required.append(
+            f"Inform {holder or 'the reserving contact'} that their {detail} is released "
+            "because the tournament was cancelled."
+        )
+
     return {
+        "released_guest_reservations": released_guest_reservations,
+        "notifications_required": notifications_required,
         "tournament": target,
         "retired_team_was_on_roster": retiring_team_on_roster,
     }
@@ -347,13 +401,34 @@ def _generate_rebalance_proposals(
     away_tournaments: list[AwayTournament],
     *,
     retiring_team_identity: tuple[str, str, str],
+    decisions: Mapping[str, Any] | None = None,
 ) -> tuple[list[RebalanceProposal], list[str]]:
     """Generate rebalance proposals for affected away tournaments.
+
+    Each vacancy is filled by the eligible same-age candidate with the fewest
+    current appearances in this age group (ties broken by label), excluding
+    any candidate already playing elsewhere on that date or barred from that
+    exact tournament by an active accepted-change protection (``decisions``'s
+    ``must_not_participate`` records -- e.g. a prior club request to avoid a
+    team playing back-to-back weekends). A running within-batch assignment
+    count is also charged against each pick, so one vacancy's choice does not
+    make every other vacancy pick the same team again when several are
+    otherwise equally fair -- across several vacancies this spreads the
+    retiring team's lost slots over multiple replacement teams rather than
+    concentrating them on one.
 
     Returns (proposals, unresolved_vacancy_tournament_ids).
     """
     proposals: list[RebalanceProposal] = []
     unresolved: list[str] = []
+
+    barred_by_tournament: dict[str, set[tuple[str, str]]] = {}
+    for protection in active_change_protections(decisions or {}):
+        if str(protection.get("kind") or "") != MUST_NOT_PARTICIPATE:
+            continue
+        team = protection.get("team") or {}
+        key = (str(team.get("club") or ""), str(team.get("label") or ""))
+        barred_by_tournament.setdefault(str(protection.get("tournament_id") or ""), set()).add(key)
 
     # Get all registered teams in the age group except the retiring one
     age_group = retiring_team_identity[2]
@@ -368,6 +443,29 @@ def _generate_rebalance_proposals(
         )
     ]
 
+    # Current appearance count per team identity, from the live (not-yet
+    # mutated) plan, restricted to non-cancelled tournaments in this age
+    # group -- the deficit signal this selection ranks candidates by.
+    appearance_count: dict[tuple[str, str], int] = {}
+    # Dates each team is already committed to, so a candidate already
+    # playing elsewhere that same day is never proposed (hard rule:
+    # `duplicate_participation_same_date`).
+    busy_dates: dict[tuple[str, str], set[str]] = {}
+    for tournament in plan.get("tournaments", []) or []:
+        if tournament.get("cancelled"):
+            continue
+        if str(tournament.get("age_group") or "") != age_group:
+            continue
+        date = str(tournament.get("date") or "")
+        for team in tournament.get("teams", []) or []:
+            if bool(team.get("guest", False)):
+                continue
+            key = (str(team.get("club") or ""), str(team.get("label") or ""))
+            appearance_count[key] = appearance_count.get(key, 0) + 1
+            busy_dates.setdefault(key, set()).add(date)
+
+    assignments_this_batch: dict[tuple[str, str], int] = {}
+
     for away in away_tournaments:
         # Check if tournament would be underfilled after withdrawal
         current_teams = [
@@ -378,39 +476,40 @@ def _generate_rebalance_proposals(
                 and str(team.get("label") or "") == retiring_team_identity[1]
             )
         ]
+        current_labels = {
+            (str(t.get("club") or ""), str(t.get("label") or "")) for t in current_teams
+        }
 
-        # Count required participants based on parallel_games
-        parallel_games = problem.get("parallel_games", {}).get(age_group, 2)
-        min_teams = parallel_games * 2  # round-robin needs at least 2*parallel teams
-        # Actually, for round-robin with parallel games, we need at least parallel_games * 2 teams
-        # But the verifier will enforce the exact legal shape
-
-        # Find eligible replacement teams
+        # Find eligible replacement teams: not already in this tournament,
+        # not already committed elsewhere on this same date, and not barred
+        # from this exact tournament by an active accepted-change protection.
+        barred = barred_by_tournament.get(away.tournament_id, set())
         eligible_candidates = []
         for candidate in registered_teams:
-            candidate_identity = (
-                str(candidate.get("club") or ""),
-                str(candidate.get("label") or ""),
-                str(candidate.get("age_group") or ""),
-            )
-            # Check if candidate is already in this tournament
-            if any(
-                str(t.get("club") or "") == candidate_identity[0]
-                and str(t.get("label") or "") == candidate_identity[1]
-                for t in current_teams
-            ):
+            key = (str(candidate.get("club") or ""), str(candidate.get("label") or ""))
+            if key in current_labels:
                 continue
-            # Check spacing, travel, etc. - simplified for now
+            if away.date in busy_dates.get(key, set()):
+                continue
+            if key in barred:
+                continue
             eligible_candidates.append(candidate)
 
         if not eligible_candidates:
             unresolved.append(away.tournament_id)
             continue
 
-        # For now, select the first eligible candidate as a basic proposal
-        # A full implementation would use participant_selection.select_participants_for_tournament
-        # with fairness, spacing, travel scoring
-        candidate = eligible_candidates[0]
+        def _rank(candidate: Mapping[str, Any]) -> tuple[int, int, str]:
+            key = (str(candidate.get("club") or ""), str(candidate.get("label") or ""))
+            return (
+                appearance_count.get(key, 0) + assignments_this_batch.get(key, 0),
+                0,
+                str(candidate.get("label") or ""),
+            )
+
+        candidate = min(eligible_candidates, key=_rank)
+        candidate_key = (str(candidate.get("club") or ""), str(candidate.get("label") or ""))
+        assignments_this_batch[candidate_key] = assignments_this_batch.get(candidate_key, 0) + 1
         proposals.append(
             RebalanceProposal(
                 tournament_id=away.tournament_id,
@@ -480,11 +579,17 @@ def preview_retire_team(
     request_id: str | None = None,
     actor: str | None = None,
     note: str = "",
+    host_club: str | None = None,
 ) -> dict[str, Any]:
     """Dry-run preview of a team retirement.
 
     Classifies all affected tournaments, shows hosted cancellations, away
     withdrawals, rebalance proposals, and material consequences.
+
+    ``host_club`` names the literal ``host_club`` identity the team's home
+    tournaments actually carry when it differs from ``club`` (a cooperative
+    team's hosting responsibility assigned to one parent club); see
+    `_classify_hosted_vs_away`.
     """
     snapshot = service.load(season)
     schedule, decisions = snapshot.schedule, snapshot.decisions
@@ -511,6 +616,7 @@ def preview_retire_team(
         future_tournaments,
         retiring_club=club,
         retiring_team_label=team_label,
+        hosting_club=host_club,
     )
 
     # Compute before fingerprints
@@ -519,7 +625,7 @@ def preview_retire_team(
 
     # Preview: rebalance proposals
     rebalance_proposals, unresolved = _generate_rebalance_proposals(
-        plan, problem, away, retiring_team_identity=identity
+        plan, problem, away, retiring_team_identity=identity, decisions=decisions
     )
 
     rebalance_preview = [
@@ -544,6 +650,8 @@ def preview_retire_team(
         rebalance_proposals=rebalance_proposals,
         accept_rebalance=False,
         problem=problem,
+        actor=_operator_identity(actor),
+        now=_now_iso(),
     )
 
     hosted_preview = cancelled_hosted
@@ -573,9 +681,14 @@ def preview_retire_team(
         ),
     )
 
-    # Verify the candidate plan
+    # Verify the candidate plan against the same accepted-exception-aware
+    # baseline `season batch` uses, so already-accepted debt elsewhere in the
+    # season is not misreported as a new hard failure of this retirement.
     verification_problem = project_into_problem(problem, records=withdrawal_records, plan=plan)
-    result = verify_candidate(plan, verification_problem)
+    before_verification = verify_canonical_candidate(dict(before_plan), verification_problem)
+    result = verify_canonical_candidate(
+        plan, verification_problem, baseline_verification=before_verification
+    )
 
     # Check hosting responsibility
     transfers = unexplained_responsibility_transfers(before_plan, plan, verification_problem)
@@ -659,6 +772,7 @@ def apply_retire_team(
     note: str = "",
     accept_rebalance: bool = False,
     rebalance_proposals: list[dict[str, Any]] | None = None,
+    host_club: str | None = None,
 ) -> dict[str, Any]:
     """Apply a team retirement atomically.
 
@@ -689,6 +803,7 @@ def apply_retire_team(
         future_tournaments,
         retiring_club=club,
         retiring_team_label=team_label,
+        hosting_club=host_club,
     )
 
     # Compute before fingerprints
@@ -713,18 +828,6 @@ def apply_retire_team(
                     )
                 )
 
-    # Transform plan (apply all changes)
-    cancelled_hosted, withdrawn_away, rebalance_applied = _transform_plan_for_retirement(
-        plan,
-        identity=identity,
-        effective_from=effective_from,
-        hosted_tournaments=hosted,
-        away_tournaments=away,
-        rebalance_proposals=rebalance_proposal_objects,
-        accept_rebalance=accept_rebalance,
-        problem=problem,
-    )
-
     # Build withdrawal record
     resolved_request_id = str(request_id or "").strip()
     if not resolved_request_id:
@@ -735,6 +838,24 @@ def apply_retire_team(
     request_actor = _operator_identity(actor)
     created_at = _now_iso()
     before_canonical_revision = canonical_state_revision(schedule, decisions)
+
+    # Transform plan (apply all changes). `request_actor`/`created_at` are
+    # also recorded in the scoped-mutation authorization parameters below and
+    # must be the exact same values the sealed-season reproduction replays,
+    # so any timestamped field this writes into the plan itself (e.g. a
+    # released guest reservation) matches byte-for-byte on reproduction.
+    cancelled_hosted, withdrawn_away, rebalance_applied = _transform_plan_for_retirement(
+        plan,
+        identity=identity,
+        effective_from=effective_from,
+        hosted_tournaments=hosted,
+        away_tournaments=away,
+        rebalance_proposals=rebalance_proposal_objects,
+        accept_rebalance=accept_rebalance,
+        problem=problem,
+        actor=request_actor,
+        now=created_at,
+    )
 
     withdrawal_records = build_withdrawal_records(
         team={"club": identity[0], "label": identity[1], "age_group": identity[2]},
@@ -749,9 +870,14 @@ def apply_retire_team(
         ),
     )
 
-    # Verify the candidate plan
+    # Verify the candidate plan against the same accepted-exception-aware
+    # baseline `season batch` uses, so already-accepted debt elsewhere in the
+    # season is not misreported as a new hard failure of this retirement.
     verification_problem = project_into_problem(problem, records=withdrawal_records, plan=plan)
-    result = verify_candidate(plan, verification_problem)
+    before_verification = verify_canonical_candidate(dict(before_plan), verification_problem)
+    result = verify_canonical_candidate(
+        plan, verification_problem, baseline_verification=before_verification
+    )
 
     if not result.get("ok", True):
         messages = "; ".join(
@@ -846,6 +972,7 @@ def apply_retire_team(
         actor=request_actor,
         note=note,
         created_at=created_at,
+        host_club=host_club,
     )
 
     updated_schedule, updated_decisions, applied_cost = service.apply_candidate(
@@ -854,6 +981,12 @@ def apply_retire_team(
         problem=verification_problem,
         actor=actor,
         operation="team_retirement",
+        # A cancelled hosting obligation deliberately releases its active
+        # guest reservations as part of the same mutation (see
+        # `_cancel_hosted_tournament`); the scoped authorization above already
+        # pins exactly which tournaments this operation may touch, so this
+        # does not open the door to an unrelated guest-state change.
+        allow_guest_slot_changes=True,
         _scoped_authorization=scoped_authorization,
         _new_change_protections=new_protections,
         _new_participation_withdrawals=withdrawal_records,

@@ -21,7 +21,7 @@ from tournament_scheduler.request_constraints import (
     compare_request_constraint_violations,
 )
 from tournament_scheduler.guest_slots import (
-    active_guest_slots,
+    release_guest_slots_for_cancellation,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
@@ -64,6 +64,8 @@ def _apply_cancel_to_plan(
     *,
     tournament_id: str,
     reason: str = "",
+    actor: str = "",
+    now: str = "",
 ) -> dict[str, Any]:
     """Mark one tournament cancelled in an in-memory plan.
 
@@ -71,6 +73,15 @@ def _apply_cancel_to_plan(
     verifier already honours. The full canonical gates decide whether a batch
     containing a cancellation is acceptable; this helper only applies the
     domain fact.
+
+    A cancelled tournament no longer needs ice or any reserved guest place,
+    so any active (``open``/``filled``) guest reservation is released as part
+    of the same cancellation instead of blocking it -- the cancellation
+    already makes clear nothing further will happen there. Cancelling never
+    silently resolves the real-world follow-up this implies: the host
+    arena and any released guest-reservation holder still have to be told
+    directly, which this returns as ``notifications_required`` so the
+    operator/report surfaces it instead of losing it.
     """
 
     tournaments = plan.get("tournaments", []) or []
@@ -79,21 +90,49 @@ def _apply_cancel_to_plan(
         raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
     if target.get("cancelled"):
         raise SeasonStateError(f"Tournament {tournament_id} is already cancelled")
-    if active_guest_slots(target):
-        raise SeasonStateError(
-            f"Cannot cancel {tournament_id}: it still has active guest reservations; "
-            "release them explicitly before cancelling"
-        )
+
+    released_guest_reservations = release_guest_slots_for_cancellation(
+        target,
+        now=now,
+        actor=actor,
+        reason="tournament_cancelled",
+    )
+
     target["cancelled"] = True
     if reason:
         target["cancellation_reason"] = reason
     else:
         target.pop("cancellation_reason", None)
+
+    host_club = str(target.get("host_club") or "")
+    arena = str(target.get("arena") or "")
+    notifications_required = [
+        f"Inform host club {host_club!r} (arena {arena!r}) that the "
+        f"{target.get('date')} {target.get('age_group')} tournament {tournament_id} is cancelled "
+        "and the booked ice is no longer needed."
+    ]
+    for record in released_guest_reservations:
+        holder = str(record.get("reserved_by") or record.get("filled_by") or "")
+        note = str(record.get("note") or "")
+        external = record.get("external_team") or {}
+        external_label = str(external.get("label") or "")
+        detail = f"guest reservation {record.get('id')} on {tournament_id}"
+        if external_label:
+            detail += f" (filled by {external_label!r})"
+        if note:
+            detail += f" -- {note}"
+        notifications_required.append(
+            f"Inform {holder or 'the reserving contact'} that their {detail} is released "
+            "because the tournament was cancelled."
+        )
+
     return {
         "tournament_id": tournament_id,
         "reason": reason,
         "original_date": target.get("date"),
         "age_group": target.get("age_group"),
+        "released_guest_reservations": released_guest_reservations,
+        "notifications_required": notifications_required,
     }
 
 
@@ -426,6 +465,8 @@ def batch_maintenance(
                     candidate_plan,
                     tournament_id=operation["tournament_id"],
                     reason=str(operation.get("reason") or ""),
+                    actor=resolved_actor,
+                    now=now,
                 )
             )
         elif op == "remove_participant":
@@ -613,8 +654,21 @@ def batch_maintenance(
     constraint_comparison = compare_request_constraint_violations(
         before_plan, candidate_plan, decisions
     )
-    before_guest_signature = _guest_reservation_signature(before_plan)
-    after_guest_signature = _guest_reservation_signature(candidate_plan)
+    # A tournament this same batch cancels is expected to release its active
+    # reservations as part of that cancellation (see `_apply_cancel_to_plan`);
+    # that is the one deliberate, fully-provenanced guest-state change this
+    # invariant must not also flag as a silent/incidental one.
+    cancelled_ids = {str(entry["tournament_id"]) for entry in applied_cancellations}
+    before_guest_signature = {
+        tid: slots
+        for tid, slots in _guest_reservation_signature(before_plan).items()
+        if tid not in cancelled_ids
+    }
+    after_guest_signature = {
+        tid: slots
+        for tid, slots in _guest_reservation_signature(candidate_plan).items()
+        if tid not in cancelled_ids
+    }
     guest_integrity_ok = before_guest_signature == after_guest_signature
 
     hosting_transfers: list[dict[str, Any]] = []

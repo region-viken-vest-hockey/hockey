@@ -434,6 +434,9 @@ def _reproduce_operation(
             str(retiring_team_identity.get("label", "")),
             str(retiring_team_identity.get("age_group", "")),
         )
+        reproduction_host_club = str(parameters_dict.get("host_club") or "") or None
+        reproduction_actor = str(parameters_dict.get("actor") or "")
+        reproduction_created_at = str(parameters_dict.get("created_at") or "")
         accept_rebalance = bool(rebalance_proposals_data)
 
         # Identify all future tournaments for the retiring team
@@ -450,6 +453,7 @@ def _reproduce_operation(
             future_tournaments,
             retiring_club=identity[0],
             retiring_team_label=identity[1],
+            hosting_club=reproduction_host_club,
         )
 
         # Filter to only the affected tournaments from parameters
@@ -462,7 +466,7 @@ def _reproduce_operation(
 
         # Generate rebalance proposals
         rebalance_proposals, _ = _generate_rebalance_proposals(
-            plan, problem, away, retiring_team_identity=identity
+            plan, problem, away, retiring_team_identity=identity, decisions=decisions
         )
 
         # Convert rebalance_proposals to RebalanceProposal objects
@@ -484,6 +488,8 @@ def _reproduce_operation(
                 plan,
                 tournament_id=hosted_t.tournament_id,
                 retiring_team_identity=identity,
+                actor=reproduction_actor,
+                now=reproduction_created_at,
             )
         for away_t in away:
             _withdraw_from_away_tournament(
@@ -747,11 +753,18 @@ def authorize_team_retirement(
     actor: str | None,
     note: str,
     created_at: str,
+    host_club: str | None = None,
 ) -> ScopedMutationAuthorization:
     """Authorize a scoped team retirement mutation.
 
     This captures the full retirement scope: cancelled hosted tournaments,
     withdrawn away participations, and optional rebalance proposals.
+
+    ``host_club`` is recorded so `_reproduce_operation` classifies hosted vs
+    away the same way the caller did for a cooperative team whose hosting
+    responsibility is assigned to one parent club (see
+    `retirement._classify_hosted_vs_away`); without it the reproduction would
+    silently diverge from the candidate it is meant to verify.
     """
     parameters: dict[str, Any] = {
         "cancelled_hosted_tournament_ids": [
@@ -771,6 +784,7 @@ def authorize_team_retirement(
         "actor": str(actor or ""),
         "note": str(note),
         "created_at": str(created_at),
+        "host_club": str(host_club) if host_club else "",
     }
     return _authorize_operation(
         schedule=schedule,

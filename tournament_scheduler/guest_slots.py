@@ -230,6 +230,56 @@ def capacity_places(tournament: Any) -> int:
     return rvv_team_count(tournament) + active_guest_slot_count(tournament)
 
 
+def release_guest_slots_for_cancellation(
+    tournament: dict,
+    *,
+    now: str,
+    actor: str,
+    reason: str = "tournament_cancelled",
+) -> List[dict]:
+    """Release every active reservation because the tournament itself is cancelled.
+
+    A cancelled tournament has no legal-shape requirement left to satisfy, so
+    releasing an active reservation here never needs a replacement team (unlike
+    :func:`release_guest_slot`, used for a *live* tournament, which must not
+    silently underfill it). This only updates the reservation lifecycle records
+    and removes any filled guest participant from ``teams``; it does not touch
+    ``cancelled``/``games``, which the caller already owns.
+
+    Returns the released records (each still carrying its ``reserved_by``/
+    ``note``/``external_team`` provenance) so the caller can tell the operator
+    exactly who reserved the place and must be informed of the cancellation.
+    """
+
+    records = [dict(item) for item in guest_slot_records(tournament)]
+    released: List[dict] = []
+    filled_labels: set[str] = set()
+    for record in records:
+        if str(record.get("status") or GUEST_SLOT_OPEN) not in ACTIVE_GUEST_SLOT_STATUSES:
+            continue
+        if str(record.get("status")) == GUEST_SLOT_FILLED:
+            external = record.get("external_team") or {}
+            label = str(external.get("label") or "")
+            if label:
+                filled_labels.add(label)
+        record["status"] = GUEST_SLOT_RELEASED
+        record["released_at"] = now
+        record["released_by"] = actor
+        record["release_reason"] = reason
+        released.append(dict(record))
+
+    if filled_labels:
+        tournament["teams"] = [
+            team
+            for team in tournament.get("teams", []) or []
+            if not (is_guest_team(team) and str(team.get("label") or "") in filled_labels)
+        ]
+
+    tournament["guest_slots"] = records
+    tournament["reserved_guest_slots"] = active_guest_slot_count(tournament)
+    return released
+
+
 def has_open_guest_slots(tournament: Any) -> bool:
     """True when at least one reserved place is still waiting for a guest."""
 

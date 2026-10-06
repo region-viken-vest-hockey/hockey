@@ -492,6 +492,7 @@ class CanonicalSeasonService:
         request_id: str | None = None,
         actor: str | None = None,
         note: str = "",
+        host_club: str | None = None,
     ) -> dict[str, Any]:
         """Dry-run preview of a team retirement.
 
@@ -508,6 +509,7 @@ class CanonicalSeasonService:
             request_id=request_id,
             actor=actor,
             note=note,
+            host_club=host_club,
         )
 
     def apply_retire_team(
@@ -523,6 +525,7 @@ class CanonicalSeasonService:
         note: str = "",
         accept_rebalance: bool = False,
         rebalance_proposals: list[dict[str, Any]] | None = None,
+        host_club: str | None = None,
     ) -> dict[str, Any]:
         """Apply a team retirement atomically.
 
@@ -540,6 +543,7 @@ class CanonicalSeasonService:
             note=note,
             accept_rebalance=accept_rebalance,
             rebalance_proposals=rebalance_proposals,
+            host_club=host_club,
         )
     def batch_maintenance(
         self,

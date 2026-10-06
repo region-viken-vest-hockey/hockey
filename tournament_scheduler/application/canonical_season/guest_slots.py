@@ -27,7 +27,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.final_verification import verify_canonical_candidate
 
 from .shared import (
     _operator_identity,
@@ -318,10 +318,22 @@ def reserve_guest_slot(
     _regenerate_tournament_games(target, resolved_problem)
     plan["tournaments"] = tournaments
 
-    result = (
-        verify_candidate(plan, resolved_problem)
+    # Verify against the same accepted-exception-aware baseline `season batch`
+    # uses, so an already-accepted booking-duration exception elsewhere in the
+    # season (unrelated to this guest-slot mutation) is reclassified as a
+    # follow-up warning here too, instead of this narrower call refusing on
+    # debt every other canonical command already treats as accepted.
+    before_verification = (
+        verify_canonical_candidate(dict(schedule["plan"]), resolved_problem)
         if resolved_problem
-        else verify_candidate(plan)
+        else verify_canonical_candidate(dict(schedule["plan"]))
+    )
+    result = (
+        verify_canonical_candidate(
+            plan, resolved_problem, baseline_verification=before_verification
+        )
+        if resolved_problem
+        else verify_canonical_candidate(plan, baseline_verification=before_verification)
     )
     if not result.get("ok", True):
         messages = "; ".join(
@@ -445,10 +457,22 @@ def fill_guest_slot(
     _regenerate_tournament_games(target, resolved_problem)
     plan["tournaments"] = tournaments
 
-    result = (
-        verify_candidate(plan, resolved_problem)
+    # Verify against the same accepted-exception-aware baseline `season batch`
+    # uses, so an already-accepted booking-duration exception elsewhere in the
+    # season (unrelated to this guest-slot mutation) is reclassified as a
+    # follow-up warning here too, instead of this narrower call refusing on
+    # debt every other canonical command already treats as accepted.
+    before_verification = (
+        verify_canonical_candidate(dict(schedule["plan"]), resolved_problem)
         if resolved_problem
-        else verify_candidate(plan)
+        else verify_canonical_candidate(dict(schedule["plan"]))
+    )
+    result = (
+        verify_canonical_candidate(
+            plan, resolved_problem, baseline_verification=before_verification
+        )
+        if resolved_problem
+        else verify_canonical_candidate(plan, baseline_verification=before_verification)
     )
     if not result.get("ok", True):
         messages = "; ".join(
@@ -580,10 +604,22 @@ def release_guest_slot(
     _regenerate_tournament_games(target, resolved_problem)
     plan["tournaments"] = tournaments
 
-    result = (
-        verify_candidate(plan, resolved_problem)
+    # Verify against the same accepted-exception-aware baseline `season batch`
+    # uses, so an already-accepted booking-duration exception elsewhere in the
+    # season (unrelated to this guest-slot mutation) is reclassified as a
+    # follow-up warning here too, instead of this narrower call refusing on
+    # debt every other canonical command already treats as accepted.
+    before_verification = (
+        verify_canonical_candidate(dict(schedule["plan"]), resolved_problem)
         if resolved_problem
-        else verify_candidate(plan)
+        else verify_canonical_candidate(dict(schedule["plan"]))
+    )
+    result = (
+        verify_canonical_candidate(
+            plan, resolved_problem, baseline_verification=before_verification
+        )
+        if resolved_problem
+        else verify_canonical_candidate(plan, baseline_verification=before_verification)
     )
     if not result.get("ok", True):
         messages = "; ".join(

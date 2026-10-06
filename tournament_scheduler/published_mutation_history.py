@@ -472,6 +472,50 @@ def replay_recorded_mutations(
                 raise PublishedMutationHistoryError("repair history is missing after_records")
             for tournament_id in _apply_after_records(projection, after_records):
                 applied.append({"event": "repair_option_applied", "tournament_id": tournament_id})
+        elif kind == "team_retirement":
+            retiring_team = details.get("retiring_team")
+            if not isinstance(retiring_team, Mapping):
+                raise PublishedMutationHistoryError("team retirement history is missing retiring_team")
+            retiring_age_group = str(retiring_team.get("age_group") or "")
+            retiring_key = _participant_key(retiring_team, retiring_age_group)
+            for hosted in details.get("cancelled_hosted") or []:
+                if not isinstance(hosted, Mapping):
+                    raise PublishedMutationHistoryError("team retirement history cancellation entry is not an object")
+                tournament_id = str(hosted.get("tournament_id") or "")
+                entry = projection.get(tournament_id)
+                if entry is not None:
+                    entry["cancelled"] = True
+                    entry["cancellation_reason"] = "team_retirement"
+                    released_ids = {
+                        str(record.get("id") or "")
+                        for record in hosted.get("released_guest_reservations") or []
+                        if isinstance(record, Mapping)
+                    }
+                    if released_ids:
+                        slots = _guest_slots(entry)
+                        for slot in slots:
+                            if _slot_identity(slot) in released_ids:
+                                slot["status"] = "released"
+                        _write_guest_slots(entry, slots)
+                    applied.append({"event": "team_retirement_cancel", "tournament_id": tournament_id})
+            for away in details.get("withdrawn_away") or []:
+                if not isinstance(away, Mapping):
+                    raise PublishedMutationHistoryError("team retirement history withdrawal entry is not an object")
+                tournament_id = str(away.get("tournament_id") or "")
+                entry = projection.get(tournament_id)
+                if entry is not None:
+                    _remove_participant_key(entry, retiring_key)
+                    applied.append({"event": "team_retirement_withdraw", "tournament_id": tournament_id})
+            for rebalance in details.get("rebalance_applied") or []:
+                if not isinstance(rebalance, Mapping):
+                    raise PublishedMutationHistoryError("team retirement history rebalance entry is not an object")
+                tournament_id = str(rebalance.get("tournament_id") or "")
+                added_team = rebalance.get("added_team")
+                entry = projection.get(tournament_id)
+                if entry is not None and isinstance(added_team, Mapping):
+                    age_group = str(entry.get("age_group") or "")
+                    _replace_participant(entry, "", _participant_key(added_team, age_group))
+                    applied.append({"event": "team_retirement_rebalance", "tournament_id": tournament_id})
         elif kind:
             raise PublishedMutationHistoryError(f"unknown canonical history event {kind!r}")
 

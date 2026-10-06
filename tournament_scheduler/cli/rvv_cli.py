@@ -3994,6 +3994,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     request_id=args.request_id,
                     actor=args.actor,
                     note=args.note,
+                    host_club=args.host_club,
                 )
             else:
                 result = service.apply_retire_team(
@@ -4007,6 +4008,7 @@ def _cmd_season(args: argparse.Namespace) -> int:
                     note=args.note,
                     accept_rebalance=args.accept_rebalance,
                     rebalance_proposals=rebalance_proposals,
+                    host_club=args.host_club,
                 )
             if args.json:
                 print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
