@@ -133,8 +133,7 @@ run_named_phase() {
       run_phase "Ruff lint" "$PYTHON_CMD" -m ruff check .
       ;;
     file-length)
-      # Disabled: the 300-line-per-file guideline is no longer enforced.
-      echo "File-length guideline check is disabled."
+      run_phase "File-length guideline check" "$PYTHON_CMD" scripts/check_file_length.py
       ;;
     quick)
       run_phase "Fast Python test suite" "$PYTHON_CMD" -m pytest --no-cov -q
