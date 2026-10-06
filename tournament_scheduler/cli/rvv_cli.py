@@ -30,6 +30,7 @@ from ..application.operator_state import (
     promote_operator_question,
     record_operator_answer,
 )
+from ..application.canonical_season_service import CanonicalSeasonService
 from .args import build_parser as _build_parser
 from .pipeline_orchestrator import (
     _cmd_calendars, _cmd_operator_audit_context, _cmd_operator_audit_evidence,

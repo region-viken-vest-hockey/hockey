@@ -25,15 +25,10 @@ from tournament_scheduler.canonical_baseline import (
     verify_canonical_locks,
 )
 from tournament_scheduler.canonical_state import (
-    CANONICAL_STATE_REVISION_KEY,
-    CHANGE_PROTECTIONS_KEY,
-    PARTICIPATION_WITHDRAWALS_KEY,
     canonical_state_revision,
     schedule_fingerprint,
 )
 from tournament_scheduler.change_protections import (
-    ACTIVE as CHANGE_PROTECTION_ACTIVE,
-    MUST_NOT_PARTICIPATE,
     build_net_roster_protections,
     protection_violations,
 )
@@ -44,18 +39,15 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
 from tournament_scheduler.participation_withdrawals import (
-    ACTIVE as WITHDRAWAL_ACTIVE,
-    SCOPE_AGE_GROUP,
     build_withdrawal_records,
     effective_from_for_tournaments,
     project_into_problem,
 )
-from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
+
 from tournament_scheduler.planning_contract import verify_candidate
 from tournament_scheduler.request_constraints import compare_request_constraint_violations
 
 from .shared import (
-    _append_decision_history,
     _now_iso,
     _operator_identity,
     _regenerate_tournament_games,

@@ -408,8 +408,6 @@ def _reproduce_operation(
         plan = copy.deepcopy(dict(reproduced_candidate))
     elif operation == OPERATION_TEAM_RETIREMENT:
         from .retirement import (
-            HostedTournament,
-            AwayTournament,
             RebalanceProposal,
             _cancel_hosted_tournament,
             _withdraw_from_away_tournament,

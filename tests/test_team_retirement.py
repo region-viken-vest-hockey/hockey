@@ -15,7 +15,6 @@ from pathlib import Path
 import pytest
 
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
-from tournament_scheduler.infrastructure.canonical_season_store import CanonicalSeasonStore
 
 
 def _build_test_season_plan() -> dict:
