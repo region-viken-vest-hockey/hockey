@@ -428,6 +428,19 @@ A genuine team/season retirement sometimes has no replacement host: the operator
 
 If all otherwise-good candidates are blocked by a prior accepted request, do not release that request automatically. Follow the supersession rules in **Process incoming club/operator change requests**.
 
+## Report what genuinely blocks publication
+
+Use the repository-owned aggregate query instead of combining findings, audit and publication JSON with ad-hoc shell/Python filters:
+
+```bash
+scripts/rvv-miniputt season blockers --season <season>
+scripts/rvv-miniputt season blockers --season <season> --json
+```
+
+The report composes the current canonical findings/resolution classifications, sealed-baseline reconciliation, export-freshness requirement, deterministic publication scope and catalog-driven full-season audit. It separates affected-tournament holds (`genuine_blockers`), global safety blockers, missing prerequisites, accepted/non-blocking authoritative facts and unchanged diagnostic planning debt. A full-season audit `FAIL` remains visible under `diagnostic_audit`; it is not rewritten to `PASS` and does not by itself override an `ELIGIBLE` deterministic publication scope.
+
+Exit codes are stable: `0` means the current deterministic scope is `ELIGIBLE` and global gates are clear; `1` means a tournament hold or global safety blocker exists; `2` means required evidence is unavailable/`NOT_CHECKABLE`. This is a read-only status query, not publication authorization, export parity for a future artifact, or permission to mutate the season.
+
 ## Repair a localized finding against the promoted season
 
 Do not re-run Stage 1–4 merely to reach the repair capabilities when the canonical season already has a valid factual baseline. Ask the repository what is actually wrong on the current revision:

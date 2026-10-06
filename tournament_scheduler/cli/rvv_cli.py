@@ -3474,6 +3474,11 @@ def _cmd_season(args: argparse.Namespace) -> int:
                         )
             return 0
 
+        if args.season_command == "blockers":
+            from .season_blockers_command import run_season_blockers
+
+            return run_season_blockers(args, console=_console)
+
         if args.season_command == "findings":
             from ..season_maintenance import list_findings
 

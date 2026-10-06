@@ -2063,6 +2063,16 @@ def build_parser() -> argparse.ArgumentParser:
     season_reconcile_config.add_argument("--dry-run", action="store_true", help="Preview the reconciliation without writing canonical state")
     season_reconcile_config.add_argument("--json", action="store_true", help="Print reconciliation result as JSON")
 
+    season_blockers = season_sub.add_parser(
+        "blockers",
+        help="Report genuine publication blockers separately from accepted and diagnostic debt",
+    )
+    season_blockers.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_blockers.add_argument(
+        "--root", default="season", help="Canonical season-state root (default: season)"
+    )
+    season_blockers.add_argument("--json", action="store_true", help="Print the stable blocker report as JSON")
+
     season_findings = season_sub.add_parser(
         "findings",
         help="List fresh, revision-bound actionable findings over canonical season state",

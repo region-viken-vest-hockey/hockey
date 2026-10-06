@@ -135,6 +135,26 @@ def test_json_commands_emit_only_machine_parseable_stdout(argv: list[str], tmp_p
     assert parsed is not None
 
 
+def test_season_blockers_not_checkable_json_is_machine_readable(tmp_path: Path) -> None:
+    result = _run_cli(
+        [
+            "season",
+            "blockers",
+            "--season",
+            "2026-2027",
+            "--root",
+            str(tmp_path / "missing-season-root"),
+            "--json",
+        ]
+    )
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert "Traceback" not in result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "NOT_CHECKABLE"
+    assert payload["exit_code"] == 2
+    assert payload["prerequisite_failures"]
+
+
 def test_season_publication_evidence_json_is_machine_readable(tmp_path: Path) -> None:
     from tests.test_published_season_sealing import _tournaments_abc, _write_canonical
 
