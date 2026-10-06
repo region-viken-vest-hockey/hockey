@@ -142,7 +142,10 @@ def test_pi_has_no_rvv_implementation_or_configuration_beyond_prompts() -> None:
     """
 
     pi_root = REPO_ROOT / ".pi"
-    runtime_only = {"logs", "lib", "runtime"}
+    runtime_only = {"logs", "lib"}
+    # .pi/runtime is created by the pi harness at runtime and is not
+    # committed; allow it at top level but do not recurse into it.
+    ignored_top_level = runtime_only | {"runtime"}
     allowed_top_level = {"prompts"}
     implementation_suffixes = {
         ".ts",
@@ -158,7 +161,7 @@ def test_pi_has_no_rvv_implementation_or_configuration_beyond_prompts() -> None:
 
     offenders: list[str] = []
     for entry in sorted(pi_root.iterdir()):
-        if entry.name in runtime_only:
+        if entry.name in ignored_top_level:
             continue
         if entry.name not in allowed_top_level:
             offenders.append(str(entry.relative_to(REPO_ROOT)))
