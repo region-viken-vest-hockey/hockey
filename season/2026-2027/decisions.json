@@ -3181,7 +3181,7 @@
       }
     }
   ],
-  "canonical_state_revision": "6a52e5597c45ef8c2ce5cb9f960cf7a5a29ad10bf1ab0cbd8e7ceb1f1e86be53",
+  "canonical_state_revision": "699156df10e3e75b610eec311cfa38d151d8a5186955e16a3f4b0ccfff1f922d",
   "change_protections": [
     {
       "created_at": "2026-09-19T20:18:18.423362+00:00",
@@ -8907,6 +8907,198 @@
       },
       "tournament_id": "rvv-0029",
       "value": "11:00"
+    },
+    {
+      "created_at": "2026-10-06T10:09:14.355725+00:00",
+      "created_by": "nicli",
+      "id": "change:ff9818156536b258",
+      "kind": "must_participate",
+      "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+      "source_event": "team_retirement",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Frisk Asker",
+        "label": "Frisk Asker Svart"
+      },
+      "tournament_id": "rvv-0030"
+    },
+    {
+      "created_at": "2026-10-06T10:09:14.355725+00:00",
+      "created_by": "nicli",
+      "id": "change:dcf2e58cf8f89703",
+      "kind": "must_not_participate",
+      "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+      "source_event": "team_retirement",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Kongsberg/Tønsberg",
+        "label": "Kongsberg/Tønsberg"
+      },
+      "tournament_id": "rvv-0030"
+    },
+    {
+      "created_at": "2026-10-06T10:09:14.355725+00:00",
+      "created_by": "nicli",
+      "id": "change:ad6bb1205fcde0f3",
+      "kind": "must_participate",
+      "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+      "source_event": "team_retirement",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Ringerike",
+        "label": "Ringerike 2"
+      },
+      "tournament_id": "rvv-0050"
+    },
+    {
+      "created_at": "2026-10-06T10:09:14.355725+00:00",
+      "created_by": "nicli",
+      "id": "change:8b60d3fd63af8697",
+      "kind": "must_not_participate",
+      "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+      "source_event": "team_retirement",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Kongsberg/Tønsberg",
+        "label": "Kongsberg/Tønsberg"
+      },
+      "tournament_id": "rvv-0050"
+    },
+    {
+      "created_at": "2026-10-06T10:09:14.355725+00:00",
+      "created_by": "nicli",
+      "id": "change:75aba8118c5ab30a",
+      "kind": "must_participate",
+      "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+      "source_event": "team_retirement",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Skien",
+        "label": "Skien"
+      },
+      "tournament_id": "rvv-0068"
+    },
+    {
+      "created_at": "2026-10-06T10:09:14.355725+00:00",
+      "created_by": "nicli",
+      "id": "change:5e14743956d6d774",
+      "kind": "must_not_participate",
+      "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+      "source_event": "team_retirement",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Kongsberg/Tønsberg",
+        "label": "Kongsberg/Tønsberg"
+      },
+      "tournament_id": "rvv-0068"
+    },
+    {
+      "created_at": "2026-10-06T10:09:14.355725+00:00",
+      "created_by": "nicli",
+      "id": "change:7bbf0fa30c31ae87",
+      "kind": "must_participate",
+      "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+      "source_event": "team_retirement",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Ringerike",
+        "label": "Ringerike 1"
+      },
+      "tournament_id": "rvv-0072"
+    },
+    {
+      "created_at": "2026-10-06T10:09:14.355725+00:00",
+      "created_by": "nicli",
+      "id": "change:eab114897a1a1cf4",
+      "kind": "must_not_participate",
+      "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+      "source_event": "team_retirement",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Kongsberg/Tønsberg",
+        "label": "Kongsberg/Tønsberg"
+      },
+      "tournament_id": "rvv-0072"
+    },
+    {
+      "created_at": "2026-10-06T10:09:14.355725+00:00",
+      "created_by": "nicli",
+      "id": "change:bc7399e2a2f8a5be",
+      "kind": "must_participate",
+      "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+      "source_event": "team_retirement",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Ringerike",
+        "label": "Ringerike 2"
+      },
+      "tournament_id": "rvv-0121"
+    },
+    {
+      "created_at": "2026-10-06T10:09:14.355725+00:00",
+      "created_by": "nicli",
+      "id": "change:8fc570e3c3d3d67c",
+      "kind": "must_not_participate",
+      "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+      "source_event": "team_retirement",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Kongsberg/Tønsberg",
+        "label": "Kongsberg/Tønsberg"
+      },
+      "tournament_id": "rvv-0121"
+    },
+    {
+      "created_at": "2026-10-06T10:09:14.355725+00:00",
+      "created_by": "nicli",
+      "id": "change:b6703ce881f9b7a6",
+      "kind": "must_participate",
+      "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+      "source_event": "team_retirement",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Skien",
+        "label": "Skien"
+      },
+      "tournament_id": "rvv-0152"
+    },
+    {
+      "created_at": "2026-10-06T10:09:14.355725+00:00",
+      "created_by": "nicli",
+      "id": "change:b5b5d62c850a3b95",
+      "kind": "must_not_participate",
+      "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+      "source_event": "team_retirement",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Kongsberg/Tønsberg",
+        "label": "Kongsberg/Tønsberg"
+      },
+      "tournament_id": "rvv-0152"
     }
   ],
   "club_booking_source_assertions": [
@@ -9601,10 +9793,13 @@
       "approved_at": "2026-09-29T17:10:53.685611+00:00",
       "approved_by": "Niclas Lindgren",
       "approved_fingerprint": "43308088bec44b74c6cb75f3a7d1b5a5b1b8054175f1c7f43a55570b264031b5",
+      "approved_placement_fingerprint": null,
       "note": "Operator confirmed all Ringerike tournaments as booked; bound to Ringerike's own calendar posting",
       "participants_locked": false,
-      "placement_locked": true,
-      "status": "approved"
+      "placement_locked": false,
+      "stale_at": "2026-10-06T10:09:21.949782+00:00",
+      "stale_reason": "approval invalidated by schedule change",
+      "status": "stale_approval"
     },
     "rvv-0070": {
       "approved_at": null,
@@ -66570,6 +66765,589 @@
       "schedule_fingerprint": "927f873cf7f2929fbe0e2eba7c6657cafca7df9824441e19d9523d8f9473c089",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "nicli",
+      "at": "2026-10-06T09:20:24.048043+00:00",
+      "details": {
+        "accepted_regressions": [
+          {
+            "age_group": "JU12",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker Orange|JU12",
+            "reason": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season; home tournament cancelled, visiting teams lose this scheduled appearance as a direct consequence of the retirement",
+            "regression": {
+              "after": 8,
+              "before": 9,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker Orange"
+          },
+          {
+            "age_group": "JU12",
+            "club": "Kongsberg/Tønsberg",
+            "code": "participation_count_changed",
+            "consequence": "Kongsberg/Tønsberg|Kongsberg/Tønsberg|JU12",
+            "reason": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season; home tournament cancelled, visiting teams lose this scheduled appearance as a direct consequence of the retirement",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Kongsberg/Tønsberg"
+          },
+          {
+            "age_group": "JU12",
+            "club": "Ringerike",
+            "code": "participation_count_changed",
+            "consequence": "Ringerike|Ringerike 2|JU12",
+            "reason": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season; home tournament cancelled, visiting teams lose this scheduled appearance as a direct consequence of the retirement",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Ringerike 2"
+          },
+          {
+            "age_group": "JU12",
+            "club": "Ringerike",
+            "code": "temporal_coverage_materially_worse",
+            "consequence": "Ringerike|Ringerike 2|JU12",
+            "reason": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season; home tournament cancelled, visiting teams lose this scheduled appearance as a direct consequence of the retirement",
+            "regression": {
+              "after": 71,
+              "before": 36,
+              "code": "temporal_coverage_materially_worse",
+              "delta": 35,
+              "threshold_days": 60
+            },
+            "team": "Ringerike 2"
+          },
+          {
+            "age_group": "JU12",
+            "club": "Skien",
+            "code": "participation_count_changed",
+            "consequence": "Skien|Skien|JU12",
+            "reason": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season; home tournament cancelled, visiting teams lose this scheduled appearance as a direct consequence of the retirement",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Skien"
+          }
+        ],
+        "after_schedule_revision": "24b70e7d8482c0d2b81e45b97254714228b6736c9e6e2b978f3bdf05b38a3ad8",
+        "before_canonical_revision": "6a52e5597c45ef8c2ce5cb9f960cf7a5a29ad10bf1ab0cbd8e7ceb1f1e86be53",
+        "before_schedule_revision": "927f873cf7f2929fbe0e2eba7c6657cafca7df9824441e19d9523d8f9473c089",
+        "cancellations": [
+          {
+            "age_group": "JU12",
+            "original_date": "2027-01-16",
+            "reason": "team_retirement",
+            "tournament_id": "rvv-0103"
+          }
+        ],
+        "changed_tournament_ids": [
+          "rvv-0103"
+        ],
+        "declared_scope": [
+          "rvv-0103"
+        ],
+        "moves": [],
+        "operational_acceptable": true,
+        "operations": [
+          {
+            "op": "cancel",
+            "reason": "team_retirement",
+            "tournament_id": "rvv-0103"
+          }
+        ],
+        "protections_added": [],
+        "removals": [],
+        "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+        "swaps": [],
+        "verification_ok": true
+      },
+      "event": "batch_maintenance",
+      "note": "Kongsberg JU12 home tournament cancelled: Kongsberg/Tønsberg cooperative team withdrew, no remaining Kongsberg JU12 team",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "24b70e7d8482c0d2b81e45b97254714228b6736c9e6e2b978f3bdf05b38a3ad8",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "nicli",
+      "at": "2026-10-06T10:09:21.949782+00:00",
+      "details": {
+        "affected_tournament_ids": [
+          "rvv-0016",
+          "rvv-0030",
+          "rvv-0050",
+          "rvv-0068",
+          "rvv-0072",
+          "rvv-0121",
+          "rvv-0152"
+        ],
+        "after_records": {
+          "rvv-0016": {
+            "age_group": "JU12",
+            "arena": "Kongsberghallen",
+            "cancellation_reason": "team_retirement",
+            "cancelled": true,
+            "date": "2026-11-22",
+            "duration_minutes": 100,
+            "end_time": "15:40",
+            "guest_slots": [
+              {
+                "external_team": null,
+                "id": "guest:rvv-0016:1",
+                "status": "released"
+              }
+            ],
+            "host_club": "Kongsberg",
+            "id": "rvv-0016",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker Svart\u001fJU12",
+              "Kongsberg/Tønsberg\u001fKongsberg/Tønsberg\u001fJU12",
+              "Ringerike\u001fRingerike 1\u001fJU12"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "14:00"
+          },
+          "rvv-0030": {
+            "age_group": "JU12",
+            "arena": "Skien ishall",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2026-12-12",
+            "duration_minutes": 100,
+            "end_time": "15:20",
+            "guest_slots": [],
+            "host_club": "Skien",
+            "id": "rvv-0030",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker Orange\u001fJU12",
+              "Frisk Asker\u001fFrisk Asker Svart\u001fJU12",
+              "Ringerike\u001fRingerike 2\u001fJU12",
+              "Skien\u001fSkien\u001fJU12"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "13:40"
+          },
+          "rvv-0050": {
+            "age_group": "JU12",
+            "arena": "Skien ishall",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2026-11-15",
+            "duration_minutes": 100,
+            "end_time": "12:55",
+            "guest_slots": [],
+            "host_club": "Skien",
+            "id": "rvv-0050",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker Svart\u001fJU12",
+              "Ringerike\u001fRingerike 1\u001fJU12",
+              "Ringerike\u001fRingerike 2\u001fJU12",
+              "Skien\u001fSkien\u001fJU12"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "11:15"
+          },
+          "rvv-0068": {
+            "age_group": "JU12",
+            "arena": "Schjongshallen",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2026-11-29",
+            "duration_minutes": 100,
+            "end_time": "11:40",
+            "guest_slots": [],
+            "host_club": "Ringerike",
+            "id": "rvv-0068",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker Svart\u001fJU12",
+              "Jutul\u001fJutul/Jar Kittens\u001fJU12",
+              "Ringerike\u001fRingerike 2\u001fJU12",
+              "Skien\u001fSkien\u001fJU12"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "10:00"
+          },
+          "rvv-0072": {
+            "age_group": "JU12",
+            "arena": "Baerum ishall",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2027-03-13",
+            "duration_minutes": 100,
+            "end_time": "20:10",
+            "guest_slots": [],
+            "host_club": "Jutul",
+            "id": "rvv-0072",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker Svart\u001fJU12",
+              "Jutul\u001fJutul/Jar Kittens\u001fJU12",
+              "Ringerike\u001fRingerike 1\u001fJU12",
+              "Skien\u001fSkien\u001fJU12"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "18:30"
+          },
+          "rvv-0121": {
+            "age_group": "JU12",
+            "arena": "Askerhallen",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2027-01-30",
+            "duration_minutes": 80,
+            "end_time": "14:20",
+            "guest_slots": [],
+            "host_club": "Frisk Asker",
+            "id": "rvv-0121",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker Orange\u001fJU12",
+              "Frisk Asker\u001fFrisk Asker Svart\u001fJU12",
+              "Ringerike\u001fRingerike 1\u001fJU12",
+              "Ringerike\u001fRingerike 2\u001fJU12"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "13:00"
+          },
+          "rvv-0152": {
+            "age_group": "JU12",
+            "arena": "Schjongshallen",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2027-02-21",
+            "duration_minutes": 100,
+            "end_time": "11:40",
+            "guest_slots": [],
+            "host_club": "Ringerike",
+            "id": "rvv-0152",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker Orange\u001fJU12",
+              "Frisk Asker\u001fFrisk Asker Svart\u001fJU12",
+              "Ringerike\u001fRingerike 2\u001fJU12",
+              "Skien\u001fSkien\u001fJU12"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "10:00"
+          }
+        },
+        "before_records": {
+          "rvv-0016": {
+            "age_group": "JU12",
+            "arena": "Kongsberghallen",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2026-11-22",
+            "duration_minutes": 100,
+            "end_time": "15:40",
+            "guest_slots": [
+              {
+                "external_team": null,
+                "id": "guest:rvv-0016:1",
+                "status": "open"
+              }
+            ],
+            "host_club": "Kongsberg",
+            "id": "rvv-0016",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker Svart\u001fJU12",
+              "Kongsberg/Tønsberg\u001fKongsberg/Tønsberg\u001fJU12",
+              "Ringerike\u001fRingerike 1\u001fJU12"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "14:00"
+          },
+          "rvv-0030": {
+            "age_group": "JU12",
+            "arena": "Skien ishall",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2026-12-12",
+            "duration_minutes": 100,
+            "end_time": "15:20",
+            "guest_slots": [],
+            "host_club": "Skien",
+            "id": "rvv-0030",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker Orange\u001fJU12",
+              "Kongsberg/Tønsberg\u001fKongsberg/Tønsberg\u001fJU12",
+              "Ringerike\u001fRingerike 2\u001fJU12",
+              "Skien\u001fSkien\u001fJU12"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "13:40"
+          },
+          "rvv-0050": {
+            "age_group": "JU12",
+            "arena": "Skien ishall",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2026-11-15",
+            "duration_minutes": 100,
+            "end_time": "12:55",
+            "guest_slots": [],
+            "host_club": "Skien",
+            "id": "rvv-0050",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker Svart\u001fJU12",
+              "Kongsberg/Tønsberg\u001fKongsberg/Tønsberg\u001fJU12",
+              "Ringerike\u001fRingerike 1\u001fJU12",
+              "Skien\u001fSkien\u001fJU12"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "11:15"
+          },
+          "rvv-0068": {
+            "age_group": "JU12",
+            "arena": "Schjongshallen",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2026-11-29",
+            "duration_minutes": 100,
+            "end_time": "11:40",
+            "guest_slots": [],
+            "host_club": "Ringerike",
+            "id": "rvv-0068",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker Svart\u001fJU12",
+              "Jutul\u001fJutul/Jar Kittens\u001fJU12",
+              "Kongsberg/Tønsberg\u001fKongsberg/Tønsberg\u001fJU12",
+              "Ringerike\u001fRingerike 2\u001fJU12"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "10:00"
+          },
+          "rvv-0072": {
+            "age_group": "JU12",
+            "arena": "Baerum ishall",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2027-03-13",
+            "duration_minutes": 100,
+            "end_time": "20:10",
+            "guest_slots": [],
+            "host_club": "Jutul",
+            "id": "rvv-0072",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker Svart\u001fJU12",
+              "Jutul\u001fJutul/Jar Kittens\u001fJU12",
+              "Kongsberg/Tønsberg\u001fKongsberg/Tønsberg\u001fJU12",
+              "Skien\u001fSkien\u001fJU12"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "18:30"
+          },
+          "rvv-0121": {
+            "age_group": "JU12",
+            "arena": "Askerhallen",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2027-01-30",
+            "duration_minutes": 80,
+            "end_time": "14:20",
+            "guest_slots": [],
+            "host_club": "Frisk Asker",
+            "id": "rvv-0121",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker Orange\u001fJU12",
+              "Frisk Asker\u001fFrisk Asker Svart\u001fJU12",
+              "Kongsberg/Tønsberg\u001fKongsberg/Tønsberg\u001fJU12",
+              "Ringerike\u001fRingerike 1\u001fJU12"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "13:00"
+          },
+          "rvv-0152": {
+            "age_group": "JU12",
+            "arena": "Schjongshallen",
+            "cancellation_reason": "",
+            "cancelled": false,
+            "date": "2027-02-21",
+            "duration_minutes": 100,
+            "end_time": "11:40",
+            "guest_slots": [],
+            "host_club": "Ringerike",
+            "id": "rvv-0152",
+            "participants": [
+              "Frisk Asker\u001fFrisk Asker Orange\u001fJU12",
+              "Frisk Asker\u001fFrisk Asker Svart\u001fJU12",
+              "Kongsberg/Tønsberg\u001fKongsberg/Tønsberg\u001fJU12",
+              "Ringerike\u001fRingerike 2\u001fJU12"
+            ],
+            "projection_schema": "rvv.operational_tournament_projection",
+            "projection_schema_version": 2,
+            "start_time": "10:00"
+          }
+        },
+        "cancelled_hosted": [
+          {
+            "arena": "Kongsberghallen",
+            "before_fingerprint": "11fa1536920dab3d37f8ed3a5e1e858ffad428a2ccf4805332c054bfae6f0a68",
+            "date": "2026-11-22",
+            "host_club": "Kongsberg",
+            "notifications_required": [
+              "Inform host club 'Kongsberg' (arena 'Kongsberghallen') that the 2026-11-22 JU12 tournament rvv-0016 is cancelled due to team retirement and the booked ice is no longer needed.",
+              "Inform niclas.lindgren@live.no that their guest reservation guest:rvv-0016:1 on rvv-0016 -- Reserved for ROVØ/external league team is released because the tournament was cancelled."
+            ],
+            "released_guest_reservations": [
+              {
+                "external_team": null,
+                "filled_at": null,
+                "id": "guest:rvv-0016:1",
+                "note": "Reserved for ROVØ/external league team",
+                "release_reason": "team_retirement",
+                "released_at": "2026-10-06T10:09:14.355725+00:00",
+                "released_by": "nicli",
+                "reserved_at": "2026-09-19T12:09:14.431743+00:00",
+                "reserved_by": "niclas.lindgren@live.no",
+                "status": "released"
+              }
+            ],
+            "tournament_id": "rvv-0016",
+            "was_on_roster": true
+          }
+        ],
+        "effective_from": "2026-10-06",
+        "expected_canonical_revision": "6c51db84f3ebe1afbb6f0aed1d2d87bdd61651bc84364a20a1562a2355917293",
+        "rebalance_applied": [
+          {
+            "added_team": {
+              "age_group": "JU12",
+              "club": "Frisk Asker",
+              "guest": false,
+              "label": "Frisk Asker Svart"
+            },
+            "tournament_id": "rvv-0030"
+          },
+          {
+            "added_team": {
+              "age_group": "JU12",
+              "club": "Ringerike",
+              "guest": false,
+              "label": "Ringerike 2"
+            },
+            "tournament_id": "rvv-0050"
+          },
+          {
+            "added_team": {
+              "age_group": "JU12",
+              "club": "Skien",
+              "guest": false,
+              "label": "Skien"
+            },
+            "tournament_id": "rvv-0068"
+          },
+          {
+            "added_team": {
+              "age_group": "JU12",
+              "club": "Ringerike",
+              "guest": false,
+              "label": "Ringerike 1"
+            },
+            "tournament_id": "rvv-0072"
+          },
+          {
+            "added_team": {
+              "age_group": "JU12",
+              "club": "Ringerike",
+              "guest": false,
+              "label": "Ringerike 2"
+            },
+            "tournament_id": "rvv-0121"
+          },
+          {
+            "added_team": {
+              "age_group": "JU12",
+              "club": "Skien",
+              "guest": false,
+              "label": "Skien"
+            },
+            "tournament_id": "rvv-0152"
+          }
+        ],
+        "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+        "retiring_team": {
+          "age_group": "JU12",
+          "club": "Kongsberg/Tønsberg",
+          "label": "Kongsberg/Tønsberg"
+        },
+        "withdrawn_away": [
+          {
+            "arena": "Skien ishall",
+            "before_fingerprint": "ef8db5b6027a102f665442bf1e94990d070a7257e830260efbdfcb7a634896bd",
+            "date": "2026-12-12",
+            "host_club": "Skien",
+            "regenerated_games": 3,
+            "tournament_id": "rvv-0030"
+          },
+          {
+            "arena": "Skien ishall",
+            "before_fingerprint": "7500641f6a2f4b203d2a0d31f37d0b64d9162f68802af3bf3b46e4f32d8732c1",
+            "date": "2026-11-15",
+            "host_club": "Skien",
+            "regenerated_games": 3,
+            "tournament_id": "rvv-0050"
+          },
+          {
+            "arena": "Schjongshallen",
+            "before_fingerprint": "5186c3c0900fe4b6e8a6f7c5dc1443f638214f51d80bb8e4dda7833913befd95",
+            "date": "2026-11-29",
+            "host_club": "Ringerike",
+            "regenerated_games": 3,
+            "tournament_id": "rvv-0068"
+          },
+          {
+            "arena": "Baerum ishall",
+            "before_fingerprint": "92ec1f66a179b3349b501a1608861809b5522643b261ad36d99d4f516edfedce",
+            "date": "2027-03-13",
+            "host_club": "Jutul",
+            "regenerated_games": 3,
+            "tournament_id": "rvv-0072"
+          },
+          {
+            "arena": "Askerhallen",
+            "before_fingerprint": "aa16b0e35d88e6692654bf3797cae1a14768ce2138024d46fd989a359430cd9f",
+            "date": "2027-01-30",
+            "host_club": "Frisk Asker",
+            "regenerated_games": 3,
+            "tournament_id": "rvv-0121"
+          },
+          {
+            "arena": "Schjongshallen",
+            "before_fingerprint": "f46c49e72457629ac174e4ed2e72991038746a8c97d89aaa3fc2ac7a730e854f",
+            "date": "2027-02-21",
+            "host_club": "Ringerike",
+            "regenerated_games": 3,
+            "tournament_id": "rvv-0152"
+          }
+        ]
+      },
+      "event": "team_retirement",
+      "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ],
   "holiday_date_exceptions": [
@@ -75837,6 +76615,33 @@
         "rvv-0139",
         "rvv-0179"
       ]
+    },
+    {
+      "age_group": "JU12",
+      "created_at": "2026-10-06T10:09:14.355725+00:00",
+      "created_by": "nicli",
+      "effective_from": "2026-11-15",
+      "id": "withdrawal:06ebbccd9eb89eea",
+      "kind": "participation_withdrawal",
+      "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "request_id": "ju12-kongsberg-tonsberg-withdrawal-2026-10-06",
+      "scope": "age_group",
+      "source_event": "participant_removal",
+      "source_revision": "6c51db84f3ebe1afbb6f0aed1d2d87bdd61651bc84364a20a1562a2355917293",
+      "status": "active",
+      "team": {
+        "age_group": "JU12",
+        "club": "Kongsberg/Tønsberg",
+        "label": "Kongsberg/Tønsberg"
+      },
+      "tournament_ids": [
+        "rvv-0030",
+        "rvv-0050",
+        "rvv-0068",
+        "rvv-0072",
+        "rvv-0121",
+        "rvv-0152"
+      ]
     }
   ],
   "rejected_booking_evidence": [
@@ -76382,7 +77187,7 @@
       "type": "team_unavailable"
     }
   ],
-  "schedule_fingerprint": "927f873cf7f2929fbe0e2eba7c6657cafca7df9824441e19d9523d8f9473c089",
+  "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
   "schema_version": 1,
   "season": "2026-2027",
   "season_lifecycle": {
@@ -215249,5 +216054,5 @@
       "tournament_id": "rvv-0031"
     }
   ],
-  "updated_at": "2026-10-02T05:49:44.449384+00:00"
+  "updated_at": "2026-10-06T10:09:21.949782+00:00"
 }
