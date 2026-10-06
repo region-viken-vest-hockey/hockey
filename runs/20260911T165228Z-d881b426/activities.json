@@ -7,9 +7,9 @@
       "category": "regionslagssamling",
       "category_code": "RS",
       "category_label": "Regionslagssamling",
-      "date": "2026-01-05",
+      "date": "2026-01-21",
       "description": null,
-      "location": null,
+      "location": "Frisk Asker",
       "raw_category": null,
       "title": "RS JU16",
       "type": "regionslagssamling",
@@ -148,6 +148,98 @@
       "raw_category": null,
       "title": "RS U15",
       "type": "regionslagssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15",
+        "JU16"
+      ],
+      "category": "annet",
+      "category_code": "AN",
+      "category_label": "Annen aktivitet",
+      "date": "2026-04-02",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "F.cup U15/JU16",
+      "type": "annet",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U18"
+      ],
+      "category": "annet",
+      "category_code": "AN",
+      "category_label": "Annen aktivitet",
+      "date": "2026-04-03",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "NM Sluttspill U18",
+      "type": "annet",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U16"
+      ],
+      "category": "annet",
+      "category_code": "AN",
+      "category_label": "Annen aktivitet",
+      "date": "2026-04-09",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "Forbundscup U16",
+      "type": "annet",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U20"
+      ],
+      "category": "annet",
+      "category_code": "AN",
+      "category_label": "Annen aktivitet",
+      "date": "2026-04-10",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "NM Sluttspill U20",
+      "type": "annet",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U13"
+      ],
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-04-10",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "S.Utvikling U13",
+      "type": "spillerutviklingssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15",
+        "JU16"
+      ],
+      "category": "annet",
+      "category_code": "AN",
+      "category_label": "Annen aktivitet",
+      "date": "2026-04-16",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "R.Turnering U15/JU16",
+      "type": "annet",
       "url": null
     },
     {
@@ -328,17 +420,17 @@
     },
     {
       "age_groups": [
-        "U13"
+        "U15"
       ],
-      "category": "spillerutviklingssamling",
-      "category_code": "SU",
-      "category_label": "Spillerutviklingssamling",
-      "date": "2026-10-20",
+      "category": "regionslagssamling",
+      "category_code": "RS",
+      "category_label": "Regionslagssamling",
+      "date": "2026-10-12",
       "description": null,
-      "location": null,
+      "location": "Ringerike",
       "raw_category": null,
-      "title": "S.Utvikling U13",
-      "type": "spillerutviklingssamling",
+      "title": "RS U15",
+      "type": "regionslagssamling",
       "url": null
     },
     {
@@ -348,9 +440,9 @@
       "category": "spillerutviklingssamling",
       "category_code": "SU",
       "category_label": "Spillerutviklingssamling",
-      "date": "2026-10-31",
+      "date": "2026-11-01",
       "description": null,
-      "location": null,
+      "location": "Frisk Asker",
       "raw_category": null,
       "title": "S.Utvikling U14",
       "type": "spillerutviklingssamling",
@@ -403,6 +495,21 @@
     },
     {
       "age_groups": [
+        "U14"
+      ],
+      "category": "annet",
+      "category_code": "AN",
+      "category_label": "Annen aktivitet",
+      "date": "2026-12-06",
+      "description": null,
+      "location": "Kongsberg",
+      "raw_category": null,
+      "title": "S Utvikling U14",
+      "type": "annet",
+      "url": null
+    },
+    {
+      "age_groups": [
         "JU16"
       ],
       "category": "regionslagssamling",
@@ -413,6 +520,21 @@
       "location": "Holmen",
       "raw_category": null,
       "title": "RS JU16",
+      "type": "regionslagssamling",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "category": "regionslagssamling",
+      "category_code": "RS",
+      "category_label": "Regionslagssamling",
+      "date": "2026-12-20",
+      "description": null,
+      "location": null,
+      "raw_category": null,
+      "title": "RS U15",
       "type": "regionslagssamling",
       "url": null
     }
@@ -455,37 +577,8 @@
       "label": "Ukjent aktivitetstype"
     }
   ],
-  "generated_at": "2026-09-08T11:28:54Z",
+  "generated_at": "2026-10-06T07:02:11Z",
   "schema_version": 2,
-  "validation_warnings": [
-    {
-      "field": "title",
-      "message": "Mangler tittel/aktivitet; raden hoppes over.",
-      "raw_value": "",
-      "row": 22,
-      "sheet": "Årshjul"
-    },
-    {
-      "field": "title",
-      "message": "Mangler tittel/aktivitet; raden hoppes over.",
-      "raw_value": "",
-      "row": 23,
-      "sheet": "Årshjul"
-    },
-    {
-      "field": "title",
-      "message": "Mangler tittel/aktivitet; raden hoppes over.",
-      "raw_value": "",
-      "row": 24,
-      "sheet": "Årshjul"
-    },
-    {
-      "field": "title",
-      "message": "Mangler tittel/aktivitet; raden hoppes over.",
-      "raw_value": "",
-      "row": 25,
-      "sheet": "Årshjul"
-    }
-  ],
+  "validation_warnings": [],
   "year": 2026
 }
