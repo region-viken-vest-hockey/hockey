@@ -1,6 +1,6 @@
 # RVV Miniputt
 
-RVV Miniputt is Region Viken Vest's repository for miniputt administration and season planning. It takes controlled team/configuration data plus calendar evidence, produces a verified tournament plan and review material, maintains the promoted operational season, and can publish a sanitized public snapshot to GitHub Pages.
+RVV Miniputt is Region Viken Vest's repository for miniputt administration across season planning, promoted-season operations, audit/export and publication. It takes controlled team/configuration data plus calendar evidence, produces a verified tournament plan and review material, maintains the promoted operational season, and can publish a sanitized public snapshot to GitHub Pages.
 
 The repository also owns two related public-data workflows: **Påmeldte lag** and the regional **aktivitetskalender**. These share publication machinery but are not part of the four-stage season-planning pipeline.
 
@@ -8,7 +8,7 @@ The repository also owns two related public-data workflows: **Påmeldte lag** an
 
 1. **Team and configuration intake** — validate/rebuild the planner roster from reviewed registrations while keeping planning settings controlled in `input.xlsx`.
 2. **Season planning** — collect calendar evidence, build candidates, verify hard rules, measure quality and export reviewable artifacts.
-3. **Promoted-season maintenance** — preserve a stable Git-backed baseline while clubs approve ice, request moves and trigger bounded replanning.
+3. **Promoted-season maintenance** — preserve a stable Git-backed baseline while reconciling accepted real-world booking facts, approvals, moves, cancellations, participant changes and bounded repairs.
 4. **Public supporting views** — generate registered-team and activity-calendar views from their own controlled inputs.
 5. **Publication** — build a privacy-checked static bundle and publish an explicitly approved snapshot to GitHub Pages.
 
