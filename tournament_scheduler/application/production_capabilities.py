@@ -232,6 +232,19 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
         status="via_batch",
     ),
     ProductionCapability(
+        key="operational_blockers",
+        tasks=("report current publication blockers", "separate accepted and diagnostic debt"),
+        boundary="canonical_read",
+        public_api=("tournament_scheduler.application.season_blockers.season_blockers",),
+        implementation_owner="tournament_scheduler/application/season_blockers.py",
+        invariants=(
+            *_CANONICAL_READ_CONTRACT,
+            "The report composes canonical findings, lifecycle reconciliation, export freshness, publication scope and audit evidence without defining new blocker semantics.",
+            "A full-season audit failure remains diagnostic when deterministic publication scope is eligible and global safety gates are clear.",
+        ),
+        focused_tests=("tests/test_season_blockers.py", "tests/test_cli_contract.py"),
+    ),
+    ProductionCapability(
         key="canonical_export",
         tasks=("materialize canonical export", "verify export projection"),
         boundary="export",
