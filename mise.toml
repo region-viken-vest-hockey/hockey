@@ -4,7 +4,7 @@ min_version = "2026.8.0"
 # The pi coding agent (operator harness) and the Node it needs. pi 1.x
 # requires node >= 22.19.0, so both are pinned here for reproducible
 # operator tooling. CI skips tool install (see .github/workflows).
-node = "22"
+node = "26"
 "npm:@earendil-works/pi-coding-agent" = "1.0.4"
 
 [tasks.bootstrap]
@@ -15,9 +15,13 @@ run = "${BOOTSTRAP:-scripts/bootstrap} $ARGS"
 description = "Reinstall Python and project dependencies"
 run = "sh ${INSTALL:-scripts/install.sh} $ARGS"
 
+[tasks.tools]
+description = "Install pinned mise tools (node, pi coding agent)"
+run = "mise install"
+
 [tasks.install]
 description = "Alias for dependency convergence"
-depends = ["sync"]
+depends = ["tools", "sync"]
 
 [tasks.check]
 description = "Run canonical repository verification"
