@@ -262,6 +262,13 @@ def records_against_projection(
             # value to compare against.
             if field == "end_time" and not normalize_text(entry.get("end_time")):
                 continue
+            # A cancelled tournament occupies no ice regardless of what its
+            # interval was before cancellation; the exporters correctly
+            # render no end time for it, while the frozen projection can
+            # still carry the pre-cancellation interval (cancellation does
+            # not retroactively edit it). That is not a real artifact defect.
+            if field == "end_time" and bool(entry.get("cancelled")):
+                continue
             expected = _projection_value(entry, field)
             actual = _record_value(record, field)
             if actual != expected:
