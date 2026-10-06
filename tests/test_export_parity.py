@@ -24,6 +24,7 @@ from tournament_scheduler.pipeline.export_parity import (
 )
 from tournament_scheduler.pipeline.export_parity.gate import publish_parity_gate
 from tournament_scheduler.season_planner import SeasonPlanner
+from tournament_scheduler.spond import SpondExporter
 
 REVISION = "rev-abc123"
 OTHER_REVISION = "rev-def456"
@@ -129,6 +130,12 @@ def _export_pair(tmp_path: Path, revision: str = REVISION) -> tuple[Path, Path, 
             "booking_status": booking,
         },
         ice_time_for_age_group=ice,
+    )
+    SpondExporter().export(
+        plan,
+        str(export_dir / "season_plan_spond.xlsx"),
+        ice_time_for_age_group=ice,
+        season_metadata={"season": "2026-2027", "canonical_revision": revision},
     )
     return export_dir, xlsx, html
 
@@ -543,6 +550,12 @@ def _canonical_export(tmp_path: Path):
         },
         ice_time_for_age_group=_ICE,
     )
+    SpondExporter().export(
+        plan,
+        str(export_dir / "season_plan_spond.xlsx"),
+        ice_time_for_age_group=_ICE,
+        season_metadata={"season": _CANONICAL_SEASON, "canonical_revision": revision},
+    )
     (export_dir / "export_manifest.json").write_text(
         json.dumps(
             {
@@ -703,3 +716,232 @@ def test_published_bundle_is_reverified_after_sanitization(tmp_path):
 
     blocked = publish_parity_gate(export_dir=bundle_dir, repo_dir=tmp_path, manifest=manifest)
     assert blocked is not None
+
+
+# ---------------------------------------------------------------------------
+# Spond byte-readback regressions
+# ---------------------------------------------------------------------------
+
+
+def _spond_sheet(export_dir: Path):
+    path = export_dir / "season_plan_spond.xlsx"
+    workbook = openpyxl.load_workbook(path)
+    sheet = workbook["Spond import"]
+    columns = {cell.value: cell.column for cell in sheet[1]}
+    return path, workbook, sheet, columns
+
+
+def _spond_rows(sheet, columns, tournament_id: str) -> list[int]:
+    return [
+        row
+        for row in range(2, sheet.max_row + 1)
+        if sheet.cell(row=row, column=columns["RVV-ID"]).value == tournament_id
+    ]
+
+
+import pytest  # noqa: E402
+
+
+@pytest.mark.parametrize(
+    ("column", "replacement", "field"),
+    [
+        ("Startdato*", "11.10.2026", "date"),
+        ("Starttidspunkt", "12:34", "start_time"),
+        ("Sted", "Feil arena", "arena"),
+        ("Vertsklubb", "Feil vert", "host_club"),
+    ],
+)
+def test_spond_changed_placement_field_fails_with_exact_diagnostic(
+    tmp_path, column, replacement, field
+):
+    export_dir, _, _ = _export_pair(tmp_path)
+    path, workbook, sheet, columns = _spond_sheet(export_dir)
+    for row in _spond_rows(sheet, columns, "rvv-0001"):
+        sheet.cell(row=row, column=columns[column]).value = replacement
+    workbook.save(path)
+
+    report = verify_export_parity(export_dir, require_spond=True)
+
+    assert report["status"] == STATUS_FAIL
+    assert any(
+        item["tournament_id"] == "rvv-0001" and item["field"] == field
+        for item in report["spond_comparison"]["mismatches"]
+    )
+
+
+@pytest.mark.parametrize("mutation", ["remove", "add", "duplicate"])
+def test_spond_participant_row_divergence_fails(tmp_path, mutation):
+    export_dir, _, _ = _export_pair(tmp_path)
+    path, workbook, sheet, columns = _spond_sheet(export_dir)
+    rows = _spond_rows(sheet, columns, "rvv-0001")
+    if mutation == "remove":
+        sheet.delete_rows(rows[0], 1)
+    else:
+        values = [sheet.cell(row=rows[0], column=column).value for column in range(1, sheet.max_column + 1)]
+        if mutation == "add":
+            values[columns["Lag"] - 1] = "Ekstra U10"
+            values[columns["Klubb"] - 1] = "Ekstra"
+        sheet.append(values)
+    workbook.save(path)
+
+    report = verify_export_parity(export_dir, require_spond=True)
+
+    assert report["status"] == STATUS_FAIL
+    if mutation == "duplicate":
+        assert any(reason["code"] == "duplicate_spond_row" for reason in report["reasons"])
+    else:
+        assert any(
+            item["tournament_id"] == "rvv-0001"
+            and item["field"] in {"participants", "participant_keys"}
+            for item in report["spond_comparison"]["mismatches"]
+        )
+
+
+@pytest.mark.parametrize("mutation", ["missing", "extra"])
+def test_spond_missing_or_extra_tournament_fails(tmp_path, mutation):
+    export_dir, _, _ = _export_pair(tmp_path)
+    path, workbook, sheet, columns = _spond_sheet(export_dir)
+    rows = _spond_rows(sheet, columns, "rvv-0002")
+    if mutation == "missing":
+        for row in reversed(rows):
+            sheet.delete_rows(row, 1)
+    else:
+        values = [sheet.cell(row=rows[0], column=column).value for column in range(1, sheet.max_column + 1)]
+        values[columns["RVV-ID"] - 1] = "rvv-extra"
+        sheet.append(values)
+    workbook.save(path)
+
+    report = verify_export_parity(export_dir, require_spond=True)
+
+    assert report["status"] == STATUS_FAIL
+    key = "missing_ids" if mutation == "missing" else "extra_ids"
+    assert report["spond_comparison"][key]
+
+
+def test_stale_spond_revision_cannot_pass_fresh_html(tmp_path):
+    export_dir, _, _ = _export_pair(tmp_path)
+    path, workbook, _, _ = _spond_sheet(export_dir)
+    metadata = workbook["Eksportmetadata"]
+    metadata.cell(row=2, column=2).value = OTHER_REVISION
+    workbook.save(path)
+
+    report = verify_export_parity(export_dir, require_spond=True)
+
+    assert report["status"] == STATUS_FAIL
+    assert any(reason["code"] == "stale_spond_revision" for reason in report["reasons"])
+
+
+def test_cancelled_tournament_is_explicitly_excluded_from_spond(tmp_path):
+    export_dir, _, _ = _export_pair(tmp_path)
+    clean = verify_export_parity(export_dir, require_spond=True)
+    assert clean["status"] == STATUS_PASS
+    assert clean["spond_comparison"]["cancelled_ids_excluded"] == ["rvv-0004"]
+
+    path, workbook, sheet, columns = _spond_sheet(export_dir)
+    source = _spond_rows(sheet, columns, "rvv-0001")[0]
+    values = [sheet.cell(row=source, column=column).value for column in range(1, sheet.max_column + 1)]
+    values[columns["RVV-ID"] - 1] = "rvv-0004"
+    sheet.append(values)
+    workbook.save(path)
+
+    report = verify_export_parity(export_dir, require_spond=True)
+    assert report["status"] == STATUS_FAIL
+    assert report["spond_comparison"]["cancelled_ids_in_spond"] == ["rvv-0004"]
+
+
+@pytest.mark.parametrize("damage", ["missing", "unparseable"])
+def test_required_spond_artifact_fails_closed(tmp_path, damage):
+    export_dir, _, _ = _export_pair(tmp_path)
+    path = export_dir / "season_plan_spond.xlsx"
+    if damage == "missing":
+        path.unlink()
+    else:
+        path.write_bytes(b"not an xlsx")
+
+    report = verify_export_parity(export_dir, require_spond=True)
+
+    assert report["status"] == STATUS_NOT_CHECKABLE
+    assert any(reason["code"] in {"artifact_missing", "artifact_unreadable"} for reason in report["reasons"])
+
+
+def _git(repo: Path, *args: str) -> str:
+    import subprocess
+
+    result = subprocess.run(
+        ["git", *args], cwd=repo, check=True, capture_output=True, text=True
+    )
+    return result.stdout.strip()
+
+
+def _published_fixture(tmp_path: Path) -> tuple[Path, Path]:
+    import shutil
+
+    generated = tmp_path / "generated"
+    generated.mkdir()
+    export_dir, _, _ = _export_pair(generated)
+    repo = tmp_path / "published-repo"
+    repo.mkdir()
+    _git(repo, "init", "-b", "main")
+    _git(repo, "config", "user.name", "Parity Test")
+    _git(repo, "config", "user.email", "parity@example.invalid")
+    (repo / "README").write_text("main", encoding="utf-8")
+    _git(repo, "add", "README")
+    _git(repo, "commit", "-m", "main")
+    _git(repo, "checkout", "--orphan", "gh-pages")
+    for child in list(repo.iterdir()):
+        if child.name != ".git":
+            child.unlink() if child.is_file() else shutil.rmtree(child)
+    latest = repo / "latest"
+    latest.mkdir()
+    for name in (
+        "season_plan.html",
+        "season_plan.xlsx",
+        "season_plan_spond.xlsx",
+        CANCELLED_TOURNAMENTS_FILENAME,
+    ):
+        shutil.copy2(export_dir / name, latest / name)
+    _git(repo, "add", "latest")
+    _git(repo, "commit", "-m", "publish")
+    return repo, latest
+
+
+def test_published_verifier_reads_current_gh_pages_bytes_and_separates_freshness(tmp_path):
+    from tournament_scheduler.pipeline.export_parity.published import (
+        verify_published_export_parity,
+    )
+
+    repo, latest = _published_fixture(tmp_path)
+    clean = verify_published_export_parity(
+        repo_dir=repo,
+        branch="gh-pages",
+        remote="missing-remote",
+        canonical_revision=REVISION,
+    )
+    assert clean["artifact_parity"]["status"] == STATUS_PASS
+    assert clean["freshness"]["status"] == "FRESH"
+    assert clean["published_commit"] == _git(repo, "rev-parse", "gh-pages")
+
+    workbook_path = latest / "season_plan_spond.xlsx"
+    workbook = openpyxl.load_workbook(workbook_path)
+    sheet = workbook["Spond import"]
+    columns = {cell.value: cell.column for cell in sheet[1]}
+    row = _spond_rows(sheet, columns, "rvv-0001")[0]
+    sheet.cell(row=row, column=columns["Sted"]).value = "Publisert feil arena"
+    workbook.save(workbook_path)
+    _git(repo, "add", "latest/season_plan_spond.xlsx")
+    _git(repo, "commit", "-m", "diverge published workbook")
+
+    divergent = verify_published_export_parity(
+        repo_dir=repo,
+        branch="gh-pages",
+        remote="missing-remote",
+        canonical_revision=REVISION,
+    )
+    assert divergent["artifact_parity"]["status"] == STATUS_FAIL
+    # Provenance can still claim the current revision while actual artifact
+    # bytes diverge; the two result dimensions must stay independent.
+    assert divergent["freshness"]["status"] == "FRESH"
+    assert any(
+        mismatch["field"] == "arena"
+        for mismatch in divergent["artifact_parity"]["spond_comparison"]["mismatches"]
+    )

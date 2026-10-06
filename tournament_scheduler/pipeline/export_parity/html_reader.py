@@ -80,12 +80,32 @@ def read_html(path: str | Path) -> ArtifactProjection:
         records = _read_payload(payload)
 
         companion = file_path.with_name(CANCELLED_TOURNAMENTS_FILENAME)
-        if companion != file_path and companion.exists():
+        companion_expected = CANCELLED_TOURNAMENTS_FILENAME in text
+        companion_exists = companion != file_path and companion.exists()
+        if companion_expected and not companion_exists:
+            projection.issues.append({
+                "code": "missing_html_companion",
+                "artifact": companion.name,
+                "message": f"required companion {companion.name} is missing",
+            })
+        if companion_exists and not companion_expected:
+            projection.issues.append({
+                "code": "unexpected_html_companion",
+                "artifact": companion.name,
+                "message": f"unexpected companion {companion.name} is not linked by the season plan",
+            })
+        if companion_exists:
             companion_text = companion.read_text(encoding="utf-8")
-            _companion_revision, companion_payload, companion_error = _parse_payload(companion_text)
+            companion_revision, companion_payload, companion_error = _parse_payload(companion_text)
             if companion_error or companion_payload is None:
                 projection.read_error = (
                     f"companion {companion.name}: {companion_error or 'unreadable payload'}"
+                )
+                return projection
+            if revision and companion_revision != revision:
+                projection.read_error = (
+                    f"companion {companion.name} revision {companion_revision!r} "
+                    f"does not match season plan revision {revision!r}"
                 )
                 return projection
             records = records + _read_payload(companion_payload)

@@ -77,6 +77,14 @@ This separation is deliberate: **raw export != public site**.
 
 The publication code manages static Pages snapshots on the `gh-pages` branch, including the current `latest/` view and retained run/history material needed for verification/rollback.
 
+Canonical season publication fails closed unless the written `season_plan.html`, cancellation companion, `season_plan.xlsx`, and `season_plan_spond.xlsx` bytes reconstruct equivalent operational projections. The Spond workbook deliberately excludes cancelled tournaments; its import rows must otherwise contain exactly one row per active participant. The same repository-owned verifier can inspect the current remote `gh-pages:latest/` bytes without rebuilding or republishing:
+
+```bash
+scripts/rvv-miniputt export-parity --published --season 2026-2027
+```
+
+The diagnostic reports mutual artifact parity separately from freshness against current canonical state, because a published bundle can be internally consistent but stale, or claim the current revision while its bytes diverge.
+
 WordPress should point to or embed these generated views. Do not maintain a second manually edited copy of the schedule in WordPress.
 
 The registered-team and activity-calendar workflows also stage a complete Pages snapshot before publishing so updating one view does not remove unrelated published content.

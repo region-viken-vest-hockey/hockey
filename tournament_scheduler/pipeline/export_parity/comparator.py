@@ -93,6 +93,65 @@ def compare_projections(
     }
 
 
+def compare_html_spond(
+    html: ArtifactProjection,
+    spond: ArtifactProjection,
+) -> dict[str, Any]:
+    """Compare HTML review facts with Spond's active per-participant rows.
+
+    Cancelled HTML tournaments are deliberately excluded from the expected
+    Spond id set. If one appears in Spond it is reported distinctly from an
+    ordinary extra row so the representation rule remains explicit.
+    """
+
+    active = {record.tournament_id: record for record in html.records if not record.cancelled}
+    cancelled = {record.tournament_id: record for record in html.records if record.cancelled}
+    imported = spond.records_by_id()
+    cancelled_ids = sorted(set(cancelled) & set(imported))
+    missing_ids = sorted(set(active) - set(imported))
+    extra_ids = sorted(set(imported) - set(active) - set(cancelled))
+    fields = (
+        "date",
+        "start_time",
+        "end_time",
+        "arena",
+        "host_club",
+        "age_group",
+        "participants",
+        "participant_keys",
+    )
+    mismatches: list[dict[str, Any]] = []
+    for tournament_id in sorted(set(active) & set(imported)):
+        expected = active[tournament_id]
+        actual = imported[tournament_id]
+        for field in fields:
+            left = expected.field(field)
+            right = actual.field(field)
+            if _values_differ(left, right):
+                mismatches.append({
+                    "tournament_id": tournament_id,
+                    "field": field,
+                    "html": _render(left),
+                    "spond": _render(right),
+                })
+    return {
+        "compared_fields": list(fields),
+        "missing_ids": missing_ids,
+        "extra_ids": extra_ids,
+        "cancelled_ids_in_spond": cancelled_ids,
+        "cancelled_ids_excluded": sorted(set(cancelled) - set(imported)),
+        "duplicate_ids": spond.duplicate_ids(),
+        "row_issues": list(spond.issues),
+        "mismatches": mismatches,
+        "record_count": {
+            "html_active": len(active),
+            "html_cancelled": len(cancelled),
+            "spond_tournaments": len(imported),
+            "spond_rows": spond.row_count,
+        },
+    }
+
+
 def _render(value: Any) -> Any:
     if isinstance(value, tuple):
         return list(value)
