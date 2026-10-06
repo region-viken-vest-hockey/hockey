@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "audit_id": "2026-10-06-post-calendar-refresh-recheck",
+  "generated_at": "2026-10-06T14:00:00+00:00",
+  "run_id": "20260911T165228Z-d881b426",
+  "export_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+  "audit_context_fingerprint": "f2c72224f74a7079db294ca79c031e104a2338cad2e2d921d78bf003dd8640f6",
+  "source_fingerprints": {
+    "input_fingerprint": {
+      "path": "input.xlsx",
+      "sha256": "427a0e92a67fd5067ffa0bba3d11c662705920f48b04d4a24c357b09a917642f"
+    },
+    "effective_config_fingerprint": null
+  },
+  "prompt_version": 2,
+  "runbook_version": "f643bceceaaa4da9",
+  "backend": "claude-interactive-harness",
+  "execution_mode": "interactive",
+  "status": "PASS",
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "Unchanged from the 2026-10-06T1102 audit: this re-export (2026-10-06T1358) has the identical export_fingerprint, confirming no canonical schedule content changed since the last PASS audit/publication. publication-evidence summary: 0 added/0 removed/0 changed vs the currently published baseline.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "export_fingerprint unchanged: 66520c67...",
+        "publication-evidence summary: added=0 removed=0 changed=0 unchanged=183"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "Unchanged; Kongsberg's two JU12 home tournaments remain cancelled (team_retirement). host_participation_summary still 0 exceptions.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "host_participation_summary.tournaments_where_host_club_not_in_participants=0"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "Unchanged; the single missing-duration tournament remains rvv-0016, cancelled with games cleared.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "duration_summary.missing_duration_count=1 (rvv-0016, cancelled)"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "No new placement/time changes since the last audit. Separately, this session re-scraped Kongsberg's and Skien's calendars fresh (calendars --refresh, both now ~2m cache age). Skien's source is status=ok. Kongsberg's source remains status=warning/partial coverage (10 dates with no fetched data) -- a pre-existing scraper limitation, not independent confirmation that Kongsberg has released the two cancelled slots on their end. That release still depends on Kongsberg acting on the notification from this retirement.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence": [
+        "sources status: Kongsberg status=warning, integrity_status=partial, coverage_proven=false",
+        "sources status: Skien status=ok"
+      ],
+      "could_not_establish": true
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "Confirmed clean season-wide (0 exceptions), unchanged.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "host_participation_summary.tournaments_where_host_club_not_in_participants=0"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt en gang per dag?",
+      "finding": "Confirmed clean season-wide (0 duplicates), unchanged.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "team_daily_participation_summary.duplicate_team_day_count=0"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "0 tournaments exceed the hard max of 3, unchanged.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "same_club_per_tournament_summary.tournaments_over_hard_max=0"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "export_parity status is PASS (0 mismatches, 0 projection_mismatches) for this fresh export (export/2026-10-06T1358), re-verified independently with `export-parity --export-dir`.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "export/2026-10-06T1358/export_parity.json: status=PASS"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?",
+      "finding": "No new issues since the prior PASS audit. Fixed and regression-tested during this session's calendar recheck: reconcile-calendar-bookings was classifying cancelled tournaments (rvv-0016/rvv-0103) against calendar evidence with no cancelled-state check; now correctly excludes them (verified live for Kongsberg: 0/9 cancelled tournaments misclassified). The two pre-existing temporal_clustering findings (Skien, Ringerike 1) and the unrelated pre-existing tournament_placement_obligation debt (season audit FAIL, blocking_finding_count=0) remain, as before, known and non-blocking.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence": [
+        "tournament_scheduler/application/canonical_season/calendars/assessment.py fix + tests/test_calendar_reconciliation_cancelled.py",
+        "season audit --json: status=FAIL, blocking_finding_count=0"
+      ],
+      "could_not_establish": false
+    }
+  ],
+  "potential_missing_rule": [],
+  "could_not_independently_establish": [
+    "Whether Kongsberg has actually released the ice for 2026-11-22 and 2027-01-16 on their own booking system -- their calendar source has unproven/partial coverage and cannot be used as evidence either way."
+  ],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+  "publication_gate_status": "clear"
+}

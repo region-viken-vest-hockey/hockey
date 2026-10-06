@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-10-06T13:58:26+00:00",
+  "basename": "season_plan",
+  "status": "PASS",
+  "primary": {
+    "kind": "xlsx",
+    "path": "season_plan.xlsx",
+    "exists": true,
+    "sha256": "f02775ab6cb96252389411d3f4149b959a4680cfac67a696d712d94236978203",
+    "season_revision": "4c54761b2040299818ed893b7081e662bb9b249ce19ac891ba175a75bf89d7cb",
+    "tournament_count": 183,
+    "duplicate_ids": [],
+    "unsupported_fields": [],
+    "read_error": null,
+    "row_count": 0,
+    "issues": []
+  },
+  "secondary": {
+    "kind": "html",
+    "path": "season_plan.html",
+    "exists": true,
+    "sha256": "8190f7041400e869d8bb106464c2e7e3a2b61baaef7e568cbbeb9626fa6a3931",
+    "season_revision": "4c54761b2040299818ed893b7081e662bb9b249ce19ac891ba175a75bf89d7cb",
+    "tournament_count": 183,
+    "duplicate_ids": [],
+    "unsupported_fields": [],
+    "read_error": null,
+    "row_count": 0,
+    "issues": []
+  },
+  "spond": {
+    "kind": "spond",
+    "path": "season_plan_spond.xlsx",
+    "exists": true,
+    "sha256": "154c73b9314619ebcc628dc4eb5217bc86930bf444fb635053d5f40d15bd5203",
+    "season_revision": "4c54761b2040299818ed893b7081e662bb9b249ce19ac891ba175a75bf89d7cb",
+    "tournament_count": 169,
+    "duplicate_ids": [],
+    "unsupported_fields": [],
+    "read_error": null,
+    "row_count": 962,
+    "issues": []
+  },
+  "canonical_revision": "4c54761b2040299818ed893b7081e662bb9b249ce19ac891ba175a75bf89d7cb",
+  "manifest_canonical_revision": null,
+  "reasons": [],
+  "comparison": {
+    "compared_fields": [
+      "date",
+      "start_time",
+      "end_time",
+      "arena",
+      "host_club",
+      "age_group",
+      "participants",
+      "games",
+      "cancelled",
+      "cancellation_reason",
+      "approval_status",
+      "locked",
+      "booking_status",
+      "booking_needs_attention"
+    ],
+    "uncheckable_fields": [],
+    "missing_ids": [],
+    "extra_ids": [],
+    "duplicate_ids": {
+      "xlsx": [],
+      "html": []
+    },
+    "mismatches": [],
+    "record_count": {
+      "xlsx": 183,
+      "html": 183
+    }
+  },
+  "spond_comparison": {
+    "compared_fields": [
+      "date",
+      "start_time",
+      "end_time",
+      "arena",
+      "host_club",
+      "age_group",
+      "participants",
+      "participant_keys"
+    ],
+    "missing_ids": [],
+    "extra_ids": [],
+    "cancelled_ids_in_spond": [],
+    "cancelled_ids_excluded": [
+      "rvv-0016",
+      "rvv-0027",
+      "rvv-0033",
+      "rvv-0038",
+      "rvv-0044",
+      "rvv-0054",
+      "rvv-0057",
+      "rvv-0078",
+      "rvv-0103",
+      "rvv-0116",
+      "rvv-0143",
+      "rvv-0163",
+      "rvv-0173",
+      "rvv-0186"
+    ],
+    "duplicate_ids": [],
+    "row_issues": [],
+    "mismatches": [],
+    "record_count": {
+      "html_active": 169,
+      "html_cancelled": 14,
+      "spond_tournaments": 169,
+      "spond_rows": 962
+    }
+  },
+  "projection_mismatches": [],
+  "unsupported_fields": [],
+  "projection_uncheckable": []
+}
