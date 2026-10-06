@@ -14,9 +14,18 @@ def add_export_parity_parser(sub: argparse._SubParsersAction) -> None:
         "export-parity",
         help="Read-only XLSX/HTML artifact parity + canonical freshness check for one export",
     )
-    parser.add_argument("--export-dir", required=True, help="Export directory holding season_plan.xlsx/.html")
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--export-dir", help="Export directory holding season-plan artifacts")
+    source.add_argument(
+        "--published",
+        action="store_true",
+        help="Read the actual latest artifacts from the authoritative gh-pages branch",
+    )
     parser.add_argument("--basename", default="season_plan", help="Artifact base name (default: season_plan)")
     parser.add_argument("--season", default=None, help="Canonical season to compare freshness against")
+    parser.add_argument("--repo-dir", default=".", help="Git repository used to resolve published artifacts")
+    parser.add_argument("--branch", default="gh-pages", help="Published Pages branch")
+    parser.add_argument("--remote", default="origin", help="Authoritative git remote for the Pages branch")
     parser.add_argument(
         "--season-root",
         default=None,

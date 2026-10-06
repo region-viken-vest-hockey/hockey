@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .comparator import compare_projections, records_against_projection
+from .comparator import compare_html_spond, compare_projections, records_against_projection
 from .freshness import evaluate_freshness
 from .html_reader import read_html
 from .records import (
@@ -25,6 +25,7 @@ from .records import (
     STATUS_PASS,
     ArtifactProjection,
 )
+from .spond_reader import read_spond
 from .xlsx_reader import read_xlsx
 
 DEFAULT_BASENAME = "season_plan"
@@ -62,8 +63,14 @@ def verify_export_parity(
     checked_at: str | None = None,
     canonical_publication: bool = False,
     canonical_lookup_failed: bool = False,
+    require_spond: bool = False,
+    require_spond_revision: bool = False,
 ) -> dict[str, Any]:
-    """Verify ``<basename>.xlsx`` against ``<basename>.html`` in *export_dir*.
+    """Verify written season-plan artifacts in *export_dir*.
+
+    The historical XLSX ↔ HTML pair remains the base contract. When
+    ``require_spond`` is true (or the Spond workbook exists), the independently
+    parsed ``season_plan_spond.xlsx`` projection is also mandatory.
 
     Artifact paths are reported as names (not absolute paths) and ``checked_at``
     may be injected from an export build timestamp so the persisted report stays
@@ -73,6 +80,9 @@ def verify_export_parity(
     root = Path(export_dir)
     primary = read_xlsx(root / f"{basename}.xlsx")
     secondary = read_html(root / f"{basename}.html")
+    spond_path = root / "season_plan_spond.xlsx"
+    check_spond = require_spond or spond_path.exists()
+    spond = read_spond(spond_path) if check_spond else None
 
     resolved_manifest = manifest if isinstance(manifest, dict) else _manifest_for(root)
     manifest_revision = str(resolved_manifest.get("canonical_revision") or "")
@@ -85,10 +95,12 @@ def verify_export_parity(
         "status": STATUS_NOT_CHECKABLE,
         "primary": primary.artifact_ref(),
         "secondary": secondary.artifact_ref(),
-        "canonical_revision": required_canonical_revision or manifest_revision or primary.season_revision or secondary.season_revision,
+        "spond": spond.artifact_ref() if spond is not None else None,
+        "canonical_revision": required_canonical_revision or manifest_revision or primary.season_revision or secondary.season_revision or (spond.season_revision if spond else ""),
         "manifest_canonical_revision": manifest_revision or None,
         "reasons": [],
         "comparison": {},
+        "spond_comparison": {},
         "projection_mismatches": [],
     }
 
@@ -99,7 +111,7 @@ def verify_export_parity(
         )
         report["reasons"] = problems
         return report
-    for projection_artifact in (primary, secondary):
+    for projection_artifact in (primary, secondary, *((spond,) if spond is not None else ())):
         problem = _unreadable(projection_artifact)
         if problem is not None:
             problems.append(problem)
@@ -121,8 +133,46 @@ def verify_export_parity(
         ]
         return report
 
+    for artifact in (primary, secondary):
+        for issue in artifact.issues:
+            problems.append({
+                "code": str(issue.get("code") or "artifact_issue"),
+                "message": str(issue.get("message") or "Invalid artifact companion"),
+                "detail": issue,
+            })
+
     comparison = compare_projections(primary, secondary)
     report["comparison"] = comparison
+    spond_comparison: dict[str, Any] = {}
+    if spond is not None:
+        spond_comparison = compare_html_spond(secondary, spond)
+        report["spond_comparison"] = spond_comparison
+        if spond_comparison["missing_ids"]:
+            problems.append({
+                "code": "spond_missing_tournaments",
+                "message": "Spond is missing active tournament id(s): " + ", ".join(spond_comparison["missing_ids"]),
+            })
+        if spond_comparison["extra_ids"]:
+            problems.append({
+                "code": "spond_extra_tournaments",
+                "message": "Spond has extra tournament id(s): " + ", ".join(spond_comparison["extra_ids"]),
+            })
+        if spond_comparison["cancelled_ids_in_spond"]:
+            problems.append({
+                "code": "cancelled_tournaments_in_spond",
+                "message": "Cancelled tournament id(s) must be absent from Spond: " + ", ".join(spond_comparison["cancelled_ids_in_spond"]),
+            })
+        if spond_comparison["mismatches"]:
+            problems.append({
+                "code": "spond_field_mismatch",
+                "message": f"{len(spond_comparison['mismatches'])} field-level mismatch(es) between HTML and Spond",
+            })
+        for issue in spond_comparison["row_issues"]:
+            problems.append({
+                "code": str(issue.get("code") or "spond_row_issue"),
+                "message": str(issue.get("message") or "Invalid Spond import row"),
+                "detail": issue,
+            })
     if comparison["missing_ids"]:
         problems.append(
             {"code": "missing_ids", "message": f"HTML is missing tournament id(s): {', '.join(comparison['missing_ids'])}"}
@@ -187,12 +237,30 @@ def verify_export_parity(
         canonical_required=canonical_publication,
         lookup_failed=canonical_lookup_failed,
     )
+    if spond is not None:
+        expected_revision = required_canonical_revision or manifest_revision or primary.season_revision or secondary.season_revision
+        if expected_revision and not spond.season_revision and require_spond_revision:
+            freshness_not_checkable.append({
+                "code": "spond_missing_revision",
+                "message": "Spond workbook does not carry canonical revision metadata; re-export before publishing",
+            })
+        elif expected_revision and spond.season_revision and spond.season_revision != expected_revision:
+            freshness_failures.append({
+                "code": "stale_spond_revision",
+                "message": f"Spond revision {spond.season_revision!r} does not match expected revision {expected_revision!r}",
+            })
     problems.extend(freshness_failures)
     problems.extend(freshness_not_checkable)
 
     report["reasons"] = problems
+    hard_failure_codes = {
+        "missing_ids", "extra_ids", "duplicate_ids", "field_mismatch", "projection_mismatch",
+        "spond_missing_tournaments", "spond_extra_tournaments", "cancelled_tournaments_in_spond",
+        "spond_field_mismatch", "duplicate_spond_row", "unmatched_spond_row", "inconsistent_spond_tournament",
+        "missing_html_companion", "unexpected_html_companion",
+    }
     if freshness_failures or any(
-        problem["code"] in {"missing_ids", "extra_ids", "duplicate_ids", "field_mismatch", "projection_mismatch"}
+        problem["code"] in hard_failure_codes
         for problem in problems
     ):
         report["status"] = STATUS_FAIL

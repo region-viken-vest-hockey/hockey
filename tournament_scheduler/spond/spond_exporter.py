@@ -72,6 +72,7 @@ class SpondExporter:
         club: str | None = None,
         round_length_for_age_group: Optional[dict[str, int]] = None,
         ice_time_for_age_group: Optional[dict[str, int]] = None,
+        season_metadata: Optional[dict[str, str]] = None,
     ) -> str:
         """Build and save a Spond-compatible Excel workbook to *output_path*."""
         wb = openpyxl.Workbook()
@@ -93,6 +94,13 @@ class SpondExporter:
         self._style_header_row(sheet, 1)
         self._configure_sheet(sheet)
         self._autosize_columns(sheet)
+        if season_metadata:
+            metadata = wb.create_sheet("Eksportmetadata")
+            metadata.append(["Felt", "Verdi"])
+            metadata.append(["Kanonisk revisjon", str(season_metadata.get("canonical_revision") or "")])
+            metadata.append(["Sesong", str(season_metadata.get("season") or "")])
+            self._style_header_row(metadata, 1)
+            self._autosize_columns(metadata)
 
         out = Path(output_path)
         out.parent.mkdir(parents=True, exist_ok=True)

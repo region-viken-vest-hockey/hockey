@@ -151,6 +151,8 @@ def publish_parity_gate(
         manifest=resolved_manifest,
         canonical_publication=is_canonical,
         canonical_lookup_failed=is_canonical and not freshness.determined,
+        require_spond=is_canonical,
+        require_spond_revision=is_canonical,
     )
     if report["status"] == STATUS_PASS:
         return None
@@ -162,20 +164,27 @@ def publish_parity_gate(
         f"export_parity_mismatch={mismatch.get('tournament_id')}:{mismatch.get('field')}"
         for mismatch in mismatches[:20]
     ]
+    spond_mismatches = (report.get("spond_comparison") or {}).get("mismatches") or []
+    spond_evidence = [
+        f"spond_parity_mismatch={mismatch.get('tournament_id')}:{mismatch.get('field')}"
+        for mismatch in spond_mismatches[:20]
+    ]
     projection_mismatches = report.get("projection_mismatches") or []
     projection_evidence = [
         f"export_parity_projection_mismatch={mismatch.get('tournament_id')}:{mismatch.get('field')}"
         for mismatch in projection_mismatches[:20]
     ]
     return CapabilityResult.failed(
-        f"Publisering blokkert: XLSX/HTML-artefaktparitet er {report['status']}. {detail}",
+        f"Publisering blokkert: XLSX/HTML/Spond-artefaktparitet er {report['status']}. {detail}",
         capability="pages_publish",
         evidence=[
             f"export_parity_status={report['status']}",
             f"xlsx_sha256={report['primary'].get('sha256')}",
             f"html_sha256={report['secondary'].get('sha256')}",
+            f"spond_sha256={(report.get('spond') or {}).get('sha256')}",
             f"canonical_revision={report.get('canonical_revision')}",
             *mismatch_evidence,
+            *spond_evidence,
             *projection_evidence,
             "export_parity=" + json.dumps(report, ensure_ascii=False),
         ],

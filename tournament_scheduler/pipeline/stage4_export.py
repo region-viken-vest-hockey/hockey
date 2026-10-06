@@ -927,6 +927,10 @@ def run(
             spond_path,
             round_length_for_age_group=round_length_for_age_group,
             ice_time_for_age_group=ice_time_for_age_group,
+            season_metadata={
+                "canonical_revision": str(canonical_revision or ""),
+                "season": str(canonical_season or ""),
+            },
         )
         # Register each published artifact independently so a failure of the
         # second export never silently drops the link to a workbook that was
@@ -1110,6 +1114,8 @@ def run(
                 manifest={},
                 expected_projection=schedule_projection,
                 checked_at=generated_at,
+                require_spond=expected_season_pair,
+                require_spond_revision=bool(canonical_revision),
             )
             write_parity_report(primary_export_path, export_parity)
             if export_parity["status"] == "FAIL":
@@ -1118,7 +1124,7 @@ def run(
                     for reason in export_parity.get("reasons", [])
                 ]
                 errors.append(
-                    f"XLSX/HTML-artefaktparitet: {export_parity['status']} — "
+                    f"XLSX/HTML/Spond-artefaktparitet: {export_parity['status']} — "
                     + "; ".join(details[:5])
                 )
             elif export_parity["status"] == "NOT_CHECKABLE":
@@ -1137,16 +1143,16 @@ def run(
                 ]
                 if expected_season_pair and missing_half:
                     errors.append(
-                        f"XLSX/HTML-artefaktparitet: {export_parity['status']} — "
+                        f"XLSX/HTML/Spond-artefaktparitet: {export_parity['status']} — "
                         + "; ".join(details[:5])
                     )
                 else:
                     logger.warning(
-                        "XLSX/HTML-artefaktparitet kunne ikke verifiseres: %s",
+                        "XLSX/HTML/Spond-artefaktparitet kunne ikke verifiseres: %s",
                         "; ".join(details),
                     )
         except Exception as exc:  # noqa: BLE001 - parity must fail closed
-            errors.append(f"Kunne ikke verifisere XLSX/HTML-artefaktparitet: {exc}")
+            errors.append(f"Kunne ikke verifisere XLSX/HTML/Spond-artefaktparitet: {exc}")
 
     lifecycle_manifest = None
     pruned_exports: list[str] = []

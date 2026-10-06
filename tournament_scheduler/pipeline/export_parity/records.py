@@ -222,6 +222,10 @@ class ArtifactProjection:
     # Fields the format genuinely cannot carry (never silently treated as equal).
     unsupported_fields: list[str] = field(default_factory=list)
     read_error: str = ""
+    # Structured format-specific row diagnostics (for example duplicate Spond
+    # participant rows). These are parsed facts, not read failures.
+    issues: list[dict[str, Any]] = field(default_factory=list)
+    row_count: int = 0
 
     @property
     def readable(self) -> bool:
@@ -250,6 +254,8 @@ class ArtifactProjection:
             "duplicate_ids": self.duplicate_ids(),
             "unsupported_fields": list(self.unsupported_fields),
             "read_error": self.read_error or None,
+            "row_count": self.row_count,
+            "issues": list(self.issues),
         }
 
 
