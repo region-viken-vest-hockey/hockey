@@ -223,6 +223,12 @@ def _classify_club_calendar_bookings(
     for tournament in plan.get("tournaments", []) or []:
         if str(tournament.get("host_club") or "") != club:
             continue
+        if tournament.get("cancelled"):
+            # A cancelled tournament occupies no ice; there is nothing to
+            # confirm against a calendar event, and classifying it anyway
+            # would persist a meaningless "needs confirmation" booking-
+            # evidence record for a slot that no longer exists.
+            continue
         tournament_id = str(tournament.get("id") or "")
         if tournament_id in confirmed_by_tournament:
             # Only an explicit operator/harness-validated association is proof that
