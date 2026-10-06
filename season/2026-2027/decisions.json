@@ -10889,10 +10889,10 @@
   },
   "export_state": {
     "calendar_fingerprint": "e29a104f0dcf7fe91d1bfeca8ed50d1a99c8e563ae7a79084ee1884f83cb480f",
-    "export_dir": "export/2026-10-02T0547",
-    "fresh_at": "2026-10-02T05:47:51.285625+00:00",
-    "fresh_by": "niclasl",
-    "fresh_canonical_revision": "c7aa1bd1fe46470b7bc630c8757475c34ac9b66280a3783e94786092956050c9",
+    "export_dir": "export/2026-10-06T1102",
+    "fresh_at": "2026-10-06T11:04:06.275606+00:00",
+    "fresh_by": "nicli",
+    "fresh_canonical_revision": "699156df10e3e75b610eec311cfa38d151d8a5186955e16a3f4b0ccfff1f922d",
     "requires_fresh_audit": true,
     "requires_fresh_export": false,
     "stale_at": "2026-09-30T20:15:29.486280+00:00",
@@ -67344,6 +67344,22 @@
       },
       "event": "team_retirement",
       "note": "Kongsberg/Tønsberg JU12 cooperative team withdrawn from season",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "nicli",
+      "at": "2026-10-06T11:04:06.275606+00:00",
+      "details": {
+        "canonical_state_revision": "699156df10e3e75b610eec311cfa38d151d8a5186955e16a3f4b0ccfff1f922d",
+        "export_dir": "export/2026-10-06T1102",
+        "previous_export_status": "fresh",
+        "previous_requires_fresh_export": false
+      },
+      "event": "mark_export_fresh",
+      "note": "canonical export",
       "previous_fingerprint": null,
       "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
       "tournament_fingerprint": null,
@@ -216054,5 +216070,5 @@
       "tournament_id": "rvv-0031"
     }
   ],
-  "updated_at": "2026-10-06T10:09:21.949782+00:00"
+  "updated_at": "2026-10-06T11:04:06.275606+00:00"
 }
