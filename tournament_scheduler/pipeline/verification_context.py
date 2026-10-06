@@ -103,12 +103,41 @@ def _resolve_reviewed_export_context(
             "no reviewed Stage 4 export found in this workspace; verify and export "
             "the exact candidate first."
         )
-    export_status = str(envelope.get("status") or "")
-    if export_status != StageStatus.DONE.value or envelope.get("stale"):
-        raise _fail(
-            "the Stage 4 export is not a completed, non-stale reviewed handoff "
-            f"(status={export_status or 'unknown'}, stale={bool(envelope.get('stale'))})."
-        )
+
+    # A canonical-season export (`season export`, used for published-season
+    # maintenance: cancel, withdraw, retire-team, batch, move, etc.) is built
+    # and verified entirely from canonical `season/<season>/` state and is
+    # never routed back through Stage 1-3. Its own freshness signal --
+    # `stale_export`, set revision-bound at export time from
+    # `export_freshness`/`mark_export_fresh` -- is authoritative for it. The
+    # generic envelope `status`/`stale` flags instead describe the Stage 1-4
+    # *planning* pipeline's run chain, which cascades stale from an upstream
+    # change such as an edited registration workbook (`input.xlsx`). That
+    # cascade exists to protect a from-scratch plan still being built from
+    # that workbook; a promoted/sealed season's maintenance export no longer
+    # depends on it at all, so an unrelated input-workbook edit must never
+    # block publishing a fresh canonical export (issue #624 follow-up).
+    is_canonical_export = bool(export_checkpoint.get("is_canonical_season_export"))
+    if is_canonical_export:
+        if bool(export_checkpoint.get("stale_export")):
+            raise _fail(
+                "the canonical season export is stale for its own canonical revision "
+                f"({export_checkpoint.get('canonical_revision')!r}); re-run `season export` "
+                "from the current canonical state."
+            )
+        checkpoint_errors = export_checkpoint.get("errors") or []
+        if checkpoint_errors:
+            raise _fail(
+                "the canonical season export recorded error(s): "
+                + "; ".join(str(item) for item in checkpoint_errors)
+            )
+    else:
+        export_status = str(envelope.get("status") or "")
+        if export_status != StageStatus.DONE.value or envelope.get("stale"):
+            raise _fail(
+                "the Stage 4 export is not a completed, non-stale reviewed handoff "
+                f"(status={export_status or 'unknown'}, stale={bool(envelope.get('stale'))})."
+            )
 
     context = export_checkpoint.get("verification_context")
     if not isinstance(context, dict):
@@ -148,7 +177,7 @@ def _resolve_reviewed_export_context(
         )
 
     context_run_id = context.get("run_id")
-    if require_current_run:
+    if require_current_run and not is_canonical_export:
         current_run_id = RunManifest(work_dir).read().get("run_id")
         if not context_run_id or context_run_id != current_run_id:
             raise _fail(
