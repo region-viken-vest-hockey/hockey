@@ -18,5 +18,12 @@ Distinguish a new tournament obligation from an existing unplaced obligation. Ch
 ## Change roster
 Differentiate one-tournament replacement, true two-tournament swap, removal without replacement, season/age-group withdrawal, guest-place change and registration-set change. Use the matching dry-run in `season.md`; evaluate consequences for every displaced and added team. Never cross age groups or treat the displaced team as free capacity. Use atomic batch for coupled changes; explicit acceptance is required for named material regressions. A team rename uses the identity correction path, not roster replacement.
 
+## Team retirement / season-age withdrawal
+Before treating a season/age-group withdrawal as roster removals, determine whether the withdrawing team or club owns any future hosting obligations in that age group. A genuine team retirement is not equivalent to `remove-participant` and must not leave an active home tournament behind with only visiting teams.
+
+Classify future affected tournaments from the effective date into hosted obligations and away participation. Hosted obligations must be cancelled or otherwise explicitly resolved as hosting obligations; do not silently transfer hosting responsibility. Away appearances use the durable participation-withdrawal path and preserve completed/historical participation. After the withdrawal, evaluate affected away tournaments for safe same-age rebalancing using booked-reality participant fairness, spacing, travel, accepted requests/protections and locks; unresolved vacancies may remain explicit rather than forcing a materially worse substitution.
+
+Use a repository-owned retirement preview/apply capability when available. Until that first-class capability exists, do not claim that a batch of participant removals fully implements team retirement; report the capability gap and use only supported canonical operations with explicit operator review of hosted cancellations, away withdrawals and rebalance consequences. Retirement is scoped published-season maintenance, not authority to reopen planning or globally replan the season.
+
 ## Repair
 Inspect fresh findings, direct options and bounded search; preserve valid placements when only roster is defective. Use the repository's verified option, operational-acceptability and consequence gates. Search exhaustion is not infeasibility. Do not mutate the season through temporary moves merely to expose another option.
