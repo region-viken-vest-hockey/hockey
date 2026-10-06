@@ -68,6 +68,7 @@ from .canonical_season import (
     replacement as _replacement,
     roster as _roster,
     team_rename as _team_rename,
+    retirement as _retirement,
     withdrawal as _withdrawal,
 )
 from .canonical_season.shared import (
@@ -479,6 +480,67 @@ class CanonicalSeasonService:
     ) -> dict[str, Any]:
         return _withdrawal.release_participation_withdrawals(self, season=season, withdrawal_ids=withdrawal_ids, request_id=request_id, actor=actor, note=note, restore_participants=restore_participants)
 
+
+    def preview_retire_team(
+        self,
+        *,
+        season: str,
+        club: str,
+        team_label: str,
+        age_group: str,
+        effective_from: str,
+        request_id: str | None = None,
+        actor: str | None = None,
+        note: str = "",
+    ) -> dict[str, Any]:
+        """Dry-run preview of a team retirement.
+
+        Classifies all affected tournaments, shows hosted cancellations, away
+        withdrawals, rebalance proposals, and material consequences.
+        """
+        return _retirement.preview_retire_team(
+            self,
+            season=season,
+            club=club,
+            team_label=team_label,
+            age_group=age_group,
+            effective_from=effective_from,
+            request_id=request_id,
+            actor=actor,
+            note=note,
+        )
+
+    def apply_retire_team(
+        self,
+        *,
+        season: str,
+        club: str,
+        team_label: str,
+        age_group: str,
+        effective_from: str,
+        request_id: str,
+        actor: str | None = None,
+        note: str = "",
+        accept_rebalance: bool = False,
+        rebalance_proposals: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Apply a team retirement atomically.
+
+        This is the single canonical mutation boundary for team retirement.
+        """
+        return _retirement.apply_retire_team(
+            self,
+            season=season,
+            club=club,
+            team_label=team_label,
+            age_group=age_group,
+            effective_from=effective_from,
+            request_id=request_id,
+            actor=actor,
+            note=note,
+            accept_rebalance=accept_rebalance,
+            rebalance_proposals=rebalance_proposals,
+        )
     def batch_maintenance(
         self,
         *,

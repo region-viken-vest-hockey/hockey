@@ -42,6 +42,7 @@ OPERATION_PARTICIPANT_REPLACEMENT = "participant_replacement"
 OPERATION_PARTICIPANT_REMOVAL = "participant_removal"
 OPERATION_PARTICIPANT_RESTORATION = "participant_restoration"
 OPERATION_BOUNDED_REPAIR = "bounded_repair"
+OPERATION_TEAM_RETIREMENT = "team_retirement"
 
 _PERMITTED_HISTORY_EVENT = {
     OPERATION_PARTICIPANT_SWAP: "participant_swap",
@@ -49,6 +50,7 @@ _PERMITTED_HISTORY_EVENT = {
     OPERATION_PARTICIPANT_REMOVAL: "participant_removal",
     OPERATION_PARTICIPANT_RESTORATION: "participant_restoration",
     OPERATION_BOUNDED_REPAIR: "repair_option_applied",
+    OPERATION_TEAM_RETIREMENT: "team_retirement",
 }
 
 # Exactly the plan fields excluded from the whole-plan comparison: the
@@ -404,6 +406,96 @@ def _reproduce_operation(
         if not isinstance(reproduced_candidate, Mapping):
             raise SeasonStateError("Refusing bounded repair: reproduction returned no candidate")
         plan = copy.deepcopy(dict(reproduced_candidate))
+    elif operation == OPERATION_TEAM_RETIREMENT:
+        from .retirement import (
+            HostedTournament,
+            AwayTournament,
+            RebalanceProposal,
+            _cancel_hosted_tournament,
+            _withdraw_from_away_tournament,
+            _apply_rebalance_proposals,
+            _identify_retiring_team,
+            _classify_hosted_vs_away,
+            _compute_before_fingerprints,
+            _generate_rebalance_proposals,
+        )
+
+        # Reproduce the team retirement transformation from parameters
+        parameters_dict = dict(parameters)
+        cancelled_hosted_ids = [
+            str(item) for item in parameters_dict.get("cancelled_hosted_tournament_ids", []) if str(item)
+        ]
+        withdrawn_away_ids = [
+            str(item) for item in parameters_dict.get("withdrawn_away_tournament_ids", []) if str(item)
+        ]
+        rebalance_proposals_data = parameters_dict.get("rebalance_proposals", []) or []
+        rebalance_applied_data = parameters_dict.get("rebalance_applied", []) or []
+        retiring_team_identity = parameters_dict.get("retiring_team_identity", {})
+        identity = (
+            str(retiring_team_identity.get("club", "")),
+            str(retiring_team_identity.get("label", "")),
+            str(retiring_team_identity.get("age_group", "")),
+        )
+        accept_rebalance = bool(rebalance_proposals_data)
+
+        # Identify all future tournaments for the retiring team
+        _, future_tournaments = _identify_retiring_team(
+            plan,
+            club=identity[0],
+            team_label=identity[1],
+            age_group=identity[2],
+            effective_from="",  # All future tournaments from the plan
+        )
+
+        # Classify hosted vs away
+        hosted, away = _classify_hosted_vs_away(
+            future_tournaments,
+            retiring_club=identity[0],
+            retiring_team_label=identity[1],
+        )
+
+        # Filter to only the affected tournaments from parameters
+        hosted = [h for h in hosted if h.tournament_id in cancelled_hosted_ids]
+        away = [a for a in away if a.tournament_id in withdrawn_away_ids]
+
+        # Compute before fingerprints
+        _compute_before_fingerprints(hosted, decisions)
+        _compute_before_fingerprints(away, decisions)
+
+        # Generate rebalance proposals
+        rebalance_proposals, _ = _generate_rebalance_proposals(
+            plan, problem, away, retiring_team_identity=identity
+        )
+
+        # Convert rebalance_proposals to RebalanceProposal objects
+        rebalance_proposal_objects = [
+            RebalanceProposal(
+                tournament_id=p["tournament_id"],
+                vacancy_host_club=p["vacancy_host_club"],
+                candidate_club=p["candidate_club"],
+                candidate_label=p["candidate_label"],
+                candidate_age_group=p["candidate_age_group"],
+                reason=p.get("reason", "retirement_vacancy_rebalance"),
+            )
+            for p in rebalance_proposals_data
+        ]
+
+        # Apply transformations
+        for hosted_t in hosted:
+            _cancel_hosted_tournament(
+                plan,
+                tournament_id=hosted_t.tournament_id,
+                retiring_team_identity=identity,
+            )
+        for away_t in away:
+            _withdraw_from_away_tournament(
+                plan,
+                tournament_id=away_t.tournament_id,
+                retiring_team_identity=identity,
+                problem=problem,
+            )
+        if accept_rebalance and rebalance_proposal_objects:
+            _apply_rebalance_proposals(plan, rebalance_proposal_objects, problem)
     else:
         raise SeasonStateError(f"Refusing {operation}: unknown scoped mutation operation {operation!r}")
 
@@ -640,6 +732,55 @@ def authorize_bounded_repair(
             "allow_host_confirmation": bool(allow_host_confirmation),
         },
         description="bounded repair",
+    )
+
+
+def authorize_team_retirement(
+    *,
+    schedule: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+    candidate: Mapping[str, Any],
+    cancelled_hosted_tournament_ids: Iterable[str],
+    withdrawn_away_tournament_ids: Iterable[str],
+    rebalance_applied: list[dict[str, Any]],
+    rebalance_proposals: list[dict[str, Any]],
+    retiring_team_identity: tuple[str, str, str],
+    request_id: str,
+    actor: str | None,
+    note: str,
+    created_at: str,
+) -> ScopedMutationAuthorization:
+    """Authorize a scoped team retirement mutation.
+
+    This captures the full retirement scope: cancelled hosted tournaments,
+    withdrawn away participations, and optional rebalance proposals.
+    """
+    parameters: dict[str, Any] = {
+        "cancelled_hosted_tournament_ids": [
+            str(item) for item in cancelled_hosted_tournament_ids if str(item)
+        ],
+        "withdrawn_away_tournament_ids": [
+            str(item) for item in withdrawn_away_tournament_ids if str(item)
+        ],
+        "rebalance_applied": rebalance_applied,
+        "rebalance_proposals": rebalance_proposals,
+        "retiring_team_identity": {
+            "club": retiring_team_identity[0],
+            "label": retiring_team_identity[1],
+            "age_group": retiring_team_identity[2],
+        },
+        "request_id": str(request_id),
+        "actor": str(actor or ""),
+        "note": str(note),
+        "created_at": str(created_at),
+    }
+    return _authorize_operation(
+        schedule=schedule,
+        decisions=decisions,
+        candidate=candidate,
+        operation=OPERATION_TEAM_RETIREMENT,
+        parameters=parameters,
+        description="team retirement",
     )
 
 

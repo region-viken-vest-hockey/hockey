@@ -2391,6 +2391,24 @@ def build_parser() -> argparse.ArgumentParser:
     season_revoke_acceptance.add_argument("--json", action="store_true", help="Print the revoke result as JSON")
 
     # stage3
+
+    season_retire_team = season_sub.add_parser(
+        "retire-team",
+        help="Retire a team: cancel its future hosting obligations and withdraw from away tournaments",
+    )
+    season_retire_team.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_retire_team.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_retire_team.add_argument("--club", required=True, help="Club of the retiring team (host club for home tournaments)")
+    season_retire_team.add_argument("--team", required=True, help="Team label to retire")
+    season_retire_team.add_argument("--age-group", required=True, help="Age group of the retiring team")
+    season_retire_team.add_argument("--effective-from", required=True, help="Effective date YYYY-MM-DD (tournaments on/after this date)")
+    season_retire_team.add_argument("--request-id", required=True, help="Stable request id for audit traceability")
+    season_retire_team.add_argument("--actor", default=None, help="Operator identity")
+    season_retire_team.add_argument("--note", default="", help="Retirement reason/note for decisions history")
+    season_retire_team.add_argument("--accept-rebalance", action="store_true", help="Accept rebalance proposals for affected away tournaments")
+    season_retire_team.add_argument("--rebalance-proposals", default=None, help="JSON file with rebalance proposals to accept (required with --accept-rebalance)")
+    season_retire_team.add_argument("--dry-run", action="store_true", help="Preview without writing canonical state")
+    season_retire_team.add_argument("--json", action="store_true", help="Print the retirement preview/result as JSON")
     stage3 = sub.add_parser(
         "stage3",
         help="Inspect the explicit interactive Stage 3 session/state machine",

@@ -23,7 +23,31 @@ Before treating a season/age-group withdrawal as roster removals, determine whet
 
 Classify future affected tournaments from the effective date into hosted obligations and away participation. Hosted obligations must be cancelled or otherwise explicitly resolved as hosting obligations; do not silently transfer hosting responsibility. Away appearances use the durable participation-withdrawal path and preserve completed/historical participation. After the withdrawal, evaluate affected away tournaments for safe same-age rebalancing using booked-reality participant fairness, spacing, travel, accepted requests/protections and locks; unresolved vacancies may remain explicit rather than forcing a materially worse substitution.
 
-Use a repository-owned retirement preview/apply capability when available. Until that first-class capability exists, do not claim that a batch of participant removals fully implements team retirement; report the capability gap and use only supported canonical operations with explicit operator review of hosted cancellations, away withdrawals and rebalance consequences. Retirement is scoped published-season maintenance, not authority to reopen planning or globally replan the season.
+Use the first-class repository-owned retirement capability:
+
+```bash
+scripts/rvv-miniputt season retire-team \
+  --season <season> \
+  --club <host-club> \
+  --team <team-label> \
+  --age-group <age-group> \
+  --effective-from <YYYY-MM-DD> \
+  --request-id <stable-request-id> \
+  --dry-run
+```
+
+The dry-run classifies every future affected tournament into:
+1. **Hosted obligations** (tournaments the retiring club hosts) -> cancelled with `cancellation_reason: team_retirement` and provenance recorded
+2. **Away participation** (tournaments hosted by other clubs) -> team withdrawn with durable age-group withdrawal record (`effective_from`)
+3. **Rebalance proposals** for affected away tournaments, evaluated against booked-reality fairness, spacing, travel, locks, protections and active requests; unresolved vacancies reported explicitly
+
+The preview exposes hosted cancellations, away withdrawals, rebalance proposals, unresolved vacancies, and material consequences (verification, hosting responsibility, change protections, request constraints) separately so the operator can inspect before applying.
+
+To apply, repeat the same command without `--dry-run`. Optionally accept rebalance proposals with `--accept-rebalance --rebalance-proposals <json-file>`.
+
+The operation is atomic, revision-bound, and runs through the normal canonical consequence/verification gates. It preserves existing booked reality everywhere outside the retirement scope. It never reopens planning or globally replans the season.
+
+Do not interpret a genuine team retirement as a batch of `remove-participant` operations; that preserves hosting obligations and leaves an active home tournament with only visiting teams. Use the `retire-team` command instead.
 
 ## Repair
 Inspect fresh findings, direct options and bounded search; preserve valid placements when only roster is defective. Use the repository's verified option, operational-acceptability and consequence gates. Search exhaustion is not infeasibility. Do not mutate the season through temporary moves merely to expose another option.
