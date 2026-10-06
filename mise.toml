@@ -1,5 +1,12 @@
 min_version = "2026.8.0"
 
+[tools]
+# The pi coding agent (operator harness) and the Node it needs. pi 1.x
+# requires node >= 22.19.0, so both are pinned here for reproducible
+# operator tooling. CI skips tool install (see .github/workflows).
+node = "22"
+"npm:@earendil-works/pi-coding-agent" = "1.0.4"
+
 [tasks.bootstrap]
 description = "Set up a new machine/checkout with Python 3.12"
 run = "${BOOTSTRAP:-scripts/bootstrap} $ARGS"

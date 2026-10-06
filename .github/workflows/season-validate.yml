@@ -51,6 +51,9 @@ jobs:
 
       - name: "Installer mise-oppgavekjøring"
         uses: jdx/mise-action@v3
+        with:
+          # CI never runs pi/node; skip installing [tools] from mise.toml.
+          install: "false"
 
       - name: "Installer avhengigheter"
         run: |
