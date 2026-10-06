@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "audit_id": "2026-10-06-kongsberg-tonsberg-ju12-retirement",
+  "generated_at": "2026-10-06T11:20:00+00:00",
+  "run_id": "20260911T165228Z-d881b426",
+  "export_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+  "audit_context_fingerprint": "cd1f71644388f22bcccb93ff0b61c5e4d0e63872841b4cac69ad0349e1c98260",
+  "source_fingerprints": {
+    "input_fingerprint": {
+      "path": "input.xlsx",
+      "sha256": "427a0e92a67fd5067ffa0bba3d11c662705920f48b04d4a24c357b09a917642f"
+    },
+    "effective_config_fingerprint": null
+  },
+  "prompt_version": 2,
+  "runbook_version": "f643bceceaaa4da9",
+  "backend": "claude-interactive-harness",
+  "execution_mode": "interactive",
+  "status": "PASS",
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "Season-wide participation counts are unchanged by this maintenance except for the expected withdrawal effect: Kongsberg/Tonsberg (JU12) drops to 0 tournaments (retired); Ringerike 2 and Skien each gain a net +1 JU12 appearance (picked for 2 of the 6 vacated away slots while only 1 of their own tournaments was a Kongsberg home tournament that got cancelled); Frisk Asker Svart and Ringerike 1 are net-even (one swap each). These are documented, intended consequences of the retirement's fairness-ranked rebalance, not an anomaly.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "publication-evidence published_to_canonical_delta: 9 changed tournaments, 0 added/removed, 0 schema_errors"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "Kongsberg's two JU12 home tournaments (rvv-0016, rvv-0103) are cancelled with cancellation_reason=team_retirement, matching the withdrawn team's elimination of hosting responsibility. host_participation_summary reports 0 tournaments where the host club is absent from its own active tournament, so no other club's home-tournament representation was affected.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "host_participation_summary.tournaments_where_host_club_not_in_participants=0"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "duration_summary reports exactly one missing-duration tournament: rvv-0016, which is the cancelled Kongsberg home tournament with its games cleared (no occupied ice once cancelled -- expected, and now correctly reflected in the export after fixing the export-parity comparator to not require a cancelled tournament's pre-cancellation end_time). No other tournament's duration is affected by this change.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "duration_summary.missing_duration_count=1 (rvv-0016, cancelled)"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "This maintenance did not move or add any ice bookings; it only cancelled two already-booked Kongsberg slots (freeing that ice) and substituted rosters in 6 already-placed away tournaments (no placement/time change). No new ice-time claim was introduced.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "published_to_canonical_delta.placement_changes=[] (no date/arena/start_time changes)"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "Confirmed clean season-wide (0 exceptions), including the 6 rebalanced away tournaments.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "host_participation_summary.tournaments_where_host_club_not_in_participants=0"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt en gang per dag?",
+      "finding": "Confirmed clean season-wide (0 duplicates). The rebalance's own candidate selection explicitly excluded any team already committed to another JU12 tournament on the same date before proposing a replacement.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "team_daily_participation_summary.duplicate_team_day_count=0"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "14 tournaments season-wide have 3 teams from the same club, 0 exceed the hard max of 3; none of the 9 tournaments this retirement touched are among them. Pre-existing, unrelated to this change.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "same_club_per_tournament_summary.tournaments_over_hard_max=0; none of its examples are in {rvv-0016, rvv-0103, rvv-0030, rvv-0050, rvv-0068, rvv-0072, rvv-0121, rvv-0152}"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "export_parity status is PASS (0 mismatches) after fixing a real bug this retirement exposed: the frozen canonical projection was carrying a cancelled tournament's pre-cancellation end_time while the XLSX/HTML correctly rendered none, since cancellation clears its games. Fixed in the export-parity comparator (ignore end_time for cancelled tournaments) and verified with a fresh export.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence": [
+        "export/2026-10-06T1102/export_parity.json: status=PASS, mismatches=[], projection_mismatches=[]"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?",
+      "finding": "Two pre-existing temporal_clustering findings (Skien around 2026-11-28/29; Ringerike 1 around 2027-03-13/14) are now carried by the teams that filled two of the retirement's vacancies instead of by Kongsberg/Tonsberg. Checked directly: for both vacancies every other eligible same-age JU12 candidate already plays the immediately adjacent day via an unrelated, pre-existing tournament, so no alternative roster pick would have avoided it -- this is pre-existing schedule density surfacing on a new team, not a new defect this maintenance introduced. It is already visible in `season findings` (actionable_unresolved_violation, strong_goal) and resolvable later via the repository's coupled-placement repair/search if the operator wants to pursue it; it does not need to block this publication. Separately, the full-season `season audit` reports FAIL, but with blocking_finding_count=0 and its sole reason an unrelated, pre-existing `tournament_placement_obligation` (9 unplaced U9-U12 tournaments, no JU12/Kongsberg involvement) that predates this change -- historical planning debt, not introduced here. No other anomalies or missing rules were found while reviewing the deterministic context, publication-evidence delta, or export artifacts for this change.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence": [
+        "season findings: temporal_clustering:Skien:Skien:JU12 (tournament_ids incl. rvv-0068); temporal_clustering:Ringerike:Ringerike 1:JU12 (tournament_ids incl. rvv-0072)",
+        "season audit --json: status=FAIL, blocking_finding_count=0, reasons=['unresolved mandatory obligation(s): tournament_placement_obligation']",
+        "season findings: 9 unplaced_tournament_placement findings, age_groups U9/U10/U11/U12, none JU12-Kongsberg related"
+      ],
+      "could_not_establish": false
+    }
+  ],
+  "potential_missing_rule": [],
+  "could_not_independently_establish": [],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+  "publication_gate_status": "clear"
+}
