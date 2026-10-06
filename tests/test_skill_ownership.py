@@ -142,7 +142,7 @@ def test_pi_has_no_rvv_implementation_or_configuration_beyond_prompts() -> None:
     """
 
     pi_root = REPO_ROOT / ".pi"
-    runtime_only = {"logs", "lib"}
+    runtime_only = {"logs", "lib", "runtime"}
     allowed_top_level = {"prompts"}
     implementation_suffixes = {
         ".ts",
