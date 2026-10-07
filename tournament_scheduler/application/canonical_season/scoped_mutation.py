@@ -395,6 +395,7 @@ def _reproduce_operation(
             dimensions=parameters.get("dimensions") or (),
             allow_manual_placement=bool(parameters.get("allow_manual_placement", False)),
             allow_host_confirmation=bool(parameters.get("allow_host_confirmation", False)),
+            decisions=decisions,
         )
         if not reproduction.get("ok"):
             raise SeasonStateError(

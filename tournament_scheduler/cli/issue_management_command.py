@@ -82,6 +82,7 @@ def _cmd_season_audit(args: argparse.Namespace) -> int:
 
     report = season_audit(args.season, root=args.root)
     if args.json:
+        import json as _json
         print(_json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
     else:
         audit = report.get("audit") or {}

@@ -154,6 +154,9 @@ def _cmd_season(args) -> int:
         if args.season_command == "accept-deviation":
             return _cmd_season_accept_deviation(args)
 
+        if args.season_command == "revoke-acceptance":
+            return _cmd_season_accept_deviation(args)
+
         if args.season_command == "ban-date":
             return _cmd_season_ban_date(args)
 

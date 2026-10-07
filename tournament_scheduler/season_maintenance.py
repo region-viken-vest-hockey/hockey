@@ -95,6 +95,7 @@ MAINTENANCE_DEFECT_DIMENSIONS: Tuple[str, ...] = (
     "avoidable_participation_deviations",
     "host_confirmation_dependencies",
     "changed_tournament_count",
+    "host_sibling_preference_violations",
 )
 
 # Travel is a first-class operational consequence of moving a tournament to a
@@ -338,6 +339,12 @@ def load_context(
     problem["participation_search_evidence"] = search_evidence_from_acceptances(
         load_participation_acceptances(season, root=root)
     )
+    # Host sibling participation preference evidence for published-season
+    # maintenance: a soft operational preference that repair providers should
+    # consider when ranking participant options.
+    from .request_constraints import host_sibling_preference_evidence
+
+    problem["host_sibling_preference_evidence"] = host_sibling_preference_evidence(plan, decisions)
     return schedule, decisions, plan, problem
 
 
@@ -889,7 +896,7 @@ def apply_repair(
             "verification_failed",
             option_id=option_id,
             verification=verification,
-            delta=_metric_delta(plan, before_verification),
+            delta=_metric_delta(plan, before_verification, decisions=decisions),
         )
     acceptability = check_operational_acceptability(
         plan,
@@ -910,7 +917,8 @@ def apply_repair(
             required_opt_in_flags=required_opt_in_flags(acceptability),
         )
     preview = _metric_delta(
-        plan, before_verification, candidate=result_candidate, after_verification=verification, problem=problem
+        plan, before_verification, candidate=result_candidate, after_verification=verification,
+        problem=problem, decisions=decisions
     )
     preview["changed_tournament_ids"] = _changed_tournament_ids(plan, result_candidate)
     preview["change_cost"] = change_cost(build_canonical_baseline(schedule, decisions), result_candidate)
@@ -1040,7 +1048,8 @@ def apply_repair(
     fresh_verification = verify_candidate(dict(updated_schedule.get("plan") or {}), problem)
     after_plan = dict(updated_schedule.get("plan") or {})
     delta = _metric_delta(
-        plan, before_verification, candidate=after_plan, after_verification=fresh_verification, problem=problem
+        plan, before_verification, candidate=after_plan, after_verification=fresh_verification,
+        problem=problem, decisions=decisions
     )
     delta["changed_tournament_ids"] = _changed_tournament_ids(plan, after_plan)
     delta["change_cost"] = cost
@@ -1226,6 +1235,7 @@ def apply_repair_to_plan(
     baseline: Optional[Mapping[str, Any]] = None,
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
+    decisions: Mapping[str, Any] | None = None,
 ) -> Dict[str, Any]:
     """Atomically reproduce and apply one verified option to a bare plan.
 
@@ -1298,6 +1308,7 @@ def apply_repair_to_plan(
         candidate=result_candidate,
         after_verification=verification,
         problem=problem,
+        decisions=decisions,
     )
     delta["changed_tournament_ids"] = _changed_tournament_ids(plan, result_candidate)
     delta["change_cost"] = change_cost(
@@ -2584,7 +2595,8 @@ def _annotate_pareto(
         score = score_candidate(dict(candidate), problem=dict(problem))
         travel = _travel_metrics(candidate)
         vector = _objective_vector(
-            candidate, verification, plan, score=score, travel=travel
+            candidate, verification, plan, score=score, travel=travel,
+            active_constraints=constraints,
         )
         option["objectives"] = vector
         # The same Stage-3 quality comparison Stage 3 uses to gate promotion,
@@ -2642,6 +2654,7 @@ def _objective_vector(
     *,
     score: Mapping[str, Any],
     travel: Mapping[str, Any],
+    active_constraints: Iterable[Mapping[str, Any]] = (),
 ) -> Dict[str, float]:
     """Extract the uniformly "lower is better" maintenance objective vector.
 
@@ -2650,6 +2663,17 @@ def _objective_vector(
     single uniform dominance check and one bounded Pareto front cover both the
     hard and the soft consequences of a repair.
     """
+    from .request_constraints import count_host_sibling_preference_violations
+
+    # Compute host sibling preference violations for the candidate plan.
+    # We need a minimal decisions-like object with the active constraints.
+    decisions_for_preference = {
+        "request_constraints": list(active_constraints),
+    }
+    host_sibling_violations = count_host_sibling_preference_violations(
+        candidate, decisions_for_preference
+    )
+
     vector: Dict[str, float] = {
         "hard_violations": float(_count(verification, "violations")),
         "unresolved_hosting_obligations": float(
@@ -2672,6 +2696,7 @@ def _objective_vector(
         "changed_tournament_count": float(
             len(_changed_tournament_ids(before_plan, candidate))
         ),
+        "host_sibling_preference_violations": float(host_sibling_violations),
     }
     vector.update(quality_objective_vector(dict(score)))
     for dimension in TRAVEL_OBJECTIVE_DIMENSIONS:
@@ -2719,9 +2744,19 @@ def _metric_delta(
     candidate: Mapping[str, Any] | None = None,
     after_verification: Mapping[str, Any] | None = None,
     problem: Mapping[str, Any] | None = None,
+    decisions: Mapping[str, Any] | None = None,
 ) -> Dict[str, Any]:
     after_plan = candidate if candidate is not None else before_plan
     after = after_verification or before_verification
+    
+    # Compute host sibling preference violations for before and after plans
+    host_sibling_before = 0
+    host_sibling_after = 0
+    if decisions is not None:
+        from .request_constraints import count_host_sibling_preference_violations
+        host_sibling_before = count_host_sibling_preference_violations(before_plan, decisions)
+        host_sibling_after = count_host_sibling_preference_violations(after_plan, decisions)
+    
     delta = {
         "hard_violations": _count(after, "violations") - _count(before_verification, "violations"),
         "hard_violations_before": _count(before_verification, "violations"),
@@ -2745,6 +2780,9 @@ def _metric_delta(
         "avoidable_before": _avoidability_count(before_verification, "avoidable"),
         "avoidable_after": _avoidability_count(after, "avoidable"),
         "changed_tournament_count": len(_changed_tournament_ids(before_plan, after_plan)),
+        "host_sibling_preference_violations_before": host_sibling_before,
+        "host_sibling_preference_violations_after": host_sibling_after,
+        "host_sibling_preference_violations_delta": host_sibling_after - host_sibling_before,
     }
     delta.update(
         _quality_delta(

@@ -15,6 +15,7 @@ searches, never writes state and never inspects a generator.
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import date as _date
 from typing import Any, Iterable, Mapping
 
@@ -27,14 +28,19 @@ RELEASED = "released"
 TEAM_UNAVAILABLE = "team_unavailable"
 MINIMUM_GAP = "minimum_gap"
 OPPONENT_AVOIDANCE = "opponent_avoidance"
+HOST_SIBLING_PARTICIPATION_PREFERENCE = "host_sibling_participation_preference"
 
 SUPPORTED_TYPES: tuple[str, ...] = (
     TEAM_UNAVAILABLE,
     MINIMUM_GAP,
     OPPONENT_AVOIDANCE,
+    HOST_SIBLING_PARTICIPATION_PREFERENCE,
 )
 
 TEAM_CONSTRAINT_PREFIX = "request"
+
+# Soft preference constant for ranking - not a hard violation code
+HOST_SIBLING_PREFERENCE_VIOLATION = "host_sibling_preference_violated"
 
 
 class RequestConstraintError(ValueError):
@@ -185,11 +191,26 @@ def validate_and_normalize(
             raise RequestConstraintError(
                 f"Constraint type {constraint_type!r} requires exactly one team"
             )
-    else:  # opponent_avoidance
+    elif constraint_type == OPPONENT_AVOIDANCE:
         if len(raw_teams) != 2:
             raise RequestConstraintError(
                 "Constraint type 'opponent_avoidance' requires exactly two teams"
             )
+    elif constraint_type == HOST_SIBLING_PARTICIPATION_PREFERENCE:
+        if len(raw_teams) != 1:
+            raise RequestConstraintError(
+                f"Constraint type {constraint_type!r} requires exactly one team (the host club's sibling team reference)"
+            )
+        if date_from is None:
+            raise RequestConstraintError(
+                f"Constraint type {constraint_type!r} requires --date-from for the age group scope"
+            )
+        if min_days is not None:
+            raise RequestConstraintError(
+                f"Constraint type {constraint_type!r} does not accept --min-days"
+            )
+    else:
+        raise RequestConstraintError(f"Unhandled constraint type: {constraint_type!r}")
 
     teams = [resolve_team_identity(plan, team) for team in raw_teams]
 
@@ -216,6 +237,17 @@ def validate_and_normalize(
         if resolved_min_days < 1:
             raise RequestConstraintError("minimum_gap requires a positive --min-days")
         record["min_days"] = resolved_min_days
+    elif constraint_type == HOST_SIBLING_PARTICIPATION_PREFERENCE:
+        # For host sibling preference, the team identifies the club+age_group scope.
+        # The date_from/date_to represent the age group's season span (or a specific window).
+        parsed_from = _parse_iso_date(date_from, "date_from")
+        parsed_to = _parse_iso_date(date_to if date_to is not None else date_from, "date_to")
+        if parsed_to < parsed_from:
+            raise RequestConstraintError(
+                f"Invalid date range: {parsed_from.isoformat()} is after {parsed_to.isoformat()}"
+            )
+        record["date_from"] = parsed_from.isoformat()
+        record["date_to"] = parsed_to.isoformat()
     else:
         if min_days is not None:
             raise RequestConstraintError(
@@ -402,7 +434,31 @@ def constraint_violations(
             )
         return violations
 
+    if constraint_type == HOST_SIBLING_PARTICIPATION_PREFERENCE:
+        # This is a soft operational preference, not a hard violation.
+        # It returns no hard violations but provides evidence for repair ranking.
+        # The preference evidence is derived by the caller (e.g., repair providers)
+        # using the constraint definition: club + age_group + scope.
+        return violations
+
     return violations
+
+
+def count_host_sibling_preference_violations(
+    plan: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+) -> int:
+    """Count host sibling preference violations in a plan.
+
+    Returns the number of host tournaments where a host club's sibling team
+    participates in away tournaments but not in its own host tournament.
+    This is a soft preference metric for ranking repair options.
+    """
+    evidence = host_sibling_preference_evidence(plan, decisions)
+    total_violations = 0
+    for entry in evidence:
+        total_violations += len(entry.get("violations", []))
+    return total_violations
 
 
 def request_constraint_violations(
@@ -613,6 +669,132 @@ def request_constraint_report(
     return report
 
 
+def host_sibling_preference_evidence(
+    plan: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    """Evaluate active host-sibling participation preferences against a plan.
+
+    Returns a list of evidence entries, one per active preference constraint.
+    Each entry indicates whether the preference is currently honored or violated.
+    This is a soft preference check, not a hard violation.
+    """
+    evidence: list[dict[str, Any]] = []
+    for constraint in active_request_constraints(decisions):
+        if constraint.get("type") != HOST_SIBLING_PARTICIPATION_PREFERENCE:
+            continue
+
+        team = constraint.get("teams", [{}])[0]
+        club = str(team.get("club") or "")
+        age_group = str(team.get("age_group") or "")
+        date_from = constraint.get("date_from")
+        date_to = constraint.get("date_to")
+
+        if not club or not age_group:
+            continue
+
+        # Find all tournaments in the age group where this club is the host
+        host_tournaments = []
+        for tournament in _plan_tournaments(plan):
+            if str(tournament.get("age_group") or "") != age_group:
+                continue
+            if str(tournament.get("host_club") or "") != club:
+                continue
+            if date_from or date_to:
+                try:
+                    t_date = _date.fromisoformat(str(tournament.get("date") or ""))
+                    start = _date.fromisoformat(date_from) if date_from else None
+                    end = _date.fromisoformat(date_to) if date_to else None
+                    if start and t_date < start:
+                        continue
+                    if end and t_date > end:
+                        continue
+                except (TypeError, ValueError):
+                    continue
+            host_tournaments.append(tournament)
+
+        # For each host tournament, check if any of the host club's sibling teams
+        # are participating (which is the desired state) or if they are absent
+        # while participating elsewhere as donors (which violates the preference)
+        sibling_teams = []
+        for tournament in _plan_tournaments(plan):
+            if str(tournament.get("age_group") or "") != age_group:
+                continue
+            for t in tournament.get("teams", []) or []:
+                if str(t.get("club") or "") == club and not t.get("guest"):
+                    sibling_teams.append((t, tournament))
+
+        # Group by team identity
+        team_tournaments = defaultdict(list)
+        for t, tour in sibling_teams:
+            ident = (t.get("club"), t.get("label"), t.get("age_group"))
+            team_tournaments[ident].append(tour)
+
+        violations = []
+        honored = []
+
+        for host_tour in host_tournaments:
+            host_id = str(host_tour.get("id") or "")
+            host_date = host_tour.get("date")
+
+            # Check which sibling teams are in this host tournament
+            siblings_in_host = []
+            for t in host_tour.get("teams", []) or []:
+                if str(t.get("club") or "") == club and not t.get("guest"):
+                    siblings_in_host.append(t)
+
+            if not siblings_in_host:
+                # No sibling teams in the host tournament - check if they
+                # are participating elsewhere (away tournaments) instead
+                for ident, tours in team_tournaments.items():
+                    in_host = any(str(t.get("id") or "") == host_id for t in tours)
+                    if not in_host and tours:
+                        # This sibling team is participating in away tournaments
+                        # but not in the host tournament - potential preference violation
+                        violations.append({
+                            "constraint_id": constraint.get("id"),
+                            "request_id": constraint.get("request_id"),
+                            "type": HOST_SIBLING_PARTICIPATION_PREFERENCE,
+                            "code": HOST_SIBLING_PREFERENCE_VIOLATION,
+                            "club": club,
+                            "age_group": age_group,
+                            "host_tournament_id": host_id,
+                            "host_tournament_date": host_date,
+                            "missing_sibling_team": {"club": ident[0], "label": ident[1], "age_group": ident[2]},
+                            "away_tournaments": [str(t.get("id") or "") for t in tours],
+                            "message": (
+                                f"Host club {club} sibling team {ident[1]} participates in away "
+                                f"tournaments {', '.join(str(t.get('id') or '') for t in tours)} "
+                                f"but not in its own host tournament {host_id} on {host_date}"
+                            ),
+                        })
+            else:
+                for t in siblings_in_host:
+                    honored.append({
+                        "club": club,
+                        "age_group": age_group,
+                        "host_tournament_id": host_id,
+                        "host_tournament_date": host_date,
+                        "sibling_team": {"club": t.get("club"), "label": t.get("label"), "age_group": t.get("age_group")},
+                        "message": f"Sibling team {t.get('label')} participates in host tournament {host_id}",
+                    })
+
+        evidence.append({
+            "constraint_id": constraint.get("id"),
+            "request_id": constraint.get("request_id"),
+            "club": club,
+            "age_group": age_group,
+            "date_from": date_from,
+            "date_to": date_to,
+            "host_tournament_count": len(host_tournaments),
+            "sibling_team_count": len(team_tournaments),
+            "violations": violations,
+            "honored": honored,
+            "preference_honored": len(violations) == 0,
+        })
+    return evidence
+
+
 def append_request_constraints(
     decisions: dict[str, Any],
     constraints: Iterable[Mapping[str, Any]],
@@ -659,5 +841,7 @@ __all__ = [
     "violation_severity",
     "resolve_team_identity",
     "team_identity",
+    "host_sibling_preference_evidence",
+    "count_host_sibling_preference_violations",
     "validate_and_normalize",
 ]
