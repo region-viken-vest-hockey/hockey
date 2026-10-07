@@ -94,37 +94,37 @@ def _cmd_season(args) -> int:
         _cmd_season_guest_release,
     )
     from .retire_team_command import _cmd_season_retire_team
-from .baseline_command import _cmd_season_baseline
-from .repair_command import (
-    _cmd_season_repair_options,
-    _cmd_season_apply_repair,
-    _cmd_season_accept_deviation,
-)
-from .date_management_command import (
-    _cmd_season_ban_date,
-    _cmd_season_unban_date,
-    _cmd_season_allow_holiday_date,
-    _cmd_season_disallow_holiday_date,
-    _cmd_season_holiday_date_exceptions,
-)
-from .calendar_management_command import (
-    _cmd_season_refresh_calendars,
-    _cmd_season_reconcile_config,
-)
-from .issue_management_command import (
-    _cmd_season_blockers,
-    _cmd_season_findings,
-    _cmd_season_audit,
-    _cmd_season_record_infeasibility,
-    _cmd_season_release_infeasibility,
-    _cmd_season_infeasibility_report,
-)
-from .planning_command import (
-    _cmd_season_promote,
-    _cmd_season_plan,
-    _cmd_season_replan,
-    _cmd_season_diff_apply,
-)
+    from .baseline_command import _cmd_season_baseline
+    from .repair_command import (
+        _cmd_season_repair_options,
+        _cmd_season_apply_repair,
+        _cmd_season_accept_deviation,
+    )
+    from .date_management_command import (
+        _cmd_season_ban_date,
+        _cmd_season_unban_date,
+        _cmd_season_allow_holiday_date,
+        _cmd_season_disallow_holiday_date,
+        _cmd_season_holiday_date_exceptions,
+    )
+    from .calendar_management_command import (
+        _cmd_season_refresh_calendars,
+        _cmd_season_reconcile_config,
+    )
+    from .issue_management_command import (
+        _cmd_season_blockers,
+        _cmd_season_findings,
+        _cmd_season_audit,
+        _cmd_season_record_infeasibility,
+        _cmd_season_release_infeasibility,
+        _cmd_season_infeasibility_report,
+    )
+    from .planning_command import (
+        _cmd_season_promote,
+        _cmd_season_plan,
+        _cmd_season_replan,
+        _cmd_season_diff_apply,
+    )
 
     try:
         if args.season_command == "promote":
@@ -142,6 +142,18 @@ from .planning_command import (
         if args.season_command == "retire-team":
             return _cmd_season_retire_team(args)
 
+        if args.season_command == "baseline":
+            return _cmd_season_baseline(args)
+
+        if args.season_command == "repair-options":
+            return _cmd_season_repair_options(args)
+
+        if args.season_command == "apply-repair":
+            return _cmd_season_apply_repair(args)
+
+        if args.season_command == "accept-deviation":
+            return _cmd_season_accept_deviation(args)
+
         if args.season_command == "ban-date":
             return _cmd_season_ban_date(args)
 
@@ -153,21 +165,6 @@ from .planning_command import (
 
         if args.season_command == "disallow-holiday-date":
             return _cmd_season_disallow_holiday_date(args)
-
-        if args.season_command == "guest-report":
-            return _cmd_season_guest_report(args)
-
-        if args.season_command == "guest-candidates":
-            return _cmd_season_guest_candidates(args)
-
-        if args.season_command == "guest-reserve":
-            return _cmd_season_guest_reserve(args)
-
-        if args.season_command == "guest-fill":
-            return _cmd_season_guest_fill(args)
-
-        if args.season_command == "guest-release":
-            return _cmd_season_guest_release(args)
 
         if args.season_command == "holiday-date-exceptions":
             return _cmd_season_holiday_date_exceptions(args)
@@ -196,38 +193,162 @@ from .planning_command import (
         if args.season_command == "infeasibility-report":
             return _cmd_season_infeasibility_report(args)
 
-        if args.season_command == "baseline":
-            return _cmd_season_baseline(args)
+        if args.season_command in ("guest-report", "guest-candidates", "guest-reserve", "guest-fill", "guest-release"):
+            return _cmd_season_guest_report(args)
 
-        if args.season_command in ("repair-options", "search"):
-            return _cmd_season_repair_options(args)
+        if args.season_command == "guest-candidates":
+            return _cmd_season_guest_candidates(args)
 
-        if args.season_command == "apply-repair":
-            return _cmd_season_apply_repair(args)
+        if args.season_command == "guest-reserve":
+            return _cmd_season_guest_reserve(args)
 
-        if args.season_command in ("accept-deviation", "revoke-acceptance"):
-            return _cmd_season_accept_deviation(args)
+        if args.season_command == "guest-fill":
+            return _cmd_season_guest_fill(args)
+
+        if args.season_command == "guest-release":
+            return _cmd_season_guest_release(args)
+
+        if args.season_command == "move":
+            return _cmd_season_move(args)
+
+        if args.season_command == "replace-participant":
+            return _cmd_season_replace_participant(args)
+
+        if args.season_command == "swap-participants":
+            return _cmd_season_swap_participants(args)
+
+        if args.season_command == "remove-participant":
+            return _cmd_season_remove_participant(args)
+
+        if args.season_command == "withdrawal-report":
+            return _cmd_season_withdrawal_report(args)
+
+        if args.season_command == "rename-teams":
+            return _cmd_season_rename_teams(args)
+
+        if args.season_command == "release-withdrawal":
+            return _cmd_season_release_withdrawal(args)
+
+        if args.season_command == "approve":
+            return _cmd_season_approve(args)
+
+        if args.season_command == "unapprove":
+            return _cmd_season_unapprove(args)
+
+        if args.season_command == "approvals":
+            return _cmd_season_approvals(args)
+
+        if args.season_command == "constraints":
+            return _cmd_season_constraints(args)
+
+        if args.season_command == "add-constraint":
+            return _cmd_season_add_constraint(args)
+
+        if args.season_command == "release-constraint":
+            return _cmd_season_release_constraint(args)
+
+        if args.season_command == "booking-set":
+            return _cmd_season_booking_set(args)
+
+        if args.season_command == "booking-clear":
+            return _cmd_season_booking_clear(args)
+
+        if args.season_command == "booking-source-set":
+            return _cmd_season_booking_source_set(args)
+
+        if args.season_command == "booking-sources":
+            return _cmd_season_booking_sources(args)
+
+        if args.season_command == "confirm-calendar-booking":
+            return _cmd_season_confirm_calendar_booking(args)
+
+        if args.season_command == "release-calendar-booking":
+            return _cmd_season_release_calendar_booking(args)
+
+        if args.season_command == "booking-status":
+            return _cmd_season_booking_status(args)
+
+        if args.season_command == "calendar-booking-candidates":
+            return _cmd_season_calendar_booking_candidates(args)
+
+        if args.season_command == "calendar-booking-findings":
+            return _cmd_season_calendar_booking_findings(args)
+
+        if args.season_command == "calendar-booking-assessment":
+            return _cmd_season_calendar_booking_assessment(args)
+
+        if args.season_command == "set-ice-time-minutes":
+            return _cmd_season_set_ice_time_minutes(args)
+
+        if args.season_command == "clear-ice-time-minutes":
+            return _cmd_season_clear_ice_time_minutes(args)
+
+        if args.season_command == "ice-time-overrides":
+            return _cmd_season_ice_time_overrides(args)
+
+        if args.season_command == "set-manual-booking-assertion":
+            return _cmd_season_set_manual_booking_assertion(args)
+
+        if args.season_command == "clear-manual-booking-assertion":
+            return _cmd_season_clear_manual_booking_assertion(args)
+
+        if args.season_command == "club-booking-sources":
+            return _cmd_season_club_booking_sources(args)
+
+        if args.season_command == "change-protections":
+            return _cmd_season_change_protections(args)
+
+        if args.season_command == "release-protection":
+            return _cmd_season_release_protection(args)
+
+        if args.season_command == "history":
+            return _cmd_season_history(args)
+
+        if args.season_command == "compact-history":
+            return _cmd_season_compact_history(args)
+
+        if args.season_command == "tourney-inspection":
+            return _cmd_season_tourney_inspection(args)
+
+        if args.season_command == "placement-infeasibility":
+            return _cmd_season_placement_infeasibility(args)
+
+        if args.season_command == "banned-dates":
+            return _cmd_season_banned_dates(args)
+
+        if args.season_command == "holiday-date-exceptions":
+            return _cmd_season_holiday_date_exceptions(args)
+
+        if args.season_command == "booking-assessment":
+            return _cmd_season_booking_assessment(args)
+
+        if args.season_command == "reconcile-calendars":
+            return _cmd_season_reconcile_calendars(args)
+
+        if args.season_command == "normalize-placements":
+            return _cmd_season_normalize_placements(args)
+
+        if args.season_command == "normalize-arena-identities":
+            return _cmd_season_normalize_arena_identities(args)
+
+        if args.season_command == "decision-ledger":
+            return _cmd_season_decision_ledger(args)
+
+        if args.season_command == "guest-slot-report":
+            return _cmd_season_guest_slot_report(args)
+
+        if args.season_command == "export":
+            return _cmd_season_export(args)
+
+        if args.season_command == "export-parity":
+            return _cmd_season_export_parity(args)
+
+        if args.season_command == "status":
+            return _cmd_season_status(args)
+
         _console.print("[red]✗[/red] Missing season subcommand")
         return 1
-    except (SeasonStateError, SeasonMaintenanceError) as exc:
+
+    except SeasonStateError as exc:
         _console.print(f"[red]✗[/red] {exc}")
         return 1
-
-
-def _format_delta(delta: dict | None) -> str:
-    if not delta:
-        return ""
-    parts = []
-    if delta.get("total_travel_km_before") is not None:
-        parts.append(
-            f"reise (km): "
-            f"{delta.get('total_travel_km_before', 0):.0f} -> "
-            f"{delta.get('total_travel_km_after', 0):.0f} "
-            f"({delta.get('total_travel_km_delta', 0):+.0f})"
-        )
-    if delta.get("quality_regressions") is not None:
-        parts.append(
-            f"kvalitetsregresjoner: "
-            f"{len(delta.get('quality_regressions') or [])}"
-        )
-    return "; ".join(parts)

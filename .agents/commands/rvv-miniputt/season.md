@@ -345,6 +345,78 @@ scripts/rvv-miniputt season replace-participant \
 
 Do not invent a second tournament for a plain substitution. Use `swap-participants` only when the operator requested a two-tournament exchange.
 
+## Retire a team (cancel hosted tournaments + withdraw from away tournaments)
+
+Use this when a team/hosting unit ceases both participation **and** future hosting responsibility
+for an age group. This is a single canonical maintenance operation that:
+
+- **cancels** all future tournaments for which the retiring team/club owns the hosting responsibility
+  (preserving provenance that they were planned hosting obligations cancelled due to retirement);
+- **withdraws** the retiring team from away tournaments hosted by other clubs, recording a
+  durable age-group withdrawal so the team cannot be reintroduced later by repair/search;
+- **analyzes rebalance** for affected away tournaments, proposing eligible same-age replacements
+  that respect booked-reality fairness, spacing, travel, locks, protections and active requests.
+
+Do **not** use `remove-participant` / `participation-withdrawal` / `batch cancel` for a genuine
+retirement. Those paths preserve date/time/arena/host/booked occupancy and only mutate rosters,
+which is operationally wrong for hosted tournaments: it leaves an active home tournament with
+only visiting teams and silently transfers the hosting burden.
+
+```bash
+scripts/rvv-miniputt season retire-team \
+  --season <season> \
+  --club "<registered club identity>" \
+  [--host-club "<literal host_club on home tournaments, when it differs from --club>"] \
+  --team "<team label>" \
+  --age-group <age> \
+  --effective-from <YYYY-MM-DD> \
+  --request-id <stable-request-id> \
+  [--actor <operator>] [--note "<reason>"] \
+  [--dry-run --json]
+```
+
+Use `--dry-run` first. The preview exposes:
+
+- `classification.hosted_tournaments.cancel` — tournaments to be cancelled as hosting obligations
+- `classification.away_participation.remove_from` — tournaments the team is withdrawn from
+- `classification.rebalance.proposals` — candidate replacements for affected away tournaments
+- `classification.rebalance.unresolved_vacancies` — away tournaments with no viable rebalance
+- `classification.can_apply` — whether the retirement can be applied as-is (requires
+  `verification.ok`, `hosting_responsibility.ok`, `change_protections.ok`,
+  `request_constraints.acceptable`)
+
+If `can_apply` is false because away tournaments are underfilled, review the rebalance
+proposals, save them to a JSON file, and re-run with `--accept-rebalance` and
+`--rebalance-proposals <file>`.
+
+```bash
+# preview
+scripts/rvv-miniputt season retire-team --season 2026-2027 --club "Kongsberg/Tønsberg" \
+  --team "Kongsberg/Tønsberg" --age-group Ju12 --effective-from 2026-09-01 \
+  --request-id kongsberg-ju12-retire-2026 --dry-run --json
+
+# apply with rebalance (using proposals from preview)
+scripts/rvv-miniputt season retire-team --season 2026-2027 --club "Kongsberg/Tønsberg" \
+  --team "Kongsberg/Tønsberg" --age-group Ju12 --effective-from 2026-09-01 \
+  --request-id kongsberg-ju12-retire-2026 --accept-rebalance \
+  --rebalance-proposals /tmp/rebalance.json
+```
+
+**Critical routing guidance:**
+
+> Before processing a season/age-group withdrawal, determine whether the withdrawing team or
+> club owns any future hosting obligations for that age group. A withdrawal from a hosted
+> tournament is not a participant-removal problem. Future tournaments hosted on behalf of the
+> retiring team/club must be cancelled or otherwise explicitly resolved as hosting obligations.
+> Use participant removal only for the team's away appearances. After those changes, evaluate
+> whether affected away tournaments should be rebalanced.
+
+The harness must call the repository-owned `retire-team` preview/apply flow rather than
+inferring hosted-vs-away semantics itself. The `host-club` parameter handles cooperative
+teams whose hosting responsibility is assigned to one parent club (e.g. a team registered
+as `Kongsberg/Tønsberg` that hosts as `Kongsberg`).
+
+
 ## Remove a participant with no replacement
 
 Use this when a registered team drops out and there is no same-age replacement team to substitute in. The command removes exactly one participant from one or more same-age tournaments, keeps every date/time/arena/host and booked occupancy interval, regenerates each affected tournament's games through the configured-rounds generator, records a change protection keyed to the request, and runs the full-season hard-verification/hosting-responsibility/consequence gates.

@@ -7,10 +7,10 @@ This module contains the implementation of the `rvv-miniputt season retire-team`
 from __future__ import annotations
 
 import argparse
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..pipeline.state import PipelineState
+    pass  # no runtime imports needed
 
 from rich.console import Console
 
