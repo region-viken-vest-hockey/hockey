@@ -84,11 +84,6 @@ from .repair_options import (
     repair_options_for_plan,
     _options_for_finding,
 )
-from .repair_options import (
-    DEFAULT_DIMENSIONS,
-    SEASON_MAINTENANCE_SCHEMA_VERSION,
-    _annotate_pareto,
-)
 from .option_evaluation import (
     _objective_vector,
     _travel_metrics,
@@ -112,7 +107,9 @@ from .impact_analysis import (
     _priority_improvement_tier,
 )
 
+SEASON_MAINTENANCE_SCHEMA_VERSION = 1
 
+DEFAULT_DIMENSIONS: Tuple[str, ...] = ("participants", "host")
 
 # The objective vector every maintenance option is measured on, oriented
 # "lower is better" so one uniform dominance check applies. Defect and
@@ -1897,6 +1894,105 @@ def _intra_club_distribution_findings(
     return out
 
 
+def _require_finding(
+    findings: List[Dict[str, Any]], finding_id: str, *, age_group: str | None = None
+) -> Dict[str, Any]:
+    finding = next((entry for entry in findings if entry["finding_id"] == finding_id), None)
+    if finding is not None:
+        if age_group and str(finding.get("age_group") or "") != str(age_group):
+            raise SeasonMaintenanceError(
+                f"Finding id {finding_id} is for age group {finding.get('age_group')}; "
+                f"requested {age_group}"
+            )
+        return finding
+
+    legacy_matches = _legacy_participation_matches(findings, finding_id, age_group=age_group)
+    if len(legacy_matches) == 1:
+        return legacy_matches[0]
+    if legacy_matches:
+        alternatives = ", ".join(
+            f"--finding {entry['finding_id']} --age-group {entry.get('age_group')}"
+            for entry in legacy_matches
+        )
+        raise SeasonMaintenanceError(
+            f"Ambiguous legacy participation finding id {finding_id}; matches age groups "
+            f"{', '.join(str(entry.get('age_group') or '') for entry in legacy_matches)}. "
+            f"Use an exact selector: {alternatives}"
+        )
+    raise SeasonMaintenanceError(f"Unknown or stale finding id: {finding_id}")
+
+
+def _legacy_participation_matches(
+    findings: List[Dict[str, Any]], finding_id: str, *, age_group: str | None = None
+) -> List[Dict[str, Any]]:
+    parts = finding_id.split(":")
+    if len(parts) != 4 or parts[0] != "participation_deviation":
+        return []
+    _prefix, club, team, scope = parts
+    legacy_id = legacy_participation_finding_id(club, team, scope)
+    if legacy_id != finding_id:
+        return []
+    matches = [
+        entry
+        for entry in findings
+        if entry.get("category") == PARTICIPATION
+        and str(entry.get("club") or "") == club
+        and str(entry.get("team") or "") == team
+        and str(entry.get("scope") or "") == scope
+        and (not age_group or str(entry.get("age_group") or "") == str(age_group))
+    ]
+    return sorted(matches, key=lambda entry: (str(entry.get("age_group") or ""), entry["finding_id"]))
+
+
+def _findings_for_option(findings: List[Dict[str, Any]], option_id: str) -> List[Dict[str, Any]]:
+    # Preference-ordered scan: hosting/participation option ids encode their
+    # finding scope, and hard-finding providers are cheap. A search-origin
+    # option should normally be applied with an explicit finding id.
+    selected = [
+        finding
+        for finding in findings
+        if finding["category"]
+        in (
+            HOSTING,
+            PARTICIPATION,
+            HARD_VIOLATION,
+            MANUAL_PLACEMENT,
+            MOVABLE_CAPACITY,
+            HOME_REPRESENTATION,
+            CLUB_DISTRIBUTION,
+        )
+    ]
+    return selected or findings
+
+
+def _infer_finding_id(
+    option_id: str, findings: List[Dict[str, Any]]
+) -> Optional[Dict[str, Any]]:
+    """Recover the owning finding from an option id when the caller omitted it.
+
+    Hosting and participation option ids embed their stable finding id as a
+    substring, so an apply can resolve the exact scope without re-running a
+    bounded search for every finding in the season.
+    """
+    matches = [
+        finding
+        for finding in findings
+        if (
+            finding["category"] in (HOSTING, PARTICIPATION, MOVABLE_CAPACITY, HOME_REPRESENTATION, CLUB_DISTRIBUTION)
+            or finding.get("code") == "unplaced_tournament_placement"
+        )
+        and finding["finding_id"] in option_id
+    ]
+    if not matches:
+        return None
+    return max(matches, key=lambda finding: len(finding["finding_id"]))
+
+
+# ---------------------------------------------------------------------------
+# Option enumeration / dispatch
+# ---------------------------------------------------------------------------
+
+
 def _options_for_finding(
     plan: Mapping[str, Any],
     problem: Mapping[str, Any],
@@ -2345,6 +2441,147 @@ def _request_constraint_context(
             if item.get("status") == "active" and not item.get("satisfied")
         ),
         "constraints": constraints,
+    }
+
+
+def _annotate_pareto(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    options: List[Dict[str, Any]],
+    finding: Mapping[str, Any],
+    dimensions: Iterable[str],
+    *,
+    active_constraints: Iterable[Mapping[str, Any]] = (),
+    allow_manual_placement: bool = False,
+    allow_host_confirmation: bool = False,
+) -> Dict[str, Any]:
+    """Measure every option on the same objective vector and mark the front.
+
+    Each option is reproduced against the current plan through its own atomic
+    apply path and re-verified, so the vector describes the candidate that
+    option would actually commit -- not a claim derived from the provider's
+    self-reported effects. An option that no longer reproduces is left off the
+    front instead of being reported as a verified trade-off.
+
+    An option that newly introduces operational work (fixed-busy/manual
+    placement, or a host-confirmation dependency) is classified as requiring an
+    explicit operator opt-in and kept off the auto-applicable Pareto front.
+    Pareto scoring alone is not protection here: an option that fixes one defect
+    while introducing a manual placement can stay non-dominated, so this is a
+    hard filter rather than a weight.
+    """
+    constraints = list(active_constraints)
+    measured: List[Tuple[int, Dict[str, float]]] = []
+    before_score = with_unresolved_obligations_count(score_candidate(dict(plan), problem=dict(problem)))
+    before_verification = verify_candidate(dict(plan), dict(problem))
+    for index, option in enumerate(options):
+        applied = _apply_option(plan, problem, option, finding, dimensions)
+        candidate = applied.get("candidate") if applied.get("ok") else None
+        if not isinstance(candidate, Mapping):
+            option["objectives"] = None
+            option["non_dominated"] = False
+            continue
+        # Active request constraints are hard maintenance requirements, not
+        # soft weights: a candidate that introduces or worsens one is reported
+        # as rejected evidence instead of being offered as a Pareto trade-off,
+        # and the canonical apply boundary re-checks the full active set
+        # regardless. Unchanged pre-existing violations stay visible in the
+        # option evidence but do not reject an otherwise valid repair.
+        constraint_comparison = compare_constraint_violations(
+            plan, candidate, constraints
+        )
+        option["request_constraint_violations"] = constraint_comparison["candidate_violations"]
+        option["request_constraint_regressions"] = constraint_comparison["regressions"]
+        option["request_constraint_unchanged_violations"] = constraint_comparison["unchanged"]
+        option["request_constraint_acceptable"] = constraint_comparison["acceptable"]
+        if constraint_comparison["regressions"]:
+            option["objectives"] = None
+            option["non_dominated"] = False
+            continue
+        verification = applied.get("verification") or verify_candidate(
+            dict(candidate), dict(problem)
+        )
+        acceptability = check_operational_acceptability(
+            plan,
+            before_verification,
+            candidate,
+            verification,
+            allow_manual_placement=allow_manual_placement,
+            allow_host_confirmation=allow_host_confirmation,
+        )
+        option["operational_acceptable"] = acceptability["ok"]
+        option["operational_regressions"] = acceptability["regressions"]
+        option["operational_work_added"] = acceptability["added_by_category"]
+        option["requires_operational_opt_in"] = required_opt_in_flags(acceptability)
+        if not acceptability["ok"]:
+            option["objectives"] = None
+            option["non_dominated"] = False
+            continue
+        # A coupled placement + roster repair may be hard-valid and
+        # operationally acceptable yet still materially regress an affected
+        # team's own schedule. That is a deterministic rejection owned by the
+        # consequence policy, not a Pareto trade-off: keep it off the
+        # auto-applicable front and let the apply boundary refuse it.  Use the
+        # same complete predicate escalation uses, so raw rejected option
+        # objects can never hide the need for operator action.
+        if not _option_is_applicable(option):
+            if (option.get("effects") or {}).get("consequence_acceptable") is False:
+                option["consequence_acceptable"] = False
+            option["objectives"] = None
+            option["non_dominated"] = False
+            continue
+        score = score_candidate(dict(candidate), problem=dict(problem))
+        travel = _travel_metrics(candidate)
+        vector = _objective_vector(
+            candidate, verification, plan, score=score, travel=travel,
+            active_constraints=constraints,
+        )
+        option["objectives"] = vector
+        # The same Stage-3 quality comparison Stage 3 uses to gate promotion,
+        # measured against the current canonical plan, so the harness sees the
+        # soft side effects of a repair without reconstructing them.
+        option["quality_vs_current"] = compare_quality_scores(
+            before_score, with_unresolved_obligations_count(score)
+        )
+        option["travel"] = travel
+        measured.append((index, vector))
+
+    finding["search_coverage"] = _effective_search_coverage(finding, options)
+
+    vectors = [vector for _index, vector in measured]
+    front = non_dominated_indices(vectors)
+    front_option_indices = sorted(measured[local][0] for local in front)
+    front_set = set(front_option_indices)
+    for index, option in enumerate(options):
+        option["non_dominated"] = index in front_set
+
+    front_vectors = [measured[local][1] for local in front]
+    representative = representative_indices(front_vectors, MAX_PARETO_REPRESENTATIVES)
+    return {
+        "dimensions": list(PARETO_DIMENSIONS),
+        "non_dominated_option_ids": [options[index]["option_id"] for index in front_option_indices],
+        "representative_option_ids": [
+            options[front_option_indices[local]]["option_id"] for local in representative
+        ],
+        "front_size": len(front_option_indices),
+        "measured_option_count": len(measured),
+        "request_constraint_rejected_option_ids": [
+            option["option_id"]
+            for option in options
+            if option.get("request_constraint_acceptable") is False
+        ],
+        "operational_rejected_option_ids": [
+            option["option_id"]
+            for option in options
+            if option.get("operational_acceptable") is False
+        ],
+        "consequence_rejected_option_ids": [
+            option["option_id"]
+            for option in options
+            if (option.get("effects") or {}).get("consequence_acceptable") is False
+        ],
+        "allow_manual_placement": bool(allow_manual_placement),
+        "allow_host_confirmation": bool(allow_host_confirmation),
     }
 
 
