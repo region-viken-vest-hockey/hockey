@@ -21,11 +21,6 @@ from .search_coverage import (
     derive_search_coverage,
     maintenance_search_capability,
 )
-from .season_maintenance import (
-    repair_options,
-    repair_options_for_plan,
-    _options_for_finding,
-)
 
 
 DEFAULT_DIMENSIONS: Tuple[str, str, str] = ("participants", "host")

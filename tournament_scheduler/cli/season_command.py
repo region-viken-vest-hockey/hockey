@@ -349,9 +349,93 @@ def _cmd_season(args) -> int:
         if args.season_command == "status":
             return _cmd_season_status(args)
 
+        if args.season_command == "approve":
+            return _cmd_season_approve(args)
+
+        if args.season_command == "unapprove":
+            return _cmd_season_unapprove(args)
+
+        if args.season_command == "banned-dates":
+            return _cmd_season_banned_dates(args)
+
         _console.print("[red]✗[/red] Missing season subcommand")
         return 1
 
     except SeasonStateError as exc:
         _console.print(f"[red]✗[/red] {exc}")
         return 1
+
+def _cmd_season_approve(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season approve`` — approve a tournament."""
+    from ..season_state import approve_tournament
+
+    result = approve_tournament(
+        season=args.season,
+        tournament_id=args.tournament_id,
+        actor=args.actor,
+        note=args.note,
+        placement_locked=not args.no_placement_lock if hasattr(args, 'no_placement_lock') else True,
+        participants_locked=args.participants_locked if hasattr(args, 'participants_locked') else False,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        _console.print(
+            f"[green]✓[/green] Approved tournament {args.tournament_id} for {args.season}"
+            f" (request {result.get('request_id')})"
+        )
+    return 0
+
+
+def _cmd_season_unapprove(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season unapprove`` — unapprove a tournament."""
+    from ..season_state import unapprove_tournament
+
+    result = unapprove_tournament(
+        season=args.season,
+        tournament_id=args.tournament_id,
+        actor=args.actor,
+        note=args.note,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        _console.print(
+            f"[green]✓[/green] Unapproved tournament {args.tournament_id} for {args.season}"
+            f" (request {result.get('request_id')})"
+        )
+    return 0
+
+
+def _cmd_season_banned_dates(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season banned-dates`` — list banned dates."""
+    from ..season_state import banned_date_report
+
+    result = banned_date_report(
+        season=args.season,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        banned_dates = result.get("banned_dates", [])
+        violations = result.get("violations", [])
+        if banned_dates:
+            _console.print(f"[green]✓[/green] Found {len(banned_dates)} banned date(s) for {args.season}")
+            for bd in banned_dates:
+                _console.print(f"  {bd.get('date')} (request {bd.get('request_id')})")
+        else:
+            _console.print(f"[green]✓[/green] No banned dates found for {args.season}")
+        if violations:
+            _console.print(f"[yellow]⚠[/yellow] {len(violations)} tournament(s) violate banned dates:")
+            for v in violations:
+                _console.print(f"  {v.get('tournament_id')} on {v.get('date')}")
+    return 0

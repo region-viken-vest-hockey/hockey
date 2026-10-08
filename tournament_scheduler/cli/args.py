@@ -1188,6 +1188,7 @@ def build_parser() -> argparse.ArgumentParser:
     season_unapprove.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_unapprove.add_argument("--actor", default=None, help="Operator identity")
     season_unapprove.add_argument("--note", default="", help="Reason for revoking the approval")
+    season_unapprove.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_unapprove.add_argument("--json", action="store_true", help="Print updated decisions.json as JSON")
 
     season_approvals = season_sub.add_parser(
@@ -1804,6 +1805,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     season_ban_date.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
     season_ban_date.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_ban_date.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_ban_date.add_argument("--date", required=True, help="Date to ban globally (YYYY-MM-DD)")
     season_ban_date.add_argument(
         "--request-id",
@@ -1820,6 +1822,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     season_unban_date.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
     season_unban_date.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_unban_date.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_unban_date.add_argument(
         "--date",
         dest="dates",
@@ -1849,6 +1852,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     season_banned_dates.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
     season_banned_dates.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_banned_dates.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_banned_dates.add_argument("--all", action="store_true", help="Include released bans")
     season_banned_dates.add_argument("--json", action="store_true", help="Print the banned date report as JSON")
 

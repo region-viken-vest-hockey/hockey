@@ -291,11 +291,11 @@ def _annotate_pareto(
         return options
         
     # Compute objective vectors for all options
-    vectors: List[List[float]] = []
+    vectors: List[Dict[str, float]] = []
     for option in options:
         # This is a simplified version - in reality, we'd need to compute
         # the objective vector for each option's candidate plan
-        vector = [0.0] * len(MAINTENANCE_DEFECT_DIMENSIONS)  # Placeholder
+        vector: Dict[str, float] = {dim: 0.0 for dim in MAINTENANCE_DEFECT_DIMENSIONS}
         vectors.append(vector)
     
     # Find the Pareto frontier

@@ -70,7 +70,10 @@ from .maintenance_context import (
     _problem_from_schedule,
     project_canonical_overlays,
 )
-from .findings_construction import construct_findings
+from .findings_construction import (
+    construct_findings,
+    _require_finding,
+)
 from .search_coverage import (
     derive_search_coverage,
     maintenance_search_capability,
@@ -80,15 +83,10 @@ from .search_coverage import (
     SEARCH_COVERAGE_OPTION_AVAILABLE,
 )
 from .repair_options import (
-    repair_options,
-    repair_options_for_plan,
-    _options_for_finding,
-)
-from .repair_options import (
     DEFAULT_DIMENSIONS,
     SEASON_MAINTENANCE_SCHEMA_VERSION,
-    _annotate_pareto,
 )
+load_context = load_maintenance_context
 from .option_evaluation import (
     _objective_vector,
     _travel_metrics,
@@ -99,8 +97,6 @@ from .option_evaluation import (
     MAINTENANCE_DEFECT_DIMENSIONS,
 )
 from .repair_application import (
-    apply_repair,
-    apply_repair_to_plan,
     _apply_option,
 )
 from .impact_analysis import (
@@ -682,8 +678,6 @@ def repair_options(
         finding,
         DEFAULT_DIMENSIONS,
         active_constraints=constraints,
-        allow_manual_placement=allow_manual_placement,
-        allow_host_confirmation=allow_host_confirmation,
     )
     return {
         "season": season,

@@ -14,10 +14,11 @@ from .application.canonical_season.scoped_mutation import (
     authorize_bounded_repair,
 )
 from .canonical_baseline import build_canonical_baseline, change_cost
-from .finding_construction import construct_findings
+from .findings_construction import construct_findings
 from .host_team_missing_repair import candidate_fingerprint
 from .local_repair_options import apply_local_repair_option
 from .planning_contract import verify_candidate
+from .repair_options import DEFAULT_DIMENSIONS
 from .repair_adoption_guard import (
     RepairPassLedger,
     adoption_history_summary,
@@ -30,19 +31,26 @@ from .season_state import (
     load_participation_acceptances,
     load_schedule,
 )
-from .season_maintenance import (
+from .findings_construction import (
     _require_finding,
-    DEFAULT_SEASON_ROOT,
     _infer_finding_id,
     _findings_for_option,
-    findings_for_plan,
+)
+from .season_state import DEFAULT_SEASON_ROOT
+
+from .operational_acceptability import (
     check_operational_acceptability,
     required_opt_in_flags,
-    _metric_delta,
+)
+from .option_evaluation import _metric_delta
+from .impact_analysis import (
     _changed_team_ids,
     _changed_tournament_ids,
-    _plan_fingerprint,
 )
+
+def findings_for_plan(plan: Mapping[str, Any], problem: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    """Stable actionable findings over any candidate plan + planning problem."""
+    return construct_findings(plan, problem, verify_candidate(dict(plan), dict(problem)))
 
 
 def apply_repair(
