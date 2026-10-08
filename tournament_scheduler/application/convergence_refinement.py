@@ -610,7 +610,7 @@ def run_bounded_convergence(
         measured = [
             option
             for option in (report.get("options") or [])
-            if option.get("objectives") and option.get("non_dominated")
+            if option.get("objectives") and (option.get("non_dominated") or option.get("pareto", {}).get("is_on_front"))
         ]
         trace.emit(
             EVENT_OPTIONS_ENUMERATED,
