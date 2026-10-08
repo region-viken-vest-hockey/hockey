@@ -298,6 +298,7 @@ def _annotate_pareto(
         # This is a simplified version - in reality, we'd need to compute
         # the objective vector for each option's candidate plan
         vector: Dict[str, float] = {dim: 0.0 for dim in MAINTENANCE_DEFECT_DIMENSIONS}
+        option["objectives"] = vector
         vectors.append(vector)
     
     # Find the Pareto frontier
@@ -316,4 +317,5 @@ def _annotate_pareto(
                 "rank": front_indices.index(i) if i in front_indices else -1,
             }
     
+    return options
     return options
