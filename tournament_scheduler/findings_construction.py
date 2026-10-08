@@ -19,8 +19,16 @@ from .season_baseline import compare_findings_to_baseline
 from .final_verification import _reclassify_accepted_booking_floor
 from .participation_withdrawals import eligible_hosting_teams
 from .hosting_coverage import hosting_balance_matrix
-
-
+from .placement_infeasibility import (
+    coverage_from_proof,
+    proof_is_current,
+    proofs_by_obligation,
+    stale_coverage_from_proof,
+)
+from .unplaced_placement_repair import (
+    obligation_search_coverage,
+    unplaced_placement_search_capability,
+)
 def construct_findings(
     plan: Mapping[str, Any],
     problem: Mapping[str, Any],
@@ -262,11 +270,30 @@ def _unplaced_findings(
     """Construct unplaced placement findings."""
     unresolved = plan.get("unresolved_tournament_placements") or []
     findings: List[Dict[str, Any]] = []
+    proofs = proofs_by_obligation(decisions) if decisions else {}
+    capability = unplaced_placement_search_capability()
     for item in unresolved:
+        if not isinstance(item, Mapping):
+            continue
         item_id = str(item.get("id") or "")
         age_group = str(item.get("age_group") or "")
         date = str(item.get("date") or "")
         responsible_host = str(item.get("responsible_host") or "")
+        coverage = obligation_search_coverage(plan, problem or {}, item, allow_search=False)
+        proof = proofs.get(item_id)
+        if proof is not None:
+            is_current, stale_reason = proof_is_current(
+                proof,
+                plan=plan,
+                problem=problem or {},
+                obligation=item,
+                current_capability=capability,
+            )
+            coverage = (
+                coverage_from_proof(proof)
+                if is_current
+                else stale_coverage_from_proof(proof, reason=stale_reason, fallback=coverage)
+            )
         findings.append(
             {
                 "finding_id": item_id,
@@ -276,16 +303,19 @@ def _unplaced_findings(
                 "date": date,
                 "host_club": responsible_host,
                 "responsible_host": responsible_host,
+                "reason": item.get("reason"),
                 "search_attempted": item.get("search_attempted"),
                 "bounded_repair_exhausted": item.get("bounded_repair_exhausted"),
-                "reason": item.get("reason"),
+                # A planner exhaustion claim written by a superseded search is
+                # not current evidence: surface it as stale/retryable rather
+                # than indistinguishable from a fresh result.
+                "bounded_repair_exhausted_stale": bool(coverage.get("capability_stale")),
+                "search_coverage": coverage,
                 "summary": f"Unplaced tournament placement for age group {age_group} on {date}",
                 "message": f"Tournament placement for age group {age_group} on {date} could not be automatically placed; responsible host: {responsible_host}.",
             }
         )
     return findings
-
-
 def _movable_capacity_findings(problem: Mapping[str, Any], plan: Mapping[str, Any]) -> List[Dict[str, Any]]:
     """Construct movable capacity findings."""
     # TODO: Implement proper movable capacity findings based on problem and plan.
