@@ -273,6 +273,8 @@ def _annotate_pareto(
     dimensions: Iterable[str],
     *,
     active_constraints: Optional[Mapping[str, Any]] = None,
+    allow_manual_placement: bool = False,
+    allow_host_confirmation: bool = False,
 ) -> List[Dict[str, Any]]:
     """Annotate options with Pareto frontier information.
 
