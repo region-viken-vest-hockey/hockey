@@ -514,8 +514,9 @@ def _cmd_season_export(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season export`` — regenerate Stage 4 exports from canonical season state."""
     from ..pipeline.stage4_export import run as run_export
     from ..pipeline.state import PipelineState, StageName
-    from ..season_state import load_schedule, load_decisions, SeasonStateError
+    from ..season_state import load_schedule, load_decisions, SeasonStateError, load_export_context
     from ..canonical_state import canonical_state_revision
+    from ..pipeline.public_export_context import resolve_promoted_public_export_context, PublicExportContextError
     import os
 
     work_dir = args.work_dir
@@ -553,6 +554,24 @@ def _cmd_season_export(args: argparse.Namespace) -> int:
     except Exception:
         pass
 
+    # Resolve the promoted public export context from the canonical season
+    # This ensures we use the context from promotion, not the live workspace state
+    public_export_context = None
+    try:
+        export_context = load_export_context(args.season, root=args.root)
+        # If we have an export context (not legacy), verify it matches the promotion record
+        # If verification fails (tampered context), we should let the export fail
+        # If there's no context (legacy season), public_export_context will be None and we'll use pipeline metadata
+        public_export_context = resolve_promoted_public_export_context(schedule, export_context)
+    except PublicExportContextError as e:
+        # Verification failed - tampered context should cause export to fail with return code 1
+        _console.print(f"[red]✗[/red] {e}")
+        return 1
+    except Exception:
+        # If we can't load the promoted context at all (e.g., file missing, invalid JSON),
+        # fall back to None (will use pipeline metadata for legacy seasons)
+        pass
+
     # Run the export
     try:
         result = run_export(
@@ -564,6 +583,7 @@ def _cmd_season_export(args: argparse.Namespace) -> int:
             timestamped_export=args.timestamped_export,
             effective_config_override=effective_config if effective_config else None,
             use_pipeline_metadata=True,
+            public_export_context=public_export_context,
             allow_placement_normalization=False,  # Canonical exports must be schedule-preserving
         )
     except Exception as exc:
