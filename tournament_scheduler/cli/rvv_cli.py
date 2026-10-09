@@ -63,6 +63,10 @@ from .verdict_critic_auto_adjust import _cmd_verdict, _cmd_critic, _cmd_auto_adj
 
 _console = Console()
 
+# Inject console into verdict_critic_auto_adjust for shared output capture in tests
+from . import verdict_critic_auto_adjust as _vca
+_vca._console = _console
+
 # ---------------------------------------------------------------------------
 # Command implementations
 # ---------------------------------------------------------------------------

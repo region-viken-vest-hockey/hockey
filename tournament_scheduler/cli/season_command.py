@@ -7,6 +7,7 @@ and its subcommands for managing the canonical season state.
 
 from __future__ import annotations
 
+import argparse
 import json as _json
 from typing import TYPE_CHECKING, Sequence
 
@@ -361,6 +362,17 @@ def _cmd_season(args) -> int:
         if args.season_command == "batch":
             return _cmd_season_batch(args)
 
+        if args.season_command == "inspect":
+            if args.inspect_command == "tournament":
+                return _cmd_season_inspect_tournament(args)
+            elif args.inspect_command == "constraints":
+                return _cmd_season_inspect_constraints(args)
+            elif args.inspect_command == "candidates":
+                return _cmd_season_inspect_candidates(args)
+            else:
+                _console.print("[red]✗[/red] Missing inspect subcommand")
+                return 1
+
         _console.print("[red]✗[/red] Missing season subcommand")
         return 1
 
@@ -496,4 +508,585 @@ def _cmd_season_batch(args: argparse.Namespace) -> int:
     # Handle --fail-on-blocked
     if args.dry_run and args.fail_on_blocked and not result.get("consequence_acceptable"):
         return 3
+    return 0
+
+def _cmd_season_export(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season export`` — regenerate Stage 4 exports from canonical season state."""
+    from ..pipeline.stage4_export import run as run_export
+    from ..pipeline.state import PipelineState, StageName
+    from ..season_state import load_schedule, load_decisions, SeasonStateError
+    from ..canonical_state import canonical_state_revision
+    import os
+
+    work_dir = args.work_dir
+    state = PipelineState(work_dir)
+
+    try:
+        schedule = load_schedule(args.season, root=args.root)
+        decisions = load_decisions(args.season, root=args.root)
+    except SeasonStateError as exc:
+        _console.print(f"[red]✗[/red] {exc}")
+        return 1
+
+    plan_dict = schedule.get("plan", {})
+    if not plan_dict:
+        _console.print(f"[red]✗[/red] No plan found in canonical schedule for {args.season}")
+        return 1
+
+    # Use the proper canonical state revision (from decisions, not schedule.revision)
+    canonical_rev = canonical_state_revision(schedule, decisions)
+
+    # Build plan checkpoint similar to what Stage 3 produces
+    plan_checkpoint = {
+        "plan": plan_dict,
+        "canonical_state": {
+            "season": args.season,
+            "revision": canonical_rev,
+        },
+    }
+
+    # Load effective config if available
+    effective_config = {}
+    try:
+        from ..pipeline.stage1_config import load_effective_config
+        effective_config = load_effective_config(state)
+    except Exception:
+        pass
+
+    # Run the export
+    try:
+        result = run_export(
+            plan_checkpoint=plan_checkpoint,
+            state=state,
+            export_dir=args.export_dir,
+            basename="season_plan",
+            strict=True,
+            timestamped_export=args.timestamped_export,
+            effective_config_override=effective_config if effective_config else None,
+            use_pipeline_metadata=True,
+            allow_placement_normalization=False,  # Canonical exports must be schedule-preserving
+        )
+    except Exception as exc:
+        _console.print(f"[red]✗[/red] Export failed: {exc}")
+        return 1
+
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        _console.print(f"[green]✓[/green] Exported season {args.season} to {args.export_dir}")
+        if "export_dir" in result:
+            _console.print(f"  Export directory: {result['export_dir']}")
+        if "files" in result:
+            for f in result["files"]:
+                _console.print(f"  {f}")
+    return 0
+
+
+def _cmd_season_export_parity(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season export-parity`` — verify export parity between canonical and pipeline exports."""
+    from ..pipeline.export_parity.comparator import compare_exports
+    from ..season_state import load_schedule, SeasonStateError
+
+    try:
+        schedule = load_schedule(args.season, root=args.root)
+    except SeasonStateError as exc:
+        _console.print(f"[red]✗[/red] {exc}")
+        return 1
+
+    plan_dict = schedule.get("plan", {})
+    if not plan_dict:
+        _console.print(f"[red]✗[/red] No plan found in canonical schedule for {args.season}")
+        return 1
+
+    # TODO: Implement export parity comparison
+    _console.print(f"[yellow]⚠[/yellow] Export parity check not fully implemented yet")
+    return 0
+
+
+def _cmd_season_status(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season status`` — show canonical season state metadata."""
+    from ..season_state import load_schedule, load_decisions, SeasonStateError
+
+    try:
+        schedule = load_schedule(args.season, root=args.root)
+        decisions = load_decisions(args.season, root=args.root)
+    except SeasonStateError as exc:
+        _console.print(f"[red]✗[/red] {exc}")
+        return 1
+
+    revision = schedule.get("revision")
+    plan = schedule.get("plan", {})
+    tournaments = plan.get("tournaments", [])
+    decisions_count = len(decisions.get("decisions", {}))
+
+    result = {
+        "season": args.season,
+        "revision": revision,
+        "tournament_count": len(tournaments),
+        "decision_count": decisions_count,
+        "schedule_schema_version": schedule.get("schema_version"),
+        "decisions_schema_version": decisions.get("schema_version"),
+    }
+
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        _console.print(f"[bold]Canonical Season State: {args.season}[/bold]")
+        _console.print(f"  Revision: {revision}")
+        _console.print(f"  Tournaments: {len(tournaments)}")
+        _console.print(f"  Decisions: {decisions_count}")
+        _console.print(f"  Schedule schema: {schedule.get('schema_version')}")
+        _console.print(f"  Decisions schema: {decisions.get('schema_version')}")
+    return 0
+
+
+def _cmd_season_set_ice_time_minutes(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season set-ice-time-minutes`` — set ice time minutes for a tournament."""
+    from ..season_state import set_ice_time_minutes
+
+    result = set_ice_time_minutes(
+        season=args.season,
+        tournament_id=args.tournament_id,
+        minutes=args.minutes,
+        request_id=args.request_id,
+        root=args.root,
+        actor=args.actor,
+        note=args.note,
+        reference=args.reference,
+        expected_revision=args.expected_revision,
+        dry_run=args.dry_run,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        _console.print(
+            f"[green]✓[/green] Set ice time minutes to {args.minutes} for tournament {args.tournament_id} in season {args.season}"
+        )
+    return 0
+
+
+def _cmd_season_clear_ice_time_minutes(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season clear-ice-time-minutes`` — clear ice time minutes for a tournament."""
+    from ..season_state import clear_ice_time_minutes
+
+    result = clear_ice_time_minutes(
+        season=args.season,
+        tournament_id=args.tournament_id,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        _console.print(
+            f"[green]✓[/green] Cleared ice time minutes for tournament {args.tournament_id} in season {args.season}"
+        )
+    return 0
+
+
+def _cmd_season_ice_time_overrides(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season ice-time-overrides`` — show ice time overrides."""
+    from ..season_state import ice_time_override_report
+
+    result = ice_time_override_report(
+        season=args.season,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        overrides = result.get("overrides", {})
+        if overrides:
+            _console.print(f"[green]✓[/green] Ice time overrides for {args.season}:")
+            for age_group, minutes in overrides.items():
+                _console.print(f"  {age_group}: {minutes} minutes")
+        else:
+            _console.print(f"[green]✓[/green] No ice time overrides set for season {args.season}")
+    return 0
+
+
+def _cmd_season_set_manual_booking_assertion(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season set-manual-booking-assertion`` — set manual booking assertion."""
+    from ..season_state import set_manual_booking_assertion
+
+    set_manual_booking_assertion(
+        season=args.season,
+        club=args.club,
+        label=args.label,
+        date=args.date,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps({"status": "ok"}, ensure_ascii=False, indent=2))
+    else:
+        _console.print(
+            f"[green]✓[/green] Set manual booking assertion for {args.club} {args.label} on {args.date} in season {args.season}"
+        )
+    return 0
+
+
+def _cmd_season_clear_manual_booking_assertion(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season clear-manual-booking-assertion`` — clear manual booking assertion."""
+    from ..season_state import clear_manual_booking_assertion
+
+    clear_manual_booking_assertion(
+        season=args.season,
+        club=args.club,
+        label=args.label,
+        date=args.date,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps({"status": "ok"}, ensure_ascii=False, indent=2))
+    else:
+        _console.print(
+            f"[green]✓[/green] Cleared manual booking assertion for {args.club} {args.label} on {args.date} in season {args.season}"
+        )
+    return 0
+
+
+def _cmd_season_club_booking_sources(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season club-booking-sources`` — set or show club booking sources."""
+    from ..season_state import club_booking_sources, set_club_booking_source
+
+    if args.club is not None and args.source is not None:
+        # Set club booking source
+        set_club_booking_source(
+            season=args.season,
+            club=args.club,
+            source=args.source,
+            root=args.root,
+        )
+        if args.json:
+            import json as _json
+            print(_json.dumps({"status": "ok"}, ensure_ascii=False, indent=2))
+        else:
+            _console.print(
+                f"[green]✓[/green] Set booking source for club {args.club} to {args.source} in season {args.season}"
+            )
+    else:
+        # Show club booking sources
+        sources = club_booking_sources(
+            season=args.season,
+            root=args.root,
+        )
+        if args.json:
+            import json as _json
+            print(_json.dumps(sources, ensure_ascii=False, indent=2, sort_keys=True))
+        else:
+            if sources:
+                _console.print(f"[green]✓[/green] Club booking sources for season {args.season}:")
+                for club, source in sources.items():
+                    _console.print(f"  {club}: {source}")
+            else:
+                _console.print(f"[green]✓[/green] No club booking sources set for season {args.season}")
+    return 0
+
+
+def _cmd_season_change_protections(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season change-protections`` — change protection status for clubs."""
+    from ..season_state import change_protection_report
+
+    result = change_protection_report(
+        season=args.season,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        protections = result.get("protections", [])
+        if protections:
+            _console.print(f"[green]✓[/green] Protections for season {args.season}:")
+            for prot in protections:
+                _console.print(f"  {prot.get('club')} ({prot.get('protected_until', 'indefinitely')})")
+        else:
+            _console.print(f"[green]✓[/green] No protections set for season {args.season}")
+    return 0
+
+
+def _cmd_season_release_protection(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season release-protection`` — release protection for a club."""
+    from ..season_state import release_change_protections
+
+    release_change_protections(
+        season=args.season,
+        club=args.club,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps({"status": "ok"}, ensure_ascii=False, indent=2))
+    else:
+        _console.print(
+            f"[green]✓[/green] Released protection for club {args.club} in season {args.season}"
+        )
+    return 0
+
+
+def _cmd_season_history(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season history`` — show season history."""
+    from ..season_state import history_inventory
+
+    result = history_inventory(
+        season=args.season,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        entries = result.get("entries", [])
+        if entries:
+            _console.print(f"[green]✓[/green] History for season {args.season}:")
+            for entry in entries:
+                _console.print(f"  {entry.get('timestamp')}: {entry.get('description')}")
+        else:
+            _console.print(f"[green]✓[/green] No history entries for season {args.season}")
+    return 0
+
+
+def _cmd_season_compact_history(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season compact-history`` — show compact season history."""
+    from ..season_state import compact_history
+
+    result = compact_history(
+        season=args.season,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        entries = result.get("entries", [])
+        if entries:
+            _console.print(f"[green]✓[/green] Compact history for season {args.season}:")
+            for entry in entries:
+                _console.print(f"  {entry.get('timestamp')}: {entry.get('description')}")
+        else:
+            _console.print(f"[green]✓[/green] No compact history entries for season {args.season}")
+    return 0
+
+
+def _cmd_season_tourney_inspection(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season tourney-inspection`` — inspect tournament details."""
+    from ..season_state import tournament_inspection
+
+    result = tournament_inspection(
+        season=args.season,
+        tournament_id=args.tournament_id,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        if result:
+            _console.print(f"[green]✓[/green] Inspection for tournament {args.tournament_id} in season {args.season}:")
+            for key, value in result.items():
+                _console.print(f"  {key}: {value}")
+        else:
+            _console.print(f"[yellow]⚠[/yellow] No inspection data found for tournament {args.tournament_id}")
+    return 0
+
+
+def _cmd_season_placement_infeasibility(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season placement-infeasibility`` — show placement infeasibility details."""
+    from ..season_state import placement_infeasibility_report
+
+    result = placement_infeasibility_report(
+        season=args.season,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        if result:
+            _console.print(f"[green]✓[/green] Placement infeasibility report for season {args.season}:")
+            for key, value in result.items():
+                _console.print(f"  {key}: {value}")
+        else:
+            _console.print(f"[yellow]⚠[/yellow] No placement infeasibility data for season {args.season}")
+    return 0
+
+
+def _cmd_season_normalize_placements(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season normalize-placements`` — normalize placements."""
+    from ..season_state import normalize_placements
+
+    result = normalize_placements(
+        season=args.season,
+        root=args.root,
+        actor=args.actor,
+        note=args.note,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        _console.print(f"[green]✓[/green] Normalized placements for season {args.season}")
+        if result.get("changes_made"):
+            _console.print(f"  Changes made: {result['changes_made']}")
+    return 0
+
+
+def _cmd_season_normalize_arena_identities(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season normalize-arena-identities`` — normalize arena identities."""
+    from ..season_state import normalize_arena_identities
+
+    result = normalize_arena_identities(
+        season=args.season,
+        root=args.root,
+        actor=args.actor,
+        note=args.note,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        _console.print(f"[green]✓[/green] Normalized arena identities for season {args.season}")
+        if result.get("changes_made"):
+            _console.print(f"  Changes made: {result['changes_made']}")
+    return 0
+
+
+def _cmd_season_decision_ledger(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season decision-ledger`` — show decision ledger."""
+    from ..season_state import change_request_ledger
+
+    result = change_request_ledger(
+        season=args.season,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        entries = result.get("entries", [])
+        if entries:
+            _console.print(f"[green]✓[/green] Decision ledger for season {args.season}:")
+            for entry in entries:
+                _console.print(f"  {entry.get('timestamp')}: {entry.get('description')}")
+        else:
+            _console.print(f"[green]✓[/green] No decision ledger entries for season {args.season}")
+    return 0
+
+
+def _cmd_season_guest_slot_report(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season guest-slot-report`` — show guest slot report."""
+    from ..season_state import guest_slot_report
+
+    result = guest_slot_report(
+        season=args.season,
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        report = result.get("report", {})
+        if report:
+            _console.print(f"[green]✓[/green] Guest slot report for season {args.season}:")
+            for key, value in report.items():
+                _console.print(f"  {key}: {value}")
+        else:
+            _console.print(f"[yellow]⚠[/yellow] No guest slot data for season {args.season}")
+    return 0
+
+
+def _cmd_season_inspect_tournament(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season inspect tournament`` — inspect tournament details."""
+    from ..season_state import tournament_inspection
+
+    result = tournament_inspection(
+        season=args.season,
+        tournament_id=args.tournament_id,
+        root=args.root,
+        include_released_constraints=getattr(args, 'all', False),
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        if result:
+            _console.print(f"[green]✓[/green] Inspection for tournament {args.tournament_id} in season {args.season}:")
+            for key, value in result.items():
+                _console.print(f"  {key}: {value}")
+        else:
+            _console.print(f"[yellow]⚠[/yellow] No inspection data found for tournament {args.tournament_id}")
+    return 0
+
+
+def _cmd_season_inspect_constraints(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season inspect constraints`` — inspect request constraints."""
+    from ..season_state import constraint_inspection
+
+    result = constraint_inspection(
+        season=args.season,
+        team=args.team,
+        tournament_id=args.tournament_id,
+        date=args.date,
+        include_released=getattr(args, 'all', False),
+        root=args.root,
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        if result:
+            _console.print(f"[green]✓[/green] Constraint inspection for season {args.season}:")
+            for key, value in result.items():
+                _console.print(f"  {key}: {value}")
+        else:
+            _console.print(f"[yellow]⚠[/yellow] No constraint data found for season {args.season}")
+    return 0
+
+
+def _cmd_season_inspect_candidates(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season inspect candidates`` — list replacement candidates."""
+    from ..season_state import replacement_candidates
+
+    result = replacement_candidates(
+        season=args.season,
+        tournament_id=args.tournament_id,
+        root=args.root,
+        replace_team_label=getattr(args, 'replace_team', None),
+        legal_only=getattr(args, 'legal_only', False),
+        limit=getattr(args, 'limit', None),
+    )
+    if args.json:
+        import json as _json
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        if isinstance(result, list):
+            _console.print(f"[green]✓[/green] Found {len(result)} replacement candidates for tournament {args.tournament_id} in season {args.season}:")
+            for i, candidate in enumerate(result, 1):
+                _console.print(f"  {i}. {candidate}")
+        elif result:
+            _console.print(f"[green]✓[/green] Replacement candidates for tournament {args.tournament_id} in season {args.season}:")
+            for key, value in result.items():
+                _console.print(f"  {key}: {value}")
+        else:
+            _console.print(f"[yellow]⚠[/yellow] No replacement candidates found for tournament {args.tournament_id} in season {args.season}")
+    return 0
+
+
+def _cmd_season_save_placeholder(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season save-placeholder`` — save a placeholder for missing data."""
+    # TODO: Implement save-placeholder command
+    _console.print(f"[yellow]⚠[/yellow] Save placeholder command not yet implemented")
+    return 0
+
+
+def _cmd_season_commit_placeholder(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season commit-placeholder`` — commit a placeholder to real data."""
+    # TODO: Implement commit-placeholder command
+    _console.print(f"[yellow]⚠[/yellow] Commit placeholder command not yet implemented")
     return 0
