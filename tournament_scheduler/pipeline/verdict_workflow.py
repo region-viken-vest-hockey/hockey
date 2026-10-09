@@ -7,8 +7,6 @@ on tournaments in the pipeline.
 
 from __future__ import annotations
 
-from typing import Any
-
 from ..models import SeasonPlan, Tournament
 from ..pipeline.state import PipelineState, StageName
 from ..serialization.season_plan import season_plan_from_dict
