@@ -7,50 +7,125 @@ mutability guarantees.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
-
-from .application.canonical_season.scoped_mutation import (
-    authorization_history_details,
-    authorize_bounded_repair,
-)
-from .canonical_baseline import build_canonical_baseline, change_cost
+from .application.canonical_season.scoped_mutation import authorization_history_details
+from .application.canonical_season.scoped_mutation import authorize_bounded_repair
+from .canonical_baseline import build_canonical_baseline
+from .canonical_baseline import change_cost
+from .finding_resolution import annotate_resolutions
+from .finding_resolution import resolution_summary
+from .findings_construction import _findings_for_option
+from .findings_construction import _infer_finding_id
+from .findings_construction import _require_finding
 from .findings_construction import construct_findings
+from .findings_construction import findings_for_plan
 from .host_team_missing_repair import candidate_fingerprint
+from .impact_analysis import _changed_team_ids
+from .impact_analysis import _changed_tournament_ids
+from .impact_analysis import _plan_fingerprint
+from .impact_analysis import _priority_improvement_tier
 from .local_repair_options import apply_local_repair_option
+from .maintenance_context import load_maintenance_context
+from .operational_acceptability import check_operational_acceptability
+from .operational_acceptability import required_opt_in_flags
+from .option_evaluation import (
+    PARETO_DIMENSIONS,
+    _metric_delta,
+    _objective_vector,
+    _rejected_delta,
+    _travel_metrics,
+)
+from .pareto import non_dominated_indices, representative_indices
+from .planning_contract import score_candidate
+from .quality_objectives import compare_quality_scores, with_unresolved_obligations_count
+from .repair_options import _option_is_applicable
+from .search_coverage import (
+    SEARCH_COVERAGE_BOUNDED_EXHAUSTED,
+    SEARCH_COVERAGE_INCOMPLETE,
+    SEARCH_COVERAGE_OPTION_AVAILABLE,
+)
 from .planning_contract import verify_candidate
+from .repair_adoption_guard import RepairPassLedger
+from .repair_adoption_guard import adoption_history_summary
+from .repair_adoption_guard import evaluate_adoption
 from .repair_options import DEFAULT_DIMENSIONS
-from .repair_adoption_guard import (
-    RepairPassLedger,
-    adoption_history_summary,
-    evaluate_adoption,
-)
-from .season_state import (
-    apply_candidate,
-    canonical_state_revision,
-    load_decisions,
-    load_participation_acceptances,
-    load_schedule,
-)
-from .findings_construction import (
-    _require_finding,
-    _infer_finding_id,
-    _findings_for_option,
-)
+from .repair_options import SEASON_MAINTENANCE_SCHEMA_VERSION
+from .repair_options import _options_for_finding
+from .request_constraints import active_request_constraints
+from .request_constraints import compare_constraint_violations
+from .request_constraints import request_constraint_report
+from .rule_catalog import annotate_findings
 from .season_state import DEFAULT_SEASON_ROOT
+from .season_state import apply_candidate
+from .season_state import canonical_state_revision
+from typing import Any
+from typing import Dict
+from typing import Iterable
+from typing import List
+from typing import Tuple
+from typing import Mapping
+from typing import Optional
 
-from .operational_acceptability import (
-    check_operational_acceptability,
-    required_opt_in_flags,
-)
-from .option_evaluation import _metric_delta
-from .impact_analysis import (
-    _changed_team_ids,
-    _changed_tournament_ids,
-)
 
-def findings_for_plan(plan: Mapping[str, Any], problem: Mapping[str, Any]) -> List[Dict[str, Any]]:
-    """Stable actionable findings over any candidate plan + planning problem."""
-    return construct_findings(plan, problem, verify_candidate(dict(plan), dict(problem)))
+def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, Any]:
+    """Return stable, revision-bound actionable findings over canonical state."""
+    schedule, decisions, plan, problem = load_maintenance_context(season, root=root)
+    verification = verify_candidate(plan, problem)
+    revision = canonical_state_revision(schedule, decisions)
+    # ADR 0005: a source-confirmed accepted booking below the governing planning
+    # floor is a durable follow-up finding at the audit boundary, not a
+    # new-placement hard violation. Use the same revision-bound classification
+    # the export/preflight path applies so findings/audit and export agree.
+    from .final_verification import _reclassify_accepted_booking_floor
+
+    accepted_floor_findings, remaining_violations = _reclassify_accepted_booking_floor(
+        problem, plan, list(verification.get("violations") or [])
+    )
+    verification = dict(verification)
+    verification["violations"] = remaining_violations
+    verification["ok"] = not remaining_violations
+    verification["booking_feasibility_warnings"] = accepted_floor_findings
+    findings = construct_findings(plan, problem, verification, decisions=decisions)
+    from .calendar_bookings import association_findings
+
+    findings.extend(association_findings(problem=problem, plan=plan, decisions=decisions))
+    annotate_findings(findings)
+    annotate_resolutions(findings)
+    baseline = decisions.get("season_baseline") or None
+    from .season_baseline import compare_findings_to_baseline
+
+    baseline_comparison = compare_findings_to_baseline(baseline, findings)
+    # Hard verification is never baselineable: a hard failure must never let a
+    # comparison claim the season is safe to advance/accept, regardless of how
+    # the non-hard findings compare.
+    baseline_comparison["hard_verification_ok"] = bool(verification.get("ok"))
+    if not verification.get("ok"):
+        baseline_comparison["ok_to_advance"] = False
+    counts: Dict[str, int] = {}
+    counts_by_rule_id: Dict[str, int] = {}
+    for finding in findings:
+        counts[finding["code"]] = counts.get(finding["code"], 0) + 1
+        rule_id = finding.get("rule_id")
+        if rule_id:
+            counts_by_rule_id[str(rule_id)] = counts_by_rule_id.get(str(rule_id), 0) + 1
+    return {
+        "schema_version": SEASON_MAINTENANCE_SCHEMA_VERSION,
+        "season": season,
+        "revision": revision,
+        "candidate_fingerprint": _plan_fingerprint(plan),
+        "verification_ok": bool(verification.get("ok")),
+        "finding_count": len(findings),
+        "counts_by_code": counts,
+        "counts_by_rule_id": counts_by_rule_id,
+        "findings": findings,
+        "resolution_summary": resolution_summary(findings),
+        "baseline_comparison": baseline_comparison,
+        "baseline": {
+            "active": bool(baseline),
+            "created_at": baseline.get("created_at") if isinstance(baseline, Mapping) else None,
+            "note": baseline.get("note") if isinstance(baseline, Mapping) else None,
+        },
+        "request_constraints": _request_constraint_context(plan, decisions),
+    }
 
 
 def apply_repair(
@@ -79,8 +154,6 @@ def apply_repair(
     introduce fixed-busy/manual placement work or host-confirmation
     dependencies unless the operator explicitly opted in.
     """
-    from .maintenance_context import load_maintenance_context
-
     resolved_dimensions = tuple(sorted({str(dimension) for dimension in dimensions}))
     # A bounded search result is reproduced from the dimensions that produced
     # it, not from whatever the caller happened to pass to ``apply-repair``.
@@ -114,9 +187,7 @@ def apply_repair(
             match, resolved_finding = found, finding
             break
     if match is None or resolved_finding is None:
-        return _rejected_delta(
-            season, revision, "unknown_or_stale_option", option_id=option_id
-        )
+        return _rejected_delta(season, revision, "unknown_or_stale_option", option_id=option_id)
 
     applied = _apply_option(plan, problem, match, resolved_finding, resolved_dimensions)
     if not applied.get("ok"):
@@ -240,7 +311,6 @@ def apply_repair(
             "adoption": adoption,
         }
 
-    from .season_state import apply_candidate
 
     # Re-derive the allowed affected ids and the exact after-state by
     # reproducing the bounded repair from the current canonical plan. The
@@ -316,6 +386,16 @@ def apply_repair(
     }
 
 
+def baseline_for_plan(plan: Mapping[str, Any]) -> Dict[str, Any]:
+    """Change-cost baseline for an unpromoted candidate (no approvals/locks).
+
+    The reviewed candidate itself is the refinement baseline, so change cost
+    measures movement away from what was reviewed rather than inventing a
+    canonical-season baseline that does not apply before promotion.
+    """
+    return build_canonical_baseline({"plan": dict(plan)}, {})
+
+
 def apply_repair_to_plan(
     plan: Mapping[str, Any],
     problem: Mapping[str, Any],
@@ -329,19 +409,13 @@ def apply_repair_to_plan(
     allow_host_confirmation: bool = False,
     decisions: Mapping[str, Any] | None = None,
 ) -> Dict[str, Any]:
-    """Apply a repair option to a candidate plan and return the delta.
+    """Atomically reproduce and apply one verified option to a bare plan.
 
-    This is the plan-level analog of ``apply_repair``: it takes a candidate
-    plan and planning problem (neither of which need to be promoted canonical
-    state) and applies a verified option to produce a delta that can be used
-    to evaluate the option's impact on the plan. The option is reproduced from
-    the plan's own verification and fully re-verified before any change to the
-    plan. A stale option (or an option that no longer enumerates) is rejected
-    without touching the plan. The option's provider self-report is never
-    trusted for operational acceptability: the apply boundary independently
-    re-checks that the candidate does not newly introduce fixed-busy/manual
-    placement work or host-confirmation dependencies unless the operator
-    explicitly opted in.
+    Returns the mutated candidate plus the same before/after metric delta the
+    canonical boundary returns; it never writes any canonical state. The same
+    operational-acceptability boundary the canonical apply uses is applied
+    here, so an unpromoted candidate cannot admit a repair the promoted path
+    would reject.
     """
     resolved_dimensions = tuple(sorted({str(d) for d in dimensions}))
     findings = findings_for_plan(plan, problem)
@@ -424,6 +498,24 @@ def apply_repair_to_plan(
     }
 
 
+def _request_constraint_context(
+    plan: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Return the active request constraints plus their derived current status."""
+
+    constraints = request_constraint_report(plan, decisions)
+    return {
+        "active_count": sum(1 for item in constraints if item.get("status") == "active"),
+        "unsatisfied_count": sum(
+            1
+            for item in constraints
+            if item.get("status") == "active" and not item.get("satisfied")
+        ),
+        "constraints": constraints,
+    }
+
+
 def _apply_option(
     plan: Mapping[str, Any],
     problem: Mapping[str, Any],
@@ -432,14 +524,12 @@ def _apply_option(
     dimensions: Iterable[str],
 ) -> Dict[str, Any]:
     """Dispatch one selected option to its owning provider's atomic apply path."""
-    from .host_team_missing_repair import candidate_fingerprint
 
     option_id = str(option["option_id"])
     fingerprint = candidate_fingerprint(plan)
     family = str(option.get("family") or "")
     arguments = option.get("arguments") or {}
     option_dimensions = tuple(arguments.get("dimensions") or dimensions)
-
     scope = {
         "age_group": finding.get("age_group"),
         "club": finding.get("club"),
@@ -515,7 +605,7 @@ def _apply_option(
             plan,
             problem,
             option_id=option_id,
-            expected_fingerpoint=fingerprint,
+            expected_fingerprint=fingerprint,
             arguments=dict(arguments) or None,
         )
     if family == "unplaced_placement":
@@ -531,8 +621,175 @@ def _apply_option(
             # coupled search for every option.
             arguments=dict(option.get("arguments") or {}) or None,
         )
-    from .local_repair_options import apply_local_repair_option
 
     return apply_local_repair_option(
         plan, problem, option_id=option_id, expected_fingerprint=fingerprint
     )
+
+
+# A non-dominated front is still bounded before it is reported: one extreme per
+# objective plus the lowest-cost remaining points, so a caller gets a small
+# representative trade-off set rather than every legal mutation.
+MAX_PARETO_REPRESENTATIVES = 6
+
+
+def _effective_search_coverage(
+    finding: Mapping[str, Any], options: Iterable[Mapping[str, Any]]
+) -> Dict[str, Any]:
+    """Reclassify raw provider coverage using effectively applicable options."""
+
+    coverage = dict(finding.get("search_coverage") or {})
+    option_list = list(options)
+    applicable_count = sum(1 for option in option_list if _option_is_applicable(option))
+    raw_option_count = len(option_list)
+    coverage["applicable_option_count"] = applicable_count
+    coverage["non_applicable_option_count"] = raw_option_count - applicable_count
+    if applicable_count:
+        coverage["status"] = SEARCH_COVERAGE_OPTION_AVAILABLE
+    elif coverage.get("search_requested"):
+        coverage["status"] = SEARCH_COVERAGE_BOUNDED_EXHAUSTED
+        coverage["proven_infeasible"] = False
+    elif coverage.get("status") == SEARCH_COVERAGE_OPTION_AVAILABLE:
+        coverage["status"] = SEARCH_COVERAGE_INCOMPLETE
+    return coverage
+
+
+def _annotate_pareto(
+    plan: Mapping[str, Any],
+    problem: Mapping[str, Any],
+    options: List[Dict[str, Any]],
+    finding: Mapping[str, Any],
+    dimensions: Iterable[str],
+    *,
+    active_constraints: Iterable[Mapping[str, Any]] = (),
+    allow_manual_placement: bool = False,
+    allow_host_confirmation: bool = False,
+) -> Dict[str, Any]:
+    """Measure every option on the same objective vector and mark the front.
+
+    Each option is reproduced against the current plan through its own atomic
+    apply path and re-verified, so the vector describes the candidate that
+    option would actually commit -- not a claim derived from the provider's
+    self-reported effects. An option that no longer reproduces is left off the
+    front instead of being reported as a verified trade-off.
+
+    An option that newly introduces operational work (fixed-busy/manual
+    placement, or a host-confirmation dependency) is classified as requiring an
+    explicit operator opt-in and kept off the auto-applicable Pareto front.
+    Pareto scoring alone is not protection here: an option that fixes one defect
+    while introducing a manual placement can stay non-dominated, so this is a
+    hard filter rather than a weight.
+    """
+    constraints = list(active_constraints)
+    measured: List[Tuple[int, Dict[str, float]]] = []
+    before_score = with_unresolved_obligations_count(score_candidate(dict(plan), problem=dict(problem)))
+    before_verification = verify_candidate(dict(plan), dict(problem))
+    for index, option in enumerate(options):
+        applied = _apply_option(plan, problem, option, finding, dimensions)
+        candidate = applied.get("candidate") if applied.get("ok") else None
+        if not isinstance(candidate, Mapping):
+            option["objectives"] = None
+            option["non_dominated"] = False
+            continue
+        # Active request constraints are hard maintenance requirements, not
+        # soft weights: a candidate that introduces or worsens one is reported
+        # as rejected evidence instead of being offered as a Pareto trade-off,
+        # and the canonical apply boundary re-checks the full active set
+        # regardless. Unchanged pre-existing violations stay visible in the
+        # option evidence but do not reject an otherwise valid repair.
+        constraint_comparison = compare_constraint_violations(
+            plan, candidate, constraints
+        )
+        option["request_constraint_violations"] = constraint_comparison["candidate_violations"]
+        option["request_constraint_regressions"] = constraint_comparison["regressions"]
+        option["request_constraint_unchanged_violations"] = constraint_comparison["unchanged"]
+        option["request_constraint_acceptable"] = constraint_comparison["acceptable"]
+        if constraint_comparison["regressions"]:
+            option["objectives"] = None
+            option["non_dominated"] = False
+            continue
+        verification = applied.get("verification") or verify_candidate(
+            dict(candidate), dict(problem)
+        )
+        acceptability = check_operational_acceptability(
+            plan,
+            before_verification,
+            candidate,
+            verification,
+            allow_manual_placement=allow_manual_placement,
+            allow_host_confirmation=allow_host_confirmation,
+        )
+        option["operational_acceptable"] = acceptability["ok"]
+        option["operational_regressions"] = acceptability["regressions"]
+        option["operational_work_added"] = acceptability["added_by_category"]
+        option["requires_operational_opt_in"] = required_opt_in_flags(acceptability)
+        if not acceptability["ok"]:
+            option["objectives"] = None
+            option["non_dominated"] = False
+            continue
+        # A coupled placement + roster repair may be hard-valid and
+        # operationally acceptable yet still materially regress an affected
+        # team's own schedule. That is a deterministic rejection owned by the
+        # consequence policy, not a Pareto trade-off: keep it off the
+        # auto-applicable front and let the apply boundary refuse it.  Use the
+        # same complete predicate escalation uses, so raw rejected option
+        # objects can never hide the need for operator action.
+        if not _option_is_applicable(option):
+            if (option.get("effects") or {}).get("consequence_acceptable") is False:
+                option["consequence_acceptable"] = False
+            option["objectives"] = None
+            option["non_dominated"] = False
+            continue
+        score = score_candidate(dict(candidate), problem=dict(problem))
+        travel = _travel_metrics(candidate)
+        vector = _objective_vector(
+            candidate, verification, plan, score=score, travel=travel,
+            active_constraints=constraints,
+        )
+        option["objectives"] = vector
+        # The same Stage-3 quality comparison Stage 3 uses to gate promotion,
+        # measured against the current canonical plan, so the harness sees the
+        # soft side effects of a repair without reconstructing them.
+        option["quality_vs_current"] = compare_quality_scores(
+            before_score, with_unresolved_obligations_count(score)
+        )
+        option["travel"] = travel
+        measured.append((index, vector))
+
+    finding["search_coverage"] = _effective_search_coverage(finding, options)
+
+    vectors = [vector for _index, vector in measured]
+    front = non_dominated_indices(vectors)
+    front_option_indices = sorted(measured[local][0] for local in front)
+    front_set = set(front_option_indices)
+    for index, option in enumerate(options):
+        option["non_dominated"] = index in front_set
+
+    front_vectors = [measured[local][1] for local in front]
+    representative = representative_indices(front_vectors, MAX_PARETO_REPRESENTATIVES)
+    return {
+        "dimensions": list(PARETO_DIMENSIONS),
+        "non_dominated_option_ids": [options[index]["option_id"] for index in front_option_indices],
+        "representative_option_ids": [
+            options[front_option_indices[local]]["option_id"] for local in representative
+        ],
+        "front_size": len(front_option_indices),
+        "measured_option_count": len(measured),
+        "request_constraint_rejected_option_ids": [
+            option["option_id"]
+            for option in options
+            if option.get("request_constraint_acceptable") is False
+        ],
+        "operational_rejected_option_ids": [
+            option["option_id"]
+            for option in options
+            if option.get("operational_acceptable") is False
+        ],
+        "consequence_rejected_option_ids": [
+            option["option_id"]
+            for option in options
+            if (option.get("effects") or {}).get("consequence_acceptable") is False
+        ],
+        "allow_manual_placement": bool(allow_manual_placement),
+        "allow_host_confirmation": bool(allow_host_confirmation),
+    }

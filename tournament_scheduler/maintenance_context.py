@@ -7,92 +7,17 @@ onto the promoted planning problem.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping, Optional, Tuple
-
-from .season_state import (
-    DEFAULT_SEASON_ROOT,
-    load_decisions,
-    load_participation_acceptances,
-    load_schedule,
-)
 from .canonical_baseline import build_canonical_baseline
-from .planning_contract import verify_candidate
-from .request_constraints import host_sibling_preference_evidence
 from .participation_targets import search_evidence_from_acceptances
-from .final_verification import _reclassify_accepted_booking_floor
-
-
-def _problem_from_schedule(schedule: Mapping[str, Any]) -> Dict[str, Any]:
-    """Extract the planning problem from a promoted season schedule.
-
-    Args:
-        schedule: The promoted season schedule containing verification context
-
-    Returns:
-        The planning problem dictionary
-
-    Raises:
-        SeasonMaintenanceError: If the schedule does not contain a verification context
-    """
-    from .season_maintenance import SeasonMaintenanceError
-
-    context = schedule.get("verification_context")
-    problem = context.get("problem") if isinstance(context, Mapping) else None
-    if not isinstance(problem, Mapping):
-        raise SeasonMaintenanceError(
-            "Canonical season carries no promoted verification-context problem; "
-            "maintenance cannot reconstruct the planning contract without a re-promotion"
-        )
-    return dict(problem)
-
-
-def project_canonical_overlays(
-    problem: Mapping[str, Any],
-    *,
-    decisions: Mapping[str, Any],
-    plan: Mapping[str, Any],
-) -> Dict[str, Any]:
-    """Project live canonical decisions onto a promoted planning problem.
-
-    This is the single facade for the canonical overlays that every verification
-    consumer of the promoted problem must share: holiday-date exceptions,
-    operator-banned dates, calendar-booking associations and durable
-    participation withdrawals. Keeping it in one place is what lets
-    ``season findings``/``season audit``/repair and ``season export`` agree with
-    the apply-time verification boundary instead of each re-deriving a subset.
-
-    The overlay projections may return the same mapping or a copy; every call
-    is written back explicitly so ordering and equality are preserved.
-
-    Args:
-        problem: The base planning problem from the promoted schedule
-        decisions: Canonical decisions containing overlays to project
-        plan: The current plan (used for some overlay projections)
-
-    Returns:
-        The problem with canonical overlays projected into it
-    """
-    from .calendar_bookings import (
-        project_associations_into_problem,
-        project_manual_assertions_into_problem,
-    )
-    from .canonical_banned_dates import project_banned_dates_into_problem
-    from .canonical_holiday_exceptions import project_exceptions_into_problem
-    from .canonical_ice_time_overrides import project_overrides_into_problem
-    from .participation_withdrawals import project_into_problem
-
-    projected: Dict[str, Any] = dict(problem)
-    projected = project_exceptions_into_problem(projected, decisions)
-    projected = project_banned_dates_into_problem(projected, decisions)
-    projected = project_overrides_into_problem(projected, decisions)
-    projected = project_associations_into_problem(projected, decisions, plan) or projected
-    projected = project_manual_assertions_into_problem(projected, decisions, plan) or projected
-    # A durable participation withdrawal reduces the eligible shape pool. Every
-    # shape/round-count verifier must see the same reduced pool the apply-time
-    # candidate was verified against, or a committed withdrawal looks
-    # hard-invalid after the fact.
-    projected = project_into_problem(projected, decisions=decisions, plan=plan)
-    return projected
+from .request_constraints import host_sibling_preference_evidence
+from .season_state import DEFAULT_SEASON_ROOT
+from .season_state import load_decisions
+from .season_state import load_participation_acceptances
+from .season_state import load_schedule
+from typing import Any
+from typing import Dict
+from typing import Mapping
+from typing import Tuple
 
 
 def load_maintenance_context(
@@ -136,3 +61,62 @@ def load_maintenance_context(
     # consider when ranking participant options.
     problem["host_sibling_preference_evidence"] = host_sibling_preference_evidence(plan, decisions)
     return schedule, decisions, plan, problem
+
+
+class SeasonMaintenanceError(RuntimeError):
+    """Raised when a maintenance request cannot be served safely."""
+
+
+def _problem_from_schedule(schedule: Mapping[str, Any]) -> Dict[str, Any]:
+    context = schedule.get("verification_context")
+    problem = context.get("problem") if isinstance(context, Mapping) else None
+    if not isinstance(problem, Mapping):
+        raise SeasonMaintenanceError(
+            "Canonical season carries no promoted verification-context problem; "
+            "maintenance cannot reconstruct the planning contract without a re-promotion"
+        )
+    return dict(problem)
+
+
+def project_canonical_overlays(
+    problem: Mapping[str, Any],
+    *,
+    decisions: Mapping[str, Any],
+    plan: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Project live canonical decisions onto a promoted planning problem.
+
+    This is the single facade for the canonical overlays that every verification
+    consumer of the promoted problem must share: holiday-date exceptions,
+    operator-banned dates, calendar-booking associations and durable
+    participation withdrawals. Keeping it in one place is what lets
+    ``season findings``/``season audit``/repair and ``season export`` agree with
+    the apply-time verification boundary instead of each re-deriving a subset.
+
+    The overlay projections may return the same mapping or a copy; every call
+    is written back explicitly so ordering and equality are preserved.
+    """
+    from .calendar_bookings import (
+        project_associations_into_problem,
+        project_manual_assertions_into_problem,
+    )
+    from .canonical_banned_dates import project_banned_dates_into_problem
+    from .canonical_holiday_exceptions import project_exceptions_into_problem
+    from .canonical_ice_time_overrides import project_overrides_into_problem
+    from .participation_withdrawals import project_into_problem
+
+    projected: Dict[str, Any] = dict(problem)
+    projected = project_exceptions_into_problem(projected, decisions)
+    projected = project_banned_dates_into_problem(projected, decisions)
+    # A host-confirmed per-tournament ice-time override must reach every
+    # duration consumer before booking evidence is revalidated, otherwise the
+    # evidence can look stale against the age-group default it superseded.
+    projected = project_overrides_into_problem(projected, decisions)
+    projected = project_associations_into_problem(projected, decisions, plan) or projected
+    projected = project_manual_assertions_into_problem(projected, decisions, plan) or projected
+    # A durable participation withdrawal reduces the eligible shape pool. Every
+    # shape/round-count verifier must see the same reduced pool the apply-time
+    # candidate was verified against, or a committed withdrawal looks
+    # hard-invalid after the fact.
+    projected = project_into_problem(projected, decisions=decisions, plan=plan)
+    return projected

@@ -6,138 +6,116 @@ team and tournament changes, plan fingerprints, and priority improvement tiers.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
+from typing import Any
+from typing import Iterable
+from typing import List
+from typing import Mapping
+from typing import Optional
 
-from .planning_contract import score_candidate
-from .quality_objectives import quality_objective_vector, with_unresolved_obligations_count
+
+def plan_fingerprint(plan: Mapping[str, Any]) -> str:
+    return _plan_fingerprint(plan)
+
+
+def _priority_improvement_tier(delta: Mapping[str, Any]) -> Optional[int]:
+    """Return the highest-priority defect tier the candidate strictly improved.
+
+    Tiers follow the catalog precedence (hard 0, operational obligation 1,
+    strong goal 2, soft 3). Only the *highest* improved tier is returned so a
+    soft regression can be auto-waived solely by a genuinely higher-tier fix;
+    strong-goal and operational-obligation regressions still require an explicit
+    named acceptance. Returns ``None`` when no tier improved.
+    """
+
+    from .repair_adoption_guard import (
+        TIER_HARD,
+        TIER_OPERATIONAL_OBLIGATION,
+        TIER_STRONG_GOAL,
+    )
+
+    def total(tier: Iterable[tuple[str, str]]) -> tuple[int, int]:
+        before = sum(int(delta.get(before_key, 0) or 0) for before_key, _ in tier)
+        after = sum(int(delta.get(after_key, 0) or 0) for _, after_key in tier)
+        return before, after
+
+    hard = total((("hard_violations_before", "hard_violations_after"),))
+    if hard[1] < hard[0]:
+        return TIER_HARD
+    obligations = total(
+        (
+            ("unresolved_hosting_obligations_before", "unresolved_hosting_obligations_after"),
+            ("manual_placements_before", "manual_placements_after"),
+            ("unresolved_placement_obligations_before", "unresolved_placement_obligations_after"),
+        )
+    )
+    if obligations[1] < obligations[0]:
+        return TIER_OPERATIONAL_OBLIGATION
+    goals = total(
+        (
+            ("hosting_balance_imbalances_before", "hosting_balance_imbalances_after"),
+            ("participation_deviations_before", "participation_deviations_after"),
+        )
+    )
+    if goals[1] < goals[0]:
+        return TIER_STRONG_GOAL
+    return None
 
 
 def _changed_team_ids(before: Mapping[str, Any], after: Mapping[str, Any]) -> List[str]:
-    """Return the sorted list of team IDs that changed between two plans.
-
-    Args:
-        before: The plan before changes
-        after: The plan after changes
-
-    Returns:
-        Sorted list of team IDs that changed
-    """
+    """Return ``club|label|age_group`` identities of teams in changed tournaments."""
     changed = set(_changed_tournament_ids(before, after))
-    team_ids: Set[str] = set()
-    for tid in changed:
-        before_by_id = {
-            str(t.get("id")): t for t in before.get("tournaments", []) or []
-        }
-        after_by_id = {
-            str(t.get("id")): t for t in after.get("tournaments", []) or []
-        }
-        before_t = before_by_id.get(tid)
-        after_t = after_by_id.get(tid)
-        if before_t is None or after_t is None:
-            continue
-        before_teams = {
-            str(tm.get("id")) for tm in before_t.get("teams", []) or []
-        }
-        after_teams = {
-            str(tm.get("id")) for tm in after_t.get("teams", []) or []
-        }
-        team_ids.update(before_t.symmetric_difference(after_teams))
-    return sorted(team_ids)
+    identities: set[str] = set()
+    for plan in (before, after):
+        for tournament in plan.get("tournaments") or []:
+            if str(tournament.get("id")) not in changed:
+                continue
+            for team in tournament.get("teams") or []:
+                identities.add(
+                    "|".join(
+                        (
+                            str(team.get("club") or ""),
+                            str(team.get("label") or ""),
+                            str(team.get("age_group") or ""),
+                        )
+                    )
+                )
+    return sorted(identities)
 
 
 def _changed_tournament_ids(before: Mapping[str, Any], after: Mapping[str, Any]) -> List[str]:
-    """Return the sorted list of tournament IDs that changed between two plans.
-
-    Args:
-        before: The plan before changes
-        after: The plan after changes
-
-    Returns:
-        Sorted list of tournament IDs that changed
-    """
     before_by_id = {str(t.get("id")): _signature(t) for t in before.get("tournaments", []) or []}
     after_by_id = {str(t.get("id")): _signature(t) for t in after.get("tournaments", []) or []}
-    changed: Set[str] = set()
-    for tid, sig in before_by_id.items():
-        if tid not in after_by_id or after_by_id[tid] != sig:
-            changed.add(tid)
-    for tid, sig in after_by_id.items():
-        if tid not in before_by_id or before_by_id[tid] != sig:
-            changed.add(tid)
-    return sorted(changed)
+    return [
+        tournament_id
+        for tournament_id in sorted(set(before_by_id) | set(after_by_id))
+        if before_by_id.get(tournament_id) != after_by_id.get(tournament_id)
+    ]
 
 
 def _signature(tournament: Mapping[str, Any]) -> Any:
-    """Compute a stable signature for a tournament.
-
-    Args:
-        tournament: The tournament to signature
-
-    Returns:
-        A hashable signature representing the tournament's identity
-    """
+    teams = tuple(
+        sorted(
+            (str(team.get("club") or ""), str(team.get("label") or ""), str(team.get("age_group") or ""))
+            for team in tournament.get("teams", []) or []
+        )
+    )
     return (
-        str(tournament.get("id") or ""),
-        str(tournament.get("name") or ""),
-        str(tournament.get("age_group") or ""),
-        str(tournament.get("club") or ""),
-        str(tournament.get("home") or ""),
-        frozenset(
-            (
-                str(t.get("id") or ""),
-                str(t.get("name") or ""),
-            )
-            for t in (tournament.get("teams", []) or [])
-            if t.get("id") is not None
-        ),
+        tournament.get("date"),
+        tournament.get("host_club"),
+        tournament.get("arena"),
+        tournament.get("start_time"),
+        teams,
     )
 
 
 def _plan_fingerprint(plan: Mapping[str, Any]) -> str:
-    """Compute a stable fingerprint for a plan.
+    from .host_team_missing_repair import candidate_fingerprint
 
-    Args:
-        plan: The plan to fingerprint
-
-    Returns:
-        A string fingerprint representing the plan's identity
-    """
-    return _plan_content_fingerprint(plan)
+    return candidate_fingerprint(plan)
 
 
 def _plan_content_fingerprint(plan: Mapping[str, Any]) -> str:
-    """Compute a content-based fingerprint for a plan.
+    """Return the tournament-content fingerprint including games and metadata."""
+    from .pipeline.fingerprints import stable_payload_sha256
 
-    Args:
-        plan: The plan to fingerprint
-
-    Returns:
-        A string fingerprint representing the plan's content
-    """
-    # This is a simplified version - in reality, this would use a proper
-    # hashing mechanism like SHA-256 on the plan's content
-    return str(hash(tuple(sorted(plan.items()))))
-
-
-def _priority_improvement_tier(delta: Mapping[str, Any]) -> Optional[int]:
-    """Determine the priority improvement tier based on a metric delta.
-
-    Args:
-        delta: The metric delta between before and after states
-
-    Returns:
-        The priority improvement tier (1-4) or None if no improvement
-    """
-    # This is a simplified version - the actual implementation would
-    # analyze the delta to determine the improvement tier
-    changed_count = delta.get("changed_tournament_count", 0)
-    if changed_count == 0:
-        return None
-    elif changed_count <= 5:
-        return 1
-    elif changed_count <= 15:
-        return 2
-    elif changed_count <= 30:
-        return 3
-    else:
-        return 4
+    return stable_payload_sha256(plan.get("tournaments", []))

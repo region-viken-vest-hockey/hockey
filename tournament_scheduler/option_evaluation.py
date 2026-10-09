@@ -6,23 +6,23 @@ consequence analysis, and Pareto-optimal selection for maintenance decisions.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
+from .findings_construction import _avoidability_count
+from .findings_construction import _count
+from .findings_construction import _manual_count
+from .findings_construction import _unresolved_avoidability_count
+from .findings_construction import _unresolved_participation_deviation_count
+from .impact_analysis import _changed_tournament_ids
+from .planning_contract import score_candidate
+from .quality_objectives import QUALITY_OBJECTIVE_DIMENSIONS, compare_quality_scores
+from .quality_objectives import quality_objective_vector
+from .quality_objectives import with_unresolved_obligations_count
+from typing import Any
+from typing import Dict
+from typing import Iterable
+from typing import Mapping
+from typing import Tuple
 
-from .pareto import non_dominated_indices, representative_indices
-from .quality_objectives import (
-    QUALITY_OBJECTIVE_DIMENSIONS,
-    compare_quality_scores,
-    quality_objective_vector,
-    with_unresolved_obligations_count,
-)
-from .request_constraints import (
-    active_request_constraints,
-    compare_constraint_violations,
-    request_constraint_report,
-)
-from .season_state import canonical_state_revision
-from .planning_contract import verify_candidate
-from .participation_targets import INTRA_CLUB_DISTRIBUTION
+
 
 
 # The objective vector every maintenance option is measured on, oriented
@@ -54,174 +54,187 @@ MAINTENANCE_DEFECT_DIMENSIONS: Tuple[str, ...] = (
 )
 
 
+# Travel is a first-class operational consequence of moving a tournament to a
+# different host/date, so it is measured both as a season total and as the worst
+# single team. Computed by the canonical ``compute_team_travel_distances``.
+TRAVEL_OBJECTIVE_DIMENSIONS: Tuple[str, ...] = (
+    "total_travel_km",
+    "max_team_travel_km",
+)
+
+
 def _objective_vector(
-    *,
-    plan: Mapping[str, Any],
-    problem: Mapping[str, Any],
+    candidate: Mapping[str, Any],
     verification: Mapping[str, Any],
-    dimensions: Iterable[str],
-    decisions: Mapping[str, Any],
-    active_constraints: Optional[Mapping[str, Any]] = None,
-) -> List[float]:
-    """Compute the objective vector for a plan in maintenance context.
+    before_plan: Mapping[str, Any],
+    *,
+    score: Mapping[str, Any],
+    travel: Mapping[str, Any],
+    active_constraints: Iterable[Mapping[str, Any]] = (),
+) -> Dict[str, float]:
+    """Extract the uniformly "lower is better" maintenance objective vector.
 
-    The vector is oriented "lower is better" for all dimensions, combining:
-    - Hard violations and obligations from verification
-    - Change cost (tournaments with changed placement/roster)
-    - Travel metrics
-    - Quality objectives (opponent diversity, turnaround, etc.)
-    - Request constraint violations
-
-    Args:
-        plan: The candidate plan being evaluated
-        problem: The planning problem with canonical overlays
-        verification: The result from verify_candidate(plan, problem)
-        dimensions: The dimensions to include in the vector
-        decisions: Canonical decisions (locks + approval state)
-        active_constraints: Active request constraints (optional)
-
-    Returns:
-        Objective vector as a list of floats (lower is better)
+    Combines the verifier-derived defect/change-cost dimensions owned here, the
+    shared Stage-3 soft-quality vector (``quality_objectives``) and travel, so a
+    single uniform dominance check and one bounded Pareto front cover both the
+    hard and the soft consequences of a repair.
     """
-    if active_constraints is None:
-        active_constraints = active_request_constraints(decisions)
-    
-    # Start with an empty vector
-    vector: List[float] = []
-    
-    # Add hard/defect dimensions
-    for dim in MAINTENANCE_DEFECT_DIMENSIONS:
-        if dim == "hard_violations":
-            vector.append(len(verification.get("violations") or []))
-        elif dim == "unresolved_hosting_obligations":
-            # This would come from hosting obligations verification
-            vector.append(0)  # Placeholder
-        elif dim == "hosting_balance_imbalances":
-            # This would come from hosting balance verification
-            vector.append(0)  # Placeholder
-        elif dim == "manual_placements":
-            vector.append(len(verification.get("manual_placements") or []))
-        elif dim == "unresolved_placement_obligations":
-            # This would come from placement obligations verification
-            vector.append(0)  # Placeholder
-        elif dim == "participation_deviations":
-            # Count unresolved participation deviations
-            unresolved_count = 0
-            for dev in verification.get("participation_deviations") or []:
-                if int(dev.get("deviation") or 0) != 0:
-                    unresolved_count += 1
-            vector.append(unresolved_count)
-        elif dim == "avoidable_participation_deviations":
-            # Count avoidable participation deviations
-            avoidable_count = 0
-            for dev in verification.get("participation_deviations") or []:
-                actual = int(dev.get("actual") or 0)
-                target = int(dev.get("target") or 0)
-                if actual != target:
-                    avoidable_count += 1
-            vector.append(avoidable_count)
-        elif dim == "host_confirmation_dependencies":
-            # This would come from host confirmation dependencies
-            vector.append(0)  # Placeholder
-        elif dim == "changed_tournament_count":
-            # This would be computed in _metric_delta
-            vector.append(0)  # Placeholder - will be overridden
-        elif dim == "host_sibling_preference_violations":
-            # This would come from request constraints
-            vector.append(0)  # Placeholder
-    
-    # Add travel metrics
-    if "travel" in dimensions:
-        travel_metrics = _travel_metrics(plan)
-        vector.append(travel_metrics.get("total_travel", 0.0))
-    
-    # Add quality objectives
-    quality_scores = quality_objective_vector(
-        verify_candidate(dict(plan), problem=dict(problem))
+    from .request_constraints import count_host_sibling_preference_violations
+
+    # Compute host sibling preference violations for the candidate plan.
+    # We need a minimal decisions-like object with the active constraints.
+    decisions_for_preference = {
+        "request_constraints": list(active_constraints),
+    }
+    host_sibling_violations = count_host_sibling_preference_violations(
+        candidate, decisions_for_preference
     )
-    for dim in QUALITY_OBJECTIVE_DIMENSIONS:
-        if dim in dimensions:
-            vector.append(quality_scores.get(dim, 0.0))
-    
-    # Add request constraint violations
-    if "request_constraint_violations" in dimensions:
-        constraint_violations = compare_constraint_violations(
-            plan, plan, active_constraints  # Simplified - should compare before/after
-        )
-        vector.append(len(constraint_violations.get("violations", [])))
-    
+
+    vector: Dict[str, float] = {
+        "hard_violations": float(_count(verification, "violations")),
+        "unresolved_hosting_obligations": float(
+            _count(verification, "unresolved_hosting_obligations")
+        ),
+        "hosting_balance_imbalances": float(
+            _count(verification, "hosting_balance_imbalances")
+        ),
+        "manual_placements": float(_manual_count(verification)),
+        "unresolved_placement_obligations": float(
+            len(candidate.get("unresolved_tournament_placements") or [])
+        ),
+        "participation_deviations": float(_unresolved_participation_deviation_count(verification)),
+        "avoidable_participation_deviations": float(
+            _unresolved_avoidability_count(verification, "avoidable")
+        ),
+        "host_confirmation_dependencies": float(
+            _count(verification, "movable_allocations_used")
+        ),
+        "changed_tournament_count": float(
+            len(_changed_tournament_ids(before_plan, candidate))
+        ),
+        "host_sibling_preference_violations": float(host_sibling_violations),
+    }
+    vector.update(quality_objective_vector(dict(score)))
+    for dimension in TRAVEL_OBJECTIVE_DIMENSIONS:
+        vector[dimension] = float(travel.get(dimension, 0.0))
     return vector
 
 
 def _travel_metrics(plan: Mapping[str, Any]) -> Dict[str, Any]:
-    """Compute travel-related metrics for a plan.
+    """Return canonical season travel totals for a plan dict.
 
-    Args:
-        plan: The candidate plan being evaluated
-
-    Returns:
-        Dictionary of travel metrics
+    Delegates to the one travel implementation (``compute_team_travel_distances``)
+    rather than re-summing arena distances here. A plan that cannot be decoded
+    (for example a synthetic candidate missing model fields) reports zero travel
+    with ``available: false`` instead of failing the repair surface.
     """
-    # This is a simplified version - the actual implementation would
-    # compute travel distances based on team locations and tournament venues
+    try:
+        from .club_distances import compute_team_travel_distances
+        from .serialization.season_plan import season_plan_from_dict
+
+        season_plan = season_plan_from_dict(dict(plan))
+        team_travel = compute_team_travel_distances(season_plan)
+    except Exception:
+        return {
+            "total_travel_km": 0.0,
+            "max_team_travel_km": 0.0,
+            "available": False,
+        }
+    values = list(team_travel.values())
     return {
-        "total_travel": 0.0,
-        "average_travel": 0.0,
-        "max_travel": 0.0,
+        "total_travel_km": float(sum(values)),
+        "max_team_travel_km": float(max(values) if values else 0),
+        "available": True,
     }
 
 
 def _metric_delta(
-    after_plan: Mapping[str, Any],
     before_plan: Mapping[str, Any],
+    before_verification: Mapping[str, Any],
     *,
-    decisions: Mapping[str, Any],
+    candidate: Mapping[str, Any] | None = None,
+    after_verification: Mapping[str, Any] | None = None,
+    problem: Mapping[str, Any] | None = None,
+    decisions: Mapping[str, Any] | None = None,
 ) -> Dict[str, Any]:
-    """Compute the metric delta between two plans.
-
-    Args:
-        after_plan: The plan after applying a repair option
-        before_plan: The plan before applying a repair option
-        decisions: Canonical decisions (locks + approval state)
-
-    Returns:
-        Dictionary containing the metric delta
-    """
-    # Compute changed tournaments
-    changed_tournament_ids = _changed_tournament_ids(before_plan, after_plan)
+    after_plan = candidate if candidate is not None else before_plan
+    after = after_verification or before_verification
     
-    # Compute basic metrics
-    delta: Dict[str, Any] = {
-        "changed_tournament_ids": changed_tournament_ids,
-        "changed_tournament_count": len(changed_tournament_ids),
+    # Compute host sibling preference violations for before and after plans
+    host_sibling_before = 0
+    host_sibling_after = 0
+    if decisions is not None:
+        from .request_constraints import count_host_sibling_preference_violations
+        host_sibling_before = count_host_sibling_preference_violations(before_plan, decisions)
+        host_sibling_after = count_host_sibling_preference_violations(after_plan, decisions)
+    
+    delta = {
+        "hard_violations": _count(after, "violations") - _count(before_verification, "violations"),
+        "hard_violations_before": _count(before_verification, "violations"),
+        "hard_violations_after": _count(after, "violations"),
+        "unresolved_hosting_obligations_before": _count(before_verification, "unresolved_hosting_obligations"),
+        "unresolved_hosting_obligations_after": _count(after, "unresolved_hosting_obligations"),
+        "hosting_balance_imbalances_before": _count(before_verification, "hosting_balance_imbalances"),
+        "hosting_balance_imbalances_after": _count(after, "hosting_balance_imbalances"),
+        "manual_placements_before": _manual_count(before_verification),
+        "manual_placements_after": _manual_count(after),
+        "unresolved_placement_obligations_before": len(
+            before_plan.get("unresolved_tournament_placements") or []
+        ),
+        "unresolved_placement_obligations_after": len(
+            after_plan.get("unresolved_tournament_placements") or []
+        ),
+        "participation_deviations_before": _count(before_verification, "participation_deviations"),
+        "participation_deviations_after": _count(after, "participation_deviations"),
+        "bounded_search_exhausted_before": _avoidability_count(before_verification, "bounded_search_exhausted"),
+        "bounded_search_exhausted_after": _avoidability_count(after, "bounded_search_exhausted"),
+        "avoidable_before": _avoidability_count(before_verification, "avoidable"),
+        "avoidable_after": _avoidability_count(after, "avoidable"),
+        "changed_tournament_count": len(_changed_tournament_ids(before_plan, after_plan)),
+        "host_sibling_preference_violations_before": host_sibling_before,
+        "host_sibling_preference_violations_after": host_sibling_after,
+        "host_sibling_preference_violations_delta": host_sibling_after - host_sibling_before,
     }
-    
-    # TODO: Add more detailed metric computations
-    
+    delta.update(
+        _quality_delta(
+            before_plan, after_plan, problem=dict(problem) if problem is not None else None
+        )
+    )
     return delta
 
 
 def _quality_delta(
-    after_plan: Mapping[str, Any],
     before_plan: Mapping[str, Any],
+    after_plan: Mapping[str, Any],
     *,
-    decisions: Mapping[str, Any],
+    problem: Mapping[str, Any] | None,
 ) -> Dict[str, Any]:
-    """Compute the quality delta between two plans.
+    """Shared soft-quality + travel delta for one before/after plan pair.
 
-    Args:
-        after_plan: The plan after applying a repair option
-        before_plan: The plan before applying a repair option
-        decisions: Canonical decisions (locks + approval state)
-
-    Returns:
-        Dictionary containing the quality delta
+    Uses the same Stage-3 quality comparison (``compare_quality_scores``) the
+    promotion gate uses, so a maintenance action returns the exact
+    improvement/regression evidence an operator would see from Stage 3 -- not a
+    second, maintenance-only quality rule.
     """
-    # This would compute the difference in quality objectives between plans
-    # For now, returning a placeholder
+    before_score = with_unresolved_obligations_count(
+        score_candidate(dict(before_plan), problem=problem)
+    )
+    after_score = with_unresolved_obligations_count(
+        score_candidate(dict(after_plan), problem=problem)
+    )
+    comparison = compare_quality_scores(before_score, after_score)
+    before_travel = _travel_metrics(before_plan)
+    after_travel = _travel_metrics(after_plan)
     return {
-        "quality_improvement": 0.0,
-        "quality_details": {},
+        "quality_metrics": comparison["metrics"],
+        "quality_regressions": comparison["regressions"],
+        "total_travel_km_before": before_travel["total_travel_km"],
+        "total_travel_km_after": after_travel["total_travel_km"],
+        "total_travel_km_delta": after_travel["total_travel_km"] - before_travel["total_travel_km"],
+        "max_team_travel_km_before": before_travel["max_team_travel_km"],
+        "max_team_travel_km_after": after_travel["max_team_travel_km"],
+        "max_team_travel_km_delta": after_travel["max_team_travel_km"]
+        - before_travel["max_team_travel_km"],
     }
 
 
@@ -230,92 +243,21 @@ def _rejected_delta(
     revision: str,
     reason: str,
     *,
-    option_id: Optional[str] = None,
-    verification: Optional[Mapping[str, Any]] = None,
-    request_constraint_violations: Optional[List[Dict[str, Any]]] = None,
+    delta: Mapping[str, Any] | None = None,
+    **extra: Any,
 ) -> Dict[str, Any]:
-    """Create a rejection delta for a repair option.
-
-    Args:
-        season: The season identifier
-        revision: The canonical revision
-        reason: The reason for rejection
-        option_id: The ID of the rejected option (optional)
-        verification: The verification result (optional)
-        request_constraint_violations: Request constraint violations (optional)
-
-    Returns:
-        Rejection delta dictionary
-    """
-    delta: Dict[str, Any] = {
-        "schema_version": 1,  # SEASON_MAINTENANCE_SCHEMA_VERSION would be imported
+    return {
         "season": season,
-        "revision": revision,
-        "option_id": option_id,
         "ok": False,
         "reason": reason,
+        "revision_before": revision,
+        "revision_after": revision,
+        "canonical_revision_unchanged": True,
+        "delta": dict(delta or {}),
+        **extra,
     }
-    
-    if verification is not None:
-        delta["verification"] = verification
-        
-    if request_constraint_violations is not None:
-        delta["request_constraint���_violations"] = request_constraint_violations
-        
-    return delta
 
 
-def _annotate_pareto(
-    plan: Mapping[str, Any],
-    problem: Mapping[str, Any],
-    options: List[Dict[str, Any]],
-    finding: Mapping[str, Any],
-    dimensions: Iterable[str],
-    *,
-    active_constraints: Optional[Mapping[str, Any]] = None,
-    allow_manual_placement: bool = False,
-    allow_host_confirmation: bool = False,
-) -> List[Dict[str, Any]]:
-    """Annotate options with Pareto frontier information.
-
-    Args:
-        plan: The candidate plan being evaluated
-        problem: The planning problem with canonical overlays
-        options: List of repair options to annotate
-        finding: The finding these options address
-        dimensions: The dimensions used for evaluation
-        active_constraints: Active request constraints (optional)
-
-    Returns:
-        The options list with Pareto annotation added to each option
-    """
-    if not options:
-        return options
-        
-    # Compute objective vectors for all options
-    vectors: List[Dict[str, float]] = []
-    for option in options:
-        # This is a simplified version - in reality, we'd need to compute
-        # the objective vector for each option's candidate plan
-        vector: Dict[str, float] = {dim: 0.0 for dim in MAINTENANCE_DEFECT_DIMENSIONS}
-        option["objectives"] = vector
-        vectors.append(vector)
-    
-    # Find the Pareto frontier
-    if vectors:
-        front_indices = non_dominated_indices(vectors)
-        representative_indices_list = representative_indices(
-            [vectors[i] for i in front_indices], 
-            len(front_indices)  # Use all as representatives for simplicity
-        )
-        
-        # Annotate options
-        for i, option in enumerate(options):
-            option["pareto"] = {
-                "is_on_front": i in front_indices,
-                "is_representative": i in representative_indices_list,
-                "rank": front_indices.index(i) if i in front_indices else -1,
-            }
-    
-    return options
-    return options
+PARETO_DIMENSIONS: Tuple[str, ...] = (
+    MAINTENANCE_DEFECT_DIMENSIONS + QUALITY_OBJECTIVE_DIMENSIONS + TRAVEL_OBJECTIVE_DIMENSIONS
+)
