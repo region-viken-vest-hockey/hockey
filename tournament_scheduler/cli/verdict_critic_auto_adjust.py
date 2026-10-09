@@ -144,30 +144,3 @@ def _cmd_critic(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_auto_adjust(args: argparse.Namespace) -> int:
-    """Handle ``rvv-miniputt auto-adjust`` — automatically adjust the plan."""
-    from ..pipeline.state import PipelineState
-    from ..auto_adjust import main as run_auto_adjust
-
-    state = PipelineState(args.work_dir)
-    result = run_auto_adjust(
-        season=args.season,
-        root=args.root,
-        work_dir=args.work_dir,
-        strategy=args.strategy,
-    )
-    if args.json:
-        import json as _json
-
-        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
-    else:
-        if result.get("success"):
-            _get_console().print(f"[green]✓[/green] Auto-adjust completed")
-            if result.get("adjustments_made"):
-                _get_console().print(f"  adjustments made: {result['adjustments_made']}")
-                if result.get("changes"):
-                    for change in result["changes"]:
-                        _get_console().print(f"    • {change}")
-        else:
-            _get_console().print(f"[red]✗[/red] Auto-adjust failed: {result.get('error')}")
-    return 0

@@ -286,7 +286,7 @@ class TestCmdAutoAdjustLoopBehavior:
         with patch(
             "tournament_scheduler.pipeline.state.PipelineState.read_stage",
             return_value=checkpoint,
-        ), patch("tournament_scheduler.cli.rvv_cli._cmd_replan") as mock_replan:
+        ), patch("tournament_scheduler.cli.plan_adjustment_commands._cmd_replan") as mock_replan:
             args = _auto_adjust_args(max_iterations=5)
             rc = _cmd_auto_adjust(args)
 
@@ -319,7 +319,7 @@ class TestCmdAutoAdjustLoopBehavior:
             "tournament_scheduler.pipeline.state.PipelineState.read_stage",
             side_effect=_side_effect,
         ), patch(
-            "tournament_scheduler.cli.rvv_cli._cmd_replan", return_value=0
+            "tournament_scheduler.cli.plan_adjustment_commands._cmd_replan", return_value=0
         ) as mock_replan:
             args = _auto_adjust_args(max_iterations=5)
             rc = _cmd_auto_adjust(args)
@@ -341,7 +341,7 @@ class TestCmdAutoAdjustLoopBehavior:
             "tournament_scheduler.pipeline.state.PipelineState.read_stage",
             return_value=_make_checkpoint(persistent_plan),
         ), patch(
-            "tournament_scheduler.cli.rvv_cli._cmd_replan", return_value=0
+            "tournament_scheduler.cli.plan_adjustment_commands._cmd_replan", return_value=0
         ) as mock_replan:
             args = _auto_adjust_args(max_iterations=2)
             rc = _cmd_auto_adjust(args)
@@ -373,9 +373,9 @@ class TestCmdAutoAdjustLoopBehavior:
             "tournament_scheduler.pipeline.state.PipelineState.read_stage",
             return_value=_make_checkpoint(fairness_plan),
         ), patch(
-            "tournament_scheduler.cli.rvv_cli._cmd_replan"
+            "tournament_scheduler.cli.plan_adjustment_commands._cmd_replan"
         ) as mock_replan, patch(
-            "tournament_scheduler.cli.rvv_cli._print_escalation_table"
+            "tournament_scheduler.cli.plan_adjustment_commands._print_escalation_table"
         ) as mock_escalate:
             args = _auto_adjust_args(max_iterations=3)
             rc = _cmd_auto_adjust(args)
@@ -423,7 +423,7 @@ class TestCmdAutoAdjustLoopBehavior:
             "tournament_scheduler.pipeline.state.PipelineState.read_stage",
             return_value=_make_checkpoint(no_clump_plan),
         ), patch(
-            "tournament_scheduler.cli.rvv_cli._cmd_replan"
+            "tournament_scheduler.cli.plan_adjustment_commands._cmd_replan"
         ) as mock_replan:
             args = _auto_adjust_args(max_iterations=5)
             rc = _cmd_auto_adjust(args)

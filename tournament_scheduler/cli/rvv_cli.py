@@ -53,18 +53,17 @@ from .season_command import _cmd_season
 from .cancel_command import _cmd_cancel
 from .registered_teams_command import _cmd_registered_teams
 from .activities_command import _cmd_activities
-from .operator_command import _cmd_operator
 from .operator_subcommands import _cmd_operator_questions, _cmd_operator_answer, _cmd_operator_promote, _cmd_operator_health
 from .sources_registrations_command import _cmd_sources, _cmd_registrations
 from .tournament_commands import _cmd_tournament, _cmd_tournament_list, _cmd_tournament_add, _cmd_tournament_remove
-from .plan_adjustment_commands import _cmd_replan, _cmd_adjust
+from .plan_adjustment_commands import _cmd_replan, _cmd_adjust, _cmd_auto_adjust
 from .review_scrape_commands import _cmd_review, _cmd_scrape_llm
-from .verdict_critic_auto_adjust import _cmd_verdict, _cmd_critic, _cmd_auto_adjust
+from .verdict_critic_auto_adjust import _cmd_verdict, _cmd_critic
+from . import verdict_critic_auto_adjust as _vca
 
 _console = Console()
 
 # Inject console into verdict_critic_auto_adjust for shared output capture in tests
-from . import verdict_critic_auto_adjust as _vca
 _vca._console = _console
 
 # ---------------------------------------------------------------------------
@@ -196,6 +195,31 @@ def _format_delta(delta: dict | None) -> str:
         ),
     ]
     return "; ".join(parts)
+
+
+def _cmd_operator(args: argparse.Namespace) -> int:
+    """Dispatch ``rvv-miniputt operator <subcommand>`` to its handler."""
+    subcommand = getattr(args, "operator_command", None)
+    handlers = {
+        "run": _cmd_operator_run,
+        "questions": _cmd_operator_questions,
+        "answer": _cmd_operator_answer,
+        "promote": _cmd_operator_promote,
+        "health": _cmd_operator_health,
+        "publish": _cmd_operator_publish,
+        "verify": _cmd_operator_verify,
+        "rollback": _cmd_operator_rollback,
+        "publish-history": _cmd_operator_publish_history,
+        "audit-context": _cmd_operator_audit_context,
+        "audit-evidence": _cmd_operator_audit_evidence,
+        "audit-submit": _cmd_operator_audit_submit,
+        "audit-run": _cmd_operator_audit_run,
+    }
+    handler = handlers.get(subcommand)
+    if handler is None:
+        _console.print("[red]✗[/red] Mangler operator-underkommando (kjør 'rvv-miniputt operator --help')")
+        return 1
+    return handler(args)
 
 
 # ---------------------------------------------------------------------------

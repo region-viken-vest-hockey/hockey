@@ -213,3 +213,251 @@ def _cmd_adjust(args: argparse.Namespace) -> int:
 
     _console.print("\n[bold green]✓ Ferdig.[/bold green]")
     return 0
+
+
+def _load_critic_state(
+    state: "PipelineState",
+    work_dir: str,
+) -> "tuple[object | None, list[str]]":
+    """Reload the Stage 3 checkpoint and return (season_plan, issues).
+
+    Returns (None, []) when no checkpoint exists so callers can detect and abort.
+    """
+    from .plan_critic import generate_critic_summary
+    from ..pipeline.tournament_updater import TournamentUpdater
+
+    try:
+        season_plan = TournamentUpdater(state=state).load_plan()
+    except ValueError:
+        return None, []
+    issues = generate_critic_summary(season_plan)
+    return season_plan, issues
+
+
+def _cmd_auto_adjust(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt auto-adjust`` — automated adjustment loop.
+
+    Each iteration:
+      1. Reload the Stage 3 checkpoint and re-run the plan critic.
+      2. Break early if ``count_critic_issues_from_dict`` returns 0.
+      3. Translate the first auto-fixable issue to a concrete move via ``suggest_moves``.
+      4. Apply the move by calling ``_cmd_replan`` internally.
+      5. Reload checkpoint and re-evaluate before the next iteration.
+
+    Repeats until all auto-fixable issues are resolved or ``--max-iterations``
+    is reached.  Non-auto-fixable issues are collected and printed at the end.
+    """
+    from ..pipeline.state import PipelineState
+    from .plan_critic import count_issues_from_plan, suggest_moves
+
+    state = PipelineState(args.work_dir)
+    max_iter = getattr(args, "max_iterations", 3)
+
+    _console.print(
+        f"[bold cyan]Auto-adjust:[/bold cyan] starter justeringsløkke "
+        f"(max {max_iter} iterasjoner)…"
+    )
+
+    applied_total = 0
+    manual_issues: list = []
+    iteration = 0
+    # Track recently-moved IDs (window=2) to break A↔B cascade cycles
+    recently_moved: list[str] = []
+    _CYCLE_WINDOW = 2
+
+    for iteration in range(1, max_iter + 1):
+        # Reload checkpoint and re-run critic at the start of every iteration
+        season_plan, issues = _load_critic_state(state, args.work_dir)
+        if season_plan is None:
+            _console.print(
+                f"[red]✗[/red] Ingen Stage 3-checkpoint funnet i '{args.work_dir}'. "
+                "Kjør ``rvv-miniputt run`` først."
+            )
+            return 1
+
+        # Use count_issues_from_plan as the fast early-exit check
+        from ..pipeline.state import StageName
+        raw_checkpoint = state.read_stage(StageName.PLANNING)
+        plan_raw = (raw_checkpoint or {}).get("plan") if isinstance(raw_checkpoint, dict) else None
+        issue_count = count_issues_from_plan(plan_raw) if plan_raw is not None else len(issues)
+
+        if issue_count == 0:
+            _console.print(
+                f"[green]✓[/green] Ingen problemer funnet etter {iteration - 1} iterasjon(er)."
+            )
+            break
+
+        moves = suggest_moves(season_plan, issues)
+        auto_moves = [m for m in moves if m["can_auto_fix"] and m["tournament_id"]]
+        manual_moves = [m for m in moves if not m["can_auto_fix"]]
+
+        # Collect manual-review issues (deduplicated across iterations)
+        for m in manual_moves:
+            if m["issue"] not in [mi["issue"] for mi in manual_issues]:
+                manual_issues.append(m)
+
+        # Skip tournament IDs cascade-placed in recent iterations to break A↔B cycles
+        fresh_moves = [m for m in auto_moves if m["tournament_id"] not in recently_moved]
+        if not fresh_moves:
+            # All candidates were recently moved — cycle detected, clear window and retry
+            recently_moved.clear()
+            fresh_moves = auto_moves
+
+        if not fresh_moves:
+            _console.print(
+                f"[yellow]![/yellow] Iterasjon {iteration}: ingen auto-fikserbare problemer "
+                f"gjenstår ({issue_count} problem(er) krever manuell behandling)."
+            )
+            break
+
+        _console.print(
+            f"\n[bold]Iterasjon {iteration}/{max_iter}[/bold] — "
+            f"{issue_count} problem(er), {len(auto_moves)} auto-fikserbar(e):"
+        )
+
+        # Apply ONE move per iteration, then reload and re-evaluate
+        move = fresh_moves[0]
+        tid = move["tournament_id"]
+        new_date = move["new_date"]
+        reason = move["reason"]
+
+        _console.print(f"  [cyan]→[/cyan] Turneringsid {tid}: flyttes til {new_date}")
+        _console.print(f"    [dim]{reason}[/dim]")
+
+        replan_args = argparse.Namespace(
+            tournament_id=tid,
+            new_date=new_date,
+            suggest=False,
+            reason=reason,
+            force=True,
+            work_dir=args.work_dir,
+            export_dir=args.export_dir,
+            timestamped_export=getattr(args, "timestamped_export", False),
+        )
+        # Snapshot dates before replan so we can detect cascade victims afterward
+        pre_dates = {t.id: t.date for t in season_plan.tournaments}
+        rc = _cmd_replan(replan_args)
+        if rc == 0:
+            applied_total += 1
+            # Detect all tournaments whose dates changed (both the moved one and
+            # any cascade victims) and add them to the cycle-detection window.
+            post_plan, _ = _load_critic_state(state, args.work_dir)
+            if post_plan is not None:
+                for t in getattr(post_plan, "tournaments", []):
+                    if pre_dates.get(t.id) != t.date:
+                        if t.id not in recently_moved:
+                            recently_moved.append(t.id)
+            if len(recently_moved) > _CYCLE_WINDOW * 4:
+                recently_moved = recently_moved[-(_CYCLE_WINDOW * 4):]
+            # Reload and re-evaluate immediately so the next iteration starts fresh
+            _, refreshed_issues = _load_critic_state(state, args.work_dir)
+            remaining = len(refreshed_issues)
+            _console.print(
+                f"  [green]✓[/green] Endring brukt — "
+                f"{remaining} problem(er) gjenstår etter reload."
+            )
+        else:
+            _console.print(
+                f"  [red]✗[/red] Kunne ikke flytte {tid} — avbryter løkken."
+            )
+            break
+    else:
+        _console.print(
+            f"[yellow]![/yellow] Maks iterasjoner ({max_iter}) nådd — "
+            "noen problemer kan gjenstå."
+        )
+
+    # Summary
+    _console.print(
+        f"\n[bold]Auto-adjust ferdig:[/bold] {applied_total} endring(er) brukt "
+        f"over {iteration} iterasjon(er)."
+    )
+
+    # Collect any remaining unresolved issues after the loop
+    _, remaining_issues = _load_critic_state(state, args.work_dir)
+    if remaining_issues:
+        remaining_moves = []
+        if remaining_issues:
+            # We need a plan object for suggest_moves — reload once more
+            from ..pipeline.state import StageName as _SN
+            _chk = state.read_stage(_SN.PLANNING)
+            _sp = _chk.get("plan") if isinstance(_chk, dict) else None
+            if _sp is not None:
+                from .plan_critic import suggest_moves as _sm
+                remaining_moves = _sm(_sp, remaining_issues)
+
+        _print_escalation_table(remaining_issues, remaining_moves, manual_issues)
+
+    elif manual_issues:
+        # No remaining auto-fixable issues but there are known manual ones
+        _print_escalation_table([], [], manual_issues)
+
+    return 0
+
+
+def _print_escalation_table(
+    remaining_issues: list,
+    remaining_moves: list,
+    manual_issues: list,
+) -> None:
+    """Print a Rich-formatted escalation table for issues that could not be auto-fixed.
+
+    ``remaining_issues`` are issues still present after the loop.
+    ``remaining_moves`` are the move proposals for those issues (may be empty).
+    ``manual_issues`` are issues collected during the loop that were flagged as
+    non-auto-fixable from the start.
+    """
+    from rich import box
+    from rich.panel import Panel
+    from rich.table import Table
+
+    # Merge remaining + manual, deduplicated by issue string
+    seen: set = set()
+    rows: list = []
+
+    move_by_issue: dict = {m["issue"]: m for m in remaining_moves}
+
+    for issue in remaining_issues:
+        if issue not in seen:
+            seen.add(issue)
+            m = move_by_issue.get(issue)
+            rows.append(
+                (
+                    issue,
+                    m["reason"] if m else "Ikke analysert",
+                    "Ja" if (m and m["can_auto_fix"]) else "Nei",
+                )
+            )
+
+    for mi in manual_issues:
+        if mi["issue"] not in seen:
+            seen.add(mi["issue"])
+            rows.append((mi["issue"], mi["reason"], "Nei"))
+
+    if not rows:
+        return
+
+    table = Table(
+        title="Uløste problemer — manuell gjennomgang nødvendig",
+        box=box.ROUNDED,
+        show_header=True,
+        header_style="bold yellow",
+        expand=True,
+    )
+    table.add_column("Problem", style="yellow", ratio=4)
+    table.add_column("Foreslått tiltak", style="dim", ratio=5)
+    table.add_column("Auto-fikserbar?", style="cyan", ratio=1, justify="center")
+
+    for problem, action, auto in rows:
+        table.add_row(problem, action, auto)
+
+    panel = Panel(
+        table,
+        title="[bold red]Eskalering — disse problemene krever manuell handling[/bold red]",
+        border_style="red",
+        box=box.ROUNDED,
+    )
+    _console.print()
+    _console.print(panel)
+
+
