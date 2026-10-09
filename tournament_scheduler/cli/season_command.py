@@ -126,6 +126,30 @@ def _cmd_season(args) -> int:
         _cmd_season_replan,
         _cmd_season_diff_apply,
     )
+    from .season_canonical_commands import (
+        _cmd_season_move,
+        _cmd_season_replace_participant,
+        _cmd_season_remove_participant,
+        _cmd_season_swap_participants,
+        _cmd_season_withdrawal_report,
+        _cmd_season_release_withdrawal,
+        _cmd_season_rename_teams,
+        _cmd_season_approvals,
+        _cmd_season_constraints,
+        _cmd_season_add_constraint,
+        _cmd_season_release_constraint,
+        _cmd_season_booking_set,
+        _cmd_season_booking_clear,
+        _cmd_season_booking_source_set,
+        _cmd_season_booking_sources,
+        _cmd_season_confirm_calendar_booking,
+        _cmd_season_release_calendar_booking,
+        _cmd_season_booking_status,
+        _cmd_season_calendar_booking_candidates,
+        _cmd_season_calendar_booking_findings,
+        _cmd_season_booking_assessment,
+        _cmd_season_reconcile_calendars,
+    )
 
     try:
         if args.season_command == "promote":
@@ -197,7 +221,7 @@ def _cmd_season(args) -> int:
         if args.season_command == "infeasibility-report":
             return _cmd_season_infeasibility_report(args)
 
-        if args.season_command in ("guest-report", "guest-candidates", "guest-reserve", "guest-fill", "guest-release"):
+        if args.season_command == "guest-report":
             return _cmd_season_guest_report(args)
 
         if args.season_command == "guest-candidates":
@@ -224,10 +248,10 @@ def _cmd_season(args) -> int:
         if args.season_command == "remove-participant":
             return _cmd_season_remove_participant(args)
 
-        if args.season_command == "withdrawal-report":
+        if args.season_command == "withdrawals":
             return _cmd_season_withdrawal_report(args)
 
-        if args.season_command == "rename-teams":
+        if args.season_command == "rename-team":
             return _cmd_season_rename_teams(args)
 
         if args.season_command == "release-withdrawal":
@@ -278,9 +302,6 @@ def _cmd_season(args) -> int:
         if args.season_command == "calendar-booking-findings":
             return _cmd_season_calendar_booking_findings(args)
 
-        if args.season_command == "calendar-booking-assessment":
-            return _cmd_season_calendar_booking_assessment(args)
-
         if args.season_command == "set-ice-time-minutes":
             return _cmd_season_set_ice_time_minutes(args)
 
@@ -299,7 +320,7 @@ def _cmd_season(args) -> int:
         if args.season_command == "club-booking-sources":
             return _cmd_season_club_booking_sources(args)
 
-        if args.season_command == "change-protections":
+        if args.season_command == "protections":
             return _cmd_season_change_protections(args)
 
         if args.season_command == "release-protection":
@@ -326,7 +347,7 @@ def _cmd_season(args) -> int:
         if args.season_command == "booking-assessment":
             return _cmd_season_booking_assessment(args)
 
-        if args.season_command == "reconcile-calendars":
+        if args.season_command == "reconcile-calendar-bookings":
             return _cmd_season_reconcile_calendars(args)
 
         if args.season_command == "normalize-placements":
@@ -389,8 +410,8 @@ def _cmd_season_approve(args: argparse.Namespace) -> int:
         tournament_id=args.tournament_id,
         actor=args.actor,
         note=args.note,
-        placement_locked=not args.no_placement_lock if hasattr(args, 'no_placement_lock') else True,
-        participants_locked=args.participants_locked if hasattr(args, 'participants_locked') else False,
+        placement_locked=args.placement_locked,
+        participants_locked=args.participants_lock,
         root=args.root,
     )
     if args.json:
@@ -635,16 +656,21 @@ def _cmd_season_status(args: argparse.Namespace) -> int:
         _console.print(f"[red]✗[/red] {exc}")
         return 1
 
+    from ..season_state import approval_report
+
     revision = schedule.get("revision")
     plan = schedule.get("plan", {})
     tournaments = plan.get("tournaments", [])
     decisions_count = len(decisions.get("decisions", {}))
+    approval_counts = approval_report(args.season, root=args.root)["counts"]
 
     result = {
         "season": args.season,
         "revision": revision,
         "tournament_count": len(tournaments),
         "decision_count": decisions_count,
+        "approved_count": approval_counts["approved"],
+        "stale_approval_count": approval_counts["stale"],
         "schedule_schema_version": schedule.get("schema_version"),
         "decisions_schema_version": decisions.get("schema_version"),
     }
