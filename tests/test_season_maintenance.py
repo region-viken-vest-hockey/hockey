@@ -241,8 +241,6 @@ def _clean_season_plan(
 
 
 def _seal_season(root: Path, plan: Dict[str, Any], problem: Dict[str, Any], revision: str) -> None:
-    from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
-    from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
 
     projection = tournament_projection(plan, problem)
     CanonicalSeasonService(root=root).seal_published_season(
@@ -354,8 +352,6 @@ def _clean_season_plan(
 
 
 def _seal_season(root: Path, plan: Dict[str, Any], problem: Dict[str, Any], revision: str) -> None:
-    from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
-    from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
 
     projection = tournament_projection(plan, problem)
     CanonicalSeasonService(root=root).seal_published_season(
@@ -1977,7 +1973,6 @@ def _ringerike_season(tmp_path: Path):
     hosts, participants, games, approvals, guards) must survive normalization.
     """
 
-    from tournament_scheduler.canonical_baseline import approval_fingerprint
 
     teams = _teams(["Ringerike", "Nordby"])
     problem = _problem(teams)
@@ -2143,8 +2138,6 @@ def _clean_season_plan(
 
 
 def _seal_season(root: Path, plan: Dict[str, Any], problem: Dict[str, Any], revision: str) -> None:
-    from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
-    from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
 
     projection = tournament_projection(plan, problem)
     CanonicalSeasonService(root=root).seal_published_season(
@@ -2394,7 +2387,6 @@ def test_season_sealed_placement_locked_donor_is_not_moved(tmp_path: Path) -> No
     decisions_path = root / YEAR / "decisions.json"
     decisions = json.loads(decisions_path.read_text(encoding="utf-8"))
     decisions["decisions"]["T2"]["placement_locked"] = True
-    from tournament_scheduler.canonical_baseline import approval_fingerprint
     decisions["decisions"]["T2"]["approved_fingerprint"] = approval_fingerprint(plan["tournaments"][1])
     decisions_path.write_text(
         json.dumps(decisions, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -2521,7 +2513,7 @@ def test_season_sealed_successful_motion_reconciles_schedule_and_decisions(tmp_p
     # Get the canonical revision after sealing
     from tournament_scheduler.season_state import load_schedule, load_decisions, canonical_state_revision
     schedule_after_seal = load_schedule(YEAR, root=root)
-    from tournament_scheduler.season_state import load_schedule, load_decisions
+    from tournament_scheduler.season_state import load_schedule
     decisions_after_seal = load_decisions(YEAR, root=root)
     revision = canonical_state_revision(schedule_after_seal, decisions_after_seal)
     findings = list_findings(YEAR, root=root)

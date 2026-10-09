@@ -35,7 +35,7 @@ _CODE_DICT_EMITTERS = ("tournament_scheduler/canonical_baseline.py",)
 # The season findings projector emits the actionable finding codes a
 # controller/user sees. A finding that re-surfaces a raw verifier violation
 # carries that verifier code instead, so both vocabularies are accepted.
-_SEASON_FINDING_EMITTER = "tournament_scheduler/season_maintenance.py"
+_SEASON_FINDING_EMITTER = "tournament_scheduler/findings_construction.py"
 
 
 def _scanned_verifier_codes() -> set[str]:
