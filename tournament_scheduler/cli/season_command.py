@@ -135,6 +135,7 @@ def _cmd_season(args) -> int:
         _cmd_season_release_withdrawal,
         _cmd_season_rename_teams,
         _cmd_season_approvals,
+        _cmd_season_changes,
         _cmd_season_constraints,
         _cmd_season_add_constraint,
         _cmd_season_release_constraint,
@@ -265,6 +266,9 @@ def _cmd_season(args) -> int:
 
         if args.season_command == "approvals":
             return _cmd_season_approvals(args)
+
+        if args.season_command == "changes":
+            return _cmd_season_changes(args)
 
         if args.season_command == "constraints":
             return _cmd_season_constraints(args)
@@ -404,6 +408,7 @@ def _cmd_season(args) -> int:
 def _cmd_season_approve(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season approve`` — approve a tournament."""
     from ..season_state import approve_tournament
+    from .verification_problem import _canonical_verification_problem
 
     result = approve_tournament(
         season=args.season,
@@ -413,6 +418,7 @@ def _cmd_season_approve(args: argparse.Namespace) -> int:
         placement_locked=args.placement_locked,
         participants_locked=args.participants_lock,
         root=args.root,
+        problem=_canonical_verification_problem(args.work_dir, args.season, args.root),
     )
     if args.json:
         import json as _json
@@ -479,6 +485,7 @@ def _cmd_season_banned_dates(args: argparse.Namespace) -> int:
 def _cmd_season_batch(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season batch`` — atomically compose several scoped canonical mutations in one commit."""
     from ..season_state import batch_maintenance
+    from .verification_problem import _canonical_verification_problem
     import json
 
     # Read operations from file
@@ -502,7 +509,7 @@ def _cmd_season_batch(args: argparse.Namespace) -> int:
         operations=operations,
         scope=scope,
         root=args.root,
-        problem=None,  # problem is optional and not exposed via CLI
+        problem=_canonical_verification_problem(args.work_dir, args.season, args.root),
         actor=args.actor,
         note=args.note,
         dry_run=args.dry_run,

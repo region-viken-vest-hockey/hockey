@@ -30,6 +30,13 @@ def _split_regression_acceptances(raw: list[str] | None) -> list[str] | None:
     return list(raw) if raw else None
 
 
+def _verification_problem(args: argparse.Namespace) -> dict | None:
+    """Canonical planning problem used by mutation gates (same contract as approve)."""
+    from .verification_problem import _canonical_verification_problem
+
+    return _canonical_verification_problem(args.work_dir, args.season, args.root)
+
+
 def _cmd_season_move(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season move`` — move one tournament to a new date/arena/host/time."""
     from ..season_state import move_tournament
@@ -45,6 +52,7 @@ def _cmd_season_move(args: argparse.Namespace) -> int:
         actor=args.actor,
         note=args.note,
         dry_run=args.dry_run,
+        problem=_verification_problem(args),
         allow_cross_half=args.allow_cross_half,
         request_id=args.request_id,
         allow_manual_placement=args.allow_manual_placement,
@@ -68,6 +76,7 @@ def _cmd_season_replace_participant(args: argparse.Namespace) -> int:
         tournament_id=args.tournament_id,
         remove_team_label=args.remove_team,
         add_team_label=args.add_team,
+        problem=_verification_problem(args),
         root=args.root,
         actor=args.actor,
         note=args.note,
@@ -96,6 +105,7 @@ def _cmd_season_remove_participant(args: argparse.Namespace) -> int:
         tournament_ids=list(args.tournament_ids or []),
         remove_team_label=args.remove_team,
         reconcile_withdrawal=args.reconcile_withdrawal,
+        problem=_verification_problem(args),
         root=args.root,
         actor=args.actor,
         note=args.note,
@@ -120,6 +130,7 @@ def _cmd_season_swap_participants(args: argparse.Namespace) -> int:
     result = swap_participants(
         season=args.season,
         tournament_a_id=args.tournament_a,
+        problem=_verification_problem(args),
         team_a_label=args.team_a,
         tournament_b_id=args.tournament_b,
         team_b_label=args.team_b,
@@ -198,6 +209,7 @@ def _cmd_season_rename_teams(args: argparse.Namespace) -> int:
     result = rename_teams(
         season=args.season,
         mappings=mappings,
+        problem=_verification_problem(args),
         root=args.root,
         actor=args.actor,
         note=args.note,
@@ -209,6 +221,28 @@ def _cmd_season_rename_teams(args: argparse.Namespace) -> int:
         _emit_json(result)
     else:
         _console.print(f"[green]✓[/green] {_dry_run_label(args)} team rename for {args.season}")
+    return 0
+
+
+def _cmd_season_changes(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season changes`` — request-grouped change ledger (optionally written)."""
+    from ..application.canonical_season.changes import render_change_log_markdown, write_change_log_markdown
+    from ..season_state import change_request_ledger
+
+    ledger = change_request_ledger(args.season, root=args.root)
+    if args.write:
+        path = write_change_log_markdown(ledger, root=args.root)
+    if args.json:
+        payload = dict(ledger)
+        if args.write:
+            payload["markdown_path"] = str(path)
+        _emit_json(payload)
+    elif args.markdown:
+        print(render_change_log_markdown(ledger))
+    else:
+        _console.print(f"[green]✓[/green] Change ledger for {args.season}")
+        if args.write:
+            _console.print(f"  Wrote {path}")
     return 0
 
 
