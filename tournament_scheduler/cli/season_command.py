@@ -8,11 +8,10 @@ and its subcommands for managing the canonical season state.
 from __future__ import annotations
 
 import argparse
-import json as _json
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..pipeline.state import PipelineState
+    pass
 
 from rich.console import Console
 
@@ -21,72 +20,9 @@ _console = Console()
 
 def _cmd_season(args) -> int:
     """Handle canonical Git-backed season-state commands."""
-    from ..pipeline.stage4_export import run as run_export
-    from ..pipeline.state import PipelineState, StageName
     from ..season_state import (
         SeasonStateError,
-        add_banned_date,
-        add_request_constraint,
-        allow_holiday_date,
-        approval_report,
-        approve_tournament,
-        banned_date_report,
-        batch_maintenance,
-        booking_status_report,
-        calendar_booking_assessment,
-        calendar_booking_candidates,
-        calendar_booking_findings,
-        change_protection_report,
-        change_request_ledger,
-        clear_ice_time_minutes,
-        clear_manual_booking_assertion,
-        club_booking_sources,
-        compact_history,
-        confirm_calendar_booking,
-        constraint_inspection,
-        decisions_path,
-        reconcile_calendar_bookings,
-        release_calendar_booking,
-        set_club_booking_source,
-        set_ice_time_minutes,
-        set_manual_booking_assertion,
-        fill_guest_slot,
-        guest_slot_candidates,
-        guest_slot_report,
-        holiday_date_exception_report,
-        ice_time_override_report,
-        history_inventory,
-        move_tournament,
-        load_decisions,
-        load_export_context,
-        load_schedule,
-        normalize_placements,
-        normalize_arena_identities,
-        placement_infeasibility_report,
-        record_placement_infeasibility_proofs,
-        release_placement_infeasibility_proofs,
-        effective_config_from_verification_problem,
-        planning_checkpoint_from_schedule,
-        promote_from_stage3,
-        release_change_protections,
-        release_guest_slot,
-        release_banned_dates,
-        replacement_candidates,
-        disallow_holiday_dates,
-        release_participation_withdrawals,
-        release_request_constraints,
-        request_constraint_report,
-        reserve_guest_slot,
-        replace_participant,
-        remove_participant,
-        withdrawal_report,
-        rename_teams,
-        schedule_path,
-        swap_participants,
-        tournament_inspection,
-        unapprove_tournament,
     )
-    from ..season_maintenance import SeasonMaintenanceError
     from .guest_slot_commands import (
         _cmd_season_guest_report,
         _cmd_season_guest_candidates,
@@ -125,6 +61,31 @@ def _cmd_season(args) -> int:
         _cmd_season_plan,
         _cmd_season_replan,
         _cmd_season_diff_apply,
+    )
+    from .season_canonical_commands import (
+        _cmd_season_move,
+        _cmd_season_replace_participant,
+        _cmd_season_remove_participant,
+        _cmd_season_swap_participants,
+        _cmd_season_withdrawal_report,
+        _cmd_season_release_withdrawal,
+        _cmd_season_rename_teams,
+        _cmd_season_approvals,
+        _cmd_season_changes,
+        _cmd_season_constraints,
+        _cmd_season_add_constraint,
+        _cmd_season_release_constraint,
+        _cmd_season_booking_set,
+        _cmd_season_booking_clear,
+        _cmd_season_booking_source_set,
+        _cmd_season_booking_sources,
+        _cmd_season_confirm_calendar_booking,
+        _cmd_season_release_calendar_booking,
+        _cmd_season_booking_status,
+        _cmd_season_calendar_booking_candidates,
+        _cmd_season_calendar_booking_findings,
+        _cmd_season_booking_assessment,
+        _cmd_season_reconcile_calendars,
     )
 
     try:
@@ -197,7 +158,7 @@ def _cmd_season(args) -> int:
         if args.season_command == "infeasibility-report":
             return _cmd_season_infeasibility_report(args)
 
-        if args.season_command in ("guest-report", "guest-candidates", "guest-reserve", "guest-fill", "guest-release"):
+        if args.season_command == "guest-report":
             return _cmd_season_guest_report(args)
 
         if args.season_command == "guest-candidates":
@@ -224,10 +185,10 @@ def _cmd_season(args) -> int:
         if args.season_command == "remove-participant":
             return _cmd_season_remove_participant(args)
 
-        if args.season_command == "withdrawal-report":
+        if args.season_command == "withdrawals":
             return _cmd_season_withdrawal_report(args)
 
-        if args.season_command == "rename-teams":
+        if args.season_command == "rename-team":
             return _cmd_season_rename_teams(args)
 
         if args.season_command == "release-withdrawal":
@@ -241,6 +202,9 @@ def _cmd_season(args) -> int:
 
         if args.season_command == "approvals":
             return _cmd_season_approvals(args)
+
+        if args.season_command == "changes":
+            return _cmd_season_changes(args)
 
         if args.season_command == "constraints":
             return _cmd_season_constraints(args)
@@ -278,9 +242,6 @@ def _cmd_season(args) -> int:
         if args.season_command == "calendar-booking-findings":
             return _cmd_season_calendar_booking_findings(args)
 
-        if args.season_command == "calendar-booking-assessment":
-            return _cmd_season_calendar_booking_assessment(args)
-
         if args.season_command == "set-ice-time-minutes":
             return _cmd_season_set_ice_time_minutes(args)
 
@@ -299,7 +260,7 @@ def _cmd_season(args) -> int:
         if args.season_command == "club-booking-sources":
             return _cmd_season_club_booking_sources(args)
 
-        if args.season_command == "change-protections":
+        if args.season_command == "protections":
             return _cmd_season_change_protections(args)
 
         if args.season_command == "release-protection":
@@ -326,7 +287,7 @@ def _cmd_season(args) -> int:
         if args.season_command == "booking-assessment":
             return _cmd_season_booking_assessment(args)
 
-        if args.season_command == "reconcile-calendars":
+        if args.season_command == "reconcile-calendar-bookings":
             return _cmd_season_reconcile_calendars(args)
 
         if args.season_command == "normalize-placements":
@@ -383,15 +344,17 @@ def _cmd_season(args) -> int:
 def _cmd_season_approve(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season approve`` — approve a tournament."""
     from ..season_state import approve_tournament
+    from .verification_problem import _canonical_verification_problem
 
     result = approve_tournament(
         season=args.season,
         tournament_id=args.tournament_id,
         actor=args.actor,
         note=args.note,
-        placement_locked=not args.no_placement_lock if hasattr(args, 'no_placement_lock') else True,
-        participants_locked=args.participants_locked if hasattr(args, 'participants_locked') else False,
+        placement_locked=args.placement_locked,
+        participants_locked=args.participants_lock,
         root=args.root,
+        problem=_canonical_verification_problem(args.work_dir, args.season, args.root),
     )
     if args.json:
         import json as _json
@@ -458,6 +421,7 @@ def _cmd_season_banned_dates(args: argparse.Namespace) -> int:
 def _cmd_season_batch(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season batch`` — atomically compose several scoped canonical mutations in one commit."""
     from ..season_state import batch_maintenance
+    from .verification_problem import _canonical_verification_problem
     import json
 
     # Read operations from file
@@ -481,7 +445,7 @@ def _cmd_season_batch(args: argparse.Namespace) -> int:
         operations=operations,
         scope=scope,
         root=args.root,
-        problem=None,  # problem is optional and not exposed via CLI
+        problem=_canonical_verification_problem(args.work_dir, args.season, args.root),
         actor=args.actor,
         note=args.note,
         dry_run=args.dry_run,
@@ -513,11 +477,10 @@ def _cmd_season_batch(args: argparse.Namespace) -> int:
 def _cmd_season_export(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season export`` — regenerate Stage 4 exports from canonical season state."""
     from ..pipeline.stage4_export import run as run_export
-    from ..pipeline.state import PipelineState, StageName
+    from ..pipeline.state import PipelineState
     from ..season_state import load_schedule, load_decisions, SeasonStateError, load_export_context
     from ..canonical_state import canonical_state_revision
     from ..pipeline.public_export_context import resolve_promoted_public_export_context, PublicExportContextError
-    import os
 
     work_dir = args.work_dir
     state = PipelineState(work_dir)
@@ -590,6 +553,19 @@ def _cmd_season_export(args: argparse.Namespace) -> int:
         _console.print(f"[red]✗[/red] Export failed: {exc}")
         return 1
 
+    # The artifacts above embed ``canonical_rev``; record that this revision is
+    # now exported so the revision-bound freshness latch can clear.
+    from ..season_state import mark_export_fresh
+
+    mark_export_fresh(
+        season=args.season,
+        root=args.root,
+        expected_revision=canonical_rev,
+        export_dir=args.export_dir,
+        actor=getattr(args, "actor", None),
+        note="season export",
+    )
+
     if args.json:
         import json as _json
         print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
@@ -605,7 +581,6 @@ def _cmd_season_export(args: argparse.Namespace) -> int:
 
 def _cmd_season_export_parity(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season export-parity`` — verify export parity between canonical and pipeline exports."""
-    from ..pipeline.export_parity.comparator import compare_exports
     from ..season_state import load_schedule, SeasonStateError
 
     try:
@@ -620,7 +595,7 @@ def _cmd_season_export_parity(args: argparse.Namespace) -> int:
         return 1
 
     # TODO: Implement export parity comparison
-    _console.print(f"[yellow]⚠[/yellow] Export parity check not fully implemented yet")
+    _console.print("[yellow]⚠[/yellow] Export parity check not fully implemented yet")
     return 0
 
 
@@ -635,16 +610,21 @@ def _cmd_season_status(args: argparse.Namespace) -> int:
         _console.print(f"[red]✗[/red] {exc}")
         return 1
 
+    from ..season_state import approval_report
+
     revision = schedule.get("revision")
     plan = schedule.get("plan", {})
     tournaments = plan.get("tournaments", [])
     decisions_count = len(decisions.get("decisions", {}))
+    approval_counts = approval_report(args.season, root=args.root)["counts"]
 
     result = {
         "season": args.season,
         "revision": revision,
         "tournament_count": len(tournaments),
         "decision_count": decisions_count,
+        "approved_count": approval_counts["approved"],
+        "stale_approval_count": approval_counts["stale"],
         "schedule_schema_version": schedule.get("schema_version"),
         "decisions_schema_version": decisions.get("schema_version"),
     }
@@ -1101,12 +1081,12 @@ def _cmd_season_inspect_candidates(args: argparse.Namespace) -> int:
 def _cmd_season_save_placeholder(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season save-placeholder`` — save a placeholder for missing data."""
     # TODO: Implement save-placeholder command
-    _console.print(f"[yellow]⚠[/yellow] Save placeholder command not yet implemented")
+    _console.print("[yellow]⚠[/yellow] Save placeholder command not yet implemented")
     return 0
 
 
 def _cmd_season_commit_placeholder(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season commit-placeholder`` — commit a placeholder to real data."""
     # TODO: Implement commit-placeholder command
-    _console.print(f"[yellow]⚠[/yellow] Commit placeholder command not yet implemented")
+    _console.print("[yellow]⚠[/yellow] Commit placeholder command not yet implemented")
     return 0

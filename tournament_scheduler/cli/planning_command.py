@@ -8,12 +8,13 @@ related to planning and replanning.
 from __future__ import annotations
 
 import argparse
+import json as _json
 from datetime import date as _date
 from pathlib import Path as _Path
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..pipeline.state import PipelineState
+    pass
 
 from rich.console import Console
 
@@ -22,8 +23,6 @@ _console = Console()
 
 def _cmd_season_promote(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season promote`` — promote a plan to canonical season."""
-    from ..pipeline.state import PipelineState
-    from ..pipeline.stage4_export import run as run_export
     from ..season_state import (
         promote_from_stage3,
         schedule_path,
@@ -194,6 +193,7 @@ def _cmd_season_diff_apply(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season diff`` and ``rvv-miniputt season apply`` — compare or apply a candidate plan."""
     from ..pipeline.state import PipelineState
     from ..canonical_baseline import build_canonical_baseline, change_cost
+    from ..season_state import load_decisions, load_schedule
     from ..operator_waivers import load_active_waivers
     from ..pipeline.stage1_config import load_effective_config
     from ..pipeline.state import StageName

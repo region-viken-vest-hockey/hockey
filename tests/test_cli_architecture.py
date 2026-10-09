@@ -13,8 +13,10 @@ LEGACY_ENTRYPOINTS = (
     ROOT / "scripts" / "rvv-miniputt-checkpoint",
 )
 
+# cli/season_command.py is intentionally NOT listed: it is the canonical
+# `rvv-miniputt season` transport re-established by issue #642 and dispatched
+# from rvv_cli.main. The legacy scheduler season module it replaced is gone.
 LEGACY_COMMAND_MODULES = (
-    ROOT / "tournament_scheduler" / "cli" / "season_command.py",
     ROOT / "tournament_scheduler" / "cli" / "scheduling_command.py",
     ROOT / "tournament_scheduler" / "cli" / "reschedule_command.py",
     ROOT / "tournament_scheduler" / "cli" / "update_command.py",

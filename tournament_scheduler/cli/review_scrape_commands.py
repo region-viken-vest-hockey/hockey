@@ -8,10 +8,10 @@ This module contains the implementations of the `rvv-miniputt review` and
 from __future__ import annotations
 
 import argparse
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..pipeline.state import PipelineState
+    pass
 
 from rich.console import Console
 
@@ -36,7 +36,7 @@ def _cmd_review(args: argparse.Namespace) -> int:
         print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
     else:
         _console.print(
-            f"[green]✓[/green] Generated review/ status"
+            "[green]✓[/green] Generated review/ status"
         )
         if result.get("review_file"):
             _console.print(f"  review: {result['review_file']}")
@@ -64,7 +64,7 @@ def _cmd_scrape_llm(args: argparse.Namespace) -> int:
         print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
     else:
         if result.get("success"):
-            _console.print(f"[green]✓[/green] LLM scrape completed")
+            _console.print("[green]✓[/green] LLM scrape completed")
             if result.get("teams_found"):
                 _console.print(f"  teams found: {result['teams_found']}")
         else:

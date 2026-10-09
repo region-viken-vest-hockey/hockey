@@ -16,21 +16,13 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime
 from typing import TYPE_CHECKING, Sequence
 
 if TYPE_CHECKING:
-    from ..pipeline.state import PipelineState
+    pass
 
 from rich.console import Console
 
-from ..application.operator_state import (
-    check_operator_health,
-    list_operator_questions,
-    promote_operator_question,
-    record_operator_answer,
-)
-from ..application.canonical_season_service import CanonicalSeasonService
 from .args import build_parser as _build_parser
 from .pipeline_orchestrator import (
     _cmd_calendars, _cmd_operator_audit_context, _cmd_operator_audit_evidence,
@@ -40,127 +32,35 @@ from .pipeline_orchestrator import (
     _cmd_operator_rollback,
     _cmd_operator_run,
     _cmd_operator_verify,
-    _execute_operator_publish,
-    _print_pages_result,
     _cmd_run,
     _cmd_scrape,
 )
 from .plan_command import _cmd_plan
 from .recovery_cli import _cmd_recovery_inject, _cmd_recovery_targets, _cmd_scrape_merge
 from .waiver_command import _cmd_waiver
-from .reporting import _cmd_candidates, _cmd_logs, _cmd_sources_status, _cmd_status
+from .reporting import _cmd_candidates, _cmd_logs, _cmd_status
+from .reporting import _cmd_sources_status  # noqa: F401 (patch point for the `sources` dispatch)
 from .season_command import _cmd_season
+from .verification_problem import _canonical_verification_problem  # noqa: F401 (re-exported for CLI callers)
 from .cancel_command import _cmd_cancel
 from .registered_teams_command import _cmd_registered_teams
 from .activities_command import _cmd_activities
-from .operator_command import _cmd_operator
 from .operator_subcommands import _cmd_operator_questions, _cmd_operator_answer, _cmd_operator_promote, _cmd_operator_health
 from .sources_registrations_command import _cmd_sources, _cmd_registrations
-from .tournament_commands import _cmd_tournament, _cmd_tournament_list, _cmd_tournament_add, _cmd_tournament_remove
-from .plan_adjustment_commands import _cmd_replan, _cmd_adjust
+from .tournament_commands import _cmd_tournament
+from .plan_adjustment_commands import _cmd_replan, _cmd_adjust, _cmd_auto_adjust
 from .review_scrape_commands import _cmd_review, _cmd_scrape_llm
-from .verdict_critic_auto_adjust import _cmd_verdict, _cmd_critic, _cmd_auto_adjust
+from .verdict_critic_auto_adjust import _cmd_verdict, _cmd_critic
+from . import verdict_critic_auto_adjust as _vca
 
 _console = Console()
 
 # Inject console into verdict_critic_auto_adjust for shared output capture in tests
-from . import verdict_critic_auto_adjust as _vca
 _vca._console = _console
 
 # ---------------------------------------------------------------------------
 # Command implementations
 # ---------------------------------------------------------------------------
-
-def _canonical_verification_problem(
-    work_dir: str, season: str | None = None, root: str | None = None
-) -> dict | None:
-    """Best-effort full ``planning_problem`` for canonical approval/move gates.
-
-    Reconstructs the same problem contract Stage 3 was given (including any
-    canonical baseline locks and active operator waivers) so approving or
-    moving a canonical tournament is checked against the real hard
-    invariants, not only self-consistency.  When *season*/*root* are given,
-    an unrelated ``--work-dir`` pipeline (a different season's config) is
-    ignored rather than applied to this season.  A promoted canonical season
-    owns the authoritative problem: once its schedule exists, any failure to
-    load it or project its live overlays raises :class:`SeasonStateError`
-    rather than silently degrading to self-consistency verification.  Only a
-    genuinely absent canonical schedule (or one without a promoted problem)
-    falls back to the pipeline reconstruction and may return ``None``.
-    """
-    from datetime import date as _date
-
-    if season:
-        from ..season_state import SeasonStateError, load_decisions, load_schedule, schedule_path
-
-        season_root = root or "season"
-        # Only a genuinely absent canonical schedule may fall through to the
-        # pipeline reconstruction below. Once the schedule exists, a failure
-        # to load it or project its live overlays must fail closed: verifying
-        # against an incomplete or absent contract is worse than refusing the
-        # mutation.
-        if schedule_path(season, root=season_root).exists():
-            schedule = load_schedule(season, root=season_root)
-            context = schedule.get("verification_context") if isinstance(schedule, dict) else None
-            problem = context.get("problem") if isinstance(context, dict) else None
-            if isinstance(problem, dict) and problem:
-                # The stored problem is frozen at the season's original
-                # promotion; project the *current* canonical decisions into it
-                # through the one shared overlay facade -- holiday exceptions,
-                # banned dates, calendar-booking associations, ice-time
-                # overrides and durable participation withdrawals -- mirroring
-                # ``season findings``/``season export``, so approve/move/etc.
-                # never refuse a mutation over a since-superseded fact or an
-                # already-committed withdrawal, and never re-derive an
-                # incomplete subset of the canonical overlays.
-                from ..season_maintenance import project_canonical_overlays
-
-                decisions = load_decisions(season, root=season_root)
-                try:
-                    return project_canonical_overlays(
-                        problem,
-                        decisions=decisions,
-                        plan=schedule.get("plan") or {},
-                    )
-                except SeasonStateError:
-                    raise
-                except Exception as exc:
-                    raise SeasonStateError(
-                        f"Canonical season {season} verification overlay projection "
-                        f"failed: {type(exc).__name__}: {exc}"
-                    ) from exc
-
-    from ..pipeline.stage1_config import load_effective_config
-    from ..pipeline.stage4_export_verification import _build_export_verification_problem
-    from ..pipeline.state import PipelineState
-
-    state = PipelineState(work_dir)
-    try:
-        effective_config = load_effective_config(state)
-    except Exception:
-        effective_config = {}
-    if not effective_config:
-        return None
-    if season:
-        start_raw = effective_config.get("start_date")
-        end_raw = effective_config.get("end_date")
-        if not start_raw or not end_raw:
-            return None
-        try:
-            from ..canonical_baseline import resolve_canonical_season
-
-            resolved = resolve_canonical_season(
-                effective_config,
-                _date.fromisoformat(str(start_raw)),
-                _date.fromisoformat(str(end_raw)),
-                root=root,
-            )
-        except Exception:
-            return None
-        if resolved != season:
-            return None
-    return _build_export_verification_problem(effective_config, state)
-
 
 def _format_delta(delta: dict | None) -> str:
     """Compact before/after summary for a season maintenance action."""
@@ -196,6 +96,31 @@ def _format_delta(delta: dict | None) -> str:
         ),
     ]
     return "; ".join(parts)
+
+
+def _cmd_operator(args: argparse.Namespace) -> int:
+    """Dispatch ``rvv-miniputt operator <subcommand>`` to its handler."""
+    subcommand = getattr(args, "operator_command", None)
+    handlers = {
+        "run": _cmd_operator_run,
+        "questions": _cmd_operator_questions,
+        "answer": _cmd_operator_answer,
+        "promote": _cmd_operator_promote,
+        "health": _cmd_operator_health,
+        "publish": _cmd_operator_publish,
+        "verify": _cmd_operator_verify,
+        "rollback": _cmd_operator_rollback,
+        "publish-history": _cmd_operator_publish_history,
+        "audit-context": _cmd_operator_audit_context,
+        "audit-evidence": _cmd_operator_audit_evidence,
+        "audit-submit": _cmd_operator_audit_submit,
+        "audit-run": _cmd_operator_audit_run,
+    }
+    handler = handlers.get(subcommand)
+    if handler is None:
+        _console.print("[red]✗[/red] Mangler operator-underkommando (kjør 'rvv-miniputt operator --help')")
+        return 1
+    return handler(args)
 
 
 # ---------------------------------------------------------------------------
