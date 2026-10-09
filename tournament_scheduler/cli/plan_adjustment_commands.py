@@ -8,7 +8,9 @@ This module contains the implementations of the `rvv-miniputt replan` and
 from __future__ import annotations
 
 import argparse
-from typing import TYPE_CHECKING, Sequence
+import json as _json
+from datetime import date as _date, datetime
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..pipeline.state import PipelineState
@@ -21,7 +23,6 @@ _console = Console()
 def _cmd_replan(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt replan`` — replan around baseline."""
     from ..pipeline.state import PipelineState
-    from ..season_state import load_schedule, load_decisions
     from ..canonical_replan import replan_around_baseline
     from ..operator_waivers import load_active_waivers
     from ..pipeline.stage1_config import load_effective_config

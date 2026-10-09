@@ -8,10 +8,10 @@ This module contains the implementations of the `rvv-miniputt verdict`,
 from __future__ import annotations
 
 import argparse
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..pipeline.state import PipelineState
+    pass
 
 from rich.console import Console
 
@@ -134,7 +134,7 @@ def _cmd_critic(args: argparse.Namespace) -> int:
         print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
     else:
         if result.get("success"):
-            _get_console().print(f"[green]✓[/green] Critic analysis completed")
+            _get_console().print("[green]✓[/green] Critic analysis completed")
             if result.get("issues_found"):
                 _get_console().print(f"  issues found: {result['issues_found']}")
                 if result.get("critical_issues"):

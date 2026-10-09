@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..pipeline.state import PipelineState
+    pass
 
 from rich.console import Console
 

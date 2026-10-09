@@ -7,10 +7,10 @@ This module contains the implementation of the `rvv-miniputt season baseline` co
 from __future__ import annotations
 
 import argparse
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..pipeline.state import PipelineState
+    pass
 
 from rich.console import Console
 

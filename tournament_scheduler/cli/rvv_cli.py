@@ -16,21 +16,13 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime
 from typing import TYPE_CHECKING, Sequence
 
 if TYPE_CHECKING:
-    from ..pipeline.state import PipelineState
+    pass
 
 from rich.console import Console
 
-from ..application.operator_state import (
-    check_operator_health,
-    list_operator_questions,
-    promote_operator_question,
-    record_operator_answer,
-)
-from ..application.canonical_season_service import CanonicalSeasonService
 from .args import build_parser as _build_parser
 from .pipeline_orchestrator import (
     _cmd_calendars, _cmd_operator_audit_context, _cmd_operator_audit_evidence,
@@ -40,15 +32,14 @@ from .pipeline_orchestrator import (
     _cmd_operator_rollback,
     _cmd_operator_run,
     _cmd_operator_verify,
-    _execute_operator_publish,
-    _print_pages_result,
     _cmd_run,
     _cmd_scrape,
 )
 from .plan_command import _cmd_plan
 from .recovery_cli import _cmd_recovery_inject, _cmd_recovery_targets, _cmd_scrape_merge
 from .waiver_command import _cmd_waiver
-from .reporting import _cmd_candidates, _cmd_logs, _cmd_sources_status, _cmd_status
+from .reporting import _cmd_candidates, _cmd_logs, _cmd_status
+from .reporting import _cmd_sources_status  # noqa: F401 (patch point for the `sources` dispatch)
 from .season_command import _cmd_season
 from .verification_problem import _canonical_verification_problem  # noqa: F401 (re-exported for CLI callers)
 from .cancel_command import _cmd_cancel
@@ -56,7 +47,7 @@ from .registered_teams_command import _cmd_registered_teams
 from .activities_command import _cmd_activities
 from .operator_subcommands import _cmd_operator_questions, _cmd_operator_answer, _cmd_operator_promote, _cmd_operator_health
 from .sources_registrations_command import _cmd_sources, _cmd_registrations
-from .tournament_commands import _cmd_tournament, _cmd_tournament_list, _cmd_tournament_add, _cmd_tournament_remove
+from .tournament_commands import _cmd_tournament
 from .plan_adjustment_commands import _cmd_replan, _cmd_adjust, _cmd_auto_adjust
 from .review_scrape_commands import _cmd_review, _cmd_scrape_llm
 from .verdict_critic_auto_adjust import _cmd_verdict, _cmd_critic

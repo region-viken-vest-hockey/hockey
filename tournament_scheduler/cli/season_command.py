@@ -8,11 +8,10 @@ and its subcommands for managing the canonical season state.
 from __future__ import annotations
 
 import argparse
-import json as _json
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..pipeline.state import PipelineState
+    pass
 
 from rich.console import Console
 
@@ -21,72 +20,9 @@ _console = Console()
 
 def _cmd_season(args) -> int:
     """Handle canonical Git-backed season-state commands."""
-    from ..pipeline.stage4_export import run as run_export
-    from ..pipeline.state import PipelineState, StageName
     from ..season_state import (
         SeasonStateError,
-        add_banned_date,
-        add_request_constraint,
-        allow_holiday_date,
-        approval_report,
-        approve_tournament,
-        banned_date_report,
-        batch_maintenance,
-        booking_status_report,
-        calendar_booking_assessment,
-        calendar_booking_candidates,
-        calendar_booking_findings,
-        change_protection_report,
-        change_request_ledger,
-        clear_ice_time_minutes,
-        clear_manual_booking_assertion,
-        club_booking_sources,
-        compact_history,
-        confirm_calendar_booking,
-        constraint_inspection,
-        decisions_path,
-        reconcile_calendar_bookings,
-        release_calendar_booking,
-        set_club_booking_source,
-        set_ice_time_minutes,
-        set_manual_booking_assertion,
-        fill_guest_slot,
-        guest_slot_candidates,
-        guest_slot_report,
-        holiday_date_exception_report,
-        ice_time_override_report,
-        history_inventory,
-        move_tournament,
-        load_decisions,
-        load_export_context,
-        load_schedule,
-        normalize_placements,
-        normalize_arena_identities,
-        placement_infeasibility_report,
-        record_placement_infeasibility_proofs,
-        release_placement_infeasibility_proofs,
-        effective_config_from_verification_problem,
-        planning_checkpoint_from_schedule,
-        promote_from_stage3,
-        release_change_protections,
-        release_guest_slot,
-        release_banned_dates,
-        replacement_candidates,
-        disallow_holiday_dates,
-        release_participation_withdrawals,
-        release_request_constraints,
-        request_constraint_report,
-        reserve_guest_slot,
-        replace_participant,
-        remove_participant,
-        withdrawal_report,
-        rename_teams,
-        schedule_path,
-        swap_participants,
-        tournament_inspection,
-        unapprove_tournament,
     )
-    from ..season_maintenance import SeasonMaintenanceError
     from .guest_slot_commands import (
         _cmd_season_guest_report,
         _cmd_season_guest_candidates,
@@ -541,11 +477,10 @@ def _cmd_season_batch(args: argparse.Namespace) -> int:
 def _cmd_season_export(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season export`` — regenerate Stage 4 exports from canonical season state."""
     from ..pipeline.stage4_export import run as run_export
-    from ..pipeline.state import PipelineState, StageName
+    from ..pipeline.state import PipelineState
     from ..season_state import load_schedule, load_decisions, SeasonStateError, load_export_context
     from ..canonical_state import canonical_state_revision
     from ..pipeline.public_export_context import resolve_promoted_public_export_context, PublicExportContextError
-    import os
 
     work_dir = args.work_dir
     state = PipelineState(work_dir)
@@ -618,6 +553,19 @@ def _cmd_season_export(args: argparse.Namespace) -> int:
         _console.print(f"[red]✗[/red] Export failed: {exc}")
         return 1
 
+    # The artifacts above embed ``canonical_rev``; record that this revision is
+    # now exported so the revision-bound freshness latch can clear.
+    from ..season_state import mark_export_fresh
+
+    mark_export_fresh(
+        season=args.season,
+        root=args.root,
+        expected_revision=canonical_rev,
+        export_dir=args.export_dir,
+        actor=getattr(args, "actor", None),
+        note="season export",
+    )
+
     if args.json:
         import json as _json
         print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
@@ -633,7 +581,6 @@ def _cmd_season_export(args: argparse.Namespace) -> int:
 
 def _cmd_season_export_parity(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season export-parity`` — verify export parity between canonical and pipeline exports."""
-    from ..pipeline.export_parity.comparator import compare_exports
     from ..season_state import load_schedule, SeasonStateError
 
     try:
@@ -648,7 +595,7 @@ def _cmd_season_export_parity(args: argparse.Namespace) -> int:
         return 1
 
     # TODO: Implement export parity comparison
-    _console.print(f"[yellow]⚠[/yellow] Export parity check not fully implemented yet")
+    _console.print("[yellow]⚠[/yellow] Export parity check not fully implemented yet")
     return 0
 
 
@@ -1134,12 +1081,12 @@ def _cmd_season_inspect_candidates(args: argparse.Namespace) -> int:
 def _cmd_season_save_placeholder(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season save-placeholder`` — save a placeholder for missing data."""
     # TODO: Implement save-placeholder command
-    _console.print(f"[yellow]⚠[/yellow] Save placeholder command not yet implemented")
+    _console.print("[yellow]⚠[/yellow] Save placeholder command not yet implemented")
     return 0
 
 
 def _cmd_season_commit_placeholder(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season commit-placeholder`` — commit a placeholder to real data."""
     # TODO: Implement commit-placeholder command
-    _console.print(f"[yellow]⚠[/yellow] Commit placeholder command not yet implemented")
+    _console.print("[yellow]⚠[/yellow] Commit placeholder command not yet implemented")
     return 0
