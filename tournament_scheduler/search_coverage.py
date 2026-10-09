@@ -6,18 +6,19 @@ for maintenance findings, including bounded search exhaustion tracking.
 
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Mapping, Optional
+from typing import Any, Dict, Iterable, Mapping, Optional
 
 from .search_capability import SearchCapability
 
 
 # Search coverage status constants
-SEARCH_COVERAGE_INCOMPLETE = "incomplete"
 SEARCH_COVERAGE_OPTION_AVAILABLE = "option_available"
-SEARCH_COVERAGE_BOUNDED_EXHAUSTED = "bounded_exhausted"
+SEARCH_COVERAGE_INCOMPLETE = "search_incomplete"
+SEARCH_COVERAGE_BOUNDED_EXHAUSTED = "bounded_search_exhausted"
+SEARCH_COVERAGE_PROVEN_INFEASIBLE = "proven_infeasible"
 
 # Maintenance search version - increment when the search algorithm changes
-MAINTENANCE_SEARCH_VERSION = 1
+MAINTENANCE_SEARCH_VERSION = "3"
 
 
 def maintenance_search_capability(finding: Mapping[str, Any]) -> SearchCapability:
@@ -27,7 +28,7 @@ def maintenance_search_capability(finding: Mapping[str, Any]) -> SearchCapabilit
     provider; this covers the remaining generic providers so every coverage
     record still names the search that produced it.
     """
-    from .season_maintenance import supported_dimensions_for_finding
+    from .repair_options import supported_dimensions_for_finding
 
     supported = supported_dimensions_for_finding(finding)
     category = str(finding.get("category") or "generic")
@@ -45,7 +46,7 @@ def cheap_search_coverage(finding: Mapping[str, Any]) -> Dict[str, Any]:
     dimension is still untried: ``search_incomplete``, never a false
     ``bounded_search_exhausted``.
     """
-    from .season_maintenance import supported_dimensions_for_finding
+    from .repair_options import supported_dimensions_for_finding
 
     supported = list(supported_dimensions_for_finding(finding))
     return {
