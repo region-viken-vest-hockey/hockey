@@ -350,7 +350,7 @@ _HARD: tuple[RuleEntry, ...] = (
             "(shared/joint registrations count for either constituent). This is the hard "
             "representation invariant; proportional hosting balance is a separate soft objective."
         ),
-        canonical_owner="tournament_scheduler.host_representation",
+        canonical_owner="tournament_scheduler.hosting.representation",
         input_source="candidate host_club + tournament roster",
         verifier_owner="tournament_scheduler.planning_contract.verify_candidate",
         mutation_providers=("host_team_missing_repair", "placement_preserving_roster_repair"),
@@ -583,9 +583,9 @@ _OBLIGATIONS: tuple[RuleEntry, ...] = (
             "tournaments than clubs needing coverage) is surfaced explicitly, never hidden as "
             "a soft imbalance."
         ),
-        canonical_owner="tournament_scheduler.hosting_coverage.hosting_targets_with_coverage_floor",
+        canonical_owner="tournament_scheduler.hosting.coverage.hosting_targets_with_coverage_floor",
         input_source="planning_problem eligible teams (registered roster minus durable age-group withdrawals) + candidate tournaments (hosting_coverage_matrix)",
-        verifier_owner="tournament_scheduler.hosting_coverage.hosting_coverage_matrix",
+        verifier_owner="tournament_scheduler.hosting.coverage.hosting_coverage_matrix",
         mutation_providers=(
             "hosting_balance_repair",
             "host_placement_repair",
@@ -620,9 +620,9 @@ _OBLIGATIONS: tuple[RuleEntry, ...] = (
             "REQUIRED rather than moving the burden. This is a cross-path invariant over "
             "placement/repair/search."
         ),
-        canonical_owner="tournament_scheduler.hosting_responsibility",
+        canonical_owner="tournament_scheduler.hosting.responsibility",
         input_source="hosting_coverage target/actual ledger + candidate physical hosting",
-        verifier_owner="tournament_scheduler.hosting_responsibility.hosting_responsibility_facts",
+        verifier_owner="tournament_scheduler.hosting.responsibility.hosting_responsibility_facts",
         mutation_providers=("responsibility_preserving_repair", "unplaced_placement_repair"),
         evidence_projection=(
             "hosting_responsibility finding code",
@@ -683,9 +683,9 @@ _SOFT: tuple[RuleEntry, ...] = (
             "larger club may legitimately under-host relative to its proportional target so a "
             "smaller club gets its first responsibility."
         ),
-        canonical_owner="tournament_scheduler.hosting_coverage.hosting_balance_matrix",
+        canonical_owner="tournament_scheduler.hosting.coverage.hosting_balance_matrix",
         input_source="planning_problem eligible teams + candidate tournaments",
-        verifier_owner="tournament_scheduler.hosting_coverage.material_hosting_balance_imbalances",
+        verifier_owner="tournament_scheduler.hosting.coverage.material_hosting_balance_imbalances",
         mutation_providers=("hosting_balance_repair",),
         evidence_projection=(
             "score_candidate.hosting.spread",
@@ -885,7 +885,7 @@ _DECISIONS: tuple[RuleEntry, ...] = (
         ),
         canonical_owner="tournament_scheduler.shared_host_decision",
         input_source="joint-registration club labels + hosting_responsibility facts",
-        verifier_owner="tournament_scheduler.hosting_coverage.shared_registration_facts",
+        verifier_owner="tournament_scheduler.hosting.coverage.shared_registration_facts",
         mutation_providers=("shared host decision action",),
         evidence_projection=("plan.shared_host_decisions", "rules_model shared_host_* decisions"),
         tests=("tests/test_shared_host_decision.py",),

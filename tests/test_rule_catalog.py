@@ -174,11 +174,11 @@ def test_hard_constraints_have_stable_ids_and_owners() -> None:
 def test_hosting_coverage_is_the_distinct_obligation_owner() -> None:
     coverage = catalog.CATALOG_BY_ID["hosting_age_group_coverage"]
     assert coverage.classification == catalog.OPERATIONAL_OBLIGATION
-    assert "hosting_coverage" in coverage.canonical_owner
+    assert "hosting.coverage" in coverage.canonical_owner
 
     proportional = catalog.CATALOG_BY_ID["hosting_proportional_balance"]
     assert proportional.classification == catalog.SOFT_OBJECTIVE
-    assert "hosting_coverage" in proportional.canonical_owner
+    assert "hosting.coverage" in proportional.canonical_owner
     # Proportional balance is subordinate to coverage and can never act as the
     # coverage rule.
     assert catalog.outranks("hosting_age_group_coverage", "hosting_proportional_balance")
@@ -191,7 +191,7 @@ def test_hosting_coverage_is_the_distinct_obligation_owner() -> None:
 def test_hosting_responsibility_is_a_distinct_cross_path_obligation() -> None:
     responsibility = catalog.CATALOG_BY_ID["hosting_responsibility"]
     assert responsibility.classification == catalog.OPERATIONAL_OBLIGATION
-    assert "hosting_responsibility" in responsibility.canonical_owner
+    assert "hosting.responsibility" in responsibility.canonical_owner
     assert "hosting_age_group_coverage" in responsibility.depends_on
 
 
@@ -205,7 +205,7 @@ def test_hosting_coverage_owner_computes_a_coverage_floor() -> None:
     # math; prove the named facade exists and actually floors small clubs to 1
     # when coverage is arithmetically possible (Jar 4 teams / Kongsberg 1 team,
     # 2 U8 tournaments -> both must be targeted for >=1, never 2/0).
-    from tournament_scheduler.hosting_coverage import hosting_targets_with_coverage_floor
+    from tournament_scheduler.hosting.coverage import hosting_targets_with_coverage_floor
 
     targets, unmet = hosting_targets_with_coverage_floor({"Jar": 4, "Kongsberg": 1}, 2)
     assert targets == {"Jar": 1, "Kongsberg": 1}
@@ -213,7 +213,7 @@ def test_hosting_coverage_owner_computes_a_coverage_floor() -> None:
 
 
 def test_hosting_coverage_owner_surfaces_structural_shortfall() -> None:
-    from tournament_scheduler.hosting_coverage import hosting_targets_with_coverage_floor
+    from tournament_scheduler.hosting.coverage import hosting_targets_with_coverage_floor
 
     # Fewer tournaments than clubs needing coverage is a structural shortfall:
     # surfaced in ``unmet`` rather than hidden as a soft imbalance.
@@ -353,7 +353,7 @@ def test_rules_model_entries_reuse_catalog_identity() -> None:
 
 
 def test_hosting_responsibility_finding_code_matches_owner() -> None:
-    from tournament_scheduler.hosting_responsibility import RESPONSIBILITY_TRANSFER_CODE
+    from tournament_scheduler.hosting.responsibility import RESPONSIBILITY_TRANSFER_CODE
 
     entry = catalog.CATALOG_BY_ID["hosting_responsibility"]
     assert RESPONSIBILITY_TRANSFER_CODE in entry.finding_codes

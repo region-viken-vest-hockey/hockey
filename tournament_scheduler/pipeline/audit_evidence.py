@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from ..host_representation import clubs_represent_same_club
+from tournament_scheduler.hosting.representation import clubs_represent_same_club
 
 # Explicit, tested upper bound for the *default* audit context payload. The
 # bound covers the serialized overview; detailed evidence is fetched

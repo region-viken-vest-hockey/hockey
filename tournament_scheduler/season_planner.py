@@ -55,20 +55,20 @@ from tournament_scheduler.models import (
 )
 from tournament_scheduler.arena_conflicts import find_arena_interval_collisions, tournament_interval
 from tournament_scheduler.host_candidate_selection import participant_derived_host_candidates as _participant_derived_host_candidates
-from tournament_scheduler.host_representation import constituent_clubs as _constituent_clubs
-from tournament_scheduler.hosting_coverage import hosting_coverage_matrix as _hosting_coverage_matrix
+from tournament_scheduler.hosting.representation import constituent_clubs as _constituent_clubs
+from tournament_scheduler.hosting.coverage import hosting_coverage_matrix as _hosting_coverage_matrix
 from tournament_scheduler.responsibility_preserving_repair import (
     find_same_host_date_placement as _find_same_host_date_placement,
 )
-from tournament_scheduler.hosting_cross_age_repair import (
+from tournament_scheduler.hosting.cross_age_repair import (
     candidate_reallocation_slots as _candidate_reallocation_slots,
     club_hosting_evidence as _club_hosting_evidence,
 )
-from tournament_scheduler.hosting_cross_age_repair_apply import attempt_cross_age_repairs as _attempt_cross_age_repairs
-from tournament_scheduler.hosting_same_age_repair import (
+from tournament_scheduler.hosting.cross_age_repair_apply import attempt_cross_age_repairs as _attempt_cross_age_repairs
+from tournament_scheduler.hosting.same_age_repair import (
     same_age_reallocation_candidates as _same_age_reallocation_candidates,
 )
-from tournament_scheduler.hosting_same_age_repair_apply import attempt_same_age_repairs as _attempt_same_age_repairs
+from tournament_scheduler.hosting.same_age_repair_apply import attempt_same_age_repairs as _attempt_same_age_repairs
 from tournament_scheduler.calendar_availability import host_confirmation_from_evidence
 from tournament_scheduler.planning_contract import external_calendar_conflict
 from tournament_scheduler.tournament_identity import allocate_tournament_id

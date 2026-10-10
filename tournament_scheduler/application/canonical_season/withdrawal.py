@@ -708,7 +708,7 @@ def remove_participant(
         messages = "; ".join(str(v.get("message") or v.get("code")) for v in result.get("violations", []))
         raise SeasonStateError(f"Refusing canonical participant removal: candidate fails hard verification: {messages}")
 
-    from tournament_scheduler.hosting_responsibility import (
+    from tournament_scheduler.hosting.responsibility import (
         unexplained_responsibility_transfers,
     )
 

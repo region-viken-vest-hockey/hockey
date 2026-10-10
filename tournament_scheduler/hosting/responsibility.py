@@ -33,7 +33,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Mapping, Tuple
 
-from tournament_scheduler.hosting_coverage import (
+from tournament_scheduler.hosting.coverage import (
     hosting_balance_matrix,
     planned_tournament_counts_by_age,
 )

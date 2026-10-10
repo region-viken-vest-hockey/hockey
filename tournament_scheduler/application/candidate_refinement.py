@@ -307,7 +307,7 @@ def refine_finalized_candidate(
     # model did not assign it to. Skipped only when no planning problem exists
     # (self-consistency-only verification).
     if problem:
-        from ..hosting_responsibility import unexplained_responsibility_transfers
+        from tournament_scheduler.hosting.responsibility import unexplained_responsibility_transfers
 
         transfers = unexplained_responsibility_transfers(
             candidate, result_candidate, dict(problem)

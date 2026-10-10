@@ -32,7 +32,7 @@ from itertools import combinations
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from .application.decisions import DecisionContext
-from .host_representation import clubs_represent_same_club
+from .hosting.representation import clubs_represent_same_club
 from .host_team_missing_repair import (
     RepairOption,
     TeamIdentity,

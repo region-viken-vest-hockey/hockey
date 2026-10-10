@@ -32,7 +32,7 @@ mandatory for the ``booked`` projection.
 It never invents booking authority or a new verdict from prose. It reuses the
 canonical booking evidence owner (:mod:`tournament_scheduler.calendar_bookings`)
 and the canonical hosting-responsibility owner
-(:mod:`tournament_scheduler.hosting_responsibility`); it only classifies what
+(:mod:`tournament_scheduler.hosting.responsibility`); it only classifies what
 those owners already establish.
 """
 
@@ -243,7 +243,7 @@ def _hosting_transfer_findings(
 
     if not isinstance(problem, Mapping) or not problem.get("teams"):
         return None
-    from tournament_scheduler.hosting_responsibility import (
+    from tournament_scheduler.hosting.responsibility import (
         unexplained_responsibility_transfers,
     )
 

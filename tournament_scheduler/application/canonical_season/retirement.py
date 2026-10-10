@@ -35,7 +35,7 @@ from tournament_scheduler.change_protections import (
     protection_violations,
 )
 from tournament_scheduler.guest_slots import release_guest_slots_for_cancellation
-from tournament_scheduler.hosting_responsibility import (
+from tournament_scheduler.hosting.responsibility import (
     unexplained_responsibility_transfers,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (

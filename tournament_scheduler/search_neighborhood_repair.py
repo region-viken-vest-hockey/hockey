@@ -35,7 +35,7 @@ from .host_team_missing_repair import (
     _identity,
     candidate_fingerprint,
 )
-from .hosting_responsibility import (
+from .hosting.responsibility import (
     responsibility_regression_reason,
     unexplained_responsibility_transfers,
 )

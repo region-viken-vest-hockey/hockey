@@ -290,7 +290,7 @@ def swap_participants(
         )
 
     if resolved_problem:
-        from tournament_scheduler.hosting_responsibility import (
+        from tournament_scheduler.hosting.responsibility import (
             unexplained_responsibility_transfers,
         )
 

@@ -537,7 +537,7 @@ def _apply_option(
         "tournament_id": finding.get("tournament_id"),
     }
     if family == "hosting_balance":
-        from .hosting_balance_repair import apply_hosting_balance_repair_option
+        from .hosting.balance_repair import apply_hosting_balance_repair_option
 
         return apply_hosting_balance_repair_option(
             plan,

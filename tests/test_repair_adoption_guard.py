@@ -720,7 +720,7 @@ def test_covered_finding_owner_resolves_clear_and_reason_override() -> None:
         reconciliation={"ok": True},
         catalog=[entry],
         covered_verifier_owners=(
-            "tournament_scheduler.hosting_responsibility.hosting_responsibility_facts",
+            "tournament_scheduler.hosting.responsibility.hosting_responsibility_facts",
         ),
     )
     assert clear["checks"][0]["status"] == "clear"

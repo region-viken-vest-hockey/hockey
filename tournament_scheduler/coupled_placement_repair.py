@@ -44,8 +44,8 @@ from .host_team_missing_repair import (
     _team_ref,
     candidate_fingerprint,
 )
-from .host_representation import clubs_represent_same_club
-from .hosting_responsibility import (
+from .hosting.representation import clubs_represent_same_club
+from .hosting.responsibility import (
     hosting_responsibility_facts,
     unexplained_responsibility_transfers,
 )

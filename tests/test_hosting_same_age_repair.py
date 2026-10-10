@@ -2,9 +2,9 @@
 
 from datetime import date
 
-from tournament_scheduler.hosting_coverage import hosting_coverage_matrix
-from tournament_scheduler.hosting_same_age_repair import same_age_reallocation_candidates
-from tournament_scheduler.hosting_same_age_repair_apply import attempt_same_age_repairs
+from tournament_scheduler.hosting.coverage import hosting_coverage_matrix
+from tournament_scheduler.hosting.same_age_repair import same_age_reallocation_candidates
+from tournament_scheduler.hosting.same_age_repair_apply import attempt_same_age_repairs
 from tournament_scheduler.models import Roster, SeasonPlan, Team, Tournament
 from tournament_scheduler.season_planner import SeasonPlanner
 from tournament_scheduler.testing.canonical_input import OfflineScheduler

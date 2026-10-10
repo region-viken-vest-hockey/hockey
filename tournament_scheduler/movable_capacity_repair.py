@@ -21,7 +21,7 @@ from .host_placement_repair import (
     _effective_busy_intervals,
     _is_manual_slot_failure,
 )
-from .host_representation import clubs_represent_same_club
+from .hosting.representation import clubs_represent_same_club
 from .host_team_missing_repair import (
     RepairOption,
     _candidate_start_times,

@@ -8,7 +8,7 @@ planning problems, including the classification of different finding types
 from __future__ import annotations
 
 from .finding_resolution import annotate_resolutions
-from .hosting_balance_repair import hosting_finding_id
+from .hosting.balance_repair import hosting_finding_id
 from .maintenance_context import SeasonMaintenanceError
 from .participation_deviation_repair import legacy_participation_finding_id
 from .participation_deviation_repair import participation_finding_id
@@ -282,7 +282,7 @@ def _hard_findings(plan: Mapping[str, Any], verification: Mapping[str, Any]) -> 
 
 
 def _hosting_findings(problem: Mapping[str, Any], plan: Mapping[str, Any]) -> List[Dict[str, Any]]:
-    from .hosting_balance_repair import hosting_deficit_rows
+    from .hosting.balance_repair import hosting_deficit_rows
 
     out: List[Dict[str, Any]] = []
     for row in hosting_deficit_rows(problem, plan):

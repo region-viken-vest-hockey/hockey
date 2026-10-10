@@ -1,6 +1,6 @@
 """Cross-age hosting-coverage repair execution for `SeasonPlanner` (issue #328).
 
-`hosting_cross_age_repair.py` computes deterministic evidence (coverage
+`hosting/cross_age_repair.py` computes deterministic evidence (coverage
 deficits, surplus hosting, candidate donor tournaments) as pure functions.
 This module actually *applies* a repair: it needs `SeasonPlanner`'s live
 tournament-build pipeline (participant selection, host/slot search, game
@@ -21,9 +21,9 @@ from datetime import date
 from typing import Any, Dict, List, Optional, Set
 
 from tournament_scheduler import planning_half
-from tournament_scheduler.hosting_coverage import hosting_coverage_matrix, unresolved_from_matrix
-from tournament_scheduler.hosting_cross_age_repair import candidate_reallocation_slots, club_hosting_evidence
-from tournament_scheduler.hosting_cross_age_repair_ops import (
+from tournament_scheduler.hosting.coverage import hosting_coverage_matrix, unresolved_from_matrix
+from tournament_scheduler.hosting.cross_age_repair import candidate_reallocation_slots, club_hosting_evidence
+from tournament_scheduler.hosting.cross_age_repair_ops import (
     build_tournament,
     move_hosting_day,
     participants_with_host_represented,

@@ -145,9 +145,9 @@ load_context = load_maintenance_context
 REQUEST_CONSTRAINT_OWNER = (
     "tournament_scheduler.request_constraints.request_constraint_violations"
 )
-HOSTING_COVERAGE_OWNER = "tournament_scheduler.hosting_coverage.hosting_coverage_matrix"
+HOSTING_COVERAGE_OWNER = "tournament_scheduler.hosting.coverage.hosting_coverage_matrix"
 HOSTING_RESPONSIBILITY_OWNER = (
-    "tournament_scheduler.hosting_responsibility.hosting_responsibility_facts"
+    "tournament_scheduler.hosting.responsibility.hosting_responsibility_facts"
 )
 
 _REQUEST_CONSTRAINT_RULES = (
@@ -172,8 +172,8 @@ def _audit_owner_evidence(
     missing input or a failed owner leaves its catalog rule ``incomplete`` with
     an actionable reason instead of a false green.
     """
-    from .hosting_coverage import hosting_coverage_matrix
-    from .hosting_responsibility import (
+    from .hosting.coverage import hosting_coverage_matrix
+    from .hosting.responsibility import (
         RESPONSIBILITY_TRANSFER_CODE,
         hosting_responsibility_facts,
     )

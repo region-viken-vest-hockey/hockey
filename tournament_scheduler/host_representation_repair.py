@@ -3,7 +3,7 @@
 Split out of `season_planner.py` to keep that file within the repository's
 file-length guideline; this module still operates directly on planner
 internals (participation/game-count counters, roster, fairness deficit
-scoring), so -- unlike `hosting_coverage.py`/`host_representation.py` -- it
+scoring), so -- unlike `hosting/coverage.py`/`hosting/representation.py` -- it
 is not a pure, planner-independent module.
 
 issue #323 P0: as of the participant-derived host/arena search in
@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Set
 
-from tournament_scheduler.host_representation import (
+from tournament_scheduler.hosting.representation import (
     clubs_represent_same_club,
     host_eligible_teams,
     host_represented_in,
