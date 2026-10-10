@@ -12,10 +12,6 @@
 # without restructuring their internal control flow -- deferred to a
 # separate, more careful pass rather than done as part of the file move.
 tournament_scheduler/application/decisions.py	673
-# args.py grew by 2 lines for issue #325 (one import + one call wiring in the
-# new operator audit-context/audit-submit/audit-run subparsers); the
-# subparsers themselves live in cli/args_audit.py, not here.
-tournament_scheduler/cli/args.py	1733
 tournament_scheduler/cli/pipeline_orchestrator/interactive_decision_emit.py	359
 tournament_scheduler/cli/pipeline_orchestrator/run_command.py	390
 tournament_scheduler/cli/pipeline_orchestrator/run_command_interactive.py	422

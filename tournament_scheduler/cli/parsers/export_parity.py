@@ -1,7 +1,7 @@
 """Argument parser for the read-only ``export-parity`` command.
 
-Kept in its own module so the large ``args.py`` only gains one import and one
-call, mirroring ``args_audit.py``.
+Owned by this module so the top-level composer in ``cli/args.py`` only gains
+one import and one call.
 """
 
 from __future__ import annotations
