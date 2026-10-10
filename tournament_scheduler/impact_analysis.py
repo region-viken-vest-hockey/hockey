@@ -12,6 +12,12 @@ from typing import List
 from typing import Mapping
 from typing import Optional
 
+from .rule_catalog import (
+    TIER_HARD,
+    TIER_OPERATIONAL_OBLIGATION,
+    TIER_STRONG_GOAL,
+)
+
 
 def plan_fingerprint(plan: Mapping[str, Any]) -> str:
     return _plan_fingerprint(plan)
@@ -26,12 +32,6 @@ def _priority_improvement_tier(delta: Mapping[str, Any]) -> Optional[int]:
     strong-goal and operational-obligation regressions still require an explicit
     named acceptance. Returns ``None`` when no tier improved.
     """
-
-    from .repair_adoption_guard import (
-        TIER_HARD,
-        TIER_OPERATIONAL_OBLIGATION,
-        TIER_STRONG_GOAL,
-    )
 
     def total(tier: Iterable[tuple[str, str]]) -> tuple[int, int]:
         before = sum(int(delta.get(before_key, 0) or 0) for before_key, _ in tier)

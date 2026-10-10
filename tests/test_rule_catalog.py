@@ -415,3 +415,188 @@ def test_guest_integrity_verifier_code_matches_owner() -> None:
 
     entry = catalog.CATALOG_BY_ID["guest_reservation_integrity"]
     assert GUEST_RESERVATION_INTEGRITY in entry.verifier_codes
+
+
+# ---------------------------------------------------------------------------
+# Adoption regression identity and priority tiers
+# ---------------------------------------------------------------------------
+
+# Regression codes deliberately outside the scheduling catalog: adoption
+# invariants (no new hard violation, no revisited state), not one rule's semantic.
+_UNCATALOGUED_ADOPTION_REGRESSIONS = frozenset(
+    {"hard_verification_regression", "cycle_detected"}
+)
+
+# A quality metric path whose catalog objective and regression code resolve to
+# different rules. ``inter_club_diversity`` measures the same club-diversity
+# shortfall that ``fewer_unique_opponent_clubs`` reports, which the catalog
+# places under ``opponent_club_diversity``. Keep this list explicit so the
+# divergence is visible until the owners are reconciled.
+_KNOWN_PATH_RULE_DIVERGENCES = {
+    "opponent_diversity.inter_club_diversity": ("inter_club_diversity", "opponent_club_diversity"),
+}
+
+
+def _adoption_regression_codes() -> set[str]:
+    from tournament_scheduler import repair_adoption_guard as guard
+
+    return {
+        value
+        for name, value in vars(guard).items()
+        if name.startswith("REGRESSION_") and isinstance(value, str)
+    }
+
+
+def test_every_adoption_regression_code_is_catalogued_or_explicitly_uncatalogued() -> None:
+    codes = _adoption_regression_codes()
+    registered = {code for entry in catalog.RULE_CATALOG for code in entry.regression_codes}
+    unregistered = sorted(codes - registered - _UNCATALOGUED_ADOPTION_REGRESSIONS)
+    assert unregistered == [], (
+        "adoption regression codes without a catalog rule: " + ", ".join(unregistered)
+    )
+    stale = sorted(_UNCATALOGUED_ADOPTION_REGRESSIONS - codes)
+    assert stale == [], "uncatalogued regression codes no longer emitted: " + ", ".join(stale)
+
+
+def test_quality_materiality_codes_resolve_through_the_catalog() -> None:
+    from tournament_scheduler.repair_adoption_guard import _QUALITY_MATERIALITY
+
+    missing = sorted(
+        code
+        for code, material in _QUALITY_MATERIALITY.values()
+        if material and catalog.rule_id_for_regression_code(code) is None
+    )
+    assert missing == [], "material codes without a catalog rule: " + ", ".join(missing)
+
+
+def test_every_quality_materiality_code_keeps_its_adoption_tier() -> None:
+    # Characterization over the whole materiality table, including diagnostic
+    # codes that were never tiered. Any change here changes which regression an
+    # adoption may auto-waive, so it must be deliberate.
+    from tournament_scheduler import repair_adoption_guard as guard
+    from tournament_scheduler.repair_adoption_guard import _QUALITY_MATERIALITY
+
+    expected = {
+        "more_gaps_under_7_days": catalog.TIER_SOFT,
+        "more_gaps_under_14_days": catalog.TIER_SOFT,
+        "temporal_coverage_materially_worse": catalog.TIER_SOFT,
+        "temporal_offenders_worse": catalog.TIER_SOFT,
+        "participation_target_deviation_worse": catalog.TIER_STRONG_GOAL,
+        "club_pool_shortfall_worse": catalog.TIER_STRONG_GOAL,
+        "avoidable_participation_worse": catalog.TIER_STRONG_GOAL,
+        "club_pair_repetition_worse": catalog.TIER_SOFT,
+        "more_concentrated_club_exposure": catalog.TIER_SOFT,
+        "same_club_clustering_worse": catalog.TIER_SOFT,
+        "fewer_unique_opponent_clubs": catalog.TIER_SOFT,
+        "hosting_balance_worse": catalog.TIER_STRONG_GOAL,
+        "unresolved_hosting_obligation_worse": catalog.TIER_OPERATIONAL_OBLIGATION,
+        "home_representation_worse": catalog.TIER_STRONG_GOAL,
+        # Diagnostic-only: reported, never material, default soft tier.
+        "fewer_unique_opponents": catalog.TIER_SOFT,
+        "exact_squad_repeat_worse": catalog.TIER_SOFT,
+        "intra_club_label_spread_worse": catalog.TIER_SOFT,
+    }
+    codes = {code for code, _material in _QUALITY_MATERIALITY.values()}
+    assert codes == expected.keys()
+    for code, tier in expected.items():
+        assert guard.regression_tier(code) == tier, code
+
+
+def test_quality_materiality_path_and_code_share_one_owning_rule() -> None:
+    from tournament_scheduler.repair_adoption_guard import _QUALITY_MATERIALITY
+
+    mismatches = []
+    for path, (code, _material) in _QUALITY_MATERIALITY.items():
+        path_rule = catalog.rule_id_for_score_path(path)
+        code_rule = catalog.rule_id_for_regression_code(code)
+        if path_rule is None or code_rule is None:
+            continue  # reported by the resolution test above
+        if (path_rule, code_rule) == _KNOWN_PATH_RULE_DIVERGENCES.get(path):
+            continue
+        if path_rule != code_rule:
+            mismatches.append(f"{path} -> {path_rule} but {code} -> {code_rule}")
+    assert mismatches == [], "score path and regression code disagree: " + "; ".join(mismatches)
+
+
+def test_regression_tiers_match_the_adoption_precedence() -> None:
+    # Characterization of the tier model adoption comparison has always used.
+    # Moving ownership into the catalog must not change which regression is
+    # auto-waivable.
+    from tournament_scheduler import repair_adoption_guard as guard
+
+    expected = {
+        guard.REGRESSION_HARD_VERIFICATION: catalog.TIER_HARD,
+        guard.REGRESSION_CYCLE: catalog.TIER_HARD,
+        guard.REGRESSION_HOSTING_OBLIGATION: catalog.TIER_OPERATIONAL_OBLIGATION,
+        guard.REGRESSION_PARTICIPATION_DEVIATION: catalog.TIER_STRONG_GOAL,
+        guard.REGRESSION_PARTICIPATION_SHORTFALL: catalog.TIER_STRONG_GOAL,
+        guard.REGRESSION_PARTICIPATION_AVOIDABLE: catalog.TIER_STRONG_GOAL,
+        guard.REGRESSION_HOSTING_BALANCE: catalog.TIER_STRONG_GOAL,
+        guard.REGRESSION_HOME_REPRESENTATION: catalog.TIER_STRONG_GOAL,
+        guard.REGRESSION_MORE_GAPS_UNDER_7: catalog.TIER_SOFT,
+        guard.REGRESSION_MORE_GAPS_UNDER_14: catalog.TIER_SOFT,
+        guard.REGRESSION_TEMPORAL_COVERAGE: catalog.TIER_SOFT,
+        guard.REGRESSION_TEMPORAL_OFFENDERS: catalog.TIER_SOFT,
+        guard.REGRESSION_CLUB_EXPOSURE: catalog.TIER_SOFT,
+        guard.REGRESSION_CLUB_REPETITION: catalog.TIER_SOFT,
+        guard.REGRESSION_SAME_CLUB_CLUSTERING: catalog.TIER_SOFT,
+        guard.REGRESSION_UNIQUE_OPPONENTS: catalog.TIER_SOFT,
+        guard.REGRESSION_TRAVEL: catalog.TIER_SOFT,
+    }
+    assert expected.keys() == _adoption_regression_codes()
+    for code, tier in expected.items():
+        assert guard.regression_tier(code) == tier, code
+
+
+def test_impact_priority_tiers_agree_with_regression_tiers() -> None:
+    from tournament_scheduler import repair_adoption_guard as guard
+    from tournament_scheduler.impact_analysis import _priority_improvement_tier
+
+    def improved(prefix: str) -> dict[str, int]:
+        return {f"{prefix}_before": 1, f"{prefix}_after": 0}
+
+    assert _priority_improvement_tier(
+        {"hard_violations_before": 1, "hard_violations_after": 0}
+    ) == guard.regression_tier(guard.REGRESSION_HARD_VERIFICATION)
+    assert _priority_improvement_tier(
+        {"unresolved_hosting_obligations_before": 1, "unresolved_hosting_obligations_after": 0}
+    ) == guard.regression_tier(guard.REGRESSION_HOSTING_OBLIGATION)
+    assert _priority_improvement_tier(
+        {"participation_deviations_before": 1, "participation_deviations_after": 0}
+    ) == guard.regression_tier(guard.REGRESSION_PARTICIPATION_DEVIATION)
+    assert _priority_improvement_tier(improved("hosting_balance_imbalances")) == guard.regression_tier(
+        guard.REGRESSION_HOSTING_BALANCE
+    )
+
+
+def test_priority_tiers_are_derived_from_classification_by_default() -> None:
+    hard = catalog.CATALOG_BY_ID["team_age_group_exact"]
+    obligation = catalog.CATALOG_BY_ID["hosting_age_group_coverage"]
+    soft = catalog.CATALOG_BY_ID["travel_distance"]
+    assert catalog.priority_tier_for_rule(hard.id) == catalog.TIER_HARD
+    assert catalog.priority_tier_for_rule(obligation.id) == catalog.TIER_OPERATIONAL_OBLIGATION
+    assert catalog.priority_tier_for_rule(soft.id) == catalog.TIER_SOFT
+    assert catalog.priority_tier_for_rule("not_a_rule") == catalog.TIER_SOFT
+
+
+def test_validation_rejects_a_regression_code_with_two_owners(monkeypatch) -> None:
+    import dataclasses
+
+    owner = catalog.CATALOG_BY_ID["travel_distance"]
+    other = catalog.CATALOG_BY_ID["temporal_spacing"]
+    duplicate = dataclasses.replace(other, regression_codes=owner.regression_codes)
+    entries = tuple(duplicate if entry.id == other.id else entry for entry in catalog.RULE_CATALOG)
+    monkeypatch.setattr(catalog, "RULE_CATALOG", entries)
+    problems = catalog.validate_catalog(REPO_ROOT)
+    assert any("regression code 'travel_materially_worse'" in problem for problem in problems)
+
+
+def test_validation_rejects_a_strong_goal_on_a_hard_constraint(monkeypatch) -> None:
+    import dataclasses
+
+    hard = catalog.CATALOG_BY_ID["team_age_group_exact"]
+    promoted = dataclasses.replace(hard, priority_tier=catalog.TIER_STRONG_GOAL)
+    entries = tuple(promoted if entry.id == hard.id else entry for entry in catalog.RULE_CATALOG)
+    monkeypatch.setattr(catalog, "RULE_CATALOG", entries)
+    problems = catalog.validate_catalog(REPO_ROOT)
+    assert any(problem.startswith(f"{hard.id}: priority tier") for problem in problems)

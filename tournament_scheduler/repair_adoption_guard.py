@@ -55,6 +55,11 @@ from .rule_catalog import (
     HARD_CONSTRAINT,
     OPERATIONAL_OBLIGATION,
     SOFT_OBJECTIVE,
+    TIER_HARD,
+    TIER_OPERATIONAL_OBLIGATION,
+    TIER_SOFT,
+    TIER_STRONG_GOAL,
+    priority_tier_for_regression,
 )
 from .season_baseline import (
     compare_findings_to_baseline,
@@ -123,42 +128,35 @@ ACCEPTABLE_ADOPTION_REGRESSION_CODES = frozenset(
     }
 )
 
-# Defect priority tiers (lower number = higher priority), matching the catalog
-# precedence. A regression is auto-waived only when a strictly higher tier
+# Defect priority tiers are owned by the rule catalog (``TIER_*`` re-exported
+# here for callers). A regression is auto-waived only when a strictly higher tier
 # improved AND the regression itself is a soft objective. Operational-obligation
 # and strong-goal regressions always require an explicit per-code acceptance, so
 # a higher-tier fix can never silently waive an unrelated shortfall or exposure
 # regression.
-TIER_HARD = 0
-TIER_OPERATIONAL_OBLIGATION = 1
-TIER_STRONG_GOAL = 2
-TIER_SOFT = 3
 
-REGRESSION_TIERS: Dict[str, int] = {
+# Regression codes that do not belong to one scheduling rule: a candidate that
+# introduces any hard violation, or that revisits an already-seen state. They
+# are adoption invariants rather than catalogued scheduling semantics.
+_UNCATALOGUED_REGRESSION_TIERS: Dict[str, int] = {
     REGRESSION_HARD_VERIFICATION: TIER_HARD,
     REGRESSION_CYCLE: TIER_HARD,
-    REGRESSION_HOSTING_OBLIGATION: TIER_OPERATIONAL_OBLIGATION,
-    REGRESSION_PARTICIPATION_DEVIATION: TIER_STRONG_GOAL,
-    REGRESSION_PARTICIPATION_SHORTFALL: TIER_STRONG_GOAL,
-    REGRESSION_PARTICIPATION_AVOIDABLE: TIER_STRONG_GOAL,
-    REGRESSION_HOSTING_BALANCE: TIER_STRONG_GOAL,
-    REGRESSION_HOME_REPRESENTATION: TIER_STRONG_GOAL,
-    REGRESSION_MORE_GAPS_UNDER_7: TIER_SOFT,
-    REGRESSION_MORE_GAPS_UNDER_14: TIER_SOFT,
-    REGRESSION_TEMPORAL_COVERAGE: TIER_SOFT,
-    REGRESSION_TEMPORAL_OFFENDERS: TIER_SOFT,
-    REGRESSION_CLUB_EXPOSURE: TIER_SOFT,
-    REGRESSION_CLUB_REPETITION: TIER_SOFT,
-    REGRESSION_SAME_CLUB_CLUSTERING: TIER_SOFT,
-    REGRESSION_UNIQUE_OPPONENTS: TIER_SOFT,
-    REGRESSION_TRAVEL: TIER_SOFT,
 }
 
 
 def regression_tier(code: str) -> int:
-    """Return the catalog priority tier for a regression code."""
+    """Return the canonical priority tier for a regression code.
 
-    return REGRESSION_TIERS.get(str(code or ""), TIER_SOFT)
+    Catalogued codes resolve through the rule that owns them; the uncatalogued
+    adoption invariants are listed above. Unknown codes default to the soft
+    tier, and the conformance tests keep every emitted code registered.
+    """
+
+    key = str(code or "")
+    tier = priority_tier_for_regression(key)
+    if tier is not None:
+        return tier
+    return _UNCATALOGUED_REGRESSION_TIERS.get(key, TIER_SOFT)
 
 
 def select_blocking_regressions(
