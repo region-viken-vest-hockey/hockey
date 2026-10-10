@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push * --delete*)",
+      "Bash(git push --delete*)",
+      "Bash(git push * :gh-pages*)",
+      "Bash(git push * +*gh-pages*)",
+      "Bash(git push * --force*)",
+      "Bash(git push --force*)",
+      "Bash(git push * -f*)",
+      "Bash(git push -f*)",
+      "Bash(git branch -d gh-pages*)",
+      "Bash(git branch -D gh-pages*)",
+      "Bash(git branch --delete*gh-pages*)",
+      "Bash(git update-ref -d refs/heads/gh-pages*)",
+      "Bash(git update-ref -d *gh-pages*)"
+    ]
+  }
+}
