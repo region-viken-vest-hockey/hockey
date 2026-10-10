@@ -71,7 +71,7 @@ commands; this router owns the lifecycle boundary and inspection path above.
 - Club/operator change requests and supersession -> `season/change-requests.md`
 - Semantic request constraints and coupled violation repair -> `season/request-constraints.md`
 - Approval, locks, manual booking and host-confirmed ice -> `season/approvals-and-booking.md`
-- Changing an approved tournament or replacing one participant -> `season/tournament-changes.md`
-- Removing or swapping participants, retirements -> `season/participant-changes.md`
+- Changing an approved tournament, replacing one participant, or retiring a team -> `season/tournament-changes.md`
+- Removing a participant with no replacement or swapping participants -> `season/participant-changes.md`
 - Publication blockers and localized findings repair -> `season/blockers-and-repair.md`
 - Replanning around the published baseline, export and the normal promoted flow -> `season/replan-and-export.md`
