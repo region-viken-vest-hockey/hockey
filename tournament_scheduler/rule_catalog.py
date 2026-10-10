@@ -129,8 +129,10 @@ class RuleEntry:
     precedes: tuple[str, ...] = ()
     depends_on: tuple[str, ...] = ()
     waivable: bool = True
-    # Adoption-regression codes (``repair_adoption_guard``) this rule owns. A
-    # regression code resolves to exactly one rule, whose tier governs it.
+    # Material adoption-regression codes (``repair_adoption_guard``) this rule
+    # owns. A regression code resolves to exactly one rule, whose tier governs it.
+    # Diagnostic-only codes are deliberately not registered: they are never
+    # material and keep the default soft tier.
     regression_codes: tuple[str, ...] = ()
     # Explicit tier; ``None`` derives it from the classification.
     priority_tier: int | None = None
@@ -739,7 +741,6 @@ _SOFT: tuple[RuleEntry, ...] = (
             "participation_target_deviation_worse",
             "club_pool_shortfall_worse",
             "avoidable_participation_worse",
-            "intra_club_label_spread_worse",
         ),
         priority_tier=TIER_STRONG_GOAL,
 
@@ -818,7 +819,7 @@ _SOFT: tuple[RuleEntry, ...] = (
     ),
     RuleEntry(
         id="opponent_repetition",
-        regression_codes=("club_pair_repetition_worse", "exact_squad_repeat_worse", "fewer_unique_opponents"),
+        regression_codes=("club_pair_repetition_worse",),
 
         classification=SOFT_OBJECTIVE,
         meaning=(

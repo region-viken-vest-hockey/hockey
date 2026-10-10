@@ -462,10 +462,44 @@ def test_quality_materiality_codes_resolve_through_the_catalog() -> None:
     from tournament_scheduler.repair_adoption_guard import _QUALITY_MATERIALITY
 
     missing = sorted(
-        code for code, _material in _QUALITY_MATERIALITY.values()
-        if catalog.rule_id_for_regression_code(code) is None
+        code
+        for code, material in _QUALITY_MATERIALITY.values()
+        if material and catalog.rule_id_for_regression_code(code) is None
     )
-    assert missing == [], "materiality codes without a catalog rule: " + ", ".join(missing)
+    assert missing == [], "material codes without a catalog rule: " + ", ".join(missing)
+
+
+def test_every_quality_materiality_code_keeps_its_adoption_tier() -> None:
+    # Characterization over the whole materiality table, including diagnostic
+    # codes that were never tiered. Any change here changes which regression an
+    # adoption may auto-waive, so it must be deliberate.
+    from tournament_scheduler import repair_adoption_guard as guard
+    from tournament_scheduler.repair_adoption_guard import _QUALITY_MATERIALITY
+
+    expected = {
+        "more_gaps_under_7_days": catalog.TIER_SOFT,
+        "more_gaps_under_14_days": catalog.TIER_SOFT,
+        "temporal_coverage_materially_worse": catalog.TIER_SOFT,
+        "temporal_offenders_worse": catalog.TIER_SOFT,
+        "participation_target_deviation_worse": catalog.TIER_STRONG_GOAL,
+        "club_pool_shortfall_worse": catalog.TIER_STRONG_GOAL,
+        "avoidable_participation_worse": catalog.TIER_STRONG_GOAL,
+        "club_pair_repetition_worse": catalog.TIER_SOFT,
+        "more_concentrated_club_exposure": catalog.TIER_SOFT,
+        "same_club_clustering_worse": catalog.TIER_SOFT,
+        "fewer_unique_opponent_clubs": catalog.TIER_SOFT,
+        "hosting_balance_worse": catalog.TIER_STRONG_GOAL,
+        "unresolved_hosting_obligation_worse": catalog.TIER_OPERATIONAL_OBLIGATION,
+        "home_representation_worse": catalog.TIER_STRONG_GOAL,
+        # Diagnostic-only: reported, never material, default soft tier.
+        "fewer_unique_opponents": catalog.TIER_SOFT,
+        "exact_squad_repeat_worse": catalog.TIER_SOFT,
+        "intra_club_label_spread_worse": catalog.TIER_SOFT,
+    }
+    codes = {code for code, _material in _QUALITY_MATERIALITY.values()}
+    assert codes == expected.keys()
+    for code, tier in expected.items():
+        assert guard.regression_tier(code) == tier, code
 
 
 def test_quality_materiality_path_and_code_share_one_owning_rule() -> None:
