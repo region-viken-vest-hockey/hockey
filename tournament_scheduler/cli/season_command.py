@@ -31,6 +31,14 @@ def _cmd_season(args) -> int:
         _cmd_season_guest_release,
     )
     from .retire_team_command import _cmd_season_retire_team
+    from .season_lifecycle_command import (
+        _cmd_season_inventory,
+        _cmd_season_lifecycle,
+        _cmd_season_normalize_arenas,
+        _cmd_season_publication_evidence,
+        _cmd_season_reopen_planning,
+        _cmd_season_seal_published,
+    )
     from .baseline_command import _cmd_season_baseline
     from .repair_command import (
         _cmd_season_repair_options,
@@ -333,6 +341,24 @@ def _cmd_season(args) -> int:
             else:
                 _console.print("[red]✗[/red] Missing inspect subcommand")
                 return 1
+
+        if args.season_command == "inventory":
+            return _cmd_season_inventory(args)
+
+        if args.season_command == "lifecycle":
+            return _cmd_season_lifecycle(args)
+
+        if args.season_command == "normalize-arenas":
+            return _cmd_season_normalize_arenas(args)
+
+        if args.season_command == "publication-evidence":
+            return _cmd_season_publication_evidence(args)
+
+        if args.season_command == "reopen-planning":
+            return _cmd_season_reopen_planning(args)
+
+        if args.season_command == "seal-published":
+            return _cmd_season_seal_published(args)
 
         _console.print("[red]✗[/red] Missing season subcommand")
         return 1
