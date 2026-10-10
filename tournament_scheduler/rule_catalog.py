@@ -72,6 +72,32 @@ STATUS_COMPATIBILITY_ONLY = "compatibility-only"
 
 STATUSES: tuple[str, ...] = (STATUS_ACTIVE, STATUS_LEGACY, STATUS_COMPATIBILITY_ONLY)
 
+# --- priority tiers -----------------------------------------------------------
+# Lower number = higher priority. The canonical precedence owner: adoption/repair
+# comparison derives which regression may be auto-waived from these tiers rather
+# than restating them. ``STRONG_GOAL`` is a soft objective that the operator is
+# expected to actively defend (participation targets, hosting balance, home
+# representation) but that is still not a legality rule.
+
+TIER_HARD = 0
+TIER_OPERATIONAL_OBLIGATION = 1
+TIER_STRONG_GOAL = 2
+TIER_SOFT = 3
+
+_DEFAULT_TIER_BY_CLASSIFICATION: dict[str, int] = {
+    HARD_CONSTRAINT: TIER_HARD,
+    OPERATIONAL_OBLIGATION: TIER_OPERATIONAL_OBLIGATION,
+    SOFT_OBJECTIVE: TIER_SOFT,
+}
+
+# Tiers an explicit ``priority_tier`` may declare, and the classification each
+# requires. ``strong_goal`` refines a soft objective; it never changes legality.
+_TIER_CLASSIFICATION_REQUIREMENT: dict[int, str] = {
+    TIER_HARD: HARD_CONSTRAINT,
+    TIER_OPERATIONAL_OBLIGATION: OPERATIONAL_OBLIGATION,
+    TIER_STRONG_GOAL: SOFT_OBJECTIVE,
+}
+
 # Generated agent-facing ownership table. Keep in one place so the renderer and
 # the conformance guard agree.
 CATALOG_DOC_PATH = Path("docs/architecture/rule-catalog.md")
@@ -103,6 +129,11 @@ class RuleEntry:
     precedes: tuple[str, ...] = ()
     depends_on: tuple[str, ...] = ()
     waivable: bool = True
+    # Adoption-regression codes (``repair_adoption_guard``) this rule owns. A
+    # regression code resolves to exactly one rule, whose tier governs it.
+    regression_codes: tuple[str, ...] = ()
+    # Explicit tier; ``None`` derives it from the classification.
+    priority_tier: int | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -572,6 +603,8 @@ _HARD: tuple[RuleEntry, ...] = (
 _OBLIGATIONS: tuple[RuleEntry, ...] = (
     RuleEntry(
         id="hosting_age_group_coverage",
+        regression_codes=("unresolved_hosting_obligation_worse",),
+
         classification=OPERATIONAL_OBLIGATION,
         meaning=(
             "For every (club, age_group) with at least one eligible team, the club receives "
@@ -675,6 +708,9 @@ _OBLIGATIONS: tuple[RuleEntry, ...] = (
 _SOFT: tuple[RuleEntry, ...] = (
     RuleEntry(
         id="hosting_proportional_balance",
+        regression_codes=("hosting_balance_worse",),
+        priority_tier=TIER_STRONG_GOAL,
+
         classification=SOFT_OBJECTIVE,
         meaning=(
             "After the age-group coverage floor is satisfied (or a structural shortfall is "
@@ -699,6 +735,14 @@ _SOFT: tuple[RuleEntry, ...] = (
     ),
     RuleEntry(
         id="participation_target",
+        regression_codes=(
+            "participation_target_deviation_worse",
+            "club_pool_shortfall_worse",
+            "avoidable_participation_worse",
+            "intra_club_label_spread_worse",
+        ),
+        priority_tier=TIER_STRONG_GOAL,
+
         classification=SOFT_OBJECTIVE,
         meaning=(
             "The configured per-team/per-half tournament participation target is a desired "
@@ -751,6 +795,9 @@ _SOFT: tuple[RuleEntry, ...] = (
     ),
     RuleEntry(
         id="home_representation",
+        regression_codes=("home_representation_worse",),
+        priority_tier=TIER_STRONG_GOAL,
+
         classification=SOFT_OBJECTIVE,
         meaning=(
             "When a multi-team club hosts a tournament, the club's sibling teams take turns "
@@ -771,6 +818,8 @@ _SOFT: tuple[RuleEntry, ...] = (
     ),
     RuleEntry(
         id="opponent_repetition",
+        regression_codes=("club_pair_repetition_worse", "exact_squad_repeat_worse", "fewer_unique_opponents"),
+
         classification=SOFT_OBJECTIVE,
         meaning=(
             "Teams should meet diverse opponents; repeated pairings beyond the configured "
@@ -794,6 +843,8 @@ _SOFT: tuple[RuleEntry, ...] = (
     ),
     RuleEntry(
         id="opponent_club_diversity",
+        regression_codes=("more_concentrated_club_exposure", "fewer_unique_opponent_clubs"),
+
         classification=SOFT_OBJECTIVE,
         meaning=(
             "Each individual squad should meet a variety of opposing clubs within its age "
@@ -813,6 +864,8 @@ _SOFT: tuple[RuleEntry, ...] = (
     ),
     RuleEntry(
         id="inter_club_diversity",
+        regression_codes=("same_club_clustering_worse",),
+
         classification=SOFT_OBJECTIVE,
         meaning="Tournaments should mix teams across clubs rather than concentrating same-club matchups.",
         canonical_owner="tournament_scheduler.quality_objectives",
@@ -830,6 +883,8 @@ _SOFT: tuple[RuleEntry, ...] = (
     ),
     RuleEntry(
         id="temporal_spacing",
+        regression_codes=("more_gaps_under_7_days", "more_gaps_under_14_days"),
+
         classification=SOFT_OBJECTIVE,
         meaning="A team's tournaments should be spaced sensibly; very short turnaround gaps are minimized.",
         canonical_owner="tournament_scheduler.team_schedule_quality",
@@ -846,6 +901,8 @@ _SOFT: tuple[RuleEntry, ...] = (
     ),
     RuleEntry(
         id="temporal_coverage",
+        regression_codes=("temporal_coverage_materially_worse", "temporal_offenders_worse"),
+
         classification=SOFT_OBJECTIVE,
         meaning="A team's tournaments should cover the season rather than cluster in one stretch.",
         canonical_owner="tournament_scheduler.temporal_coverage",
@@ -857,6 +914,8 @@ _SOFT: tuple[RuleEntry, ...] = (
     ),
     RuleEntry(
         id="travel_distance",
+        regression_codes=("travel_materially_worse",),
+
         classification=SOFT_OBJECTIVE,
         meaning="Estimated team travel between home and away arenas should be kept reasonable.",
         canonical_owner="tournament_scheduler.club_distances",
@@ -1233,6 +1292,35 @@ def rule_id_for_score_path(path: str) -> str | None:
     return None
 
 
+def rule_id_for_regression_code(code: str) -> str | None:
+    """Map an adoption-regression code to the catalog rule whose tier governs it."""
+    for entry in RULE_CATALOG:
+        if code in entry.regression_codes:
+            return entry.id
+    return None
+
+
+def priority_tier_for_rule(rule_id: str) -> int:
+    """Return the canonical priority tier for one catalog rule.
+
+    An explicit ``priority_tier`` wins; otherwise the tier follows the rule's
+    classification. Unknown IDs resolve to the lowest tier, never a fabricated
+    higher one.
+    """
+    entry = CATALOG_BY_ID.get(rule_id)
+    if entry is None:
+        return TIER_SOFT
+    if entry.priority_tier is not None:
+        return entry.priority_tier
+    return _DEFAULT_TIER_BY_CLASSIFICATION.get(entry.classification, TIER_SOFT)
+
+
+def priority_tier_for_regression(code: str) -> int | None:
+    """Return the tier of the rule that owns an adoption-regression code, if registered."""
+    rule_id = rule_id_for_regression_code(code)
+    return None if rule_id is None else priority_tier_for_rule(rule_id)
+
+
 def annotate_findings(findings: list[dict[str, Any]]) -> None:
     """Attach the stable ``rule_id`` to each finding dict in place.
 
@@ -1388,6 +1476,25 @@ def validate_catalog(repo_root: Path | None = None) -> list[str]:
                     f"verifier code {code!r} registered by both {code_owner[code]} and {entry.id}"
                 )
             code_owner[code] = entry.id
+
+    # A regression code must have exactly one owning rule, and an explicit tier
+    # must be a known tier that the classification can carry.
+    regression_owner: dict[str, str] = {}
+    for entry in RULE_CATALOG:
+        for code in entry.regression_codes:
+            if code in regression_owner and regression_owner[code] != entry.id:
+                problems.append(
+                    f"regression code {code!r} registered by both {regression_owner[code]} and {entry.id}"
+                )
+            regression_owner[code] = entry.id
+        if entry.priority_tier is not None:
+            required = _TIER_CLASSIFICATION_REQUIREMENT.get(entry.priority_tier)
+            if required is None:
+                problems.append(f"{entry.id}: unknown priority tier {entry.priority_tier!r}")
+            elif entry.classification != required:
+                problems.append(
+                    f"{entry.id}: priority tier {entry.priority_tier} requires classification {required!r}"
+                )
 
     # Precedence / dependency references must exist and precedence must be acyclic.
     for entry in RULE_CATALOG:
