@@ -115,7 +115,7 @@ def _cmd_season(args) -> int:
         if args.season_command == "baseline":
             return _cmd_season_baseline(args)
 
-        if args.season_command == "repair-options":
+        if args.season_command in ("repair-options", "search"):
             return _cmd_season_repair_options(args)
 
         if args.season_command == "apply-repair":
