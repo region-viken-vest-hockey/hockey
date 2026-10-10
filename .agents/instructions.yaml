@@ -31,3 +31,6 @@ harness_adapters:
     max_bytes: 1500
 
 procedure_root: .agents/commands/rvv-miniputt
+# Every progressively loaded procedure must fit this budget; split an
+# operation family into focused files and route to them instead of growing one.
+procedure_max_bytes: 16000

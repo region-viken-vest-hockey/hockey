@@ -35,6 +35,27 @@ def test_instruction_manifest_routes_exist_and_fit_context_budgets() -> None:
     assert (ROOT / manifest["procedure_root"]).is_dir()
 
 
+def test_routed_procedures_fit_progressive_context_budget() -> None:
+    manifest = _manifest()
+    procedure_root = ROOT / manifest["procedure_root"]
+    budget = manifest["procedure_max_bytes"]
+
+    procedures = sorted(procedure_root.rglob("*.md"))
+    assert procedures, f"no procedures found under {manifest['procedure_root']}"
+    for procedure in procedures:
+        _assert_budget(procedure.relative_to(ROOT).as_posix(), budget)
+
+
+def test_season_router_routes_every_season_sub_procedure() -> None:
+    manifest = _manifest()
+    procedure_root = ROOT / manifest["procedure_root"]
+    router = (procedure_root / "season.md").read_text(encoding="utf-8")
+
+    for sub_procedure in sorted((procedure_root / "season").glob("*.md")):
+        relative = sub_procedure.relative_to(procedure_root).as_posix()
+        assert relative in router, f"season router does not route {relative}"
+
+
 def test_rvv_router_declares_every_capability_route() -> None:
     manifest = _manifest()
     router = (ROOT / manifest["routers"]["rvv"]["path"]).read_text(encoding="utf-8")
