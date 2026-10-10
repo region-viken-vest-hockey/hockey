@@ -207,3 +207,8 @@ OPENCODE.md
 # Repository-local bootstrap tooling (uv binary)
 .bootstrap/
 .vscode
+# Local test/repro artifacts and editor/backup leftovers
+repro-tmp/
+*.bak
+*.bak[0-9]
+*.swp
