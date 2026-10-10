@@ -9,13 +9,15 @@ from __future__ import annotations
 
 import argparse
 import json as _json
-from datetime import date as _date, datetime
+from datetime import date as _date
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..pipeline.state import PipelineState
 
 from rich.console import Console
+
+from .pipeline_work import do_re_export, load_plan_and_updater
 
 _console = Console()
 
@@ -113,107 +115,43 @@ def _cmd_replan(args: argparse.Namespace) -> int:
 
 
 def _cmd_adjust(args: argparse.Namespace) -> int:
-    """Handle ``rvv-miniputt adjust`` — adjust tournament details."""
-    from ..pipeline.state import PipelineState
-    from ..pipeline.adjustment_workflow import AdjustmentWorkflow
+    """Handle ``rvv-miniputt adjust`` — manual organizer adjustment loop."""
+    from ..pipeline.manual_adjustment_workflow import ManualAdjustmentWorkflow
 
-    work_dir = args.work_dir
-    state = PipelineState(work_dir)
-    wf = AdjustmentWorkflow(state)
+    plan, updater, state = load_plan_and_updater(args.work_dir)
+    requested = {
+        "locked_dates": args.lock_date or [],
+        "banned_dates": args.ban_date or [],
+        "pinned_tournament_ids": args.pin_tournament or [],
+        "forced_host_clubs": args.force_host_club or [],
+        "excluded_host_clubs": args.exclude_host_club or [],
+    }
+    plan.manual_adjustments = ManualAdjustmentWorkflow.merge_manual_adjustments(
+        plan.manual_adjustments,
+        requested,
+    )
 
-    # Load the plan first to verify we have something to work with.
+    workflow = ManualAdjustmentWorkflow(state=state, updater=updater)
     try:
-        plan = wf.load_plan()
+        result = workflow.apply(plan)
     except ValueError as exc:
         _console.print(f"[red]✗[/red] {exc}")
         return 1
-
-    # --- No tournament ID: list available tournaments ---
-    if not args.tournament_id:
-        _console.print("[bold]Turneringer i sesongplanen:[/bold]\n")
-        for t in plan.tournaments:
-            status = ""
-            if t.cancelled:
-                status = f" [red](AVLYST: {t.cancellation_reason or 'ingen grunn'})[/red]"
-            _console.print(
-                f"  [cyan]{t.id}[/cyan]  {t.date.isoformat()}  "
-                f"{t.age_group:5s}  {t.arena:20s}  "
-                f"{len(t.teams)} lag{status}"
-            )
-        _console.print(
-            "\nBruk [bold]rvv-miniputt adjust --tournament-id <id>[/bold] "
-            "for å justere en turnering."
-        )
-        return 0
-
-    tid = args.tournament_id
-
-    # --- Find the tournament ---
-    try:
-        tournament = wf._find_tournament(plan, tid)
-    except ValueError as exc:
-        _console.print(f"[red]✗[/red] {exc}")
+    if not result.success:
+        _console.print(f"[red]✗[/red] {result.summary_nb}")
         return 1
 
-    # --- Apply adjustments ---
-    changes_made = False
+    updater.persist_update(plan, result)
+    _console.print(f"[green]✓[/green] {result.summary_nb}")
+    for warning in result.post_patch_warnings:
+        _console.print(f"[yellow]⚠[/yellow] {warning}")
 
-    if args.date:
-        try:
-            new_date = datetime.strptime(args.date, "%Y-%m-%d").date()
-        except ValueError:
-            _console.print(
-                f"[red]✗[/red] Ugyldig datoformat '{args.date}'. Bruk YYYY-MM-DD."
-            )
-            return 1
-        tournament.date = new_date
-        changes_made = True
-
-    if args.age_group:
-        tournament.age_group = args.age_group
-        changes_made = True
-
-    if args.arena:
-        tournament.arena = args.arena
-        changes_made = True
-
-    if args.teams is not None:
-        # Parse teams format: "club1:label1,club2:label2"
-        teams = []
-        for team_str in args.teams.split(","):
-            if ":" in team_str:
-                club, label = team_str.split(":", 1)
-                teams.append({"club": club.strip(), "label": label.strip()})
-            else:
-                _console.print(
-                    f"[yellow]⚠[/yellow] Ignoring invalid team format: {team_str}"
-                )
-        tournament.teams = teams
-        changes_made = True
-
-    if not changes_made:
-        _console.print("[yellow]⚠[/yellow] No changes specified")
-        return 0
-
-    # --- Validate the adjusted tournament ---
-    # TODO: Add validation logic here
-
-    # --- Write the plan checkpoint ---
-    wf.write_plan(plan, log_entry=f"Adjusted tournament {tid}")
-    _console.print(f"[green]✓[/green] Adjusted tournament {tid}")
-
-    # --- Re-export ---
-    if not args.no_export:
-        _console.print("\n[bold]Re-eksporterer...[/bold]")
-        try:
-            # This would call the appropriate export function
-            _console.print("  [yellow]⚠[/yellow] Export not yet implemented for adjust")
-        except Exception as exc:
-            _console.print(f"  [red]✗[/red] Eksport feilet: {exc}")
-            return 1
-
-    _console.print("\n[bold green]✓ Ferdig.[/bold green]")
-    return 0
+    _console.print("\n[bold]Re-eksporterer...[/bold]")
+    return do_re_export(
+        args.work_dir,
+        args.export_dir,
+        timestamped_export=getattr(args, "timestamped_export", False),
+    )
 
 
 def _load_critic_state(
