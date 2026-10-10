@@ -22,7 +22,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Mapping, Tuple
 
-from tournament_scheduler.host_representation import constituent_clubs as _constituent_clubs
+from tournament_scheduler.hosting.representation import constituent_clubs as _constituent_clubs
 
 
 def required_club_age_group_pairs(teams: Iterable[Dict[str, Any]]) -> List[Tuple[str, str]]:

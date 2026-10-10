@@ -673,7 +673,7 @@ def batch_maintenance(
 
     hosting_transfers: list[dict[str, Any]] = []
     if candidate_problem:
-        from tournament_scheduler.hosting_responsibility import (
+        from tournament_scheduler.hosting.responsibility import (
             unexplained_responsibility_transfers,
         )
 

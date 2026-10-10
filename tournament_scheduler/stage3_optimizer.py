@@ -55,8 +55,8 @@ from .canonical_baseline import (
     DEFAULT_CHANGE_COST_SCALE,
     DEFAULT_CHANGE_WEIGHTS,
 )
-from .host_representation import clubs_represent_same_club as _clubs_represent_same_club
-from .host_representation import swap_breaks_host_representation as _swap_breaks_host_representation
+from .hosting.representation import clubs_represent_same_club as _clubs_represent_same_club
+from .hosting.representation import swap_breaks_host_representation as _swap_breaks_host_representation
 from .models import Team
 from .pareto import dominates as _dominates
 from .pareto import representative_indices as _representative_indices

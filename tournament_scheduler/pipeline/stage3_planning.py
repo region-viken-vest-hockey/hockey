@@ -202,7 +202,7 @@ def compute_shared_registration_facts(
     if not any("/" in str(d.get("club") or "") for d in team_dicts):
         return []
 
-    from ..hosting_coverage import shared_registration_facts
+    from tournament_scheduler.hosting.coverage import shared_registration_facts
 
     # Roster-derived facts are available, so every remaining input is
     # recoverable: effective-start/calendar-status preparation failures and

@@ -9,7 +9,7 @@ fixture and synthetic shapes as the generic contract.
 
 from __future__ import annotations
 
-from tournament_scheduler.hosting_responsibility import (
+from tournament_scheduler.hosting.responsibility import (
     RESPONSIBILITY_TRANSFER_CODE,
     hosting_responsibility_facts,
     responsibility_regression_reason,

@@ -1,11 +1,11 @@
 """Same-age hosting-coverage repair execution for `SeasonPlanner` (issue #329).
 
-`hosting_same_age_repair.py` computes deterministic candidate donor
+`hosting/same_age_repair.py` computes deterministic candidate donor
 tournaments as a pure function. This module actually *applies* a repair: it
 needs `SeasonPlanner`'s live tournament-build pipeline (arena/slot search,
 hosting-day bookkeeping), so it operates directly on planner internals and
 is kept separate from the pure evidence module -- same split as
-`hosting_cross_age_repair.py` / `hosting_cross_age_repair_apply.py`.
+`hosting/cross_age_repair.py` / `hosting/cross_age_repair_apply.py`.
 
 Unlike a cross-age repair, no participant ever changes here: the deficit
 club is already represented in the donor tournament's roster, so only the
@@ -18,9 +18,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from tournament_scheduler.hosting_coverage import hosting_coverage_matrix, unresolved_from_matrix
-from tournament_scheduler.hosting_cross_age_repair_ops import build_tournament, move_hosting_day
-from tournament_scheduler.hosting_same_age_repair import same_age_reallocation_candidates
+from tournament_scheduler.hosting.coverage import hosting_coverage_matrix, unresolved_from_matrix
+from tournament_scheduler.hosting.cross_age_repair_ops import build_tournament, move_hosting_day
+from tournament_scheduler.hosting.same_age_repair import same_age_reallocation_candidates
 from tournament_scheduler.models import Tournament
 
 

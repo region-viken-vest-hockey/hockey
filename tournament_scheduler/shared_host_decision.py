@@ -11,7 +11,7 @@ This module builds the narrow :class:`~.application.decisions.DecisionContext`
 for that single decision, following the same shape as
 :mod:`tournament_scheduler.stage3_decision`. Python's job stops at:
 
-- computing the facts (:func:`tournament_scheduler.hosting_coverage.shared_registration_facts`),
+- computing the facts (:func:`tournament_scheduler.hosting.coverage.shared_registration_facts`),
 - constraining the choice to the registration's actual constituents (via the
   ``chosen_club`` argument's ``enum``, enforced deterministically by
   :func:`application.decisions.validate_decision_action` -- calendar
@@ -40,7 +40,7 @@ def build_shared_host_decision_context(
     """Build the :class:`DecisionContext` for one shared-registration obligation.
 
     *facts* is one entry from
-    :func:`tournament_scheduler.hosting_coverage.shared_registration_facts`
+    :func:`tournament_scheduler.hosting.coverage.shared_registration_facts`
     (``{"registration", "age_group", "constituents", "hosted_by_constituent",
     "hosted_by_constituent_total", "calendar_trust",
     "automatic_placement_possible"}``).

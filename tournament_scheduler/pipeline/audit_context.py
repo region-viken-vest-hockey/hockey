@@ -27,7 +27,7 @@ from ..guest_slots import (
     open_guest_slot_count,
     rvv_team_count,
 )
-from ..host_representation import clubs_represent_same_club
+from tournament_scheduler.hosting.representation import clubs_represent_same_club
 from ..plan_derived_state import (
     publication_readiness_with_plan_placements,
     reconcile_plan_derived_state,

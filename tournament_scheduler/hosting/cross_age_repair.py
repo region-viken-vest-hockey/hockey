@@ -1,6 +1,6 @@
 """Deterministic cross-age hosting-coverage repair facts (issue #328).
 
-`hosting_coverage.py` reasons about club x age-group hosting coverage strictly
+`hosting/coverage.py` reasons about club x age-group hosting coverage strictly
 *within* one age group: a club's tournaments in a different age group never
 count toward its own coverage row there. That is correct for *coverage*
 itself, but it means nothing ever asks whether a physical club's surplus
@@ -9,10 +9,10 @@ obligation in a *different* age group before that obligation is emitted as
 `unresolved_hosting_obligation`.
 
 Pure functions over the shared `planning_problem`/`candidate` contracts, like
-`hosting_coverage.py` -- no `SeasonPlanner` dependency, so this module is safe
+`hosting/coverage.py` -- no `SeasonPlanner` dependency, so this module is safe
 for the canonical LLM-directed decision path (see
 `tests/test_architecture_boundaries.py`). Actually *applying* a repair needs a
-live tournament-build pipeline and lives in `hosting_cross_age_repair_apply.py`
+live tournament-build pipeline and lives in `hosting/cross_age_repair_apply.py`
 instead; this module only computes evidence and candidate donor slots -- it
 never decides which repair (if any) to apply.
 """
@@ -21,8 +21,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Tuple
 
-from tournament_scheduler.host_representation import constituent_clubs as _constituent_clubs
-from tournament_scheduler.hosting_coverage import (
+from tournament_scheduler.hosting.representation import constituent_clubs as _constituent_clubs
+from tournament_scheduler.hosting.coverage import (
     hosting_targets_with_coverage_floor as _hosting_targets_with_coverage_floor,
     required_club_age_group_pairs as _required_club_age_group_pairs,
 )
@@ -123,7 +123,7 @@ def candidate_reallocation_slots(
     tournament id for full determinism.
 
     Does not itself check arena/duration/calendar/participant feasibility --
-    that requires a live planner and is `hosting_cross_age_repair_apply.py`'s
+    that requires a live planner and is `hosting/cross_age_repair_apply.py`'s
     job. This only narrows the search to tournaments that are structurally
     plausible donors at all.
     """

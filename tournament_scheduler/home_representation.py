@@ -1,6 +1,6 @@
 """Deterministic intra-club home-tournament representation accounting.
 
-Hosting *coverage* and *balance* (``hosting_coverage.py``) answer whether a
+Hosting *coverage* and *balance* (``hosting/coverage.py``) answer whether a
 club hosts its share of a club x age-group's tournaments. They say nothing
 about *which* of a multi-team club's sibling teams actually shows up when the
 club hosts: a club with two registered U12 teams can satisfy its hosting
@@ -26,7 +26,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Mapping, Tuple
 
-from tournament_scheduler.host_representation import clubs_represent_same_club
+from tournament_scheduler.hosting.representation import clubs_represent_same_club
 
 #: A spread of 0 or 1 across sibling home appearances is balanced.
 BALANCED_SPREAD_DAYS = 1

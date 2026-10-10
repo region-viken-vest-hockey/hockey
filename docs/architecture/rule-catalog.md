@@ -110,7 +110,7 @@ candidate regresses a higher-priority operational obligation.
 | `holiday_date_admissible` | Tournaments must not be scheduled on canonically excluded holiday dates for the planning window. | `tournament_scheduler.date_policy` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_holiday_date_policy.py` |
 | `banned_dates_not_used` | Tournaments must not be scheduled on an operator-banned global date. | `tournament_scheduler.canonical_banned_dates` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_canonical_banned_dates.py` |
 | `excluded_host_club_not_used` | A club explicitly excluded as host for a scope must not host there. | `tournament_scheduler.planning_contract` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_planning_contract.py` |
-| `host_representation` | A tournament's host club must be represented by its own participating team (shared/joint registrations count for either constituent). This is the hard representation invariant; proportional hosting balance is a separate soft objective. | `tournament_scheduler.host_representation` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_stage3_optimizer_host_representation.py`, `tests/test_host_team_missing_repair.py` |
+| `host_representation` | A tournament's host club must be represented by its own participating team (shared/joint registrations count for either constituent). This is the hard representation invariant; proportional hosting balance is a separate soft objective. | `tournament_scheduler.hosting.representation` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_stage3_optimizer_host_representation.py`, `tests/test_host_team_missing_repair.py` |
 | `locked_date_preserved` | A canonical locked date must still have a scheduled tournament. | `tournament_scheduler.canonical_baseline` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_canonical_baseline.py` |
 | `pinned_tournament_preserved` | A pinned tournament id must remain present in the candidate. | `tournament_scheduler.canonical_baseline` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_canonical_baseline.py` |
 | `canonical_locked_tournament_preserved` | An approved/placement-locked canonical tournament must not be dropped by replanning. | `tournament_scheduler.canonical_baseline` | `tournament_scheduler.canonical_baseline.verify_canonical_locks` | `tests/test_canonical_baseline.py` |
@@ -133,8 +133,8 @@ candidate regresses a higher-priority operational obligation.
 
 | Rule ID | Meaning | Canonical owner | Verifier / measurement | Tests |
 |---|---|---|---|---|
-| `hosting_age_group_coverage` | For every (club, age_group) with at least one eligible team, the club receives at least one hosting responsibility in that age group during the season whenever the number of tournaments makes it mathematically possible. A durable, age-group withdrawal removes the retiring team from that eligible pool, so it no longer creates a hosting obligation no operation could satisfy. This is club x age-group coverage, not aggregate club hosting. A structural shortfall (fewer tournaments than clubs needing coverage) is surfaced explicitly, never hidden as a soft imbalance. | `tournament_scheduler.hosting_coverage.hosting_targets_with_coverage_floor` | `tournament_scheduler.hosting_coverage.hosting_coverage_matrix` | `tests/test_hosting_coverage.py`, `tests/test_hosting_same_age_repair.py` |
-| `hosting_responsibility` | Once a hosting responsibility is assigned, calendar convenience must not silently transfer it to another club. If the responsible host has no verified automatic slot, the responsibility is preserved and the tournament becomes MANUAL PLACEMENT REQUIRED rather than moving the burden. This is a cross-path invariant over placement/repair/search. | `tournament_scheduler.hosting_responsibility` | `tournament_scheduler.hosting_responsibility.hosting_responsibility_facts` | `tests/test_hosting_responsibility.py` |
+| `hosting_age_group_coverage` | For every (club, age_group) with at least one eligible team, the club receives at least one hosting responsibility in that age group during the season whenever the number of tournaments makes it mathematically possible. A durable, age-group withdrawal removes the retiring team from that eligible pool, so it no longer creates a hosting obligation no operation could satisfy. This is club x age-group coverage, not aggregate club hosting. A structural shortfall (fewer tournaments than clubs needing coverage) is surfaced explicitly, never hidden as a soft imbalance. | `tournament_scheduler.hosting.coverage.hosting_targets_with_coverage_floor` | `tournament_scheduler.hosting.coverage.hosting_coverage_matrix` | `tests/test_hosting_coverage.py`, `tests/test_hosting_same_age_repair.py` |
+| `hosting_responsibility` | Once a hosting responsibility is assigned, calendar convenience must not silently transfer it to another club. If the responsible host has no verified automatic slot, the responsibility is preserved and the tournament becomes MANUAL PLACEMENT REQUIRED rather than moving the burden. This is a cross-path invariant over placement/repair/search. | `tournament_scheduler.hosting.responsibility` | `tournament_scheduler.hosting.responsibility.hosting_responsibility_facts` | `tests/test_hosting_responsibility.py` |
 | `tournament_placement_obligation` | A scheduled tournament's host is chosen among its participants; when no legal and trustworthy slot exists for the responsible host, the obligation stays unresolved for manual placement instead of being given to an unrelated club. | `tournament_scheduler.placement_normalization` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_placement_normalization.py`, `tests/test_unplaced_placement_repair.py` |
 | `guest_reservation_integrity` | A reserved guest place is a deliberate capacity reservation that counts toward capacity/ice-time shape but never toward RVV participation, hosting, fairness or travel; participant optimization/repair cannot consume it. | `tournament_scheduler.guest_slots` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_guest_slots.py` |
 
@@ -142,7 +142,7 @@ candidate regresses a higher-priority operational obligation.
 
 | Rule ID | Meaning | Canonical owner | Verifier / measurement | Tests |
 |---|---|---|---|---|
-| `hosting_proportional_balance` | After the age-group coverage floor is satisfied (or a structural shortfall is explicitly surfaced), remaining hosting responsibility is distributed roughly in proportion to eligible team counts. This objective is secondary to coverage: a larger club may legitimately under-host relative to its proportional target so a smaller club gets its first responsibility. | `tournament_scheduler.hosting_coverage.hosting_balance_matrix` | `tournament_scheduler.hosting_coverage.material_hosting_balance_imbalances` | `tests/test_hosting_coverage.py` |
+| `hosting_proportional_balance` | After the age-group coverage floor is satisfied (or a structural shortfall is explicitly surfaced), remaining hosting responsibility is distributed roughly in proportion to eligible team counts. This objective is secondary to coverage: a larger club may legitimately under-host relative to its proportional target so a smaller club gets its first responsibility. | `tournament_scheduler.hosting.coverage.hosting_balance_matrix` | `tournament_scheduler.hosting.coverage.material_hosting_balance_imbalances` | `tests/test_hosting_coverage.py` |
 | `participation_target` | The configured per-team/per-half tournament participation target is a desired optimization goal with evidenced relaxation, not an unconditional obligation or hard bound. Attainment is optimized within real season capacity; a capacity-constrained miss is not itself a planning failure. | `tournament_scheduler.participation_targets` | `tournament_scheduler.participation_targets.evaluate_participation` | `tests/test_participation_targets.py` |
 | `intra_club_participation_distribution` | Within a multi-team club and age group, participation is rotated evenly across the club's sibling team labels. An aggregate-complete but label-uneven pool is a distribution imbalance, not a missing participation opportunity. | `tournament_scheduler.participation_targets` | `tournament_scheduler.participation_targets` | `tests/test_participation_targets.py`, `tests/test_intra_club_distribution.py` |
 | `home_representation` | When a multi-team club hosts a tournament, the club's sibling teams take turns representing it. A spread of 0-1 is balanced; hosting coverage/balance is unchanged by which sibling shows up. | `tournament_scheduler.home_representation` | `tournament_scheduler.home_representation` | `tests/test_home_representation.py` |
@@ -157,7 +157,7 @@ candidate regresses a higher-priority operational obligation.
 
 | Rule ID | Meaning | Canonical owner | Verifier / measurement | Tests |
 |---|---|---|---|---|
-| `shared_host_choice` | A joint registration such as Kongsberg/Tønsberg can genuinely require a contextual choice of which constituent physically carries the shared hosting responsibility. This is the limited case where agent/operator judgment over deterministic registration facts is legitimate. | `tournament_scheduler.shared_host_decision` | `tournament_scheduler.hosting_coverage.shared_registration_facts` | `tests/test_shared_host_decision.py` |
+| `shared_host_choice` | A joint registration such as Kongsberg/Tønsberg can genuinely require a contextual choice of which constituent physically carries the shared hosting responsibility. This is the limited case where agent/operator judgment over deterministic registration facts is legitimate. | `tournament_scheduler.shared_host_decision` | `tournament_scheduler.hosting.coverage.shared_registration_facts` | `tests/test_shared_host_decision.py` |
 | `operator_waiver` | An authorized operator may explicitly waive a classified hard planning rule for a precise scope. The planner/agent may suggest but never create or broaden a waiver; waived violations stay visible and downgrade publication readiness. | `tournament_scheduler.operator_waivers` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_operator_waivers.py` |
 | `operator_accepted_participation_deviation` | An operator may deliberately live with a bounded participation deviation. The acceptance never changes the target or the schedule, is bound to the deviation scope/magnitude and becomes stale when the target changes or the deviation worsens. | `tournament_scheduler.participation_targets` | `tournament_scheduler.participation_targets.evidence_covers_deviation` | `tests/test_participation_targets.py`, `tests/test_season_maintenance.py` |
 | `manual_placement_opt_in` | An automatic canonical mutation may not newly introduce a manual/unt trusted-calendar placement or host-confirmation dependency. A deliberate provisional placement requires the exact explicit opt-in and is audited. | `tournament_scheduler.operational_acceptability` | `tournament_scheduler.operational_acceptability` | `tests/test_operational_acceptability.py` |
@@ -497,7 +497,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Hard constraint` · status `active` · operator-waivable: yes  
 **Meaning:** A tournament's host club must be represented by its own participating team (shared/joint registrations count for either constituent). This is the hard representation invariant; proportional hosting balance is a separate soft objective.  
-**Canonical owner:** `tournament_scheduler.host_representation`  
+**Canonical owner:** `tournament_scheduler.hosting.representation`  
 **Input / fact source:** candidate host_club + tournament roster  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.verify_candidate`  
 **Codes:** verifier `host_team_missing` · finding — · score —  
@@ -731,9 +731,9 @@ candidate regresses a higher-priority operational obligation.
 
 `Operational obligation` · status `active` · operator-waivable: yes  
 **Meaning:** For every (club, age_group) with at least one eligible team, the club receives at least one hosting responsibility in that age group during the season whenever the number of tournaments makes it mathematically possible. A durable, age-group withdrawal removes the retiring team from that eligible pool, so it no longer creates a hosting obligation no operation could satisfy. This is club x age-group coverage, not aggregate club hosting. A structural shortfall (fewer tournaments than clubs needing coverage) is surfaced explicitly, never hidden as a soft imbalance.  
-**Canonical owner:** `tournament_scheduler.hosting_coverage.hosting_targets_with_coverage_floor`  
+**Canonical owner:** `tournament_scheduler.hosting.coverage.hosting_targets_with_coverage_floor`  
 **Input / fact source:** planning_problem eligible teams (registered roster minus durable age-group withdrawals) + candidate tournaments (hosting_coverage_matrix)  
-**Verifier / measurement:** `tournament_scheduler.hosting_coverage.hosting_coverage_matrix`  
+**Verifier / measurement:** `tournament_scheduler.hosting.coverage.hosting_coverage_matrix`  
 **Codes:** verifier — · finding `unresolved_hosting_obligations`, `unresolved_hosting`, `unresolved_hosting_obligation` · score `hosting.unresolved_obligations_count`  
 **Providers:** mutation `hosting_balance_repair`, `host_placement_repair`, `unplaced_placement_repair`, `hosting_same_age_repair`, `hosting_cross_age_repair` · search `tournament_scheduler.search_neighborhood_repair`  
 **Evidence / report:** `plan.unresolved_hosting_obligations`, `verify_candidate.unresolved_hosting_obligations`, `publication_readiness unresolved_hosting`, `rules_model hosting_obligation_coverage`  
@@ -744,9 +744,9 @@ candidate regresses a higher-priority operational obligation.
 
 `Operational obligation` · status `active` · operator-waivable: yes  
 **Meaning:** Once a hosting responsibility is assigned, calendar convenience must not silently transfer it to another club. If the responsible host has no verified automatic slot, the responsibility is preserved and the tournament becomes MANUAL PLACEMENT REQUIRED rather than moving the burden. This is a cross-path invariant over placement/repair/search.  
-**Canonical owner:** `tournament_scheduler.hosting_responsibility`  
+**Canonical owner:** `tournament_scheduler.hosting.responsibility`  
 **Input / fact source:** hosting_coverage target/actual ledger + candidate physical hosting  
-**Verifier / measurement:** `tournament_scheduler.hosting_responsibility.hosting_responsibility_facts`  
+**Verifier / measurement:** `tournament_scheduler.hosting.responsibility.hosting_responsibility_facts`  
 **Codes:** verifier — · finding `unexplained_hosting_responsibility_transfer` · score —  
 **Providers:** mutation `responsibility_preserving_repair`, `unplaced_placement_repair` · search —  
 **Evidence / report:** `hosting_responsibility finding code`, `repair/search option rejection evidence`, `review/audit evidence`  
@@ -783,9 +783,9 @@ candidate regresses a higher-priority operational obligation.
 
 `Soft objective` · status `active` · operator-waivable: yes  
 **Meaning:** After the age-group coverage floor is satisfied (or a structural shortfall is explicitly surfaced), remaining hosting responsibility is distributed roughly in proportion to eligible team counts. This objective is secondary to coverage: a larger club may legitimately under-host relative to its proportional target so a smaller club gets its first responsibility.  
-**Canonical owner:** `tournament_scheduler.hosting_coverage.hosting_balance_matrix`  
+**Canonical owner:** `tournament_scheduler.hosting.coverage.hosting_balance_matrix`  
 **Input / fact source:** planning_problem eligible teams + candidate tournaments  
-**Verifier / measurement:** `tournament_scheduler.hosting_coverage.material_hosting_balance_imbalances`  
+**Verifier / measurement:** `tournament_scheduler.hosting.coverage.material_hosting_balance_imbalances`  
 **Codes:** verifier — · finding `hosting_balance_imbalances`, `hosting_balance_imbalance` · score `hosting.spread`  
 **Providers:** mutation `hosting_balance_repair` · search —  
 **Evidence / report:** `score_candidate.hosting.spread`, `verify_candidate.hosting_balance_imbalances`, `rules_model hosting_deviation`  
@@ -915,7 +915,7 @@ candidate regresses a higher-priority operational obligation.
 **Meaning:** A joint registration such as Kongsberg/Tønsberg can genuinely require a contextual choice of which constituent physically carries the shared hosting responsibility. This is the limited case where agent/operator judgment over deterministic registration facts is legitimate.  
 **Canonical owner:** `tournament_scheduler.shared_host_decision`  
 **Input / fact source:** joint-registration club labels + hosting_responsibility facts  
-**Verifier / measurement:** `tournament_scheduler.hosting_coverage.shared_registration_facts`  
+**Verifier / measurement:** `tournament_scheduler.hosting.coverage.shared_registration_facts`  
 **Codes:** verifier — · finding — · score —  
 **Providers:** mutation `shared host decision action` · search —  
 **Evidence / report:** `plan.shared_host_decisions`, `rules_model shared_host_* decisions`  

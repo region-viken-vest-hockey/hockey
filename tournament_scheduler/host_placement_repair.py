@@ -47,7 +47,7 @@ from .application.decisions import DecisionContext
 from .candidate_weekends import enumerate_candidate_weekends, season_weekend_dates
 from .date_policy import problem_date_exclusions as _problem_date_exclusions
 from .date_policy import problem_forbidden_dates as _problem_forbidden_dates
-from .host_representation import constituent_clubs
+from .hosting.representation import constituent_clubs
 from .host_team_missing_repair import (
     RepairOption,
     _candidate_start_times,

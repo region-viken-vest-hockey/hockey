@@ -30,7 +30,7 @@ from .home_representation_repair import (
     apply_home_representation_repair_option,
     enumerate_home_representation_repairs,
 )
-from .hosting_balance_repair import (
+from .hosting.balance_repair import (
     apply_hosting_balance_repair_option,
     enumerate_hosting_balance_repairs,
 )

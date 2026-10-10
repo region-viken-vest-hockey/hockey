@@ -1,6 +1,6 @@
-"""Planner-mutating primitives for `hosting_cross_age_repair_apply.py` (issue #328).
+"""Planner-mutating primitives for `hosting/cross_age_repair_apply.py` (issue #328).
 
-Split out purely to keep `hosting_cross_age_repair_apply.py` within the
+Split out purely to keep `hosting/cross_age_repair_apply.py` within the
 repository's file-length guideline; these are still an implementation detail
 of that module's `_try_repair`, not a standalone public API.
 """
@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from tournament_scheduler.calendar_availability import host_confirmation_from_evidence
-from tournament_scheduler.host_representation import host_eligible_teams, host_represented_in
+from tournament_scheduler.hosting.representation import host_eligible_teams, host_represented_in
 from tournament_scheduler.models import Tournament
 from tournament_scheduler.participant_selection import deficit_score
 from tournament_scheduler.warnings import _club_calendar_available

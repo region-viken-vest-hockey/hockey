@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Dict, List, Set, Tuple
 
-from tournament_scheduler.host_representation import constituent_clubs as _constituent_clubs
+from tournament_scheduler.hosting.representation import constituent_clubs as _constituent_clubs
 from tournament_scheduler.models import Team
 
 

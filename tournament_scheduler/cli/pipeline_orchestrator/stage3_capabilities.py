@@ -28,7 +28,7 @@ from typing import Any, Callable, Mapping
 from ...application.decisions import DecisionAction
 from ...application.stage3_controller import Stage3CapabilityResult
 from ...application.stage3_session import Stage3Session
-from ...hosting_responsibility import (
+from tournament_scheduler.hosting.responsibility import (
     RESPONSIBILITY_TRANSFER_CODE,
     unexplained_responsibility_transfers,
 )

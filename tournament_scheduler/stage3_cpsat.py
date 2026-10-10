@@ -17,7 +17,7 @@ from time import perf_counter
 from types import SimpleNamespace
 from typing import Any, Dict, Optional
 
-from .host_representation import clubs_represent_same_club as _clubs_represent_same_club
+from .hosting.representation import clubs_represent_same_club as _clubs_represent_same_club
 from .models import Team
 from .effective_tournament_shape import compute_effective_tournament_shape, shape_violation
 from .participant_roster_sizing import fixed_cohort_shape_for

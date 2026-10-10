@@ -128,7 +128,7 @@ def _hosting_options(
     allow_search: bool,
     dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
-    from .hosting_balance_repair import enumerate_hosting_balance_repairs
+    from .hosting.balance_repair import enumerate_hosting_balance_repairs
 
     repair_set = enumerate_hosting_balance_repairs(
         plan,

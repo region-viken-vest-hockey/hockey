@@ -15,7 +15,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Dict, List, Optional, Sequence, Set
 
-from tournament_scheduler.host_representation import clubs_represent_same_club
+from tournament_scheduler.hosting.representation import clubs_represent_same_club
 from tournament_scheduler.models import Team, overlapping_age_groups
 from tournament_scheduler.planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
 from tournament_scheduler.participant_relocation import MIN_TEAMS_PER_TOURNAMENT as MIN_TEAMS_PER_TOURNAMENT, relocate_structurally_impossible_slots as relocate_structurally_impossible_slots

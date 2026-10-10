@@ -43,7 +43,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from .guest_slots import guest_slot_summary
 from .home_representation import home_representation_rows
-from .host_representation import clubs_represent_same_club
+from .hosting.representation import clubs_represent_same_club
 from .host_team_missing_repair import (
     RepairOption,
     _codes,

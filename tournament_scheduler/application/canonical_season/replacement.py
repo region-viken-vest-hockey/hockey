@@ -412,7 +412,7 @@ def replace_participant(
             )
         raise SeasonStateError(f"Refusing canonical participant replacement: {message}")
 
-    from tournament_scheduler.hosting_responsibility import (
+    from tournament_scheduler.hosting.responsibility import (
         unexplained_responsibility_transfers,
     )
 

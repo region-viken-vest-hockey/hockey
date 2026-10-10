@@ -1,6 +1,6 @@
 """Deterministic same-age hosting-coverage repair facts (issue #329).
 
-`hosting_cross_age_repair.py` can only resolve a club x age-group hosting
+`hosting/cross_age_repair.py` can only resolve a club x age-group hosting
 obligation by repurposing that physical club's own *surplus* hosting in a
 *different* age group. A club that hosts nothing anywhere (e.g. a
 newly-active club with a registered, eligible team that simply never wins
@@ -19,11 +19,11 @@ than a cross-age repair (which removes a whole donor tournament and must
 re-verify participation targets), so it should be tried first.
 
 Pure functions over the shared ``planning_problem``/``candidate`` contracts,
-like ``hosting_cross_age_repair.py`` -- no ``SeasonPlanner`` dependency, so
+like ``hosting/cross_age_repair.py`` -- no ``SeasonPlanner`` dependency, so
 this module is safe for the canonical LLM-directed decision path (see
 ``tests/test_architecture_boundaries.py``). Actually *applying* a repair
 needs a live tournament-build pipeline and lives in
-``hosting_same_age_repair_apply.py`` instead; this module only computes
+``hosting/same_age_repair_apply.py`` instead; this module only computes
 candidate donor tournaments -- it never decides which repair (if any) to
 apply.
 """
@@ -32,7 +32,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List
 
-from tournament_scheduler.host_representation import constituent_clubs as _constituent_clubs
+from tournament_scheduler.hosting.representation import constituent_clubs as _constituent_clubs
 
 
 def same_age_reallocation_candidates(
@@ -46,13 +46,13 @@ def same_age_reallocation_candidates(
     A candidate is a non-cancelled tournament in exactly this age group
     whose host is some other club, but at least one of its teams belongs to
     *club* or a joint registration sharing a constituent with *club* (the
-    same shared-registration matching ``hosting_cross_age_repair.py`` uses).
+    same shared-registration matching ``hosting/cross_age_repair.py`` uses).
     Ordered deterministically: latest date first (repurposing the most
     recently-committed slot disturbs the fewest already-communicated dates),
     tie-broken by tournament id.
 
     Does not itself check arena/duration/calendar feasibility -- that
-    requires a live planner and is ``hosting_same_age_repair_apply.py``'s
+    requires a live planner and is ``hosting/same_age_repair_apply.py``'s
     job. This only narrows the search to tournaments that are structurally
     plausible donors at all.
     """

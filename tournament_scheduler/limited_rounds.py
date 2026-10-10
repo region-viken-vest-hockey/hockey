@@ -5,7 +5,7 @@ from __future__ import annotations
 from itertools import combinations
 from typing import Sequence
 
-from tournament_scheduler.host_representation import constituent_clubs
+from tournament_scheduler.hosting.representation import constituent_clubs
 from tournament_scheduler.models import Game, Team
 
 

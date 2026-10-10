@@ -54,7 +54,7 @@ from tournament_scheduler.date_policy import (
     holiday_exclusions as _holiday_exclusions,
     problem_date_exclusions as _problem_date_exclusions,
 )
-from tournament_scheduler.host_representation import host_eligible_teams as _host_eligible_teams, host_represented_in as _host_represented_in
+from tournament_scheduler.hosting.representation import host_eligible_teams as _host_eligible_teams, host_represented_in as _host_represented_in
 from tournament_scheduler.guest_slots import (
     capacity_places as _capacity_places,
     guest_reservation_integrity_violations as _guest_reservation_integrity_violations,
@@ -758,7 +758,7 @@ def verify_candidate(
     movable_allocations_used: List[Dict[str, Any]] = []
     # Non-blocking record of tournaments hosted by a club with no
     # trustworthy calendar evidence this run -- surfaced for manual
-    # placement (see hosting_coverage.py's unresolved_hosting_obligations
+    # placement (see hosting/coverage.py's unresolved_hosting_obligations
     # for the equivalent pattern) rather than hard-blocking the candidate,
     # since scheduler.py/host_assignment.py already let such a club host
     # its fair share with a provisional slot.
@@ -1511,13 +1511,13 @@ def verify_candidate(
     # hosting burden to another club and be rejected outright), but the
     # obligation must be visible so it can be surfaced as a manual-placement
     # item rather than swallowed.
-    from tournament_scheduler.hosting_coverage import (
+    from tournament_scheduler.hosting.coverage import (
         hosting_balance_matrix,
         hosting_coverage_matrix,
         material_hosting_balance_imbalances,
     )
-    from tournament_scheduler.hosting_cross_age_repair import club_hosting_evidence, unresolved_with_evidence
-    from tournament_scheduler.hosting_same_age_repair import same_age_reallocation_candidates
+    from tournament_scheduler.hosting.cross_age_repair import club_hosting_evidence, unresolved_with_evidence
+    from tournament_scheduler.hosting.same_age_repair import same_age_reallocation_candidates
 
     # A durable age-group withdrawal removes the team from its club's eligible
     # pool, so hosting coverage/balance/targets are derived from that eligible
@@ -1531,14 +1531,14 @@ def verify_candidate(
     # own surplus/duplicate hosting assignments in a *different* age group
     # could plausibly be repurposed -- evidence only, never auto-applied
     # here (this is a pure verifier with no live planner to rebuild a
-    # tournament through; see `hosting_cross_age_repair_apply.py` for where
+    # tournament through; see `hosting/cross_age_repair_apply.py` for where
     # SeasonPlanner actually attempts the repair).
     coverage_evidence = club_hosting_evidence(eligible_hosting_teams, tournaments)
     unresolved_hosting_obligations = unresolved_with_evidence(coverage_rows, coverage_evidence, tournaments)
     # issue #329: also expose, per unresolved row, tournaments in that same
     # age group the club already participates in but does not host -- a
     # cheaper/lower-risk repair than a cross-age reallocation since it needs
-    # no participant swap; see `hosting_same_age_repair_apply.py` for where
+    # no participant swap; see `hosting/same_age_repair_apply.py` for where
     # SeasonPlanner actually attempts it.
     for row in unresolved_hosting_obligations:
         row["same_age_reallocation_candidates"] = same_age_reallocation_candidates(

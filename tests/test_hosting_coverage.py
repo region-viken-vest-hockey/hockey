@@ -1,6 +1,6 @@
-"""Tests for `tournament_scheduler.hosting_coverage` (issue #266 P0)."""
+"""Tests for `tournament_scheduler.hosting.coverage` (issue #266 P0)."""
 
-from tournament_scheduler.hosting_coverage import (
+from tournament_scheduler.hosting.coverage import (
     hosting_balance_matrix,
     hosting_breakdown_by_club_and_age_group,
     hosting_coverage_matrix,

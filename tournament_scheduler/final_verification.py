@@ -12,7 +12,7 @@ from collections import Counter, defaultdict
 from itertools import combinations
 from typing import Any
 
-from tournament_scheduler.host_representation import constituent_clubs
+from tournament_scheduler.hosting.representation import constituent_clubs
 from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape
 from tournament_scheduler.guest_slots import capacity_places, has_open_guest_slots
 from tournament_scheduler.limited_rounds import minimum_same_club_games_for_limited_rounds

@@ -12,8 +12,8 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Optional
 
-from ..hosting_coverage import hosting_coverage_matrix
-from ..hosting_cross_age_repair import club_hosting_evidence, unresolved_with_evidence
+from tournament_scheduler.hosting.coverage import hosting_coverage_matrix
+from tournament_scheduler.hosting.cross_age_repair import club_hosting_evidence, unresolved_with_evidence
 from ..models import SeasonPlan, Tournament
 from ..warnings import (
     scan_arena_day_collision_warnings,
