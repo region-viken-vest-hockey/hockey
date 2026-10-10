@@ -79,6 +79,7 @@ this script while GitHub keeps separate visible status checks.
 Quick/PR tier phases:
   dependency-lock    verify requirements.lock is fresh from pyproject.toml
   lint               ruff check . (pyflakes + pycodestyle-error rules only)
+  file-length        ratcheted file-size guard (scripts/check_file_length.py)
   quick              fast pytest suite (excludes slow/integration/harness/live)
   operator           operator manifest/escalation control-path tests
   reproducibility    deterministic planner reproducibility fixture
@@ -133,7 +134,7 @@ run_named_phase() {
       run_phase "Ruff lint" "$PYTHON_CMD" -m ruff check .
       ;;
     file-length)
-      run_phase "File-length guideline check" "$PYTHON_CMD" scripts/check_file_length.py
+      run_phase "File-length growth ratchet" "$PYTHON_CMD" scripts/check_file_length.py
       ;;
     quick)
       run_phase "Fast Python test suite" "$PYTHON_CMD" -m pytest --no-cov -q
@@ -222,7 +223,7 @@ run_named_phase() {
 }
 
 run_all() {
-  local phases=(dependency-lock lint quick operator reproducibility cli-smoke cli-contracts rules-report rule-catalog architecture-docs)
+  local phases=(dependency-lock lint file-length quick operator reproducibility cli-smoke cli-contracts rules-report rule-catalog architecture-docs)
   for named_phase in "${phases[@]}"; do
     run_named_phase "$named_phase"
   done
