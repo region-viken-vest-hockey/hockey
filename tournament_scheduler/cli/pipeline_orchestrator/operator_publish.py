@@ -16,7 +16,7 @@ def _execute_operator_publish(args: argparse.Namespace) -> "Any | None":
     Shared by ``_cmd_operator_publish`` (standalone ``operator publish``) and
     ``_cmd_operator_run`` (``operator run --publish``) so both paths build
     the exact same action from the exact same flags — see the module-level
-    docstring note on ``op_run`` in ``cli/args.py`` (issue #32 follow-up):
+    docstring note on ``op_run`` in ``cli/parsers/operator_run.py`` (issue #32 follow-up):
     "run --publish" must behave identically to "run" followed by a separate
     "publish", not a distinct, weaker code path.
 

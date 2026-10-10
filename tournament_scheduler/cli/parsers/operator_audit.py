@@ -1,6 +1,5 @@
-"""Argparse subparsers for the harness-led semantic safety-net audit
-(issue #325) — split out of ``args.py`` to stay within the repo's
-300-line-per-file guideline (``scripts/check_file_length.py``).
+"""Operator-family parser for the harness-led semantic safety-net audit
+(issue #325): the audit subcommands are registered under ``operator``.
 
 "audit-context" and "audit-submit" mirror the existing read-context/
 submit-decision shape (SKILL.md's "Structured decision protocol"): an
