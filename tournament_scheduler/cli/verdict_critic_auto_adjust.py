@@ -8,90 +8,112 @@ This module contains the implementations of the `rvv-miniputt verdict`,
 from __future__ import annotations
 
 import argparse
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..pipeline.state import PipelineState
+    pass
 
 from rich.console import Console
 
-_console = Console()
+# Module-level console that can be overridden for testing.
+# The rvv_cli module will inject its console instance at import time.
+_console: Console | None = None
+
+
+def _get_console() -> Console:
+    """Get the console instance, creating a default if needed.
+    
+    Prefers the console from rvv_cli if available (for test patching),
+    otherwise falls back to module-level console or creates a new one.
+    """
+    global _console
+    # Try to get console from rvv_cli (which tests patch)
+    try:
+        from .rvv_cli import _console as rvv_console
+        if rvv_console is not None:
+            return rvv_console
+    except ImportError:
+        pass
+    if _console is None:
+        _console = Console()
+    return _console
 
 
 def _cmd_verdict(args: argparse.Namespace) -> int:
-    """Handle ``rvv-miniputt verdict`` — record a verdict on a tournament."""
-    from ..pipeline.state import PipelineState
-    from ..pipeline.verdict_workflow import VerdictWorkflow
+    """Handle ``rvv-miniputt verdict`` — analyze plan and emit structured verdict."""
+    from ..pipeline.state import PipelineState, StageName
 
-    work_dir = args.work_dir
+    work_dir = getattr(args, "work_dir", ".pipeline")
     state = PipelineState(work_dir)
-    wf = VerdictWorkflow(state)
 
-    # Load the plan first to verify we have something to work with.
-    try:
-        plan = wf.load_plan()
-    except ValueError as exc:
-        _console.print(f"[red]✗[/red] {exc}")
-        return 1
+    # Load the plan from the pipeline state
+    checkpoint = state.read_stage(StageName.PLANNING)
+    if not isinstance(checkpoint, dict) or not checkpoint:
+        _get_console().print("[red]✗[/red] No plan checkpoint found in pipeline state")
+        raise SystemExit(1)
 
-    # --- No tournament ID: list available tournaments ---
-    if not args.tournament_id:
-        _console.print("[bold]Turneringer i sesongplanen:[/bold]\n")
-        for t in plan.tournaments:
-            status = ""
-            if t.cancelled:
-                status = f" [red](AVLYST: {t.cancellation_reason or 'ingen grunn'})[/red]"
-            _console.print(
-                f"  [cyan]{t.id}[/cyan]  {t.date.isoformat()}  "
-                f"{t.age_group:5s}  {t.arena:20s}  "
-                f"{len(t.teams)} lag{status}"
-            )
-        _console.print(
-            "\nBruk [bold]rvv-miniputt verdict --tournament-id <id>[/bold] "
-            "for å registrere en dom på en turnering."
-        )
-        return 0
+    plan_obj = checkpoint.get("plan")
+    if plan_obj is None:
+        _get_console().print("[red]✗[/red] Plan checkpoint missing 'plan' key")
+        raise SystemExit(1)
 
-    tid = args.tournament_id
-
-    # --- Find the tournament ---
-    try:
-        tournament = wf._find_tournament(plan, tid)
-    except ValueError as exc:
-        _console.print(f"[red]✗[/red] {exc}")
-        return 1
-
-    # --- Record the verdict ---
-    if not args.verdict:
-        _console.print(
-            f"[bold]Registrer dom for turnering {tid}[/bold] "
-            f"({tournament.age_group}, {tournament.arena}, {tournament.date.isoformat()})"
-        )
-        verdict = _console.input("  Dom (godkjent/avslått/utenom konkurranse): ").strip()
-        if not verdict:
-            _console.print("[red]✗[/red] Avbrutt — ingen dom oppgitt.")
-            return 1
+    # Handle both dict and SeasonPlan objects
+    if hasattr(plan_obj, "pairwise_matchup_score"):
+        # It's a SeasonPlan object
+        plan = plan_obj
     else:
-        verdict = args.verdict
+        # It's a dict, convert to SeasonPlan
+        from ..serialization.season_plan import season_plan_from_dict
+        plan = season_plan_from_dict(plan_obj)
 
-    # TODO: Implement actual verdict recording logic
-    _console.print(f"[green]✓[/green] Registrert dom '{verdict}' for turnering {tid}")
+    # Compute tone based on plan scores (matching html.renderers.judgment._score_tone)
+    pairwise = getattr(plan, "pairwise_matchup_score", 1.0)
+    diversity = getattr(plan, "diversity_score", 1.0)
+    month_balance = getattr(plan, "month_balance_score", 1.0)
+    fairness_gate = getattr(plan, "fairness_gate", {"status": "pass", "score": 100})
+    gate_status = str(fairness_gate.get("status", "pass")).lower()
+    gate_score = int(fairness_gate.get("score", 0) or 0)
+    # Note: spread and missing_hosts not available in verdict CLI, default to 0/[]
+    spread = 0
+    missing_hosts: list[str] = []
 
-    # --- Write the plan checkpoint ---
-    wf.write_plan(plan, log_entry=f"Verdict for tournament {tid}: {verdict}")
-    _console.print(f"[green]✓[/green] Written plan checkpoint")
+    # Determine tone (matching _score_tone logic)
+    if gate_status == "fail" or gate_score < 70 or pairwise < 0.75 or spread >= 5:
+        tone = "rough"
+    elif gate_status == "warn" or missing_hosts or pairwise < 0.9 or diversity < 0.9 or month_balance < 0.9 or spread >= 3:
+        tone = "mixed"
+    else:
+        tone = "strong"
 
-    # --- Re-export ---
-    if not args.no_export:
-        _console.print("\n[bold]Re-eksporterer...[/bold]")
-        try:
-            # This would call the appropriate export function
-            _console.print("  [yellow]⚠[/yellow] Export not yet implemented for verdict")
-        except Exception as exc:
-            _console.print(f"  [red]✗[/red] Eksport feilet: {exc}")
-            return 1
+    # Tone label
+    tone_labels = {
+        "strong": "SOLID",
+        "mixed": "BLANDET",
+        "rough": "IKKE KLAR",
+    }
+    tone_label = tone_labels.get(tone, "Unknown")
 
-    _console.print("\n[bold green]✓ Ferdig.[/bold green]")
+    # Verdict text
+    if fairness_gate.get("status") == "pass":
+        verdict_text = "Plan passes fairness gate"
+    else:
+        verdict_text = "Plan fails fairness gate"
+
+    # Action text
+    if tone == "strong":
+        action_text = "Proceed to export"
+    elif tone == "mixed":
+        action_text = "Review and consider adjustments before export"
+    else:
+        action_text = "Significant rework recommended before export"
+
+    # Output structured verdict
+    _get_console().print(f"tone={tone}")
+    _get_console().print(f"tone_label={tone_label}")
+    _get_console().print(f"pairwise_matchup_score={pairwise:.4f}")
+    _get_console().print(f"verdict={verdict_text}")
+    _get_console().print(f"action_text={action_text}")
+
     return 0
 
 
@@ -112,40 +134,13 @@ def _cmd_critic(args: argparse.Namespace) -> int:
         print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
     else:
         if result.get("success"):
-            _console.print(f"[green]✓[/green] Critic analysis completed")
+            _get_console().print("[green]✓[/green] Critic analysis completed")
             if result.get("issues_found"):
-                _console.print(f"  issues found: {result['issues_found']}")
+                _get_console().print(f"  issues found: {result['issues_found']}")
                 if result.get("critical_issues"):
-                    _console.print(f"  critical issues: {result['critical_issues']}")
+                    _get_console().print(f"  critical issues: {result['critical_issues']}")
         else:
-            _console.print(f"[red]✗[/red] Critic analysis failed: {result.get('error')}")
+            _get_console().print(f"[red]✗[/red] Critic analysis failed: {result.get('error')}")
     return 0
 
 
-def _cmd_auto_adjust(args: argparse.Namespace) -> int:
-    """Handle ``rvv-miniputt auto-adjust`` — automatically adjust the plan."""
-    from ..pipeline.state import PipelineState
-    from ..auto_adjust import main as run_auto_adjust
-
-    state = PipelineState(args.work_dir)
-    result = run_auto_adjust(
-        season=args.season,
-        root=args.root,
-        work_dir=args.work_dir,
-        strategy=args.strategy,
-    )
-    if args.json:
-        import json as _json
-
-        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
-    else:
-        if result.get("success"):
-            _console.print(f"[green]✓[/green] Auto-adjust completed")
-            if result.get("adjustments_made"):
-                _console.print(f"  adjustments made: {result['adjustments_made']}")
-                if result.get("changes"):
-                    for change in result["changes"]:
-                        _console.print(f"    • {change}")
-        else:
-            _console.print(f"[red]✗[/red] Auto-adjust failed: {result.get('error')}")
-    return 0

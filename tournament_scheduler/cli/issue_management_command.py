@@ -8,10 +8,6 @@ for managing issues, blockers, findings, and infeasibility reports.
 from __future__ import annotations
 
 import argparse
-from typing import TYPE_CHECKING, Sequence
-
-if TYPE_CHECKING:
-    from ..pipeline.state import PipelineState
 
 from rich.console import Console
 
@@ -29,7 +25,6 @@ def _cmd_season_findings(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season findings`` — show findings."""
     from ..season_maintenance import list_findings
 
-    state = PipelineState(args.work_dir)
     report = list_findings(args.season, root=args.root)
     if args.json:
         import json as _json
