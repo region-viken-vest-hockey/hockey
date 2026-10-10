@@ -212,3 +212,4 @@ repro-tmp/
 *.bak
 *.bak[0-9]
 *.swp
+*.backup
