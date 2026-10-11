@@ -103,6 +103,7 @@ Before a feature/change, identify the canonical owner, stable caller-facing boun
 - Avoid circular dependencies, generic dumping-ground helpers, duplicated policy and unnecessary one-function abstractions.
 - For narrow work, inspect entry point -> owner -> direct dependencies/tests first. Use search/targeted reads instead of loading unrelated large files.
 - Do not turn a behavioral fix into a broad rewrite. Characterize behavior before structural extraction and separate discovered semantic defects.
+- Stable entry points, facades, CLI transports and agent routers/procedures must remain small and navigational. When a change adds a new reason to change or a substantial independent workflow, create or use the canonical focused owner rather than extending an already broad surface. `scripts/check` enforces the file-size ratchet; prose alone is insufficient.
 - For refactors compare observable behavior, failures, deterministic outputs, fingerprints/revisions, provenance and write ordering where relevant. Never use live season refresh/export/publication as a refactor test or commit incidental generated-season changes.
 - Leave a cohesive localized module alone even when long. Optimize for explicit ownership, safety and reviewability, not line counts.
 
