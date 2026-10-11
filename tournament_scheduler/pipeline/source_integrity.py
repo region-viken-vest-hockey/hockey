@@ -287,7 +287,7 @@ def non_schedulable_arena_signal(club_name: str | None, events: list[dict[str, A
     if not club_name or not events:
         return None
     try:
-        from ..club_registry import CLUB_REGISTRY
+        from ..clubs.registry import CLUB_REGISTRY
     except ImportError:
         return None
     entry = CLUB_REGISTRY.get(club_name)
@@ -457,7 +457,7 @@ def evaluate_source_integrity(
                 )
 
         try:
-            from ..club_registry import club_for_source_name
+            from ..clubs.registry import club_for_source_name
         except ImportError:
             club_for_source_name = None  # type: ignore[assignment]
         club = club_for_source_name(name) if club_for_source_name else None
@@ -551,7 +551,7 @@ def club_integrity_status(
 
     statuses: dict[str, str] = {}
     try:
-        from ..club_registry import club_for_source_name
+        from ..clubs.registry import club_for_source_name
     except ImportError:
         return statuses
     for source in source_results:
@@ -574,7 +574,7 @@ def club_coverage_proven(
 
     seen: dict[str, bool] = {}
     try:
-        from ..club_registry import club_for_source_name
+        from ..clubs.registry import club_for_source_name
     except ImportError:
         return seen
     for source in source_results:
@@ -616,7 +616,7 @@ def downgrade_calendar_status_for_integrity(
 
     confirmed = {str(club) for club in operator_confirmed}
     try:
-        from ..club_registry import club_for_source_name
+        from ..clubs.registry import club_for_source_name
     except ImportError:
         return dict(status)
 

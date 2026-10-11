@@ -151,7 +151,7 @@ candidate regresses a higher-priority operational obligation.
 | `inter_club_diversity` | Tournaments should mix teams across clubs rather than concentrating same-club matchups. | `tournament_scheduler.quality_objectives` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_quality_objectives.py` |
 | `temporal_spacing` | A team's tournaments should be spaced sensibly; very short turnaround gaps are minimized. | `tournament_scheduler.team_schedule_quality` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_team_schedule_quality.py`, `tests/test_fairness_temporal.py` |
 | `temporal_coverage` | A team's tournaments should cover the season rather than cluster in one stretch. | `tournament_scheduler.participation.temporal_coverage` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_temporal_coverage.py` |
-| `travel_distance` | Estimated team travel between home and away arenas should be kept reasonable. | `tournament_scheduler.club_distances` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_club_distances.py` |
+| `travel_distance` | Estimated team travel between home and away arenas should be kept reasonable. | `tournament_scheduler.clubs.distances` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_club_distances.py` |
 
 ## Operator decisions
 
@@ -900,7 +900,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Soft objective` · status `active` · operator-waivable: yes  
 **Meaning:** Estimated team travel between home and away arenas should be kept reasonable.  
-**Canonical owner:** `tournament_scheduler.club_distances`  
+**Canonical owner:** `tournament_scheduler.clubs.distances`  
 **Input / fact source:** configured club distances + candidate placements  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.score_candidate`  
 **Codes:** verifier — · finding — · score `travel`  

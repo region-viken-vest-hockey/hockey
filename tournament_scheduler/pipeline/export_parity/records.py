@@ -104,7 +104,7 @@ def participant_identity(club: Any, label: Any, age_group: Any) -> str:
     club_name = normalize_text(club)
     if club_name:
         try:
-            from tournament_scheduler.club_registry import canonicalize_club_name
+            from tournament_scheduler.clubs.registry import canonicalize_club_name
 
             club_name = canonicalize_club_name(club_name)
         except Exception:  # noqa: BLE001 - identity normalization must not fail parity

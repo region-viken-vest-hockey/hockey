@@ -13,7 +13,7 @@ fjord/valley terrain).
 
 Usage::
 
-    from tournament_scheduler.club_distances import distance, furthest_traveling_team
+    from tournament_scheduler.clubs.distances import distance, furthest_traveling_team
     from tournament_scheduler.models import Tournament
 
     km = distance("Kongsberg", "Jar")       # -> ~85
@@ -23,7 +23,7 @@ Usage::
 import math
 from typing import Dict, Optional, Tuple
 
-from tournament_scheduler.club_registry import canonicalize_club_name
+from tournament_scheduler.clubs.registry import canonicalize_club_name
 from tournament_scheduler.models import SeasonPlan, Tournament, Team, find_duplicate_labels, team_key
 
 # ---------------------------------------------------------------------------
@@ -113,7 +113,7 @@ _ARENA_TO_CLUB: Dict[str, str] = {
 def _normalize_club_name(club: Optional[str]) -> Optional[str]:
     """Resolve shortened/legacy club names before distance/coordinate lookups.
 
-    Delegates to `club_registry.canonicalize_club_name` (issue #272) so travel
+    Delegates to `clubs.registry.canonicalize_club_name` (issue #272) so travel
     metrics share one canonicalization source of truth with the rest of the
     pipeline instead of maintaining a separate alias table.
     """

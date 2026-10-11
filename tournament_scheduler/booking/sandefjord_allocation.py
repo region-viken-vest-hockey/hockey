@@ -23,9 +23,9 @@ from __future__ import annotations
 from datetime import date, datetime, time, timedelta
 from typing import List
 
-from .models import CalendarEvent
+from tournament_scheduler.models import CalendarEvent
 
-# Canonical club/arena names, matching `club_registry.CLUB_REGISTRY`.
+# Canonical club/arena names, matching `clubs.registry.CLUB_REGISTRY`.
 SANDEFJORD_CLUB_NAME = "Sandefjord Penguins"
 SANDEFJORD_ARENA = "Bugården ishall"
 

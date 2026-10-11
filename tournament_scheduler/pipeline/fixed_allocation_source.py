@@ -3,7 +3,7 @@
 Some clubs are not scraped through BookUp or any other live calendar because
 their availability is already a known, deterministic fact instead of
 something that needs discovering — e.g. Sandefjord Penguins' fixed weekend
-ice-time allocation (see `tournament_scheduler.sandefjord_allocation`).
+ice-time allocation (see `tournament_scheduler.booking.sandefjord_allocation`).
 
 This module is Stage 2's dispatch target for the ``"fixed_allocation"``
 source type (`scraper_constants.SOURCE_FIXED_ALLOCATION`): given a source
@@ -18,9 +18,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Callable, Dict, List
 
-from ..club_registry import club_for_source_name, get_club
+from ..clubs.registry import club_for_source_name, get_club
 from ..models import CalendarEvent
-from ..sandefjord_allocation import SANDEFJORD_CLUB_NAME, sandefjord_fixed_busy_events
+from ..booking.sandefjord_allocation import SANDEFJORD_CLUB_NAME, sandefjord_fixed_busy_events
 
 _FIXED_ALLOCATION_GENERATORS: Dict[str, Callable[[datetime, datetime], List[CalendarEvent]]] = {
     SANDEFJORD_CLUB_NAME: sandefjord_fixed_busy_events,
@@ -31,8 +31,8 @@ def _resolve_club_name(name: str) -> str:
     """Resolve a ``"Kilder"`` sheet source name to its canonical RVV club name.
 
     Tries the same source-name resolution every other source uses
-    (`club_registry.club_for_source_name`) first, then falls back to
-    `club_registry.get_club`'s short-name alias table (e.g. ``"Sandefjord"``
+    (`clubs.registry.club_for_source_name`) first, then falls back to
+    `clubs.registry.get_club`'s short-name alias table (e.g. ``"Sandefjord"``
     -> ``"Sandefjord Penguins"``), since a fixed-allocation source's name may
     be an alias rather than the exact registry key or a prefix of it.
     """

@@ -13,6 +13,7 @@ BOOKING_MODULES = {
     "arena_conflicts",
     "calendar_availability",
     "calendar_bookings",
+    "sandefjord_allocation",
 }
 
 FLAT_BOOKING_MODULES = set(BOOKING_MODULES)

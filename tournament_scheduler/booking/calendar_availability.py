@@ -162,10 +162,10 @@ def host_confirmation_from_evidence(
 def classification_rules_for_club(club: str) -> Tuple[CalendarEventClassificationRule, ...]:
     """Return the configured rule tuple for *club* (empty when unconfigured).
 
-    Imported lazily to avoid a module import cycle: ``club_registry`` imports
+    Imported lazily to avoid a module import cycle: ``clubs.registry`` imports
     this module for the rule type, so this module must not import it eagerly.
     """
-    from tournament_scheduler.club_registry import CLUB_REGISTRY
+    from tournament_scheduler.clubs.registry import CLUB_REGISTRY
 
     entry = CLUB_REGISTRY.get(club)
     return tuple(entry.event_classification_rules) if entry is not None else ()
@@ -178,7 +178,7 @@ def club_default_availability(club: str) -> CalendarAvailability:
     its whole calendar to ``movable_busy`` (the earlier behavior); every other
     club defaults to ``fixed_busy``.
     """
-    from tournament_scheduler.club_registry import CLUB_REGISTRY
+    from tournament_scheduler.clubs.registry import CLUB_REGISTRY
 
     entry = CLUB_REGISTRY.get(club)
     if entry is not None and entry.club_controlled_calendar:

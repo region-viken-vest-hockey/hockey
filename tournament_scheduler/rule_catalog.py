@@ -919,7 +919,7 @@ _SOFT: tuple[RuleEntry, ...] = (
 
         classification=SOFT_OBJECTIVE,
         meaning="Estimated team travel between home and away arenas should be kept reasonable.",
-        canonical_owner="tournament_scheduler.club_distances",
+        canonical_owner="tournament_scheduler.clubs.distances",
         input_source="configured club distances + candidate placements",
         verifier_owner="tournament_scheduler.planning.contract.score_candidate",
         evidence_projection=("score_candidate travel evidence", "rules_model travel detail rows"),

@@ -18,7 +18,7 @@ tournament_scheduler/cli/pipeline_orchestrator/run_command_interactive.py	592
 tournament_scheduler/cli/plan_command.py	906
 tournament_scheduler/cli/plan_critic.py	603
 tournament_scheduler/cli/reporting.py	603
-tournament_scheduler/club_registry.py	574
+tournament_scheduler/clubs/registry.py	574
 tournament_scheduler/excel/plan_exporter.py	577
 tournament_scheduler/participation/fairness_scoring.py	478
 tournament_scheduler/host_assignment.py	444
@@ -72,7 +72,7 @@ tournament_scheduler/pipeline/tournament_updater.py	931
 # obligation row instead of the bare club/age_group pair) -- a few lines woven
 # into an already-large verification function, not a splittable chunk.
 tournament_scheduler/planning/contract.py	1897
-tournament_scheduler/registrations.py	505
+tournament_scheduler/intake/registrations.py	505
 tournament_scheduler/review/review_packet_exporter.py	446
 tournament_scheduler/rules_model.py	853
 # season_planner.py was already over this recorded baseline (2188 lines)

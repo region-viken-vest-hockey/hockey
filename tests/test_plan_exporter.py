@@ -397,7 +397,7 @@ class TestDuplicateLabelDisambiguation:
     def test_compute_team_travel_distances_disambiguates_duplicate_labels(self):
         """Issue #311: compute_team_travel_distances must key travel by the
         disambiguated team identity, not the raw (possibly shared) label."""
-        from tournament_scheduler.club_distances import compute_team_travel_distances
+        from tournament_scheduler.clubs.distances import compute_team_travel_distances
 
         plan = self._make_plan_with_duplicate_labels()
         result = compute_team_travel_distances(plan)
@@ -414,7 +414,7 @@ class TestDuplicateLabelDisambiguation:
     def test_compute_club_stats_attributes_travel_by_actual_club(self):
         """compute_club_stats must attribute travel to a team's real club via
         the disambiguated key, not by guessing from the label text (issue #311)."""
-        from tournament_scheduler.club_distances import compute_team_travel_distances
+        from tournament_scheduler.clubs.distances import compute_team_travel_distances
         from tournament_scheduler.html.data_computation import compute_club_stats
 
         plan = self._make_plan_with_duplicate_labels()

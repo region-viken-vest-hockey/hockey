@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from typing import Any, Mapping
 
-from tournament_scheduler.club_registry import CLUB_REGISTRY, club_for_source_name
+from tournament_scheduler.clubs.registry import CLUB_REGISTRY, club_for_source_name
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 

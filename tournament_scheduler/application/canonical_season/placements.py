@@ -107,7 +107,7 @@ def _apply_move_to_plan(
 
     effective_host_club = host_club
     if arena is not None and host_club is None:
-        from tournament_scheduler.club_distances import arena_to_club
+        from tournament_scheduler.clubs.distances import arena_to_club
 
         owner = arena_to_club(arena)
         if owner and owner != target.get("host_club"):

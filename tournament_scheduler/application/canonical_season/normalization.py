@@ -158,7 +158,7 @@ def normalize_arena_identities(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Re-emit the canonical schedulable arena across a promoted season.
 
-    Arena identity is owned by ``club_registry.canonical_arena_name``: a
+    Arena identity is owned by ``clubs.registry.canonical_arena_name``: a
     tournament already placed at its club's canonical arena is left
     byte-identical, while one at a legacy alias of that same venue (for
     example ``Ringerikshallen`` -> ``Schjongshallen``) is rewritten in
@@ -171,7 +171,7 @@ def normalize_arena_identities(
     so a later repair/replan cannot reintroduce the legacy label.
     """
 
-    from tournament_scheduler.club_registry import canonical_arena_name
+    from tournament_scheduler.clubs.registry import canonical_arena_name
     from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
     snapshot = service.load(season)

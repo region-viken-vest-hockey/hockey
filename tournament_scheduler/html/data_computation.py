@@ -11,10 +11,10 @@ from datetime import datetime as _dt
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
-from tournament_scheduler.club_distances import (
+from tournament_scheduler.clubs.distances import (
     compute_team_travel_distances as _compute_team_travel_distances,
 )
-from tournament_scheduler.club_registry import canonicalize_club_name as _canonicalize_club_name
+from tournament_scheduler.clubs.registry import canonicalize_club_name as _canonicalize_club_name
 from tournament_scheduler.models import team_key as _team_key
 from tournament_scheduler.models import find_duplicate_labels as _find_duplicate_labels
 
@@ -55,7 +55,7 @@ _RVV_CLUBS = (
 def canonical_rvv_club_name(club_name: str) -> str:
     """Return the canonical RVV display name for a known club alias.
 
-    Delegates to `club_registry.canonicalize_club_name` (issue #272) so
+    Delegates to `clubs.registry.canonicalize_club_name` (issue #272) so
     reporting/export code shares one canonicalization source of truth with
     the rest of the pipeline instead of maintaining its own alias table.
     """

@@ -22,7 +22,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from ..club_registry import CLUB_REGISTRY, club_for_arena as _club_for_arena
+from ..clubs.registry import CLUB_REGISTRY, club_for_arena as _club_for_arena
 from ..models import SeasonPlan, Team, Tournament
 from ..scheduler import TournamentScheduler
 from ..season_planner import SeasonPlanner

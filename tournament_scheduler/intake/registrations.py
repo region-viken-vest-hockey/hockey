@@ -19,8 +19,8 @@ from typing import Any, Iterable, Mapping
 
 import openpyxl
 
-from .club_registry import canonicalize_club_name
-from .pipeline.input_workbook import WorkbookInputError, load_workbook_config
+from tournament_scheduler.clubs.registry import canonicalize_club_name
+from tournament_scheduler.pipeline.input_workbook import WorkbookInputError, load_workbook_config
 
 
 class RegistrationImportError(ValueError):

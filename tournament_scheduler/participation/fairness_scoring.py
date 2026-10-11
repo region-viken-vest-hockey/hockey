@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Dict, List
 
 from tournament_scheduler.planning import half as planning_half
-from tournament_scheduler.club_distances import compute_team_travel_distances
+from tournament_scheduler.clubs.distances import compute_team_travel_distances
 from tournament_scheduler.models import SeasonPlan, find_duplicate_labels, team_key
 from tournament_scheduler.participation.temporal_coverage import season_temporal_coverage, temporal_offenders
 from tournament_scheduler.warnings import hosting_weekend_balance_breakdown

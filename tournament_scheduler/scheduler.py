@@ -8,7 +8,7 @@ from tournament_scheduler.models import (
     ConflictContext,
     CalendarEvent
 )
-from tournament_scheduler.club_registry import get_club
+from tournament_scheduler.clubs.registry import get_club
 from tournament_scheduler.utils.date_parser import DateParser
 from tournament_scheduler.utils.slot_finder import find_available_slots, parse_time, minutes_to_time
 from tournament_scheduler.excel.tournament_reader import ExcelTournamentReader

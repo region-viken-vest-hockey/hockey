@@ -1,7 +1,7 @@
-"""Tests for club_distances — distance lookups and furthest-traveling-team logic."""
+"""Tests for clubs.distances — distance lookups and furthest-traveling-team logic."""
 
 from tournament_scheduler.models import SeasonPlan, Team, Tournament
-from tournament_scheduler.club_distances import (
+from tournament_scheduler.clubs.distances import (
     _CLUB_COORDINATES,
     _ROAD_DISTANCE_FACTOR,
     _haversine_km,

@@ -10,7 +10,7 @@ from tournament_scheduler.booking.calendar_availability import (
     classify_club_event,
     legacy_kind,
 )
-from ..club_registry import CLUB_REGISTRY, canonicalize_club_name
+from ..clubs.registry import CLUB_REGISTRY, canonicalize_club_name
 from ..models import CalendarEvent, Roster, Team
 from ..season_planner import SeasonPlanner
 from ..serialization.season_plan import resolve_plan_dict
@@ -169,7 +169,7 @@ def _build_club_source_integrity_details(scraping_result: dict[str, Any] | None)
     if not isinstance(sources, list):
         return {}
     try:
-        from ..club_registry import club_for_source_name
+        from ..clubs.registry import club_for_source_name
         from .source_integrity import _INTEGRITY_SEVERITY  # type: ignore[attr-defined]
     except ImportError:
         return {}

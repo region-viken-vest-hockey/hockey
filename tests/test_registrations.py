@@ -7,7 +7,7 @@ from pathlib import Path
 import openpyxl
 import pytest
 
-from tournament_scheduler.registrations import (
+from tournament_scheduler.intake.registrations import (
     RegistrationImportError,
     export_registrations,
     validate_registrations,

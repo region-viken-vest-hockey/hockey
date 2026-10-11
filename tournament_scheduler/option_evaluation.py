@@ -129,7 +129,7 @@ def _travel_metrics(plan: Mapping[str, Any]) -> Dict[str, Any]:
     with ``available: false`` instead of failing the repair surface.
     """
     try:
-        from .club_distances import compute_team_travel_distances
+        from .clubs.distances import compute_team_travel_distances
         from .serialization.season_plan import season_plan_from_dict
 
         season_plan = season_plan_from_dict(dict(plan))

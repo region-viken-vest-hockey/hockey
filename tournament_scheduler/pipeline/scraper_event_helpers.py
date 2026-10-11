@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any
 
-from ..club_registry import club_for_source_name
+from ..clubs.registry import club_for_source_name
 from ..models import CalendarEvent
 
 # Frisk Asker's configured Teamup source is the Askerhallen calendar. Its
@@ -151,7 +151,7 @@ def _group_club_calendar_status(
     root cause of issue #262's Tønsberg over-scheduling bug.
 
     ``"untrusted"`` means the source completed successfully, but the club's
-    registry entry (``club_registry.CLUB_REGISTRY[club].
+    registry entry (``clubs.registry.CLUB_REGISTRY[club].
     trusted_for_auto_placement``) says that success is not, itself,
     trustworthy evidence for automatic placement -- e.g. Tønsberg's BookUp
     source currently only returns generic/public placeholder data, not the
@@ -164,7 +164,7 @@ def _group_club_calendar_status(
     multi-arena clubs); if any of them is unknown, the whole club is treated
     as unknown -- partial evidence is not sufficient evidence.
     """
-    from ..club_registry import CLUB_REGISTRY
+    from ..clubs.registry import CLUB_REGISTRY
 
     status: dict[str, str] = {}
     for source_result in source_results:

@@ -648,7 +648,7 @@ def classify_travel_regression(
 def compute_travel(plan: Mapping[str, Any]) -> Dict[str, Any]:
     """Return canonical season travel totals for a plan, or a zero fallback."""
     try:
-        from .club_distances import compute_team_travel_distances
+        from .clubs.distances import compute_team_travel_distances
         from .serialization.season_plan import season_plan_from_dict
 
         season_plan = season_plan_from_dict(dict(plan))

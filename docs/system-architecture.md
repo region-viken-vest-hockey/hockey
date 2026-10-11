@@ -147,7 +147,9 @@ moved one domain slice at a time.
 |---|---|---|
 | `hosting/` | hosting coverage, responsibility, representation and hosting repair providers | moved |
 | `participation/` | participation targets, withdrawals and deviation repair, fairness model/scoring, temporal coverage | moved |
-| `booking/` | calendar availability and bookings, arena conflict detection and the arena-conflict decision record | moved |
+| `booking/` | calendar availability and bookings, arena conflict detection and the arena-conflict decision record, fixed club ice allocations (Sandefjord) | moved |
+| `clubs/` | RVV club reference data: the club registry (home arenas, calendar sources) and approximate driving distances | moved |
+| `intake/` | season input intake: SharePoint registration import and roster configuration loading | moved |
 | `stage3/` | Stage 3 search: local optimizer, CP-SAT engine and its slot/club-cap/diagnostic helpers, engine dispatch, A/B and shadow comparison, decision context | moved |
 | `planning/` | planning contract (candidate extraction, planning problem, independent hard verifier and scorer), its distribution scoring blocks, the before/after-Christmas split and final export verification | moved |
 | `rule_catalog.py`, `pareto.py`, `quality_objectives.py` and related flat modules | rule registry and shared multi-objective scoring used across domains | not yet moved |
@@ -158,8 +160,9 @@ moved one domain slice at a time.
 Layer rules for domain packages (`hosting/`, `participation/`): they must not import
 from `tournament_scheduler.cli` or `tournament_scheduler.infrastructure`. The locality
 guards in `tests/test_hosting_package_layout.py`,
-`tests/test_participation_package_layout.py`, `tests/test_planning_package_layout.py`
-and `tests/test_season_package_layout.py`
+`tests/test_participation_package_layout.py`, `tests/test_planning_package_layout.py`,
+`tests/test_season_package_layout.py`, `tests/test_clubs_package_layout.py` and
+`tests/test_intake_package_layout.py`
 enforce the placement and the import rule.
 
 ## Scheduling-rule implementation map

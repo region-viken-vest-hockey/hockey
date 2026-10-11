@@ -93,7 +93,7 @@ def decide_action_for_source(
 def _credential_env_vars(source_name: str) -> list[str]:
     """Best-effort lookup of the env vars a blocked source's strategy needs."""
     try:
-        from ..club_registry import club_for_source_name
+        from ..clubs.registry import club_for_source_name
         from .scraper_strategies import get_strategy, requires_credentials
     except ImportError:
         return []

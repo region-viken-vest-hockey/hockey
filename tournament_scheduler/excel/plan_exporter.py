@@ -23,7 +23,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from rich.console import Console
 
 from tournament_scheduler.planning import half as planning_half
-from tournament_scheduler.club_distances import furthest_traveling_team
+from tournament_scheduler.clubs.distances import furthest_traveling_team
 from tournament_scheduler.participation.fairness_model import SeasonFairnessModel
 from tournament_scheduler.models import SeasonPlan, Tournament
 from tournament_scheduler.occupancy import tournament_end_time

@@ -19,7 +19,7 @@ from html import escape as _html_escape
 from pathlib import Path
 from typing import Any
 
-from tournament_scheduler.club_distances import furthest_traveling_team
+from tournament_scheduler.clubs.distances import furthest_traveling_team
 from ..guest_slots import guest_slot_summary
 from ..models import SeasonPlan, chronological_tournaments
 from ..occupancy import tournament_end_time

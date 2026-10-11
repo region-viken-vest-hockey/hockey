@@ -13,7 +13,7 @@ import logging
 from datetime import date
 from typing import Any
 
-from tournament_scheduler.club_registry import canonicalize_club_name
+from tournament_scheduler.clubs.registry import canonicalize_club_name
 from tournament_scheduler.models import Game, SeasonPlan, Team, Tournament
 
 SEASON_PLAN_SCHEMA_VERSION = 1

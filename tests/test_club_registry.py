@@ -1,8 +1,8 @@
-"""Tests for the central club/calendar-source registry (club_registry.py)."""
+"""Tests for the central club/calendar-source registry (clubs/registry.py)."""
 
 import pytest
 
-from tournament_scheduler.club_registry import (
+from tournament_scheduler.clubs.registry import (
     CLUB_REGISTRY,
     CalendarSourceKind,
     build_data_source,
@@ -194,7 +194,7 @@ class TestCanonicalizeClubName:
         assert suggest_club_name("Totally Unrelated Name") is None
 
     def test_roster_loader_canonicalizes_club_names(self):
-        from tournament_scheduler.roster_loader import RosterLoader
+        from tournament_scheduler.intake.roster_loader import RosterLoader
 
         roster = RosterLoader.from_dict(
             {"Sandefjord Penguins Ishockeyklubb": {"U10": ["Sandefjord 1"]}}
@@ -202,7 +202,7 @@ class TestCanonicalizeClubName:
         assert roster.teams[0].club == "Sandefjord Penguins"
 
     def test_registrations_import_canonicalizes_club_names(self, tmp_path):
-        from tournament_scheduler.registrations import _read_registration_rows
+        from tournament_scheduler.intake.registrations import _read_registration_rows
 
         csv_path = tmp_path / "registrations.csv"
         csv_path.write_text(

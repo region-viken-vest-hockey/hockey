@@ -38,7 +38,7 @@ def _cmd_registrations(args: argparse.Namespace) -> int:
     if not getattr(args, 'registrations_command', None):
         return 1
 
-    from ..registrations import (
+    from ..intake.registrations import (
         RegistrationImportError,
         export_registrations,
         format_registration_summary,

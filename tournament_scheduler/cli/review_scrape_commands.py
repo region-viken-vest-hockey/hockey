@@ -24,7 +24,7 @@ def _cmd_review(args: argparse.Namespace) -> int:
 
 def _cmd_scrape_llm(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt scrape-llm`` — browser-tool capability guidance."""
-    from ..club_registry import club_for_source_name
+    from ..clubs.registry import club_for_source_name
     from ..pipeline.scraper_strategies import STRATEGIES, get_strategy, needs_llm_agent
 
     requested_club = args.club.strip()

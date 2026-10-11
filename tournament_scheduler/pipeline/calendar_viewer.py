@@ -19,7 +19,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from tournament_scheduler.club_registry import CLUB_REGISTRY, CalendarSourceKind, club_for_source_name
+from tournament_scheduler.clubs.registry import CLUB_REGISTRY, CalendarSourceKind, club_for_source_name
 from tournament_scheduler.html.data_computation import timestamp_string
 from tournament_scheduler.html.templates import CALENDAR_VIEWER
 

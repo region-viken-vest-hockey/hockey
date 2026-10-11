@@ -20,7 +20,7 @@ from tournament_scheduler.booking.calendar_availability import (
     CalendarAvailability,
     classify_club_event,
 )
-from tournament_scheduler.club_distances import furthest_traveling_team
+from tournament_scheduler.clubs.distances import furthest_traveling_team
 from tournament_scheduler.hosting.coverage import (
     hosting_targets_with_coverage_floor as _hosting_targets_with_coverage_floor,
     proportional_integer_targets as _shared_proportional_integer_targets,

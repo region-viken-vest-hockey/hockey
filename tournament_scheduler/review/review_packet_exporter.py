@@ -12,7 +12,7 @@ import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
 from rich.console import Console
 
-from ..club_distances import compute_team_travel_distances
+from ..clubs.distances import compute_team_travel_distances
 from ..guest_slots import guest_slot_summary
 from ..models import SeasonPlan, Tournament, find_duplicate_labels, team_key
 from ..occupancy import tournament_end_time

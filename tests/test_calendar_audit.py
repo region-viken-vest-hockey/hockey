@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-from tournament_scheduler.club_registry import CLUB_REGISTRY
+from tournament_scheduler.clubs.registry import CLUB_REGISTRY
 from tournament_scheduler.data_sources.ical_scraper import ICalScraper
 from tournament_scheduler.pipeline.calendar_viewer import _source_urls, generate_html
 from tournament_scheduler.utils.calendar_cache import CalendarCache

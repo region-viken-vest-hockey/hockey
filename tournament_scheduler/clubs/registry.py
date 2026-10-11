@@ -30,7 +30,7 @@ trusted as automatic external-blocker or negative-booking proof.
 Sandefjord Penguins is *not* a BookUp/credentialed source for the RVV
 Miniputt pipeline (issue #261): the club has a known, fixed weekly ice-time
 allocation instead of a bookable calendar, modelled deterministically in
-`tournament_scheduler.sandefjord_allocation` and fed into Stage 2 as a
+`tournament_scheduler.booking.sandefjord_allocation` and fed into Stage 2 as a
 `"fixed_allocation"` source (`pipeline.fixed_allocation_source`). The entry
 below keeps `source`/`kind=OUTLOOK` only so `is_known` stays true for the
 legacy registry consumers that still inspect `CalendarDataSource`; the
@@ -103,7 +103,7 @@ class ClubCalendarSource:
     # Defaults to False -- flip per club only once a run's calendar evidence
     # has concretely established club control, never as a blanket
     # assumption. Deliberately independent of Sandefjord Penguins' fixed
-    # weekly allocation (`sandefjord_allocation.py`): that club's busy
+    # weekly allocation (`booking/sandefjord_allocation.py`): that club's busy
     # windows represent ice genuinely unavailable to it and must stay a hard
     # conflict, not club-controlled.
     club_controlled_calendar: bool = False
@@ -216,7 +216,7 @@ CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
         note=(
             "Issue #261: the RVV Miniputt pipeline no longer scrapes this "
             "BookUp URL -- Sandefjord Penguins has a known, fixed weekend "
-            "ice-time allocation instead (see sandefjord_allocation.py), fed "
+            "ice-time allocation instead (see booking/sandefjord_allocation.py), fed "
             "into Stage 2 via a 'fixed_allocation' source. The BookUp URL is "
             "kept only so legacy, non-pipeline CLI commands still see this "
             "club as 'known'."
@@ -555,7 +555,7 @@ def build_data_source(entry: ClubCalendarSource, cache=None):
     Thin wrapper around the registry-driven
     `data_sources.calendar_source_factory.build_calendar_source`, kept here for
     backward compatibility with existing callers/tests that import
-    `build_data_source` from `club_registry`.
+    `build_data_source` from `clubs.registry`.
 
     For OUTLOOK sources this builds an `IceHallCalendar` backed by a shared
     `OutlookCalendarScraper` (Playwright-based webkalender).

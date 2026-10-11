@@ -3804,7 +3804,7 @@ class TestSlotAwareScheduling:
 
         # Every known club except Holmen is fully booked all day on every
         # free date, so no same-host date repair can succeed either.
-        from tournament_scheduler.club_registry import CLUB_REGISTRY
+        from tournament_scheduler.clubs.registry import CLUB_REGISTRY
 
         events_by_club = {}
         for club, entry in CLUB_REGISTRY.items():
@@ -3851,7 +3851,7 @@ class TestSlotAwareScheduling:
 
         # Every known club's arena is fully booked all day on every
         # tournament date -- no fallback can succeed.
-        from tournament_scheduler.club_registry import CLUB_REGISTRY
+        from tournament_scheduler.clubs.registry import CLUB_REGISTRY
 
         events_by_club = {}
         for club, entry in CLUB_REGISTRY.items():
