@@ -7,7 +7,7 @@ from tournament_scheduler.host_team_missing_repair import (
     candidate_fingerprint,
     enumerate_host_team_missing_repairs,
 )
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 
 
 def _team(club, label=None, age="U12", target=None):
@@ -418,7 +418,7 @@ def _frisk_style_u11_fixture():
     """
     from datetime import date
 
-    from tournament_scheduler.planning_contract import build_planning_problem
+    from tournament_scheduler.planning.contract import build_planning_problem
 
     registered = [
         _team(club, f"{club} {index}", age="U11")
@@ -615,7 +615,7 @@ def test_rehost_options_use_the_canonical_clubs_key_from_build_planning_problem(
     rejecting every host as ``arena_not_configured``."""
     from datetime import date
 
-    from tournament_scheduler.planning_contract import build_planning_problem
+    from tournament_scheduler.planning.contract import build_planning_problem
 
     registered = [
         _team(club, f"{club} {index}", age="U11")

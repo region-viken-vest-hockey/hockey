@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.planning_contract import build_planning_problem
+from tournament_scheduler.planning.contract import build_planning_problem
 from tournament_scheduler.season_baseline import (
     IMPROVED,
     KNOWN,

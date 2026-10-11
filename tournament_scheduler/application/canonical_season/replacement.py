@@ -23,7 +23,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
-from tournament_scheduler.final_verification import verify_canonical_candidate
+from tournament_scheduler.planning.verification import verify_canonical_candidate
 
 from .shared import (
     _operator_identity,
@@ -141,7 +141,7 @@ def _affected_participation_counts(
 ) -> dict[str, Any]:
     """Return full-season and half-season counts for affected identities."""
 
-    from tournament_scheduler import planning_half
+    from tournament_scheduler.planning import half as planning_half
 
     def parse_date(value: Any) -> _date | None:
         if not value:

@@ -23,7 +23,7 @@ from tournament_scheduler.canonical_exception_policy import (
     classify_candidate_violations,
     reclassify_accepted_exceptions,
 )
-from tournament_scheduler.planning_contract import verify_candidate as _verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate as _verify_candidate
 from tournament_scheduler.rule_catalog import annotate_violations
 
 MIN_TEAMS_PER_TOURNAMENT = 3
@@ -81,7 +81,7 @@ def _check_games(
         )
         # A recorded season/age-group withdrawal durably reduces the *eligible*
         # shape pool without rewriting the registered roster. The generator and
-        # `planning_contract.verify_candidate` already derive the effective round
+        # `planning.contract.verify_candidate` already derive the effective round
         # count from that reduced pool; the final round-count check must use the
         # same eligible-pool projection or a legitimate withdrawal is reported
         # as a `configured_round_count_mismatch` at export/audit time.

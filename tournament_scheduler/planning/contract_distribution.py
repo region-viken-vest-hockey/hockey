@@ -1,6 +1,6 @@
-"""Hosting/date-distribution scoring blocks for `planning_contract.score_candidate`.
+"""Hosting/date-distribution scoring blocks for `planning.contract.score_candidate`.
 
-Split out of `planning_contract.py` (which calls these) to keep that module
+Split out of `planning/contract.py` (which calls these) to keep that module
 under the file-length guideline -- these two blocks share no state with the
 rest of `score_candidate` beyond the already-normalized `tournaments` list.
 """
@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from tournament_scheduler import planning_half
+from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.home_representation import (
     home_representation_facts as _home_representation_facts,
 )

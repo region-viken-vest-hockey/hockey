@@ -32,7 +32,7 @@ from collections import Counter
 from datetime import date
 from typing import Any, Mapping, Sequence
 
-from tournament_scheduler import planning_half
+from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.club_distances import arena_to_club, distance
 from tournament_scheduler.opponent_diversity import (
     MEASURE_CO_ATTENDANCE,

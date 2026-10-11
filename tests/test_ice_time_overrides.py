@@ -740,7 +740,7 @@ def test_set_rejects_non_positive_minutes_and_unknown_tournament(tmp_path):
 def test_verifier_applies_override_to_format_minimum():
     """A projected override must not bypass the hard format/governing floor."""
 
-    from tournament_scheduler.planning_contract import verify_candidate
+    from tournament_scheduler.planning.contract import verify_candidate
 
     problem = _problem(ice=100, round_length=15)
     problem["ice_time_minutes_overrides"] = {"t1": 50}

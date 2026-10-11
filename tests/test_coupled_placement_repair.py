@@ -23,7 +23,7 @@ from tournament_scheduler.coupled_placement_repair import (
     placement_swap_consequences,
     resolve_swap_fields,
 )
-from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
 from tournament_scheduler.repair_adoption_guard import (
     REGRESSION_TEMPORAL_OFFENDERS,
     REGRESSION_TRAVEL,

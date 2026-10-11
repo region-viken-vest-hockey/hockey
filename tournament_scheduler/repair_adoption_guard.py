@@ -47,8 +47,8 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 from .finding_resolution import is_blocking_finding
 from .pipeline.fingerprints import stable_payload_sha256
-from .final_verification import verify_canonical_candidate
-from .planning_contract import score_candidate
+from .planning.verification import verify_canonical_candidate
+from .planning.contract import score_candidate
 from .quality_objectives import compare_quality_scores, with_unresolved_obligations_count
 from .rule_catalog import (
     CATALOG_BY_ID,

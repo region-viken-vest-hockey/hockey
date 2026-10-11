@@ -21,7 +21,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
-from tournament_scheduler.final_verification import verify_canonical_candidate
+from tournament_scheduler.planning.verification import verify_canonical_candidate
 
 from .shared import (
     _operator_identity,

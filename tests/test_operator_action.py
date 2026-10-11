@@ -494,7 +494,7 @@ def _write_export(work_dir, *, content: str = "<h1>plan</h1>") -> None:
     from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
     from tournament_scheduler.pipeline.run_manifest import RunManifest
     from tournament_scheduler.pipeline.verification_context import build_verification_context
-    from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
+    from tournament_scheduler.planning.contract import extract_candidate, verify_candidate
 
     export_dir = work_dir / "export"
     export_dir.mkdir(exist_ok=True)

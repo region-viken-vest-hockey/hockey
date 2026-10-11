@@ -21,7 +21,7 @@ from tournament_scheduler.canonical_exception_policy import (
     reclassify_accepted_exceptions,
     reclassify_accepted_source_interval,
 )
-from tournament_scheduler.final_verification import verify_canonical_candidate
+from tournament_scheduler.planning.verification import verify_canonical_candidate
 
 
 def _team(label: str) -> dict:

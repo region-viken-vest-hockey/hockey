@@ -65,7 +65,7 @@ from tournament_scheduler.participation.targets import (
     club_pool_sibling_spread,
     evaluate_participation,
 )
-from .planning_contract import _parse_date, score_candidate, verify_candidate
+from .planning.contract import _parse_date, score_candidate, verify_candidate
 from .quality_objectives import compare_quality_scores, with_unresolved_obligations_count
 from .team_schedule_quality import compare_changed_team_schedule_consequence
 
@@ -780,7 +780,7 @@ def _plays_on_date(
 
 
 def _same_half(problem: Mapping[str, Any], left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
-    from tournament_scheduler import planning_half
+    from tournament_scheduler.planning import half as planning_half
 
     split = _split_date(problem)
     left_half = planning_half.tournament_half(_parse_date(left.get("date")), split)

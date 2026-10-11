@@ -16,7 +16,7 @@ from tournament_scheduler.canonical_baseline import (
 )
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
-from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
 from tournament_scheduler.season_state import (
     SeasonStateError,
     apply_candidate,

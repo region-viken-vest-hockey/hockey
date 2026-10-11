@@ -17,7 +17,7 @@ from .placement_infeasibility import coverage_from_proof
 from .placement_infeasibility import proof_is_current
 from .placement_infeasibility import proofs_by_obligation
 from .placement_infeasibility import stale_coverage_from_proof
-from .planning_contract import verify_candidate
+from .planning.contract import verify_candidate
 from .rule_catalog import annotate_findings
 from .search_coverage import cheap_search_coverage
 from .unplaced_placement_repair import obligation_search_coverage

@@ -2,13 +2,13 @@
 
 The interactive Stage3Session and deterministic repair providers must agree on
 one candidate fingerprint even when an older/raw checkpoint omitted the
-candidate schema_version that planning_contract.extract_candidate supplies.
+candidate schema_version that planning.contract.extract_candidate supplies.
 """
 
 from tournament_scheduler.application.stage3_session import candidate_content_fingerprint
 from tournament_scheduler.application.stage3_session_store import Stage3SessionStore, fingerprint_plan
 from tournament_scheduler.host_team_missing_repair import candidate_fingerprint as repair_candidate_fingerprint
-from tournament_scheduler.planning_contract import extract_candidate
+from tournament_scheduler.planning.contract import extract_candidate
 
 
 def test_unversioned_checkpoint_has_same_session_and_repair_fingerprint(tmp_path):

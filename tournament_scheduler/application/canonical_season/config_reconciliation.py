@@ -13,7 +13,7 @@ from tournament_scheduler.canonical_state import canonical_state_revision, sched
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
 from tournament_scheduler.occupancy import ROUND_BUFFER_MINUTES
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 
 from .shared import _append_decision_history, _now_iso, _operator_identity, _resolve_plan_problem
 

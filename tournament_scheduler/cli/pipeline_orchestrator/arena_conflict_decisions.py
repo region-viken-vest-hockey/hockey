@@ -19,7 +19,7 @@ from .interactive_state_io import (
 def _candidate_dict(plan: "dict[str, Any]") -> "dict[str, Any] | None":
     """Return the mutable candidate dict (``{"tournaments": [...], ...}``)
     inside *plan*, whatever checkpoint shape it was loaded in (mirrors
-    ``planning_contract.extract_candidate`` but returns the *original*
+    ``planning.contract.extract_candidate`` but returns the *original*
     nested dict, not a copy, so mutations are visible to the caller)."""
     if not isinstance(plan, dict):
         return None

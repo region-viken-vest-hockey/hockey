@@ -21,7 +21,7 @@ from tournament_scheduler.change_protections import (
     RELEASED as CHANGE_PROTECTION_RELEASED,
     active_change_protections,
 )
-from tournament_scheduler.final_verification import verify_canonical_candidate
+from tournament_scheduler.planning.verification import verify_canonical_candidate
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )

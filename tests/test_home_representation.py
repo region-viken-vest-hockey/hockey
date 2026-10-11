@@ -23,7 +23,7 @@ from tournament_scheduler.home_representation_repair import (
     enumerate_home_representation_repairs,
     home_representation_finding_id,
 )
-from tournament_scheduler.planning_contract import (
+from tournament_scheduler.planning.contract import (
     build_planning_problem,
     score_candidate,
     verify_candidate,

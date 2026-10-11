@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from tournament_scheduler import planning_half
+from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.effective_tournament_shape import (
     NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP,
     compute_effective_tournament_shape,

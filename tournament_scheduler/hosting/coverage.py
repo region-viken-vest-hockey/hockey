@@ -1,7 +1,7 @@
 """Deterministic club x age-group hosting-coverage facts (issue #266).
 
 Pure functions over the shared ``planning_problem``/``candidate`` contracts
-(``planning_contract.py``) -- no ``SeasonPlanner`` dependency, so this module
+(``planning/contract.py``) -- no ``SeasonPlanner`` dependency, so this module
 is safe for the canonical LLM-directed decision path to import (see
 ``tests/test_architecture_boundaries.py``, which forbids that path from
 depending on ``host_assignment.py``'s heuristic ranking).

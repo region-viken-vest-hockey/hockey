@@ -14,7 +14,7 @@ import json
 import pytest
 
 from tournament_scheduler.application.decisions import DECISION_ACTION_IDS
-from tournament_scheduler.final_verification import publication_readiness, verify_final_candidate
+from tournament_scheduler.planning.verification import publication_readiness, verify_final_candidate
 from tournament_scheduler.game_generation import generate_tournament_games
 from tournament_scheduler.host_team_missing_repair import (
     apply_host_team_missing_repair_option,
@@ -32,7 +32,7 @@ from tournament_scheduler.operator_waivers import (
     revoke_waiver,
     scope_fingerprint,
 )
-from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
 
 U11 = "U11"
 

@@ -1,6 +1,6 @@
 """Bounded provenance summaries for canonical decision history.
 
-A full :func:`~tournament_scheduler.planning_contract.verify_candidate` result is
+A full :func:`~tournament_scheduler.planning.contract.verify_candidate` result is
 whole-season evidence: hundreds of participation deviations, club-pool records,
 manual-placement rows and hosting-balance rows. Persisting it inline in every
 ``move`` history entry duplicates the same payload per move and dominates the

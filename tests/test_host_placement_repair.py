@@ -13,7 +13,7 @@ from tournament_scheduler.local_repair_options import (
     apply_local_repair_option,
     enumerate_local_repair_options,
 )
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 
 MANUAL_REASON = "Ingen verifisert ledig istid for H 2026-01-10 — turneringen må plasseres manuelt."
 

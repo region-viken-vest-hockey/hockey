@@ -324,7 +324,7 @@ def _adopt_canonical_baseline(
     than raised here -- the normal pre-export hard-verification gate remains
     the single authority that blocks a bad downstream export.
     """
-    from ..planning_contract import build_planning_problem, verify_candidate
+    from ..planning.contract import build_planning_problem, verify_candidate
 
     schedule = canonical_state.get("schedule") or {}
     baseline = canonical_state.get("baseline")

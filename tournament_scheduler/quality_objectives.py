@@ -3,7 +3,7 @@
 Two very different surfaces compare candidates on the *same* soft quality
 dimensions: Stage 3's multi-objective search / A/B promotion gate, and the
 promoted-season maintenance loop. Those dimensions all come from
-:func:`tournament_scheduler.planning_contract.score_candidate` and must not be
+:func:`tournament_scheduler.planning.contract.score_candidate` and must not be
 re-derived, with subtly different names or orientations, per surface.
 
 This module owns:

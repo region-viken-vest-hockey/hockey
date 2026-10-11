@@ -27,14 +27,14 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
-from . import planning_half
+from .planning import half as planning_half
 from .application.decisions import DecisionContext
 from .effective_tournament_shape import compute_effective_tournament_shape
 from .game_generation import generate_tournament_games
 from .hosting.representation import clubs_represent_same_club, constituent_clubs, host_eligible_teams
 from .models import Team
 from .operator_waivers import find_participation_waiver
-from .planning_contract import (
+from .planning.contract import (
     _parse_date,
     candidate_content_fingerprint,
     external_calendar_conflict,
@@ -71,7 +71,7 @@ class RepairOption:
 def candidate_fingerprint(candidate: Mapping[str, Any]) -> str:
     """Candidate identity facade shared with the Stage 3 lifecycle session.
 
-    Delegates to the single canonical implementation in ``planning_contract``
+    Delegates to the single canonical implementation in ``planning.contract``
     so the same candidate can never carry two fingerprints across the repair
     and lifecycle boundaries (a mismatch made an otherwise-valid repair look
     stale).
@@ -408,7 +408,7 @@ def _rehost_options(candidate, problem, tournament, finding_id: str, fingerprint
     t_date = _parse_date(tournament.get("date"))
     represented = sorted({part for team in tournament.get("teams", []) for part in constituent_clubs(team.get("club", ""))})
     # The canonical planning problem exposes club -> arena as ``clubs``
-    # (see planning_contract.build_planning_problem and stage3_optimizer);
+    # (see planning.contract.build_planning_problem and stage3_optimizer);
     # ``club_arenas`` is the same map under the name older/hand-built test
     # problems used. Accept either so a rehost is never rejected as
     # ``arena_not_configured`` just because the problem used the other key.

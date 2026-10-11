@@ -1129,7 +1129,7 @@ def select_frontier_candidate(
             "reason": "frontier_candidate_body_missing",
             "candidate_ref": candidate_ref,
         }
-    from ..planning_contract import verify_candidate
+    from ..planning.contract import verify_candidate
 
     verification = verify_candidate(dict(body), dict(problem)) if problem else {"ok": True}
     if not verification.get("ok", True):

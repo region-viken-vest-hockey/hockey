@@ -23,7 +23,7 @@ from tournament_scheduler.date_policy_relocation import (
     enumerate_date_policy_relocations,
     relocate_excluded_date_tournaments,
 )
-from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
 from tournament_scheduler.search_neighborhood_repair import (
     DATE_MOVE_VIOLATION_CODES,
     enumerate_search_neighborhood_repairs,

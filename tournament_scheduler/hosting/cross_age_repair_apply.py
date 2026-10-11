@@ -20,7 +20,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Dict, List, Optional, Set
 
-from tournament_scheduler import planning_half
+from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.hosting.coverage import hosting_coverage_matrix, unresolved_from_matrix
 from tournament_scheduler.hosting.cross_age_repair import candidate_reallocation_slots, club_hosting_evidence
 from tournament_scheduler.hosting.cross_age_repair_ops import (

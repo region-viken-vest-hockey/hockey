@@ -26,8 +26,8 @@ from ..operator_waivers import (
     load_waivers,
     revoke_waiver,
 )
-from .. import planning_half
-from ..planning_contract import _parse_date, build_planning_problem, extract_candidate
+from ..planning import half as planning_half
+from ..planning.contract import _parse_date, build_planning_problem, extract_candidate
 from ..pipeline.state import PipelineState, StageName
 
 _console = Console()
@@ -92,7 +92,7 @@ def _applied_waiver_ids(work_dir: str) -> "set[str] | None":
         problem = _build_problem(state, config, planning_checkpoint)
         if problem is None:
             return None
-        from ..planning_contract import verify_candidate
+        from ..planning.contract import verify_candidate
 
         result = verify_candidate(candidate, problem)
         return {

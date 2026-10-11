@@ -20,8 +20,8 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     CanonicalSeasonStore,
     SeasonStateError,
 )
-from tournament_scheduler.final_verification import verify_final_candidate
-from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+from tournament_scheduler.planning.verification import verify_final_candidate
+from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
 from tournament_scheduler.season_maintenance import (
     list_findings,
     load_context,

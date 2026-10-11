@@ -8,7 +8,8 @@ from unittest.mock import patch
 
 import pytest
 
-from tournament_scheduler import participant_selection, planning_half
+from tournament_scheduler import participant_selection
+from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.participation.fairness_scoring import DEFAULT_FAIRNESS_THRESHOLDS
 from tournament_scheduler.models import (
     CalendarEvent,

@@ -35,7 +35,7 @@ from .option_evaluation import (
     _travel_metrics,
 )
 from .pareto import non_dominated_indices, representative_indices
-from .planning_contract import score_candidate
+from .planning.contract import score_candidate
 from .quality_objectives import compare_quality_scores, with_unresolved_obligations_count
 from .repair_options import _option_is_applicable
 from .search_coverage import (
@@ -43,7 +43,7 @@ from .search_coverage import (
     SEARCH_COVERAGE_INCOMPLETE,
     SEARCH_COVERAGE_OPTION_AVAILABLE,
 )
-from .planning_contract import verify_candidate
+from .planning.contract import verify_candidate
 from .repair_adoption_guard import RepairPassLedger
 from .repair_adoption_guard import adoption_history_summary
 from .repair_adoption_guard import evaluate_adoption
@@ -75,7 +75,7 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
     # floor is a durable follow-up finding at the audit boundary, not a
     # new-placement hard violation. Use the same revision-bound classification
     # the export/preflight path applies so findings/audit and export agree.
-    from .final_verification import _reclassify_accepted_booking_floor
+    from .planning.verification import _reclassify_accepted_booking_floor
 
     accepted_floor_findings, remaining_violations = _reclassify_accepted_booking_floor(
         problem, plan, list(verification.get("violations") or [])

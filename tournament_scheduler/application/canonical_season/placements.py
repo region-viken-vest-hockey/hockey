@@ -29,7 +29,7 @@ from tournament_scheduler.operational_acceptability import (
     required_opt_in_flags,
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
-from tournament_scheduler.final_verification import verify_canonical_candidate
+from tournament_scheduler.planning.verification import verify_canonical_candidate
 
 from .shared import (
     _operator_identity,
@@ -92,7 +92,7 @@ def _apply_move_to_plan(
                     f"the planning window {window_start.isoformat()}\u2013{window_end.isoformat()}"
                 )
             if not allow_cross_half and original_placement.get("date"):
-                from tournament_scheduler import planning_half
+                from tournament_scheduler.planning import half as planning_half
 
                 split = planning_half.christmas_split_date(window_start, window_end)
                 old_half = planning_half.tournament_half(

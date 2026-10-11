@@ -14,7 +14,7 @@ from datetime import date, datetime, timedelta
 from time import perf_counter
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
-from tournament_scheduler import planning_half
+from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.participation.fairness_model import SeasonFairnessModel
 from tournament_scheduler.game_generation import (
     arena_counts as _arena_counts,
@@ -67,7 +67,7 @@ from tournament_scheduler.hosting.same_age_repair import (
 )
 from tournament_scheduler.hosting.same_age_repair_apply import attempt_same_age_repairs as _attempt_same_age_repairs
 from tournament_scheduler.booking.calendar_availability import host_confirmation_from_evidence
-from tournament_scheduler.planning_contract import external_calendar_conflict
+from tournament_scheduler.planning.contract import external_calendar_conflict
 from tournament_scheduler.tournament_identity import allocate_tournament_id
 from tournament_scheduler.participant_roster_sizing import (
     club_demand_shares as _club_demand_shares,
@@ -274,7 +274,7 @@ class SeasonPlanner:
         self.shared_host_decisions: Dict[Tuple[str, str], str] = dict(shared_host_decisions or {})
         # Real external busy intervals per club (issue #264 shape), reused
         # here to surface unresolved_external_conflicts non-blocking, same
-        # data source as planning_contract.verify_candidate.
+        # data source as planning.contract.verify_candidate.
         self.club_busy_intervals: Dict[str, List[Dict[str, str]]] = dict(club_busy_intervals or {})
         self.fairness_thresholds = dict(DEFAULT_FAIRNESS_THRESHOLDS)
         if fairness_thresholds:
@@ -1657,7 +1657,7 @@ class SeasonPlanner:
         For use outside the incremental ``build()`` flow -- e.g. after a
         post-export manual patch has changed tournament membership -- where
         there is no per-selection bookkeeping to reuse. Mirrors
-        ``planning_contract.verify_candidate``'s own participation counting
+        ``planning.contract.verify_candidate``'s own participation counting
         so the two stay consistent (issue #327 follow-up).
         """
         self._tournament_participations = {self._team_key(team): 0 for team in self.roster.teams}

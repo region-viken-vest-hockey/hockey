@@ -204,14 +204,14 @@ def _participation_target_deviation_rule(plan: SeasonPlan) -> dict[str, Any]:
     exact target satisfaction is preferred, but a genuine over/under deviation
     is allowed as a bounded relaxation with avoidability evidence.
 
-    Mirrors ``planning_contract.verify_candidate``'s participation evaluation:
+    Mirrors ``planning.contract.verify_candidate``'s participation evaluation:
     an explicit per-team ``target_tournament_count`` always wins (season-wide);
     otherwise ``plan.participation_targets_by_age_group``'s before/after value
     for the team's age group is the authoritative per-half target, checked
     independently per half using the same Christmas boundary as
-    :mod:`planning_half`.
+    :mod:`planning.half`.
     """
-    from . import planning_half
+    from .planning import half as planning_half
     from tournament_scheduler.participation.targets import BOUNDED_SEARCH_EXHAUSTED, PROVEN_INFEASIBLE
 
     counts: dict[tuple[str, str, str], int] = {}

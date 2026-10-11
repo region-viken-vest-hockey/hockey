@@ -15,7 +15,7 @@ intra-season-only gap check could miss that entirely.
 This module is intentionally planner/candidate-agnostic: it takes a season
 window and a team's tournament dates and returns the gap breakdown. Both
 ``tournament_scheduler.warnings`` (SeasonPlanner-side reporting) and
-``tournament_scheduler.planning_contract.score_candidate`` (the generic
+``tournament_scheduler.planning.contract.score_candidate`` (the generic
 candidate scorer used for plan selection/optimization) build on it, so the
 two callers can't drift into inconsistent definitions of "temporal
 coverage" again.
@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Dict, Hashable, List, Optional, Sequence, Tuple
 
-from tournament_scheduler import planning_half
+from tournament_scheduler.planning import half as planning_half
 
 # Default max-gap threshold (days) above which a team's season coverage is
 # reported as an offender. Mirrors SeasonPlanner's historical

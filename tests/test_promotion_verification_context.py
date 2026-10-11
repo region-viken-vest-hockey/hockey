@@ -24,7 +24,7 @@ from tournament_scheduler.pipeline.verification_context import (
     VerificationContextError,
     resolve_promotion_verification_context,
 )
-from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
+from tournament_scheduler.planning.contract import extract_candidate, verify_candidate
 from tournament_scheduler.season_state import (
     SeasonStateError,
     decisions_path,

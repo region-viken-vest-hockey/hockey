@@ -232,7 +232,7 @@ def test_calendar_booking_confirmation_binds_event_only_to_matching_tournament(t
     assert decisions["decisions"]["t1"]["placement_locked"] is True
     assert decisions["decisions"]["t1"]["participants_locked"] is False
 
-    from tournament_scheduler.planning_contract import verify_candidate
+    from tournament_scheduler.planning.contract import verify_candidate
     from tournament_scheduler.booking.calendar_bookings import project_associations_into_problem
 
     plan = load_schedule("2026-2027", root=root)["plan"]
@@ -1099,7 +1099,7 @@ def test_stale_calendar_booking_association_fails_closed_when_tournament_moves(t
     findings = calendar_booking_findings(season="2026-2027", root=root, problem=problem)
     assert "tournament_arena_changed" in findings["findings"][0]["reasons"]
     from tournament_scheduler.booking.calendar_bookings import project_associations_into_problem
-    from tournament_scheduler.planning_contract import verify_candidate
+    from tournament_scheduler.planning.contract import verify_candidate
 
     plan = load_schedule("2026-2027", root=root)["plan"]
     projected = project_associations_into_problem(problem, load_decisions("2026-2027", root=root), plan)
@@ -1130,7 +1130,7 @@ def test_stale_calendar_booking_association_fails_closed_when_start_time_changes
     findings = calendar_booking_findings(season="2026-2027", root=root, problem=problem)
     assert "tournament_start_time_changed" in findings["findings"][0]["reasons"]
     from tournament_scheduler.booking.calendar_bookings import project_associations_into_problem
-    from tournament_scheduler.planning_contract import verify_candidate
+    from tournament_scheduler.planning.contract import verify_candidate
 
     plan = load_schedule("2026-2027", root=root)["plan"]
     projected = project_associations_into_problem(problem, load_decisions("2026-2027", root=root), plan)
@@ -1162,7 +1162,7 @@ def test_calendar_booking_association_uses_accepted_override_when_default_durati
 
     from tournament_scheduler.booking.calendar_bookings import project_associations_into_problem
     from tournament_scheduler.canonical_ice_time_overrides import project_overrides_into_problem
-    from tournament_scheduler.planning_contract import verify_candidate
+    from tournament_scheduler.planning.contract import verify_candidate
 
     plan = load_schedule("2026-2027", root=root)["plan"]
     decisions = load_decisions("2026-2027", root=root)
@@ -1327,7 +1327,7 @@ def test_approval_refuses_known_external_conflict(tmp_path):
 
     # Approval does not suppress the conflict either: the same problem makes
     # final verification surface it for the operator.
-    from tournament_scheduler.planning_contract import verify_candidate
+    from tournament_scheduler.planning.contract import verify_candidate
 
     verification = verify_candidate(load_schedule("2026-2027", root=root)["plan"], problem)
     assert verification["manual_external_conflict_placements"][0]["tournament_id"] == "t1"
@@ -2401,7 +2401,7 @@ def test_below_floor_booking_findings_and_export_preflight_parity(tmp_path):
     """Apply-time confirmation, findings/audit and export/preflight agree on a
     source-confirmed exact short interval for the same revision (ADR 0005)."""
 
-    from tournament_scheduler.final_verification import verify_final_candidate
+    from tournament_scheduler.planning.verification import verify_final_candidate
     from tournament_scheduler.season_maintenance import list_findings, load_context
 
     event = {
@@ -2499,11 +2499,11 @@ def test_below_floor_booking_stage4_export_builder_stays_hard_valid(tmp_path):
     association so final verification stays hard-valid with the same warning.
     """
 
-    from tournament_scheduler.final_verification import verify_final_candidate
+    from tournament_scheduler.planning.verification import verify_final_candidate
     from tournament_scheduler.pipeline.stage4_export_verification import (
         _build_export_verification_problem,
     )
-    from tournament_scheduler.planning_contract import extract_candidate
+    from tournament_scheduler.planning.contract import extract_candidate
 
     event = {
         "date": "2026-09-12",

@@ -20,7 +20,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
 
 from .shared import (

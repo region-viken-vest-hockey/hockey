@@ -16,7 +16,7 @@ from tournament_scheduler.placement_preserving_roster_repair import (
     build_placement_preserving_roster_decision_context,
     enumerate_placement_preserving_roster_repairs,
 )
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 
 
 def _team(club, label, age="U11", target=None):

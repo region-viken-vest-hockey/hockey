@@ -23,7 +23,7 @@ import copy
 from datetime import date
 from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 
-from . import planning_half
+from .planning import half as planning_half
 from .candidate_weekends import season_weekend_dates
 from .date_policy import problem_date_exclusions
 from .host_team_missing_repair import (
@@ -31,7 +31,7 @@ from .host_team_missing_repair import (
     _candidate_start_times,
     candidate_fingerprint,
 )
-from .planning_contract import (
+from .planning.contract import (
     _parse_date,
     _team_identity,
     external_calendar_conflict,

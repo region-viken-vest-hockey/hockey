@@ -47,7 +47,7 @@ from tournament_scheduler.participation.withdrawals import (
     project_into_problem,
 )
 
-from tournament_scheduler.final_verification import verify_canonical_candidate
+from tournament_scheduler.planning.verification import verify_canonical_candidate
 from tournament_scheduler.request_constraints import compare_request_constraint_violations
 
 from .shared import (

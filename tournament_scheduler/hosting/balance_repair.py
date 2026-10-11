@@ -35,7 +35,7 @@ from tournament_scheduler.host_team_missing_repair import RepairOption, candidat
 from tournament_scheduler.hosting.coverage import hosting_balance_matrix
 from tournament_scheduler.hosting.responsibility import unexplained_responsibility_transfers
 from tournament_scheduler.participation.withdrawals import eligible_hosting_teams
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.stage3.optimizer import optimize_candidate
 
 HOSTING_FINDING_PREFIX = "hosting_balance"

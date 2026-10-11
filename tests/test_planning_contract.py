@@ -1,8 +1,8 @@
-"""Unit tests for tournament_scheduler.planning_contract (issue #257)."""
+"""Unit tests for tournament_scheduler.planning.contract (issue #257)."""
 
 from __future__ import annotations
 
-from tournament_scheduler.planning_contract import (
+from tournament_scheduler.planning.contract import (
     CANDIDATE_SCHEMA_VERSION,
     candidate_from_plan_dict,
     extract_candidate,
@@ -904,7 +904,7 @@ class TestVerifyCandidateWithProblem:
         """A configured fixed booking is deterministic knowledge, never an
         ambiguous fact: a candidate-borne interpretation must not be able to
         turn it into movable capacity."""
-        from tournament_scheduler.planning_contract import apply_calendar_interpretations
+        from tournament_scheduler.planning.contract import apply_calendar_interpretations
 
         event = "Sandefjord Penguins fast istid (opptatt utenom tildelt helgevindu)"
         busy = {
@@ -933,7 +933,7 @@ class TestVerifyCandidateWithProblem:
     def test_inferred_interpretation_needs_an_unclassified_title(self):
         """Only a title no configured rule classifies is eligible, so the same
         overlay is a no-op for a configured movable interval."""
-        from tournament_scheduler.planning_contract import apply_calendar_interpretations
+        from tournament_scheduler.planning.contract import apply_calendar_interpretations
 
         busy = {
             "Kongsberg": [

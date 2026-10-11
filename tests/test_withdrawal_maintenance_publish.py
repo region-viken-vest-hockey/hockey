@@ -24,7 +24,7 @@ from tournament_scheduler.pipeline.verification_context import (
     build_verification_context,
     resolve_publish_verification_context,
 )
-from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
+from tournament_scheduler.planning.contract import extract_candidate, verify_candidate
 
 
 def _team(club: str, label: str, age: str) -> dict:

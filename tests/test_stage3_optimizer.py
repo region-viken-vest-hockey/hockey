@@ -6,7 +6,7 @@ import random
 
 import pytest
 
-from tournament_scheduler.planning_contract import score_candidate, verify_candidate
+from tournament_scheduler.planning.contract import score_candidate, verify_candidate
 from tournament_scheduler.stage3.optimizer import optimize_candidate, optimize_candidate_pareto
 
 

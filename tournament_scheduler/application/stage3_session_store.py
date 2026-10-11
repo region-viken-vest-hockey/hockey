@@ -86,7 +86,7 @@ def extract_candidate_body(plan: Any) -> dict[str, Any] | None:
     """Return the candidate body (``{"tournaments": [...]}``) inside *plan*.
 
     Shape handling only -- the same two checkpoint shapes
-    ``planning_contract.extract_candidate`` accepts. Kept here so the
+    ``planning.contract.extract_candidate`` accepts. Kept here so the
     application layer does not need to import planner/domain internals just
     to fingerprint a candidate.
     """

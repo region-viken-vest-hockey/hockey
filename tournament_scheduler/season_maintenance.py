@@ -27,7 +27,7 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from .canonical_baseline import build_canonical_baseline
-from .planning_contract import score_candidate, verify_candidate
+from .planning.contract import score_candidate, verify_candidate
 from .quality_objectives import (
     with_unresolved_obligations_count,
 )
@@ -282,7 +282,7 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
     report a green completion.
     """
     from .canonical_baseline import verify_canonical_locks
-    from .final_verification import verify_final_candidate
+    from .planning.verification import verify_final_candidate
     from .repair_adoption_guard import season_wide_audit
     from .season_state import season_lifecycle_report
 
@@ -397,7 +397,7 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
         expected_revision=revision,
         current_revision=revision_after,
         covered_verifier_owners=(
-            "tournament_scheduler.final_verification.verify_final_candidate",
+            "tournament_scheduler.planning.verification.verify_final_candidate",
             "tournament_scheduler.canonical_baseline.verify_canonical_locks",
             *owner_covered,
         ),

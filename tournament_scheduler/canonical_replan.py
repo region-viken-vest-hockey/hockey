@@ -24,7 +24,7 @@ from tournament_scheduler.canonical_baseline import (
     change_cost,
     verify_canonical_locks,
 )
-from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
 from tournament_scheduler.participation.targets import search_evidence_from_acceptances
 from tournament_scheduler.season_state import (
     DEFAULT_SEASON_ROOT,

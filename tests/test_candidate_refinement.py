@@ -44,7 +44,7 @@ from tournament_scheduler.pipeline.export_lifecycle import (
 )
 from tournament_scheduler.pipeline.run_manifest import RunManifest
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.planning_contract import build_planning_problem
+from tournament_scheduler.planning.contract import build_planning_problem
 
 FINDING = "unplaced_placement:U10:2026-10-10:1"
 

@@ -38,8 +38,8 @@ from pathlib import Path
 from typing import Any
 
 from tournament_scheduler.booking.arena_conflicts import find_arena_interval_collisions
-from ..final_verification import verify_final_candidate
-from ..planning_contract import extract_candidate
+from ..planning.verification import verify_final_candidate
+from ..planning.contract import extract_candidate
 from .export_lifecycle import EXPORT_LIFECYCLE_FILENAME, write_draft_manifest
 from .export_projection_guard import assert_export_preserves_canonical_plan, tournament_projection
 from .fingerprints import stable_payload_sha256
@@ -682,7 +682,7 @@ def run(
         except Exception:  # noqa: BLE001 - evidence is best-effort, never blocks export
             candidate_weekends_by_tournament = {}
     # Genuine external calendar conflicts the planner/optimizer couldn't route
-    # around (see planning_contract.verify_candidate's manual_external_conflict_placements).
+    # around (see planning.contract.verify_candidate's manual_external_conflict_placements).
     external_conflict_entries: list[dict[str, str]] = []
     for item in getattr(plan, "unresolved_external_conflicts", None) or []:
         conflict_host_club = str(item.get("host_club", "") or "")

@@ -149,14 +149,16 @@ moved one domain slice at a time.
 | `participation/` | participation targets, withdrawals and deviation repair, fairness model/scoring, temporal coverage | moved |
 | `booking/` | calendar availability and bookings, arena conflict detection and the arena-conflict decision record | moved |
 | `stage3/` | Stage 3 search: local optimizer, CP-SAT engine and its slot/club-cap/diagnostic helpers, engine dispatch, A/B and shadow comparison, decision context | moved |
-| `planning_contract.py`, `planning_half.py`, `final_verification.py`, `rule_catalog.py` and related flat modules | planning problem, verification and scoring | not yet moved |
+| `planning/` | planning contract (candidate extraction, planning problem, independent hard verifier and scorer), its distribution scoring blocks, the before/after-Christmas split and final export verification | moved |
+| `rule_catalog.py`, `pareto.py`, `quality_objectives.py` and related flat modules | rule registry and shared multi-objective scoring used across domains | not yet moved |
 | `canonical_*`, `season_*`, `application/` | canonical season state, maintenance, approvals and requests | not yet moved |
 | `cli/`, `pipeline/`, `html/`, `excel/`, `csv/`, `ical/` | CLI transport, use-case orchestration and rendering/export adapters | layer adapters |
 
 Layer rules for domain packages (`hosting/`, `participation/`): they must not import
 from `tournament_scheduler.cli` or `tournament_scheduler.infrastructure`. The locality
-guards in `tests/test_hosting_package_layout.py` and
-`tests/test_participation_package_layout.py` enforce the placement and the import rule.
+guards in `tests/test_hosting_package_layout.py`,
+`tests/test_participation_package_layout.py` and `tests/test_planning_package_layout.py`
+enforce the placement and the import rule.
 
 ## Scheduling-rule implementation map
 

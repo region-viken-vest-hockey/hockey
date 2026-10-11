@@ -50,7 +50,7 @@ from .host_team_missing_repair import (
     candidate_fingerprint,
 )
 from tournament_scheduler.participation.targets import resolve_season_target
-from .planning_contract import _parse_date, verify_candidate
+from .planning.contract import _parse_date, verify_candidate
 
 # The family owns participant-only repairs for these hard findings. Anything
 # else (a missing host team, a bad date, an arena conflict) belongs to another

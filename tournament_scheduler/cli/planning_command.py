@@ -197,7 +197,7 @@ def _cmd_season_diff_apply(args: argparse.Namespace) -> int:
     from ..operator_waivers import load_active_waivers
     from ..pipeline.stage1_config import load_effective_config
     from ..pipeline.state import StageName
-    from ..planning_contract import build_planning_problem, extract_candidate
+    from ..planning.contract import build_planning_problem, extract_candidate
     from ..season_state import apply_candidate
 
     candidate_path = _Path(args.candidate)

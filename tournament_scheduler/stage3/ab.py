@@ -1,6 +1,6 @@
 """Old-vs-new Stage 3 planner A/B comparison (issue #257, scope items 6-7).
 
-Runs the deterministic verifier and scorer from :mod:`planning_contract`
+Runs the deterministic verifier and scorer from :mod:`planning.contract`
 over two candidates produced from the *same* normalized planning problem —
 the existing ``SeasonPlanner`` baseline and a Stage 3 v2 candidate (e.g. the
 :mod:`stage3_optimizer` repair pass) — and reports whether the new candidate
@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from tournament_scheduler.canonical_baseline import change_cost
-from tournament_scheduler.planning_contract import score_candidate, verify_candidate
+from tournament_scheduler.planning.contract import score_candidate, verify_candidate
 from tournament_scheduler.quality_objectives import (
     compare_quality_scores as _compare_scores,
     with_unresolved_obligations_count as _with_unresolved_count,

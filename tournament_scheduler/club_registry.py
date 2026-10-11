@@ -97,7 +97,7 @@ class ClubCalendarSource:
     # own miniputt tournaments) rather than a genuine external booking. When
     # True, `pipeline.stage3_helpers._build_club_busy_intervals` tags this
     # club's busy intervals `"kind": "club_controlled"`, and
-    # `planning_contract.external_calendar_conflict` no longer treats them as
+    # `planning.contract.external_calendar_conflict` no longer treats them as
     # a hard conflict for tournaments this same club hosts (though
     # `verify_candidate` still records their use for the evidence bundle).
     # Defaults to False -- flip per club only once a run's calendar evidence

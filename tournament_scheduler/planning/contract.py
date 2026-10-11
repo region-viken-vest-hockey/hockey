@@ -33,7 +33,7 @@ from datetime import date
 from itertools import combinations
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
-from tournament_scheduler import planning_half
+from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.booking.calendar_availability import (
     CLASSIFICATION_SOURCE_INFERRED,
     CalendarAvailability,
@@ -76,7 +76,7 @@ from tournament_scheduler.participation.withdrawals import (
     withdrawn_team_identities_for_tournament as _withdrawn_team_identities_for_tournament,
 )
 from tournament_scheduler.tournament_identity import validate_tournament_identity
-from tournament_scheduler.planning_contract_distribution import (
+from tournament_scheduler.planning.contract_distribution import (
     home_representation as _home_representation,
     hosting_fairness as _hosting_fairness,
     month_and_half_distribution as _month_and_half_distribution,

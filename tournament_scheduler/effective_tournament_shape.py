@@ -19,7 +19,7 @@ from typing import Optional
 # Pause/bye teams are not allowed in any materialized tournament: every
 # scheduled team must play in every round. With the current U12/JU12 capacity
 # of 4 teams this also means those tournaments must be exactly 4 teams / 6 games.
-# Canonically defined here and re-exported from `planning_contract` (which
+# Canonically defined here and re-exported from `planning.contract` (which
 # owns the rest of the planning-contract verifier) to avoid a circular import
 # between the two modules.
 NO_BYE_MIN_TEAMS_PER_TOURNAMENT = 4

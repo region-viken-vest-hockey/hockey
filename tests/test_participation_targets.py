@@ -32,7 +32,7 @@ from tournament_scheduler.participation.targets import (
     resolve_season_target,
     search_evidence_from_acceptances,
 )
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 
 U11 = "U11"
 
@@ -345,7 +345,7 @@ def test_cross_half_compensation_capacity_is_surfaced_as_evidence():
 
 
 def test_publication_readiness_flags_over_target_deviation_as_review():
-    from tournament_scheduler.final_verification import publication_readiness
+    from tournament_scheduler.planning.verification import publication_readiness
 
     readiness = publication_readiness(
         {
@@ -637,7 +637,7 @@ def test_counts_as_unresolved_shortfall_only_for_genuine_deficits():
 def test_verify_candidate_carries_club_pool_classification_and_readiness_ignores_redistribution():
     """The export/readiness layer receives the classification and does not
     count pure intra-club redistribution as an unresolved shortfall."""
-    from tournament_scheduler.final_verification import publication_readiness
+    from tournament_scheduler.planning.verification import publication_readiness
 
     a, b, c = _team("Jar", "Jar Hvit", _JU10), _team("Jar", "Jar Blå", _JU10), _team(
         "Kongsberg", "Kongsberg 1", _JU10
@@ -669,7 +669,7 @@ def test_verify_candidate_carries_club_pool_classification_and_readiness_ignores
 
 def test_publication_readiness_is_publishable_when_only_intra_club_distribution_remains():
     """Aggregate-complete 5 + 3 must not block publication by itself."""
-    from tournament_scheduler.final_verification import publication_readiness
+    from tournament_scheduler.planning.verification import publication_readiness
 
     result = {
         "violations": [],

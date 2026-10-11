@@ -32,7 +32,7 @@ from ..plan_derived_state import (
     publication_readiness_with_plan_placements,
     reconcile_plan_derived_state,
 )
-from ..planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
+from ..planning.contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
 from tournament_scheduler.participation.targets import INTRA_CLUB_DISTRIBUTION
 from tournament_scheduler.participation.withdrawals import withdrawn_team_count_for_tournament
 from . import audit_evidence

@@ -37,8 +37,8 @@ from tournament_scheduler.operational_acceptability import (
     required_opt_in_flags,
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
-from tournament_scheduler.final_verification import verify_canonical_candidate
-from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
+from tournament_scheduler.planning.verification import verify_canonical_candidate
+from tournament_scheduler.planning.contract import extract_candidate, verify_candidate
 from tournament_scheduler.published_baseline import (
     assert_season_allows_global_regeneration,
     is_published_sealed,

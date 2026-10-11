@@ -21,7 +21,7 @@ from tournament_scheduler.canonical_state import canonical_state_revision
 from tournament_scheduler.date_policy import problem_forbidden_dates
 from tournament_scheduler.host_placement_repair import _candidate_weekend_dates
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.season_maintenance import apply_repair, load_context
 from tournament_scheduler.season_state import (
     SeasonStateError,

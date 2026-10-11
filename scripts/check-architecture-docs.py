@@ -37,8 +37,8 @@ DIAGRAM_NAMES = ("01-system-data-flow", "02-planning-decision", "03-season-lifec
 # Paths and classification vocabulary are checked, not replicated business logic.
 REQUIRED_OWNERS = (
     "tournament_scheduler/rule_catalog.py",
-    "tournament_scheduler/planning_contract.py",
-    "tournament_scheduler/final_verification.py",
+    "tournament_scheduler/planning/contract.py",
+    "tournament_scheduler/planning/verification.py",
     "tournament_scheduler/season_planner.py",
     "tournament_scheduler/stage3/optimizer.py",
     "tournament_scheduler/stage3/cpsat.py",

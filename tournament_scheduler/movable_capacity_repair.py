@@ -37,7 +37,7 @@ from .host_team_missing_repair import (
     _team_ref,
     candidate_fingerprint,
 )
-from .planning_contract import (
+from .planning.contract import (
     _parse_date,
     external_calendar_conflict,
     movable_calendar_opportunity,

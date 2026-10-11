@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from tournament_scheduler.application.decisions import DecisionAction, decide
 from tournament_scheduler.local_repair_options import apply_local_repair_option
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.underfilled_roster_repair import (
     apply_underfilled_roster_repair_option,
     build_underfilled_roster_decision_context,

@@ -9,7 +9,7 @@ tournament, leaving the other sibling almost absent from home ice.
 
 This module owns that one fact family. It is a pure function library over the
 shared ``teams``/``tournaments`` contracts -- no planner internals, no search
-and no mutation -- so the canonical scorer (``planning_contract``), the
+and no mutation -- so the canonical scorer (``planning.contract``), the
 audit evidence layer and the repair provider all read the *same* accounting
 instead of each re-deriving "home appearances" with subtly different rules.
 

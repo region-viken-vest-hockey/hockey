@@ -111,7 +111,7 @@ def _retained_candidate_record(
     against. The candidate body is carried so it can be adopted without a
     reset/re-solve/reproduction.
     """
-    from ...planning_contract import extract_candidate, score_candidate
+    from ...planning.contract import extract_candidate, score_candidate
 
     body = extract_candidate(plan)
     try:
@@ -220,7 +220,7 @@ def _host_team_missing_repair_context(
     keeps it ``False`` so the rejection evidence is always surfaced.
     """
     from ...host_team_missing_repair import build_host_team_missing_decision_context
-    from ...planning_contract import extract_candidate
+    from ...planning.contract import extract_candidate
 
     violations = _baseline_hard_violations_for_plan(plan, problem)
     if not any(str(v).startswith("host_team_missing:") for v in violations):
@@ -253,7 +253,7 @@ def _underfilled_roster_repair_context(
     repository-generated fill/swap option ids plus explicit per-candidate
     rejection evidence; the harness never hand-edits a participant list.
     """
-    from ...planning_contract import extract_candidate
+    from ...planning.contract import extract_candidate
     from ...underfilled_roster_repair import build_underfilled_roster_decision_context
 
     violations = _baseline_hard_violations_for_plan(plan, problem)
@@ -290,7 +290,7 @@ def _placement_preserving_roster_repair_context(
     from ...placement_preserving_roster_repair import (
         build_placement_preserving_roster_decision_context,
     )
-    from ...planning_contract import extract_candidate
+    from ...planning.contract import extract_candidate
 
     violations = _baseline_hard_violations_for_plan(plan, problem)
     conflict_codes = (
@@ -387,7 +387,7 @@ def _search_neighborhood_repair_context(
     when the bounded search found none, so an escalation can distinguish
     "proven infeasible" from "search budget exhausted".
     """
-    from ...planning_contract import extract_candidate
+    from ...planning.contract import extract_candidate
     from ...search_neighborhood_repair import (
         build_search_neighborhood_decision_context,
         findings_are_locally_searchable,
@@ -437,7 +437,7 @@ def _host_placement_repair_context(
         build_host_placement_decision_context,
         candidate_has_manual_slot_failure,
     )
-    from ...planning_contract import extract_candidate
+    from ...planning.contract import extract_candidate
 
     if problem is None:
         return None
@@ -523,7 +523,7 @@ def _emit_stage3_interactive_decision(
         upsert_attempt,
     )
     from ...application.stage3_session_store import Stage3SessionStore, fingerprint_plan
-    from ...planning_contract import extract_candidate
+    from ...planning.contract import extract_candidate
     from tournament_scheduler.stage3.ab import build_ab_report
     from tournament_scheduler.stage3.decision import (
         STAGE3_DECISION_ACTIONS,
@@ -595,7 +595,7 @@ def _emit_stage3_interactive_decision(
     # harness or headless judge decides which side of each collision keeps
     # the automatic slot; the other is demoted to manual placement in
     # *plan* itself (see ``arena_conflict_decisions``). A hard block from
-    # ``planning_contract.verify_candidate``'s own arena_interval_conflict
+    # ``planning.contract.verify_candidate``'s own arena_interval_conflict
     # check remains the backstop for any collision that reaches Stage 4
     # unresolved (e.g. re-introduced by a later optimize_plan pass).
     from .arena_conflict_decisions import _resolve_arena_conflict_decisions
@@ -897,7 +897,7 @@ def _emit_stage3_interactive_decision(
     # Stage 4 evidence bundle can show every attempt that was tried, not
     # just the one ultimately selected.
     try:
-        from ...planning_contract import extract_candidate
+        from ...planning.contract import extract_candidate
         from ...pipeline.evidence_bundle import append_stage3_attempt_log_entry, build_stage3_attempt_entry
 
         append_stage3_attempt_log_entry(

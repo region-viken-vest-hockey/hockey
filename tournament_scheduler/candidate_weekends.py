@@ -8,7 +8,7 @@ and why the others did not. This module owns that suggestion slice.
 It is deliberately **evidence-only**: it never mutates the candidate, never
 transfers hosting responsibility and never claims a full candidate verification.
 It reuses the availability facts owned by ``calendar_availability`` /
-``planning_contract`` (``fixed_busy``, ``movable_busy``, ``free``, ``unknown``)
+``planning.contract`` (``fixed_busy``, ``movable_busy``, ``free``, ``unknown``)
 and checks the proposed roster for same-team/same-date collisions, so a weekend
 is never suggested as usable when one of its teams already plays that date
 unless a hard-valid replacement roster is supplied by the caller.
@@ -34,7 +34,7 @@ from tournament_scheduler.booking.calendar_availability import (
     CLASSIFICATION_SOURCE_INFERRED,
     classify_club_event_detailed,
 )
-from .planning_contract import (
+from .planning.contract import (
     _parse_date,
     external_calendar_conflict,
     movable_calendar_opportunity,

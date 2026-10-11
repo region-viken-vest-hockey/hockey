@@ -60,7 +60,7 @@ from tournament_scheduler.participation.targets import (
     evaluate_participation,
 )
 from .pipeline.fingerprints import stable_payload_sha256
-from .planning_contract import verify_candidate
+from .planning.contract import verify_candidate
 from .team_schedule_quality import (
     TeamIdentity,
     compare_changed_team_schedule_consequence,

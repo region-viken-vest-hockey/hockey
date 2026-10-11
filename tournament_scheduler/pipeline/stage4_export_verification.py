@@ -121,7 +121,7 @@ def _build_export_verification_problem(
     try:
         from ..canonical_baseline import resolve_canonical_state
         from ..operator_waivers import load_active_waivers
-        from ..planning_contract import build_planning_problem
+        from ..planning.contract import build_planning_problem
         from ..season_maintenance import project_canonical_overlays
 
         start = datetime.strptime(str(start_raw), "%Y-%m-%d")

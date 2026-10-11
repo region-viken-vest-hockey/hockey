@@ -71,7 +71,7 @@ tournament_scheduler/pipeline/tournament_updater.py	931
 # builds cross-age hosting-repair evidence and attaches it to each unresolved
 # obligation row instead of the bare club/age_group pair) -- a few lines woven
 # into an already-large verification function, not a splittable chunk.
-tournament_scheduler/planning_contract.py	1897
+tournament_scheduler/planning/contract.py	1897
 tournament_scheduler/registrations.py	505
 tournament_scheduler/review/review_packet_exporter.py	446
 tournament_scheduler/rules_model.py	853
@@ -147,7 +147,7 @@ tournament_scheduler/cli/season_lifecycle_command.py	334
 tournament_scheduler/cli/waiver_command.py	463
 tournament_scheduler/coupled_placement_repair.py	1396
 tournament_scheduler/date_policy_relocation.py	449
-tournament_scheduler/final_verification.py	467
+tournament_scheduler/planning/verification.py	467
 tournament_scheduler/findings_construction.py	885
 tournament_scheduler/guest_slots.py	558
 tournament_scheduler/home_representation_repair.py	1188

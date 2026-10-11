@@ -15,7 +15,7 @@ from typing import Any, Iterable, Optional, Sequence
 from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape
 from tournament_scheduler.models import SeasonPlan, Team, Tournament
 from tournament_scheduler.participant_selection import deficit_score
-from tournament_scheduler.planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
+from tournament_scheduler.planning.contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
 
 
 @dataclass
@@ -143,7 +143,7 @@ def _period_for_tournament(
 ) -> Optional[str]:
     if not has_split_targets or split_date is None:
         return None
-    from tournament_scheduler import planning_half
+    from tournament_scheduler.planning import half as planning_half
 
     half = planning_half.tournament_half(tournament_date, split_date)
     return half if half in ("before_christmas", "after_christmas") else None

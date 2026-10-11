@@ -11,7 +11,7 @@ normalized ``planning_problem.manual_adjustments.banned_dates`` read path that
 the planner, verifier, candidate-weekend enumeration, repair/search and
 optimizer already consume. It deliberately does not derive its own forbidden
 dates and does not add a second verifier rule: the existing
-``banned_date_used`` hard rule in ``planning_contract`` remains the single
+``banned_date_used`` hard rule in ``planning.contract`` remains the single
 authority.
 
 Recording a ban is a policy/decision write and is allowed even while the current

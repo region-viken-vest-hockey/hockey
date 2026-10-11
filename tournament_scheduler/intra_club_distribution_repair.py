@@ -62,7 +62,7 @@ from tournament_scheduler.participation.targets import (
     club_pool_sibling_spread,
     evaluate_participation,
 )
-from .planning_contract import (
+from .planning.contract import (
     _parse_date,
     _participation_search_evidence,
     score_candidate,
@@ -893,7 +893,7 @@ def _in_scope(
     problem: Mapping[str, Any], tournament: Mapping[str, Any], pool_scope: str
 ) -> bool:
     if pool_scope in ("before_christmas", "after_christmas"):
-        from tournament_scheduler import planning_half
+        from tournament_scheduler.planning import half as planning_half
 
         half = planning_half.tournament_half(
             _parse_date(tournament.get("date")), _split_date(problem)

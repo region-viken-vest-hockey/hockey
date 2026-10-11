@@ -23,7 +23,7 @@ from tournament_scheduler.intra_club_distribution_repair import (
     enumerate_intra_club_distribution_repairs,
     intra_club_distribution_finding_id,
 )
-from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
 from tournament_scheduler.season_maintenance import (
     apply_repair,
     list_findings,

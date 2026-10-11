@@ -598,7 +598,7 @@ def _write_sealed_repairable_season(
 
     from datetime import date as _date
 
-    from tournament_scheduler.planning_contract import build_planning_problem
+    from tournament_scheduler.planning.contract import build_planning_problem
 
     teams = [
         {"club": club, "label": f"{club} {index}", "age_group": "U10"}

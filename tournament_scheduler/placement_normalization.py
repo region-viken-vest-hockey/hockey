@@ -29,7 +29,7 @@ from .placement_findings import (
     UNPLACED_PLACEMENT_CATEGORY,
     unplaced_placement_finding_id,
 )
-from .planning_contract import (
+from .planning.contract import (
     apply_calendar_interpretations,
     external_calendar_conflict,
 )

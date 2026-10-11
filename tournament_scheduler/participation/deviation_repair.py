@@ -1,6 +1,6 @@
 """Bounded repair options for participation strong-goal deviations.
 
-``participation_targets`` / ``planning_contract.verify_candidate`` own the
+``participation_targets`` / ``planning.contract.verify_candidate`` own the
 strong-goal model: a per-team/scope target is a goal with bounded, evidenced
 relaxation, and every material deviation carries an ``avoidability``
 classification (``avoidable``, ``proven_infeasible``, ``bounded_search_exhausted``,
@@ -22,7 +22,7 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
 from tournament_scheduler.host_team_missing_repair import RepairOption, candidate_fingerprint, search_dimension_tag
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.stage3.optimizer import optimize_candidate
 
 PARTICIPATION_FINDING_PREFIX = "participation_deviation"

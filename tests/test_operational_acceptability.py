@@ -21,7 +21,7 @@ from tournament_scheduler.operational_acceptability import (
     check_operational_acceptability,
     operational_placement_profile,
 )
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.season_state import (
     SeasonStateError,
     apply_candidate,

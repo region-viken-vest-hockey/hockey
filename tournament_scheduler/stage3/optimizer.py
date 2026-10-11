@@ -65,8 +65,8 @@ from tournament_scheduler.quality_objectives import (
     QUALITY_OBJECTIVE_DIMENSIONS,
     quality_objective_vector,
 )
-from tournament_scheduler import planning_half
-from tournament_scheduler.planning_contract import (
+from tournament_scheduler.planning import half as planning_half
+from tournament_scheduler.planning.contract import (
     CANDIDATE_SCHEMA_VERSION,
     HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT,
     _parse_date,
@@ -358,7 +358,7 @@ def _locked_slot_indices(
     """Slot indices whose placement / participants are frozen by a canonical lock.
 
     The final candidate is always checked against these by
-    ``planning_contract.verify_candidate``; excluding the slots from the move
+    ``planning.contract.verify_candidate``; excluding the slots from the move
     generators too means the search never wastes its budget proposing a move
     that a promoted baseline forbids.
     """
@@ -1239,7 +1239,7 @@ def _interval_overlaps(
     (issue #262 P1) -- both moves change one of arena/host/start_time for a
     single slot and need the same hard "no two tournaments occupy the same
     hall at overlapping times" check the deterministic verifier
-    (``planning_contract.verify_candidate`` via ``arena_conflicts``) already
+    (``planning.contract.verify_candidate`` via ``arena_conflicts``) already
     enforces at the end of a search.
 
     When *state* is given (issue #265 P0), only the small bucket of slots
@@ -1418,7 +1418,7 @@ def optimize_candidate(
     Simulated annealing over one-for-one team swaps between same-age-group
     tournaments, minimizing a weighted combination of repeated opponent
     pairings, same-club pairings/clustering, and short turnarounds (mirrors
-    the metrics in :func:`tournament_scheduler.planning_contract.score_candidate`).
+    the metrics in :func:`tournament_scheduler.planning.contract.score_candidate`).
     Every team's total participation count and every tournament's roster
     size are preserved exactly, by construction, since the search only ever
     swaps one team for another.
@@ -1823,7 +1823,7 @@ def optimize_candidate(
 # portfolio from one call instead of assembling one by hand.
 #
 # Dominance is checked on each epoch's *once-per-epoch* full
-# planning_contract.score_candidate() result, never on the per-step hot
+# planning.contract.score_candidate() result, never on the per-step hot
 # path inside optimize_candidate() (which remains untouched and just as
 # fast as before) -- so adding multi-objective awareness does not multiply
 # the cost of the inner search loop itself.
@@ -1838,7 +1838,7 @@ _PARETO_DIMENSIONS: Tuple[str, ...] = QUALITY_OBJECTIVE_DIMENSIONS
 
 def _objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
     """Extract a uniformly "lower is better" objective vector from a
-    :func:`tournament_scheduler.planning_contract.score_candidate` result."""
+    :func:`tournament_scheduler.planning.contract.score_candidate` result."""
     return quality_objective_vector(score)
 
 
@@ -1892,7 +1892,7 @@ def optimize_candidate_pareto(
     entry from *weight_vectors* (default: :func:`_default_pareto_weight_vectors`,
     one corner per :data:`DEFAULT_WEIGHTS` key plus a balanced epoch).
     After each epoch, the resulting candidate is scored once with
-    :func:`tournament_scheduler.planning_contract.score_candidate` and
+    :func:`tournament_scheduler.planning.contract.score_candidate` and
     checked against the running archive: dominated/duplicate results are
     dropped, and any archive entries the new result dominates are removed.
 
@@ -1904,7 +1904,7 @@ def optimize_candidate_pareto(
       with ``candidate``, ``objective_vector``, ``score`` (the full
       :func:`score_candidate` breakdown), ``weights_used``, ``epoch``,
       ``dominates_baseline``, and an independent ``verify_result`` --
-      :func:`~tournament_scheduler.planning_contract.verify_candidate` is
+      :func:`~tournament_scheduler.planning.contract.verify_candidate` is
       only ever run on archive candidates that survive dominance
       filtering, never on every internal per-epoch proposal.
     - ``search_summary``: epoch count and, per epoch, the weights used and
@@ -1913,7 +1913,7 @@ def optimize_candidate_pareto(
     Deterministic for a given *seed* (each epoch uses ``seed + epoch_index``).
     Does not mutate *candidate*.
     """
-    from tournament_scheduler.planning_contract import score_candidate, verify_candidate
+    from tournament_scheduler.planning.contract import score_candidate, verify_candidate
 
     resolved_weights = dict(DEFAULT_WEIGHTS)
     resolved_vectors = weight_vectors or _default_pareto_weight_vectors(resolved_weights)
@@ -2022,7 +2022,7 @@ def optimize_candidate_pareto(
 
 @dataclass(frozen=True)
 class _GroupMetrics:
-    """The subset of :func:`tournament_scheduler.planning_contract.score_candidate`
+    """The subset of :func:`tournament_scheduler.planning.contract.score_candidate`
     metrics that are meaningful *within one age group* and relevant to
     participant (team-swap-only) optimization."""
 
@@ -2046,7 +2046,7 @@ def _group_metrics(slots: List[_Slot]) -> _GroupMetrics:
     """Compute :class:`_GroupMetrics` for one age group's slots.
 
     Mirrors ``score_candidate``'s definitions exactly (see
-    ``planning_contract.score_candidate``), computed directly from slot
+    ``planning.contract.score_candidate``), computed directly from slot
     state rather than regenerated games — round-robin generation makes each
     team pair within a tournament play exactly one game, so pair
     co-occurrence counts here are equivalent to that function's per-game
@@ -2489,7 +2489,7 @@ def _repair_search(
     gap check runs before the expensive full-candidate verifier call, so an
     infeasible move is rejected without materializing/verifying at all.
     """
-    from tournament_scheduler.planning_contract import verify_candidate
+    from tournament_scheduler.planning.contract import verify_candidate
 
     split_date = _parse_date((problem or {}).get("christmas_split_date"))
     allow_cross_half_moves = bool((problem or {}).get("allow_cross_half_moves"))
@@ -2603,7 +2603,7 @@ def repair_schedule_conflicts_bounded_multi_seed(
     byte-for-byte unchanged if no seed improves on the baseline, including
     when the baseline already has zero hard violations (nothing to repair).
     """
-    from tournament_scheduler.planning_contract import verify_candidate
+    from tournament_scheduler.planning.contract import verify_candidate
 
     slots, untouched = _build_slots(candidate, problem)
     if len(slots) < 2 or iterations <= 0 or not seeds:

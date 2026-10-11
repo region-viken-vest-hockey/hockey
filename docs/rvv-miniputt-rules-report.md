@@ -218,22 +218,22 @@ Generated from `tournament_scheduler/rule_catalog.py`. The planner-derived table
 
 | Rule ID | Classification | Meaning | Canonical owner | Precedence |
 |---|---|---|---|---|
-| `team_age_group_exact` | hard_constraint | Every team participating in a tournament belongs to that tournament's age group. | `tournament_scheduler.planning_contract` | — |
-| `team_unique_in_tournament` | hard_constraint | A team may appear at most once in a single tournament. | `tournament_scheduler.planning_contract` | — |
-| `team_unique_per_date` | hard_constraint | A team may not be scheduled in two different tournaments on the same date. | `tournament_scheduler.planning_contract` | — |
+| `team_age_group_exact` | hard_constraint | Every team participating in a tournament belongs to that tournament's age group. | `tournament_scheduler.planning.contract` | — |
+| `team_unique_in_tournament` | hard_constraint | A team may appear at most once in a single tournament. | `tournament_scheduler.planning.contract` | — |
+| `team_unique_per_date` | hard_constraint | A team may not be scheduled in two different tournaments on the same date. | `tournament_scheduler.planning.contract` | — |
 | `tournament_roster_shape` | hard_constraint | A tournament has an admissible, avoidable-by-free participant shape: even teams and no pause/bye rounds (or the exact age-group team count where configured). An input-constrained scarce shape is surfaced separately, never as a soft preference. An active season/age-group participation withdrawal also makes the team ineligible for the whole age group until it is explicitly released. | `tournament_scheduler.effective_tournament_shape` | — |
-| `club_hard_max` | hard_constraint | At most three teams from one club may participate in one tournament. | `tournament_scheduler.planning_contract` | — |
+| `club_hard_max` | hard_constraint | At most three teams from one club may participate in one tournament. | `tournament_scheduler.planning.contract` | — |
 | `tournament_ice_booking_duration` | hard_constraint | A tournament's configured ice_time_minutes is the complete hall occupancy window. It must be at least the actual rounds times round length plus the per-round changeover buffer. A proposed placement must also meet any governing per-series-round booking floor; a source-confirmed accepted booking interval below that floor or below the planned round structure is recorded exactly at the reconciliation boundary and surfaced as a durable feasibility finding (the plan must adapt, not the recorded booking), not a new-placement planning violation. The accepted interval stays factual even when its format is operationally unusable; that concern remains a separate durable finding/action. | `tournament_scheduler.occupancy` | — |
 | `arena_interval_non_overlap` | hard_constraint | Two tournaments must never require the same arena in overlapping datetime intervals. A failure to evaluate the interval data is itself a blocking verification result, not a silent pass. | `tournament_scheduler.booking.arena_conflicts` | — |
-| `tournament_capacity` | hard_constraint | A tournament must not exceed its configured participant capacity. | `tournament_scheduler.planning_contract` | — |
-| `tournament_min_size` | hard_constraint | A tournament with enough registered teams in its age group must have at least three participants. | `tournament_scheduler.final_verification` | — |
-| `parallel_capacity` | hard_constraint | A tournament must not schedule more concurrent games than the configured parallel capacity. | `tournament_scheduler.final_verification` | — |
-| `registered_teams_only` | hard_constraint | Every RVV participant of a tournament must exist in the registered roster (guests are explicit, separate places). | `tournament_scheduler.planning_contract` | — |
-| `valid_tournament_date` | hard_constraint | A tournament must carry a parseable date; a missing/invalid date is structural corruption. | `tournament_scheduler.planning_contract` | — |
-| `date_within_window` | hard_constraint | Every tournament date lies inside the configured planning/season window. | `tournament_scheduler.planning_contract` | — |
+| `tournament_capacity` | hard_constraint | A tournament must not exceed its configured participant capacity. | `tournament_scheduler.planning.contract` | — |
+| `tournament_min_size` | hard_constraint | A tournament with enough registered teams in its age group must have at least three participants. | `tournament_scheduler.planning.verification` | — |
+| `parallel_capacity` | hard_constraint | A tournament must not schedule more concurrent games than the configured parallel capacity. | `tournament_scheduler.planning.verification` | — |
+| `registered_teams_only` | hard_constraint | Every RVV participant of a tournament must exist in the registered roster (guests are explicit, separate places). | `tournament_scheduler.planning.contract` | — |
+| `valid_tournament_date` | hard_constraint | A tournament must carry a parseable date; a missing/invalid date is structural corruption. | `tournament_scheduler.planning.contract` | — |
+| `date_within_window` | hard_constraint | Every tournament date lies inside the configured planning/season window. | `tournament_scheduler.planning.contract` | — |
 | `holiday_date_admissible` | hard_constraint | Tournaments must not be scheduled on canonically excluded holiday dates for the planning window. | `tournament_scheduler.date_policy` | — |
 | `banned_dates_not_used` | hard_constraint | Tournaments must not be scheduled on an operator-banned global date. | `tournament_scheduler.canonical_banned_dates` | — |
-| `excluded_host_club_not_used` | hard_constraint | A club explicitly excluded as host for a scope must not host there. | `tournament_scheduler.planning_contract` | — |
+| `excluded_host_club_not_used` | hard_constraint | A club explicitly excluded as host for a scope must not host there. | `tournament_scheduler.planning.contract` | — |
 | `host_representation` | hard_constraint | A tournament's host club must be represented by its own participating team (shared/joint registrations count for either constituent). This is the hard representation invariant; proportional hosting balance is a separate soft objective. | `tournament_scheduler.hosting.representation` | before `hosting_age_group_coverage`, `hosting_proportional_balance` |
 | `locked_date_preserved` | hard_constraint | A canonical locked date must still have a scheduled tournament. | `tournament_scheduler.canonical_baseline` | — |
 | `pinned_tournament_preserved` | hard_constraint | A pinned tournament id must remain present in the candidate. | `tournament_scheduler.canonical_baseline` | — |
@@ -241,14 +241,14 @@ Generated from `tournament_scheduler/rule_catalog.py`. The planner-derived table
 | `canonical_placement_preserved` | hard_constraint | A placement-locked canonical tournament keeps its protected placement fields. | `tournament_scheduler.canonical_baseline` | — |
 | `canonical_participants_preserved` | hard_constraint | A participant-locked canonical tournament keeps its protected participant list. | `tournament_scheduler.canonical_baseline` | — |
 | `participation_hard_max` | hard_constraint | An explicitly configured participation hard maximum is a legality boundary and is operator-waivable. It is separate from the ordinary participation target, which is a soft objective and never a hard cap. | `tournament_scheduler.participation.targets` | — |
-| `game_team_membership` | hard_constraint | Every exported game is between two declared participants of its tournament. | `tournament_scheduler.final_verification` | — |
-| `valid_game_record` | hard_constraint | Every exported game record is a well-formed object with distinct participants. | `tournament_scheduler.final_verification` | — |
-| `game_round_integrity` | hard_constraint | Every exported game has a valid positive round number. | `tournament_scheduler.final_verification` | — |
-| `game_integrity_ambiguous_participants` | hard_constraint | A tournament's participant labels must be present and unique before game integrity can be judged. | `tournament_scheduler.final_verification` | — |
-| `round_robin_pairing` | hard_constraint | A round-robin tournament plays every required pairing exactly once. | `tournament_scheduler.final_verification` | — |
-| `team_unique_per_round` | hard_constraint | A team plays at most one game per round. | `tournament_scheduler.final_verification` | — |
-| `tournament_round_count` | hard_constraint | A limited-rounds tournament produces exactly the effective configured round count. | `tournament_scheduler.final_verification` | — |
-| `intra_club_game_minimum` | hard_constraint | Same-club matchups are limited to the minimum required by the limited-rounds format. | `tournament_scheduler.final_verification` | — |
+| `game_team_membership` | hard_constraint | Every exported game is between two declared participants of its tournament. | `tournament_scheduler.planning.verification` | — |
+| `valid_game_record` | hard_constraint | Every exported game record is a well-formed object with distinct participants. | `tournament_scheduler.planning.verification` | — |
+| `game_round_integrity` | hard_constraint | Every exported game has a valid positive round number. | `tournament_scheduler.planning.verification` | — |
+| `game_integrity_ambiguous_participants` | hard_constraint | A tournament's participant labels must be present and unique before game integrity can be judged. | `tournament_scheduler.planning.verification` | — |
+| `round_robin_pairing` | hard_constraint | A round-robin tournament plays every required pairing exactly once. | `tournament_scheduler.planning.verification` | — |
+| `team_unique_per_round` | hard_constraint | A team plays at most one game per round. | `tournament_scheduler.planning.verification` | — |
+| `tournament_round_count` | hard_constraint | A limited-rounds tournament produces exactly the effective configured round count. | `tournament_scheduler.planning.verification` | — |
+| `intra_club_game_minimum` | hard_constraint | Same-club matchups are limited to the minimum required by the limited-rounds format. | `tournament_scheduler.planning.verification` | — |
 | `request_team_unavailable` | hard_constraint | A durable operator request constraint: the team must not play inside its declared unavailable date range. | `tournament_scheduler.request_constraints` | — |
 | `request_minimum_gap` | hard_constraint | A durable operator request constraint: the team must keep at least the requested days between tournaments. | `tournament_scheduler.request_constraints` | — |
 | `request_opponent_avoidance` | hard_constraint | A durable operator request constraint: two teams must not meet inside the declared date range. | `tournament_scheduler.request_constraints` | — |
@@ -280,7 +280,7 @@ Generated from `tournament_scheduler/rule_catalog.py`. The planner-derived table
 | `club_pool_classification` | fact_evidence_semantic | For each club x age group x scope, the registered teams' aggregate target/actual is classified as complete / intra_club_distribution / minor\|material_club_pool_shortfall / single_team_deviation / over_target. The classification is the single source of truth for whether a residual is a genuine player-pool shortage. | `tournament_scheduler.participation.targets` | — |
 | `search_coverage_evidence` | fact_evidence_semantic | A bounded repair/search result records what was actually tried: option_available, search_incomplete, bounded_search_exhausted, proven_infeasible or inapplicable, bound to a search capability/version. Zero options means only that this search found none, never proof of global infeasibility. | `tournament_scheduler.search_capability` | — |
 | `approval_lifecycle` | fact_evidence_semantic | Operator approvals/locks live in decisions.json separately from schedule facts. A changed placement fingerprint becomes a stale approval whose lock is dropped; a participant-locked approval also stales when its roster/game structure changes. An approval whose tournament is gone becomes orphaned. Both require re-review. | `tournament_scheduler.canonical_baseline` | — |
-| `verification_completeness` | fact_evidence_semantic | Verification reports which checks were skipped because their required input was unavailable. An incomplete verification is never a pass. | `tournament_scheduler.planning_contract` | — |
+| `verification_completeness` | fact_evidence_semantic | Verification reports which checks were skipped because their required input was unavailable. An incomplete verification is never a pass. | `tournament_scheduler.planning.contract` | — |
 
 ## Final verification and publication readiness
 
@@ -300,8 +300,8 @@ This classification is evidence for the operator/publication decision; it does n
 - `tournament_scheduler/rules_report.py`
 - `tournament_scheduler/rules_report_capacity_rules.py`
 - `tournament_scheduler/rules_report_operational_rules.py`
-- `tournament_scheduler/final_verification.py`
-- `tournament_scheduler/planning_contract.py`
+- `tournament_scheduler/planning/verification.py`
+- `tournament_scheduler/planning/contract.py`
 - `tournament_scheduler/booking/arena_conflicts.py`
 - `tournament_scheduler/participant_selection.py`
 - `tournament_scheduler/warnings.py`

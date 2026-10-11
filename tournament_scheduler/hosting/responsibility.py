@@ -23,7 +23,7 @@ transfer: if it grows after a candidate-changing operation and no canonical
 target changed, another club's obligation was moved onto this one.
 
 The functions here take plain ``problem``/``candidate`` dicts (the same
-contracts ``planning_contract.verify_candidate`` consumes), so any candidate
+contracts ``planning.contract.verify_candidate`` consumes), so any candidate
 boundary -- Stage 3 repair providers, bounded search, candidate adoption, a
 future solver/MCP action -- can re-check the same rule without importing a
 planner or the interactive session.

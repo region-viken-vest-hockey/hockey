@@ -169,7 +169,7 @@ def unresolved_with_evidence(
     """`hosting_coverage.unresolved_from_matrix`, with `candidate_reallocation_slots`
     attached to each unresolved row.
 
-    Consumed by `planning_contract.verify_candidate` (canonical candidate
+    Consumed by `planning.contract.verify_candidate` (canonical candidate
     path) and `pipeline/audit_context.py` -- both expose this evidence
     without applying a repair themselves, per issue #328's "expose legal
     repair candidates and verify them deterministically; the LLM/audit can

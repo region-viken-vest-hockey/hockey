@@ -10,7 +10,7 @@ from tournament_scheduler.canonical_state import canonical_state_revision, sched
 from tournament_scheduler.infrastructure.canonical_season_store import CanonicalSeasonSnapshot, SeasonStateError
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
 
 from .shared import _operator_identity, _now_iso, _resolve_plan_problem

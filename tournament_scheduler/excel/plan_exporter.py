@@ -22,7 +22,7 @@ from openpyxl.styles import PatternFill
 from openpyxl.worksheet.worksheet import Worksheet
 from rich.console import Console
 
-from tournament_scheduler import planning_half
+from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.club_distances import furthest_traveling_team
 from tournament_scheduler.participation.fairness_model import SeasonFairnessModel
 from tournament_scheduler.models import SeasonPlan, Tournament
@@ -246,7 +246,7 @@ class SeasonPlanExporter:
 
         Gives operators visibility into the 50/50 volume guardrail directly
         in the exported workbook, using the same ``christmas_split_date``/
-        ``tournament_half`` helpers Stage 3 and ``planning_contract`` share,
+        ``tournament_half`` helpers Stage 3 and ``planning.contract`` share,
         so this sheet can never disagree with what the planner/verifier
         actually used.
         """

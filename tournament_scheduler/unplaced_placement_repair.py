@@ -40,7 +40,7 @@ from __future__ import annotations
 import copy
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 
-from . import planning_half
+from .planning import half as planning_half
 from .candidate_weekends import season_weekend_dates
 from .date_policy import problem_forbidden_dates as _problem_forbidden_dates
 from .hosting.representation import clubs_represent_same_club, constituent_clubs
@@ -56,7 +56,7 @@ from .host_team_missing_repair import (
     candidate_fingerprint,
 )
 from .models import Team  # noqa: F401  (re-exported for callers/tests)
-from .planning_contract import (
+from .planning.contract import (
     HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT,
     _parse_date,
     _team_identity,

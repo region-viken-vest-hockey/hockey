@@ -19,7 +19,7 @@ import pytest
 from tournament_scheduler.participation.deviation_repair import _classification
 from tournament_scheduler.pareto import non_dominated_indices
 from tournament_scheduler.season_baseline import compare_findings_to_baseline
-from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
 from tournament_scheduler.season_maintenance import (
     MAINTENANCE_DEFECT_DIMENSIONS,
     PARETO_DIMENSIONS,

@@ -835,7 +835,7 @@ class TestRunStage4:
 
     def test_export_lists_external_conflicts_as_manual(self, tmp_path):
         """unresolved_external_conflicts (non-blocking, see
-        planning_contract.verify_candidate's manual_external_conflict_placements)
+        planning.contract.verify_candidate's manual_external_conflict_placements)
         must round-trip through the Stage 3 checkpoint dict and render into
         manual_schedule.html, same as unresolved_hosting_obligations."""
         state = PipelineState(tmp_path / "pipeline")
@@ -1205,7 +1205,7 @@ class TestRunStage4:
         shape as SeasonPlanner's plan dict plus a ``schema_version``/``source``
         envelope (see ``candidate_from_plan_dict``). Stage 4 must accept it
         without a conversion step and produce the same output surface."""
-        from tournament_scheduler.planning_contract import candidate_from_plan_dict
+        from tournament_scheduler.planning.contract import candidate_from_plan_dict
 
         state = PipelineState(tmp_path / "pipeline")
         input_path = tmp_path / "input.xlsx"
@@ -2422,7 +2422,7 @@ class TestHardVerificationBeforeExport:
         assert envelope["data"]["verify_result"]["ok"] is False
 
     def test_export_fingerprint_is_stable_for_identical_candidates(self, tmp_path):
-        from tournament_scheduler.planning_contract import extract_candidate
+        from tournament_scheduler.planning.contract import extract_candidate
         from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
         plan_checkpoint = _make_plan_dict()

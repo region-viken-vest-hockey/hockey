@@ -71,7 +71,7 @@ def _run_stage3_v2_optimize(
     Returns ``(checkpoint, abort)`` -- *checkpoint* is ``None`` and *abort*
     is ``True`` when there is no baseline candidate to optimize.
     """
-    from ...planning_contract import build_planning_problem, extract_candidate
+    from ...planning.contract import build_planning_problem, extract_candidate
     from ...pipeline.evidence_bundle import append_stage3_attempt_log_entry
     from ...pipeline.state import StageName, StageStatus
     from tournament_scheduler.stage3.cpsat import CpSatNoCandidate, CpSatUnavailable
@@ -212,7 +212,7 @@ def _run_stage3_pareto_optimize(
     the caller), or ``None`` with *abort* ``True`` when there is no baseline
     candidate to search from.
     """
-    from ...planning_contract import build_planning_problem, extract_candidate
+    from ...planning.contract import build_planning_problem, extract_candidate
     from ...pipeline.state import StageName
     from tournament_scheduler.stage3.optimizer import optimize_candidate_pareto
 

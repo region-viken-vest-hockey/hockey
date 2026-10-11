@@ -36,7 +36,7 @@ from tournament_scheduler.canonical_state import (
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 
 from ..ice_time import _minimum_override_minutes, _record_override_decision
 from ..shared import (

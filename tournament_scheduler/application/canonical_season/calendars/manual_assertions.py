@@ -27,7 +27,7 @@ from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 
 from ..shared import (
     _operator_identity,

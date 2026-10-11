@@ -4,7 +4,7 @@ from tournament_scheduler.models import SeasonPlan, Team, Tournament
 from tournament_scheduler.serialization.season_plan import season_plan_to_dict
 from tournament_scheduler.pipeline.state import PipelineState
 from tournament_scheduler.pipeline.tournament_updater import TournamentUpdater
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.tournament_identity import allocate_tournament_id
 
 

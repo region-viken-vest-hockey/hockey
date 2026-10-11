@@ -31,7 +31,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from tournament_scheduler import planning_half
+from tournament_scheduler.planning import half as planning_half
 
 TeamIdentity = Tuple[str, str, str]
 

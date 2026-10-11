@@ -8,7 +8,7 @@ engine that behaves exactly as before; ``cp_sat`` is the fixed-skeleton
 participant engine from :mod:`stage3_cpsat`, still shadow/experimental.
 
 Both engines already consume the same normalized ``problem``/``baseline``
-contract and emit the same candidate contract (:mod:`planning_contract`), so
+contract and emit the same candidate contract (:mod:`planning.contract`), so
 this module is deliberately just a dispatch table, not a plugin framework:
 adding a third engine later means adding one more branch here, nothing else.
 """

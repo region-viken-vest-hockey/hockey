@@ -15,7 +15,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
+from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
 from tournament_scheduler.repair_adoption_guard import REGRESSION_HOSTING_BALANCE
 from tournament_scheduler.season_maintenance import (
     apply_repair,

@@ -3,7 +3,7 @@
 The RVV Miniputt season is split into two independently plannable halves --
 before Christmas and after Christmas -- because clubs can add or withdraw
 teams over the Christmas break. This module is the single source of truth
-for that boundary so `SeasonPlanner`, `planning_contract.verify_candidate`/
+for that boundary so `SeasonPlanner`, `planning.contract.verify_candidate`/
 `score_candidate`, and Stage 3's local search all agree on the same split
 date and the same half label for a given tournament date, instead of each
 engine re-deriving or hardcoding its own Christmas check.

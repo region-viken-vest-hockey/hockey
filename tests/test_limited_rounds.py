@@ -1,6 +1,6 @@
 from collections import Counter, defaultdict
 
-from tournament_scheduler.final_verification import verify_final_candidate
+from tournament_scheduler.planning.verification import verify_final_candidate
 from tournament_scheduler.limited_rounds import count_same_club_games, generate_limited_round_games
 from tournament_scheduler.models import Team
 

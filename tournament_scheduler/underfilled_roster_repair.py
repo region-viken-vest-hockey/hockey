@@ -49,7 +49,7 @@ from .host_team_missing_repair import (
     _team_ref,
     candidate_fingerprint,
 )
-from .planning_contract import (
+from .planning.contract import (
     HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT,
     _parse_date,
     verify_candidate,

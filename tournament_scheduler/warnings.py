@@ -6,7 +6,7 @@ import math
 from datetime import date
 from typing import Dict, List, Optional, Sequence, Set
 
-from tournament_scheduler import planning_half
+from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.html.data_computation import canonical_rvv_club_name
 from tournament_scheduler.models import SeasonPlan, Team, Tournament
 from tournament_scheduler.participation.temporal_coverage import season_temporal_coverage, temporal_offenders

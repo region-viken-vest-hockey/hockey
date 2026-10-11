@@ -21,7 +21,7 @@ from tournament_scheduler.hosting.representation import clubs_represent_same_clu
 from tournament_scheduler.models import Team
 from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape, shape_violation
 from tournament_scheduler.participant_roster_sizing import fixed_cohort_shape_for
-from tournament_scheduler.planning_contract import CANDIDATE_SCHEMA_VERSION
+from tournament_scheduler.planning.contract import CANDIDATE_SCHEMA_VERSION
 from tournament_scheduler.stage3.cpsat_club_cap import build_club_excess_terms
 from tournament_scheduler.stage3.cpsat_diagnostics import raise_host_not_represented
 from tournament_scheduler.stage3.cpsat_slots import (
@@ -553,7 +553,7 @@ def optimize_candidate_cp_sat(
     feasible assignment, isolated from quality search.
 
     *decompose_by_half* (issue #298 Phase 2) solves participant assignment
-    independently for each :mod:`planning_half` (before/after Christmas)
+    independently for each :mod:`planning.half` (before/after Christmas)
     instead of one monolithic model, using ``problem["christmas_split_date"]``
     as the shared boundary. Each half is capped against its own configured
     per-half target (see above), so a half with no slots is simply skipped.

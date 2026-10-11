@@ -242,7 +242,7 @@ def _build_club_busy_intervals(
         # "Åpen ishall", or a club whose whole scraped calendar is declared
         # club-controlled in the registry). See
         # `calendar_availability.classify_club_event` and
-        # `planning_contract.external_calendar_conflict` /
+        # `planning.contract.external_calendar_conflict` /
         # `movable_calendar_opportunity`.
         intervals: list[dict[str, str]] = []
         for event in events:

@@ -25,7 +25,7 @@ from tournament_scheduler.html.html_exporter import HtmlExporter
 from tournament_scheduler.models import Team, Tournament
 from tournament_scheduler.participation.targets import evaluate_participation
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.review.review_packet_exporter import ReviewPacketExporter
 from tournament_scheduler.serialization.season_plan import season_plan_from_dict, season_plan_to_dict
 from tournament_scheduler.season_state import (
@@ -460,7 +460,7 @@ def test_html_export_shows_open_and_filled_guest_places(tmp_path: Path) -> None:
 
 
 def test_final_verification_accepts_open_reservation(tmp_path: Path) -> None:
-    from tournament_scheduler.final_verification import verify_final_candidate
+    from tournament_scheduler.planning.verification import verify_final_candidate
 
     _work_dir, root, problem = _spare_capacity_case(tmp_path)
     schedule = reserve_guest_slot(

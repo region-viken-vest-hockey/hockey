@@ -12,7 +12,7 @@ from .findings_construction import _manual_count
 from .findings_construction import _unresolved_avoidability_count
 from .findings_construction import _unresolved_participation_deviation_count
 from .impact_analysis import _changed_tournament_ids
-from .planning_contract import score_candidate
+from .planning.contract import score_candidate
 from .quality_objectives import QUALITY_OBJECTIVE_DIMENSIONS, compare_quality_scores
 from .quality_objectives import quality_objective_vector
 from .quality_objectives import with_unresolved_obligations_count

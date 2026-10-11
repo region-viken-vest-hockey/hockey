@@ -42,7 +42,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
-from . import planning_half
+from .planning import half as planning_half
 from .application.decisions import DecisionContext
 from .candidate_weekends import enumerate_candidate_weekends, season_weekend_dates
 from .date_policy import problem_date_exclusions as _problem_date_exclusions
@@ -58,7 +58,7 @@ from .host_team_missing_repair import (
     _slug,
     candidate_fingerprint,
 )
-from .planning_contract import (
+from .planning.contract import (
     _parse_date,
     _team_identity,
     apply_calendar_interpretations,
@@ -603,7 +603,7 @@ def _movable_option_facts(
     interval is reported with ``classification_source: inferred`` instead of
     masquerading as free ice.
     """
-    from tournament_scheduler.planning_contract import movable_calendar_opportunity
+    from tournament_scheduler.planning.contract import movable_calendar_opportunity
 
     on_date = _parse_date(date_str)
     if on_date is None:

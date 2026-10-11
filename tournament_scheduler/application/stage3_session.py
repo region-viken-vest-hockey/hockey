@@ -170,11 +170,11 @@ def candidate_content_fingerprint(candidate: Mapping[str, Any]) -> str:
 
     Candidate identity is a lifecycle contract shared by the Stage 3 session
     and every repair/arena provider. The one implementation lives in
-    ``planning_contract`` (which owns the candidate schema version); this
+    ``planning.contract`` (which owns the candidate schema version); this
     session-facing name only delegates to it, so the same schedule can never
     carry two fingerprints across the lifecycle and repair boundaries.
     """
-    from ..planning_contract import candidate_content_fingerprint as _canonical
+    from ..planning.contract import candidate_content_fingerprint as _canonical
 
     return _canonical(candidate)
 

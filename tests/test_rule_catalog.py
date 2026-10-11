@@ -27,8 +27,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # AST scan, not a text grep, so a renamed code or a hidden/deferred emission is
 # still detected.
 _VIOLATION_EMITTERS = (
-    "tournament_scheduler/planning_contract.py",
-    "tournament_scheduler/final_verification.py",
+    "tournament_scheduler/planning/contract.py",
+    "tournament_scheduler/planning/verification.py",
 )
 _CODE_DICT_EMITTERS = ("tournament_scheduler/canonical_baseline.py",)
 
