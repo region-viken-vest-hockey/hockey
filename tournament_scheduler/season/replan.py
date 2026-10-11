@@ -50,7 +50,7 @@ def replan_around_baseline(
     """Search around the canonical baseline and return a verified candidate.
 
     The returned dict contains the ``candidate``, the enriched ``problem``
-    (including the ``season.baseline_overlay`` section), the weighted
+    (including the ``canonical_baseline`` section), the weighted
     ``change_cost`` relative to canonical state, the canonical
     ``lock_violations``, and the hard ``verification`` result.  Callers must
     reject any result with lock violations or a failing verification before

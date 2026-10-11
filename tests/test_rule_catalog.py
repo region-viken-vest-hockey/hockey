@@ -337,7 +337,7 @@ def test_generated_ownership_table_is_current() -> None:
 
 def test_rules_model_entries_reuse_catalog_identity() -> None:
     from tournament_scheduler.models import SeasonPlan
-    from tournament_scheduler.rules_model import build_rules_model
+    from tournament_scheduler.rules.model import build_rules_model
 
     rules = build_rules_model(SeasonPlan())
     by_id = {rule["id"]: rule for rule in rules}

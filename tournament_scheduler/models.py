@@ -409,7 +409,7 @@ class SeasonPlan:
     unresolved_participation_shortfalls: List[Dict[str, str]] = field(default_factory=list)
     # Authoritative per-age-group, per-half participation target this plan
     # was built against, carried on the plan so planner-independent
-    # consumers (rules_model.py, the rules report) can show it without
+    # consumers (rules/model.py, the rules report) can show it without
     # depending on SeasonPlanner internals.
     participation_targets_by_age_group: Dict[str, Dict[str, int]] = field(default_factory=dict)
     # issue #274: explicit LLM/controller decisions for shared/joint-club
@@ -456,7 +456,7 @@ class SeasonPlan:
     # tournaments list, which omits zero-participation teams), so this is
     # populated by SeasonPlanner, not independently re-derivable from the
     # plan's own tournaments. Non-blocking evidence only -- see
-    # `rules_model._club_participation_fairness_rule`; the #325 LLM auditor,
+    # `rules.model._club_participation_fairness_rule`; the #325 LLM auditor,
     # not this list, judges whether a residual deficit is acceptable. Each
     # entry: {"age_group", "period", "club", "teams", "target_share",
     # "actual_share", "expected_slots", "actual_slots", "delta",

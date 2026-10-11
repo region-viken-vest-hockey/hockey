@@ -74,7 +74,7 @@ tournament_scheduler/pipeline/tournament_updater.py	931
 tournament_scheduler/planning/contract.py	1897
 tournament_scheduler/intake/registrations.py	505
 tournament_scheduler/review/review_packet_exporter.py	446
-tournament_scheduler/rules_model.py	853
+tournament_scheduler/rules/model.py	853
 # season_planner.py was already over this recorded baseline (2188 lines)
 # before issue #328 -- an untracked prior growth this change did not cause
 # and does not attempt to fix. issue #328 itself added the cross-age
@@ -192,7 +192,7 @@ tournament_scheduler/repair_application.py	795
 tournament_scheduler/repair_options.py	411
 tournament_scheduler/season/request_constraints.py	847
 tournament_scheduler/rule_catalog.py	1740
-tournament_scheduler/rules_report_operational_rules.py	312
+tournament_scheduler/rules/operational_rules.py	312
 tournament_scheduler/search_neighborhood_repair.py	563
 tournament_scheduler/season/accepted_baseline.py	341
 tournament_scheduler/season/maintenance.py	772

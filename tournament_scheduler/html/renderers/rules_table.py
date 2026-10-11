@@ -1,7 +1,7 @@
 """Canonical Rules ("Regler") HTML renderer (issue #277, #305).
 
 Renders the planner-independent rule entries produced by
-:func:`tournament_scheduler.rules_model.build_rules_model`, split into the
+:func:`tournament_scheduler.rules.model.build_rules_model`, split into the
 four Regler-page sections (hard constraints, operational obligations, soft
 quality goals, decisions/exceptions for this run) plus a compact top
 summary.
@@ -12,7 +12,7 @@ from __future__ import annotations
 import html as _html
 from typing import Any
 
-from ...rules_model import group_rules_by_type, rules_summary_counts
+from ...rules.model import group_rules_by_type, rules_summary_counts
 from ...rule_catalog import active_catalog_references
 
 _TYPE_LABELS: dict[str, str] = {

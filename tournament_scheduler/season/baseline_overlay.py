@@ -12,7 +12,7 @@ baseline instead of regenerating a wholly new season:
   the problem.
 
 This module owns that contract: it turns canonical schedule facts plus
-decision state into a JSON-safe ``season.baseline_overlay`` section that can ride
+decision state into a JSON-safe ``canonical_baseline`` section that can ride
 inside the stable ``planning_problem``/config payloads, verifies the hard
 locks, and measures a weighted change cost between the baseline and a
 candidate.  It is a pure function library over the existing contracts: no
@@ -265,7 +265,7 @@ def build_canonical_baseline(
     schedule: Dict[str, Any],
     decisions: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Build the JSON-safe ``season.baseline_overlay`` section from canonical state.
+    """Build the JSON-safe ``canonical_baseline`` section from canonical state.
 
     A tournament is placement-locked when its decision record says so
     (``approve_tournament`` sets this by default) and participant-locked when

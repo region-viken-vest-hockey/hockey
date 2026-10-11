@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from tournament_scheduler.rules_report_capacity_rules import capacity_and_config_rule_entries
-from tournament_scheduler.rules_report_operational_rules import operational_rule_entries
+from tournament_scheduler.rules.capacity_rules import capacity_and_config_rule_entries
+from tournament_scheduler.rules.operational_rules import operational_rule_entries
 from tournament_scheduler.rule_catalog import active_catalog_references
 
 
@@ -104,9 +104,9 @@ _MARKDOWN_SECTION_INTROS: dict[str, str] = {
 
 _PRIMARY_SOURCE_FILES: tuple[str, ...] = (
     "tournament_scheduler/rule_catalog.py",
-    "tournament_scheduler/rules_report.py",
-    "tournament_scheduler/rules_report_capacity_rules.py",
-    "tournament_scheduler/rules_report_operational_rules.py",
+    "tournament_scheduler/rules/report.py",
+    "tournament_scheduler/rules/capacity_rules.py",
+    "tournament_scheduler/rules/operational_rules.py",
     "tournament_scheduler/planning/verification.py",
     "tournament_scheduler/planning/contract.py",
     "tournament_scheduler/booking/arena_conflicts.py",

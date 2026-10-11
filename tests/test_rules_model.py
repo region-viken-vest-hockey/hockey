@@ -2,7 +2,7 @@ from datetime import date
 
 from tournament_scheduler.html.renderers.rules_table import render_rules_table_html
 from tournament_scheduler.models import SeasonPlan, Team, Tournament
-from tournament_scheduler.rules_model import build_rules_model, group_rules_by_type, rules_summary_counts
+from tournament_scheduler.rules.model import build_rules_model, group_rules_by_type, rules_summary_counts
 
 
 def _plan(**overrides) -> SeasonPlan:

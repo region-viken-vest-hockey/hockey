@@ -3559,9 +3559,9 @@ class TestRulesReport:
             game_generation,
             host_assignment,
             participant_selection,
-            rules_report as rules_report_module,
             warnings as warnings_module,
         )
+        from tournament_scheduler.rules import report as rules_report_module
         from tournament_scheduler.participation import fairness_scoring
 
         roster = Roster(teams=[

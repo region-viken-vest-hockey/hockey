@@ -99,7 +99,7 @@ from tournament_scheduler.participant_roster_repair import (
 from tournament_scheduler.roster_size_planning import (
     compute_rebalanced_roster_sizes as _compute_rebalanced_roster_sizes,
 )
-from tournament_scheduler.rules_report import rules_report as _rules_report
+from tournament_scheduler.rules.report import rules_report as _rules_report
 from tournament_scheduler.scheduler import TournamentScheduler
 from tournament_scheduler.occupancy import occupancy_components, round_count_for_games, tournament_required_ice_minutes
 from tournament_scheduler.warnings import (
@@ -1522,7 +1522,7 @@ class SeasonPlanner:
         # siblings) -- a *factual* mechanism label, mirroring the same-date-
         # capacity categorization above. Whether that fact makes the
         # shortfall acceptable is left to the #325 LLM auditor, not decided
-        # here (see `rules_model._club_participation_fairness_rule`).
+        # here (see `rules.model._club_participation_fairness_rule`).
         club_participation_fairness_rows = self._compute_club_participation_fairness(skipped_age_groups_set)
         club_participation_fairness_by_key = {
             (row["age_group"], row["period"], row["club"]): row for row in club_participation_fairness_rows

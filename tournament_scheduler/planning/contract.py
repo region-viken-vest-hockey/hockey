@@ -1382,7 +1382,7 @@ def verify_candidate(
     # Canonical baseline locks (see season/baseline_overlay.py): a tournament an
     # operator approved/booked on a promoted season is a hard-preserve
     # constraint, not a soft preference. This is a no-op for a from-scratch
-    # plan whose problem carries no season.baseline_overlay section.
+    # plan whose problem carries no canonical_baseline section.
     for lock_violation in _verify_canonical_locks(problem.get("canonical_baseline"), candidate):
         _violate(
             lock_violation["code"],

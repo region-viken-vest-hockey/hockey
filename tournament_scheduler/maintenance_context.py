@@ -34,7 +34,7 @@ def load_maintenance_context(
     - problem: The planning problem with canonical overlays projected
 
     The canonical baseline is built and injected into the problem under
-    ``problem["season.baseline_overlay"]`` for use by verification and repair.
+    ``problem["canonical_baseline"]`` for use by verification and repair.
 
     Args:
         season: The season identifier

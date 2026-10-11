@@ -47,7 +47,7 @@ from .data_computation import (
 )
 from .renderers.heatmap import build_club_color_maps
 from .renderers.rules_table import render_rules_sections_html
-from ..rules_model import build_rules_model
+from ..rules.model import build_rules_model
 
 # ---------------------------------------------------------------------------
 # Load template fragments

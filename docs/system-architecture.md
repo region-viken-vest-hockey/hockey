@@ -152,6 +152,7 @@ moved one domain slice at a time.
 | `intake/` | season input intake: SharePoint registration import and roster configuration loading | moved |
 | `stage3/` | Stage 3 search: local optimizer, CP-SAT engine and its slot/club-cap/diagnostic helpers, engine dispatch, A/B and shadow comparison, decision context | moved |
 | `planning/` | planning contract (candidate extraction, planning problem, independent hard verifier and scorer), its distribution scoring blocks, the before/after-Christmas split and final export verification | moved |
+| `rules/` | rules model, operational obligations and the rules report with its capacity and operational entries | moved |
 | `rule_catalog.py`, `pareto.py`, `quality_objectives.py` and related flat modules | rule registry and shared multi-objective scoring used across domains | not yet moved |
 | `season/` | canonical season state and lifecycle records, promoted-season maintenance and its accepted baseline, approvals, requests, protections and waivers | moved |
 | `season_planner.py`, `application/` | Stage 1/2 season planner (planning domain) and canonical use-case orchestration (application layer) | not yet moved |
@@ -161,8 +162,8 @@ Layer rules for domain packages (`hosting/`, `participation/`): they must not im
 from `tournament_scheduler.cli` or `tournament_scheduler.infrastructure`. The locality
 guards in `tests/test_hosting_package_layout.py`,
 `tests/test_participation_package_layout.py`, `tests/test_planning_package_layout.py`,
-`tests/test_season_package_layout.py`, `tests/test_clubs_package_layout.py` and
-`tests/test_intake_package_layout.py`
+`tests/test_season_package_layout.py`, `tests/test_clubs_package_layout.py`,
+`tests/test_intake_package_layout.py` and `tests/test_rules_package_layout.py`
 enforce the placement and the import rule.
 
 ## Scheduling-rule implementation map

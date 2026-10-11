@@ -1,6 +1,6 @@
-"""Operational-obligation rule entries for `rules_model.build_rules_model`.
+"""Operational-obligation rule entries for `rules.model.build_rules_model`.
 
-Split out of `rules_model.py` (which imports and calls these) to keep that
+Split out of `rules/model.py` (which imports and calls these) to keep that
 module under the file-length guideline -- these three rules share the same
 "unresolved_* manual-placement list -> rule entry" shape and no dependency
 on the rest of that module beyond `SeasonPlan`.
@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .models import SeasonPlan
+from tournament_scheduler.models import SeasonPlan
 
 
 def hosting_obligation_rule(plan: SeasonPlan) -> dict[str, Any]:

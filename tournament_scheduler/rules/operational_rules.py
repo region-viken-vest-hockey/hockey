@@ -1,10 +1,10 @@
-"""Operational/outcome entries for `rules_report.rules_report`.
+"""Operational/outcome entries for `rules.report.rules_report`.
 
-Split out of `rules_report.py` to keep that module under the file-length
+Split out of `rules/report.py` to keep that module under the file-length
 guideline -- these entries describe outcomes of the planner's automatic
 decisions (club-cap exceptions, hosting/arena resolution, manual-placement
 queues, per-category warning counts), a distinct concern from the static
-capacity/configuration entries in `rules_report_capacity_rules.py`.
+capacity/configuration entries in `rules/capacity_rules.py`.
 """
 
 from __future__ import annotations

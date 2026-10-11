@@ -297,9 +297,9 @@ This classification is evidence for the operator/publication decision; it does n
 ## Primary source files
 
 - `tournament_scheduler/rule_catalog.py`
-- `tournament_scheduler/rules_report.py`
-- `tournament_scheduler/rules_report_capacity_rules.py`
-- `tournament_scheduler/rules_report_operational_rules.py`
+- `tournament_scheduler/rules/report.py`
+- `tournament_scheduler/rules/capacity_rules.py`
+- `tournament_scheduler/rules/operational_rules.py`
 - `tournament_scheduler/planning/verification.py`
 - `tournament_scheduler/planning/contract.py`
 - `tournament_scheduler/booking/arena_conflicts.py`

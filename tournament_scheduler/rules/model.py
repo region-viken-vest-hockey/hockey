@@ -1,6 +1,6 @@
 """Planner-independent canonical rules/audit model (issue #277, #305).
 
-Unlike :mod:`tournament_scheduler.rules_report`, which formats a prose
+Unlike :mod:`tournament_scheduler.rules.report`, which formats a prose
 explanation from `SeasonPlanner` private attributes, this module builds a
 small, structured list of rule entries purely from the public, serializable
 fields already on :class:`~tournament_scheduler.models.SeasonPlan`
@@ -39,9 +39,9 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
-from .models import SeasonPlan
-from .rule_catalog import catalog_id_for_rules_model_entry, rules_model_semantics
-from .rules_model_obligations import (
+from tournament_scheduler.models import SeasonPlan
+from tournament_scheduler.rule_catalog import catalog_id_for_rules_model_entry, rules_model_semantics
+from tournament_scheduler.rules.obligations import (
     external_conflict_rule as _external_conflict_rule,
     hosting_obligation_rule as _hosting_obligation_rule,
     tournament_placement_rule as _tournament_placement_rule,
@@ -211,7 +211,7 @@ def _participation_target_deviation_rule(plan: SeasonPlan) -> dict[str, Any]:
     independently per half using the same Christmas boundary as
     :mod:`planning.half`.
     """
-    from .planning import half as planning_half
+    from tournament_scheduler.planning import half as planning_half
     from tournament_scheduler.participation.targets import BOUNDED_SEARCH_EXHAUSTED, PROVEN_INFEASIBLE
 
     counts: dict[tuple[str, str, str], int] = {}

@@ -1,11 +1,11 @@
-"""Capacity/configuration-standard entries for `rules_report.rules_report`.
+"""Capacity/configuration-standard entries for `rules.report.rules_report`.
 
-Split out of `rules_report.py` to keep that module under the file-length
+Split out of `rules/report.py` to keep that module under the file-length
 guideline -- these entries describe the planner's static capacity and
 configuration policy (club cap, parallel games, half split, U/JU
 separation, configured thresholds, per-team share warnings), a distinct,
 self-contained concern from the operational/outcome entries in
-`rules_report_operational_rules.py`.
+`rules/operational_rules.py`.
 """
 
 from __future__ import annotations
