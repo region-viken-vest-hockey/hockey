@@ -57,7 +57,7 @@ from .host_team_missing_repair import (
     _split_date,
     candidate_fingerprint,
 )
-from .participation_targets import (
+from tournament_scheduler.participation.targets import (
     HALVES,
     SEASON_SCOPE,
     ParticipationEvaluation,

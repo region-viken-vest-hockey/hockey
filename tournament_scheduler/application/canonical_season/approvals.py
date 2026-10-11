@@ -25,7 +25,7 @@ from tournament_scheduler.final_verification import verify_canonical_candidate
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.participation_targets import OPERATOR_ACCEPTED
+from tournament_scheduler.participation.targets import OPERATOR_ACCEPTED
 
 from .shared import (
     APPROVED_STATUS,

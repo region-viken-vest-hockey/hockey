@@ -43,7 +43,7 @@ from .movable_capacity_repair import (
     apply_movable_capacity_repair_option,
     enumerate_movable_capacity_repairs,
 )
-from .participation_deviation_repair import (
+from tournament_scheduler.participation.deviation_repair import (
     apply_participation_deviation_repair_option,
     enumerate_participation_deviation_repairs,
 )

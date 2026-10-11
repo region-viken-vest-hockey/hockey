@@ -38,14 +38,14 @@ from tournament_scheduler.opponent_diversity import (
     MEASURE_CO_ATTENDANCE,
     compute_opponent_diversity,
 )
-from tournament_scheduler.participation_targets import (
+from tournament_scheduler.participation.targets import (
     HALVES,
     resolve_half_target,
     resolve_hard_max,
     resolve_season_target,
     split_date_for,
 )
-from tournament_scheduler.temporal_coverage import (
+from tournament_scheduler.participation.temporal_coverage import (
     DEFAULT_TEMPORAL_COVERAGE_THRESHOLD_DAYS,
     team_temporal_coverage,
 )

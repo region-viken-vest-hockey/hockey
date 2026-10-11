@@ -9,7 +9,7 @@ from __future__ import annotations
 import html as _html
 from typing import Any
 
-from tournament_scheduler.fairness_model import SeasonFairnessModel
+from tournament_scheduler.participation.fairness_model import SeasonFairnessModel
 
 
 def render_fairness_gate_html(fairness_gate: dict[str, Any] | None) -> str:

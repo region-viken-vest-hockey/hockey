@@ -15,7 +15,7 @@ from tournament_scheduler.canonical_banned_dates import project_banned_dates_int
 from tournament_scheduler.canonical_holiday_exceptions import project_exceptions_into_problem
 from tournament_scheduler.canonical_ice_time_overrides import project_overrides_into_problem
 from tournament_scheduler.guest_slots import GUEST_SLOT_OPEN, active_guest_slots
-from tournament_scheduler.participation_withdrawals import project_into_problem
+from tournament_scheduler.participation.withdrawals import project_into_problem
 from tournament_scheduler.infrastructure.canonical_revision_history import (
     load_canonical_schedule_at_revision,
 )

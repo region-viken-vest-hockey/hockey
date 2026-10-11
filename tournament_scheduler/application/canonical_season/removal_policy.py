@@ -24,10 +24,7 @@ from typing import Any, Iterable, Mapping
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.participation_withdrawals import (
-    is_registered_participant,
-    team_identity,
-)
+from tournament_scheduler.participation.withdrawals import is_registered_participant, team_identity
 from tournament_scheduler.planning_contract import verify_candidate
 
 

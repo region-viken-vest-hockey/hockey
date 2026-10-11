@@ -177,7 +177,7 @@ def _audit_owner_evidence(
         RESPONSIBILITY_TRANSFER_CODE,
         hosting_responsibility_facts,
     )
-    from .participation_withdrawals import eligible_hosting_teams
+    from tournament_scheduler.participation.withdrawals import eligible_hosting_teams
     from .request_constraints import request_constraint_violations
 
     covered: List[str] = []

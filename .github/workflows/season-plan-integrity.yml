@@ -5,7 +5,7 @@ on:
     paths:
       - "tournament_scheduler/host_assignment.py"
       - "tournament_scheduler/warnings.py"
-      - "tournament_scheduler/fairness_scoring.py"
+      - "tournament_scheduler/participation/fairness_scoring.py"
       - "scripts/season-plan-audit.py"
       - "tests/test_host_assignment_regression.py"
       - "tests/test_manual_calendar_hosting_fairness.py"

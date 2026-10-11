@@ -20,7 +20,7 @@ tournament_scheduler/cli/plan_critic.py	603
 tournament_scheduler/cli/reporting.py	603
 tournament_scheduler/club_registry.py	574
 tournament_scheduler/excel/plan_exporter.py	577
-tournament_scheduler/fairness_scoring.py	478
+tournament_scheduler/participation/fairness_scoring.py	478
 tournament_scheduler/host_assignment.py	444
 tournament_scheduler/html/data_computation.py	368
 tournament_scheduler/html/html_exporter.py	729
@@ -164,9 +164,9 @@ tournament_scheduler/operator_waivers.py	446
 tournament_scheduler/opponent_diversity.py	390
 tournament_scheduler/participant_roster_repair.py	314
 tournament_scheduler/participant_roster_sizing.py	360
-tournament_scheduler/participation_deviation_repair.py	348
-tournament_scheduler/participation_targets.py	1113
-tournament_scheduler/participation_withdrawals.py	695
+tournament_scheduler/participation/deviation_repair.py	348
+tournament_scheduler/participation/targets.py	1113
+tournament_scheduler/participation/withdrawals.py	695
 tournament_scheduler/pipeline/audit_evidence.py	1034
 tournament_scheduler/pipeline/audit_workflow.py	329
 tournament_scheduler/pipeline/controller_trace.py	467

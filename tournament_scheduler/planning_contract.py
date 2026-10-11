@@ -69,8 +69,8 @@ from tournament_scheduler.effective_tournament_shape import (
 )
 from tournament_scheduler.occupancy import governing_minimum_ice_time_minutes, minimum_playing_requirement_minutes
 from tournament_scheduler.operator_waivers import find_participation_waiver
-from tournament_scheduler.participation_targets import SEASON_SCOPE, evaluate_participation
-from tournament_scheduler.participation_withdrawals import (
+from tournament_scheduler.participation.targets import SEASON_SCOPE, evaluate_participation
+from tournament_scheduler.participation.withdrawals import (
     eligible_hosting_teams as _eligible_hosting_teams,
     withdrawn_team_count_for_tournament as _withdrawn_team_count_for_tournament,
     withdrawn_team_identities_for_tournament as _withdrawn_team_identities_for_tournament,
@@ -246,7 +246,7 @@ def build_planning_problem(
         ),
         "participation_targets_by_age_group": config.get("participation_targets_by_age_group") or {},
         # Optional explicit participation hard maximum -- a genuinely hard rule,
-        # never inferred from the target (see participation_targets.py). Omitted
+        # never inferred from the target (see participation/targets.py). Omitted
         # unless a caller/config explicitly configures one, so the canonical
         # workbook keeps target-only semantics by default.
         **(
@@ -1394,7 +1394,7 @@ def verify_candidate(
     # boundaries, and an explicit ``participation_hard_max`` is a separate,
     # genuinely hard (and operator-waivable) rule. Ordinary over/under target
     # deviation is reported as bounded, evidenced quality evidence instead of
-    # blocking verification; see ``participation_targets.py`` for the canonical
+    # blocking verification; see ``participation/targets.py`` for the canonical
     # target/hard-max precedence and avoidability classification.
     participation_evaluation = evaluate_participation(
         candidate, problem, search_evidence=_participation_search_evidence(problem)
@@ -1788,11 +1788,7 @@ def score_candidate(
     # which is circular (every candidate trivially has zero gap to its own
     # first/last tournament) and would make this metric noise rather than
     # signal for problem-less scoring/comparison callers.
-    from tournament_scheduler.temporal_coverage import (
-        DEFAULT_TEMPORAL_COVERAGE_THRESHOLD_DAYS,
-        season_temporal_coverage,
-        temporal_offenders,
-    )
+    from tournament_scheduler.participation.temporal_coverage import DEFAULT_TEMPORAL_COVERAGE_THRESHOLD_DAYS, season_temporal_coverage, temporal_offenders
 
     season_start = _parse_date(problem.get("start_date")) if problem else None
     season_end = _parse_date(problem.get("end_date")) if problem else None

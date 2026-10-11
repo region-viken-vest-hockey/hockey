@@ -134,14 +134,14 @@ def _resolve_participation_target(
     """Resolve the authoritative participation target for *identity* in this half.
 
     Thin delegate to the canonical
-    :func:`tournament_scheduler.participation_targets.resolve_half_target`, so
+    :func:`tournament_scheduler.participation.targets.resolve_half_target`, so
     CP-SAT, the verifier and the rules report share one target/hard-max
     precedence instead of each re-deriving it. Returns ``None`` when neither a
     season-wide override nor an age-group half value is configured
     (non-canonical age group), signalling the caller should fall back to the
     legacy baseline-lock behavior for that identity.
     """
-    from tournament_scheduler.participation_targets import resolve_half_target
+    from tournament_scheduler.participation.targets import resolve_half_target
 
     return resolve_half_target(identity, problem, half_label, team=team_map.get(identity))
 

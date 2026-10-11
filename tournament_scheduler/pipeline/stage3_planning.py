@@ -44,7 +44,7 @@ from typing import Any
 import threading
 
 from ..effective_start_date import compute_effective_start_date
-from ..fairness_scoring import build_fairness_gate as _build_fairness_gate
+from tournament_scheduler.participation.fairness_scoring import build_fairness_gate as _build_fairness_gate
 from ..models import SeasonPlan
 from ..season_planner import SeasonPlanner
 from .fingerprints import stable_payload_sha256

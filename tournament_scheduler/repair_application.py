@@ -548,7 +548,7 @@ def _apply_option(
             dimensions=option_dimensions,
         )
     if family == "participation_deviation":
-        from .participation_deviation_repair import apply_participation_deviation_repair_option
+        from tournament_scheduler.participation.deviation_repair import apply_participation_deviation_repair_option
 
         return apply_participation_deviation_repair_option(
             plan,

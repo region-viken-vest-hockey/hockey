@@ -33,8 +33,8 @@ from ..plan_derived_state import (
     reconcile_plan_derived_state,
 )
 from ..planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
-from ..participation_targets import INTRA_CLUB_DISTRIBUTION
-from ..participation_withdrawals import withdrawn_team_count_for_tournament
+from tournament_scheduler.participation.targets import INTRA_CLUB_DISTRIBUTION
+from tournament_scheduler.participation.withdrawals import withdrawn_team_count_for_tournament
 from . import audit_evidence
 from .audit_result import current_export_fingerprint, current_run_id
 from .fingerprints import stable_payload_sha256

@@ -37,7 +37,7 @@ from tournament_scheduler.hosting.coverage import (
     hosting_balance_matrix,
     planned_tournament_counts_by_age,
 )
-from tournament_scheduler.participation_withdrawals import eligible_hosting_teams
+from tournament_scheduler.participation.withdrawals import eligible_hosting_teams
 
 # Stable finding code shared by every consumer (provider rejection evidence,
 # Stage 3 transition guard, review evidence).

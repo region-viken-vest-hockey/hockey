@@ -25,7 +25,7 @@ from tournament_scheduler.canonical_baseline import (
     verify_canonical_locks,
 )
 from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
-from tournament_scheduler.participation_targets import search_evidence_from_acceptances
+from tournament_scheduler.participation.targets import search_evidence_from_acceptances
 from tournament_scheduler.season_state import (
     DEFAULT_SEASON_ROOT,
     load_decisions,
@@ -83,7 +83,7 @@ def replan_around_baseline(
     from tournament_scheduler.canonical_holiday_exceptions import (
         project_exceptions_into_problem,
     )
-    from tournament_scheduler.participation_withdrawals import project_into_problem
+    from tournament_scheduler.participation.withdrawals import project_into_problem
 
     problem = project_exceptions_into_problem(problem, decisions)
     problem = project_banned_dates_into_problem(problem, decisions)

@@ -17,7 +17,7 @@ from tournament_scheduler.change_protections import (
     append_change_protections,
     protection_violations,
 )
-from tournament_scheduler.participation_withdrawals import (
+from tournament_scheduler.participation.withdrawals import (
     ACTIVE as WITHDRAWAL_ACTIVE,
     RELEASED as WITHDRAWAL_RELEASED,
     append_withdrawal_records,

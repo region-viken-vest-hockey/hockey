@@ -28,7 +28,7 @@ from tournament_scheduler.season_maintenance import (
     project_canonical_overlays,
     season_audit,
 )
-from tournament_scheduler.participation_withdrawals import (
+from tournament_scheduler.participation.withdrawals import (
     WITHDRAWN_INELIGIBLE_FIELD,
     build_withdrawal_records,
     eligible_hosting_teams,

@@ -53,7 +53,7 @@ def hosting_fairness(tournaments: List[Dict[str, Any]], problem: Optional[Dict[s
             material_hosting_balance_imbalances,
             unresolved_from_matrix,
         )
-        from tournament_scheduler.participation_withdrawals import eligible_hosting_teams
+        from tournament_scheduler.participation.withdrawals import eligible_hosting_teams
 
         eligible_teams = eligible_hosting_teams(problem)
         coverage_rows = hosting_coverage_matrix(eligible_teams, tournaments)

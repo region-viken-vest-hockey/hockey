@@ -10,9 +10,9 @@ from __future__ import annotations
 from .finding_resolution import annotate_resolutions
 from .hosting.balance_repair import hosting_finding_id
 from .maintenance_context import SeasonMaintenanceError
-from .participation_deviation_repair import legacy_participation_finding_id
-from .participation_deviation_repair import participation_finding_id
-from .participation_targets import INTRA_CLUB_DISTRIBUTION
+from tournament_scheduler.participation.deviation_repair import legacy_participation_finding_id
+from tournament_scheduler.participation.deviation_repair import participation_finding_id
+from tournament_scheduler.participation.targets import INTRA_CLUB_DISTRIBUTION
 from .placement_infeasibility import coverage_from_proof
 from .placement_infeasibility import proof_is_current
 from .placement_infeasibility import proofs_by_obligation

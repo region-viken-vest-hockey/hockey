@@ -140,7 +140,7 @@ def _create_hard_max_waiver(args: argparse.Namespace) -> int:
     needs a waiver. Only an explicitly configured ``participation_hard_max``
     (or per-age-group variant) is waivable here.
     """
-    from ..participation_targets import resolve_hard_max
+    from tournament_scheduler.participation.targets import resolve_hard_max
 
     state = PipelineState(args.work_dir)
     config = state.read_stage(StageName.CONFIG)

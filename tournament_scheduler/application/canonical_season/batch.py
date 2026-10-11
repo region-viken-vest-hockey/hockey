@@ -31,7 +31,7 @@ from tournament_scheduler.operational_acceptability import (
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
 from tournament_scheduler.final_verification import verify_canonical_candidate
-from tournament_scheduler.participation_withdrawals import (
+from tournament_scheduler.participation.withdrawals import (
     append_withdrawal_records,
     build_withdrawal_records,
     effective_from_for_tournaments,
