@@ -24,7 +24,7 @@ from rich.console import Console
 
 from tournament_scheduler import planning_half
 from tournament_scheduler.club_distances import furthest_traveling_team
-from tournament_scheduler.fairness_model import SeasonFairnessModel
+from tournament_scheduler.participation.fairness_model import SeasonFairnessModel
 from tournament_scheduler.models import SeasonPlan, Tournament
 from tournament_scheduler.occupancy import tournament_end_time
 

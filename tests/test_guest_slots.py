@@ -23,7 +23,7 @@ from tournament_scheduler.guest_slots import (
 from tournament_scheduler.game_generation import generate_tournament_games
 from tournament_scheduler.html.html_exporter import HtmlExporter
 from tournament_scheduler.models import Team, Tournament
-from tournament_scheduler.participation_targets import evaluate_participation
+from tournament_scheduler.participation.targets import evaluate_participation
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.planning_contract import verify_candidate
 from tournament_scheduler.review.review_packet_exporter import ReviewPacketExporter

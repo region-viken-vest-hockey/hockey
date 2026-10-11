@@ -21,7 +21,7 @@ tournament_scheduler/cli/reporting.py	570
 tournament_scheduler/cli/rvv_cli.py	1195
 tournament_scheduler/club_registry.py	468
 tournament_scheduler/excel/plan_exporter.py	494
-tournament_scheduler/fairness_scoring.py	478
+tournament_scheduler/participation/fairness_scoring.py	478
 tournament_scheduler/game_generation.py	327
 tournament_scheduler/host_assignment.py	334
 tournament_scheduler/html/data_computation.py	310

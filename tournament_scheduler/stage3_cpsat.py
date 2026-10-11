@@ -206,7 +206,7 @@ def _solve_slot_group(
     # The configured participation target (per-team override, or
     # the age group's authoritative before/after-Christmas value for this
     # half) is a *strong goal* (see
-    # ``tournament_scheduler.participation_targets``): CP-SAT both caps the
+    # ``tournament_scheduler.participation.targets``): CP-SAT both caps the
     # assignment at the target and minimizes the remaining deficit, so it
     # never trades target compliance away for a lower-priority pairing
     # quality gain. An explicit ``participation_hard_max`` is a separate,

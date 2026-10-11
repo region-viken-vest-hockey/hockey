@@ -116,7 +116,7 @@ candidate regresses a higher-priority operational obligation.
 | `canonical_locked_tournament_preserved` | An approved/placement-locked canonical tournament must not be dropped by replanning. | `tournament_scheduler.canonical_baseline` | `tournament_scheduler.canonical_baseline.verify_canonical_locks` | `tests/test_canonical_baseline.py` |
 | `canonical_placement_preserved` | A placement-locked canonical tournament keeps its protected placement fields. | `tournament_scheduler.canonical_baseline` | `tournament_scheduler.canonical_baseline.verify_canonical_locks` | `tests/test_canonical_baseline.py`, `tests/test_approval_lifecycle.py` |
 | `canonical_participants_preserved` | A participant-locked canonical tournament keeps its protected participant list. | `tournament_scheduler.canonical_baseline` | `tournament_scheduler.canonical_baseline.verify_canonical_locks` | `tests/test_canonical_baseline.py`, `tests/test_approval_lifecycle.py` |
-| `participation_hard_max` | An explicitly configured participation hard maximum is a legality boundary and is operator-waivable. It is separate from the ordinary participation target, which is a soft objective and never a hard cap. | `tournament_scheduler.participation_targets` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_participation_targets.py`, `tests/test_operator_waivers.py` |
+| `participation_hard_max` | An explicitly configured participation hard maximum is a legality boundary and is operator-waivable. It is separate from the ordinary participation target, which is a soft objective and never a hard cap. | `tournament_scheduler.participation.targets` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_participation_targets.py`, `tests/test_operator_waivers.py` |
 | `game_team_membership` | Every exported game is between two declared participants of its tournament. | `tournament_scheduler.final_verification` | `tournament_scheduler.final_verification.verify_final_candidate` | `tests/test_final_verification.py` |
 | `valid_game_record` | Every exported game record is a well-formed object with distinct participants. | `tournament_scheduler.final_verification` | `tournament_scheduler.final_verification.verify_final_candidate` | `tests/test_final_verification.py` |
 | `game_round_integrity` | Every exported game has a valid positive round number. | `tournament_scheduler.final_verification` | `tournament_scheduler.final_verification.verify_final_candidate` | `tests/test_final_verification.py` |
@@ -143,14 +143,14 @@ candidate regresses a higher-priority operational obligation.
 | Rule ID | Meaning | Canonical owner | Verifier / measurement | Tests |
 |---|---|---|---|---|
 | `hosting_proportional_balance` | After the age-group coverage floor is satisfied (or a structural shortfall is explicitly surfaced), remaining hosting responsibility is distributed roughly in proportion to eligible team counts. This objective is secondary to coverage: a larger club may legitimately under-host relative to its proportional target so a smaller club gets its first responsibility. | `tournament_scheduler.hosting.coverage.hosting_balance_matrix` | `tournament_scheduler.hosting.coverage.material_hosting_balance_imbalances` | `tests/test_hosting_coverage.py` |
-| `participation_target` | The configured per-team/per-half tournament participation target is a desired optimization goal with evidenced relaxation, not an unconditional obligation or hard bound. Attainment is optimized within real season capacity; a capacity-constrained miss is not itself a planning failure. | `tournament_scheduler.participation_targets` | `tournament_scheduler.participation_targets.evaluate_participation` | `tests/test_participation_targets.py` |
-| `intra_club_participation_distribution` | Within a multi-team club and age group, participation is rotated evenly across the club's sibling team labels. An aggregate-complete but label-uneven pool is a distribution imbalance, not a missing participation opportunity. | `tournament_scheduler.participation_targets` | `tournament_scheduler.participation_targets` | `tests/test_participation_targets.py`, `tests/test_intra_club_distribution.py` |
+| `participation_target` | The configured per-team/per-half tournament participation target is a desired optimization goal with evidenced relaxation, not an unconditional obligation or hard bound. Attainment is optimized within real season capacity; a capacity-constrained miss is not itself a planning failure. | `tournament_scheduler.participation.targets` | `tournament_scheduler.participation.targets.evaluate_participation` | `tests/test_participation_targets.py` |
+| `intra_club_participation_distribution` | Within a multi-team club and age group, participation is rotated evenly across the club's sibling team labels. An aggregate-complete but label-uneven pool is a distribution imbalance, not a missing participation opportunity. | `tournament_scheduler.participation.targets` | `tournament_scheduler.participation.targets` | `tests/test_participation_targets.py`, `tests/test_intra_club_distribution.py` |
 | `home_representation` | When a multi-team club hosts a tournament, the club's sibling teams take turns representing it. A spread of 0-1 is balanced; hosting coverage/balance is unchanged by which sibling shows up. | `tournament_scheduler.home_representation` | `tournament_scheduler.home_representation` | `tests/test_home_representation.py` |
 | `opponent_repetition` | Teams should meet diverse opponents; repeated pairings beyond the configured expectation are minimized. The primary opponent identity is the opposing club within an age group, not the exact squad label, so a swap between sibling squads is not a new opponent. Exact squad-pair counts remain available as diagnostics. | `tournament_scheduler.quality_objectives` | `tournament_scheduler.planning_contract.score_candidate` | `tests/test_quality_objectives.py` |
 | `opponent_club_diversity` | Each individual squad should meet a variety of opposing clubs within its age group. Exposure to one club is normalized by that club's squad supply, so a large multi-squad club is not penalized merely for supplying more opponents, while genuinely concentrated exposure remains visible. | `tournament_scheduler.opponent_diversity` | `tournament_scheduler.planning_contract.score_candidate` | `tests/test_opponent_diversity.py` |
 | `inter_club_diversity` | Tournaments should mix teams across clubs rather than concentrating same-club matchups. | `tournament_scheduler.quality_objectives` | `tournament_scheduler.planning_contract.score_candidate` | `tests/test_quality_objectives.py` |
 | `temporal_spacing` | A team's tournaments should be spaced sensibly; very short turnaround gaps are minimized. | `tournament_scheduler.team_schedule_quality` | `tournament_scheduler.planning_contract.score_candidate` | `tests/test_team_schedule_quality.py`, `tests/test_fairness_temporal.py` |
-| `temporal_coverage` | A team's tournaments should cover the season rather than cluster in one stretch. | `tournament_scheduler.temporal_coverage` | `tournament_scheduler.planning_contract.score_candidate` | `tests/test_temporal_coverage.py` |
+| `temporal_coverage` | A team's tournaments should cover the season rather than cluster in one stretch. | `tournament_scheduler.participation.temporal_coverage` | `tournament_scheduler.planning_contract.score_candidate` | `tests/test_temporal_coverage.py` |
 | `travel_distance` | Estimated team travel between home and away arenas should be kept reasonable. | `tournament_scheduler.club_distances` | `tournament_scheduler.planning_contract.score_candidate` | `tests/test_club_distances.py` |
 
 ## Operator decisions
@@ -159,7 +159,7 @@ candidate regresses a higher-priority operational obligation.
 |---|---|---|---|---|
 | `shared_host_choice` | A joint registration such as Kongsberg/Tønsberg can genuinely require a contextual choice of which constituent physically carries the shared hosting responsibility. This is the limited case where agent/operator judgment over deterministic registration facts is legitimate. | `tournament_scheduler.shared_host_decision` | `tournament_scheduler.hosting.coverage.shared_registration_facts` | `tests/test_shared_host_decision.py` |
 | `operator_waiver` | An authorized operator may explicitly waive a classified hard planning rule for a precise scope. The planner/agent may suggest but never create or broaden a waiver; waived violations stay visible and downgrade publication readiness. | `tournament_scheduler.operator_waivers` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_operator_waivers.py` |
-| `operator_accepted_participation_deviation` | An operator may deliberately live with a bounded participation deviation. The acceptance never changes the target or the schedule, is bound to the deviation scope/magnitude and becomes stale when the target changes or the deviation worsens. | `tournament_scheduler.participation_targets` | `tournament_scheduler.participation_targets.evidence_covers_deviation` | `tests/test_participation_targets.py`, `tests/test_season_maintenance.py` |
+| `operator_accepted_participation_deviation` | An operator may deliberately live with a bounded participation deviation. The acceptance never changes the target or the schedule, is bound to the deviation scope/magnitude and becomes stale when the target changes or the deviation worsens. | `tournament_scheduler.participation.targets` | `tournament_scheduler.participation.targets.evidence_covers_deviation` | `tests/test_participation_targets.py`, `tests/test_season_maintenance.py` |
 | `manual_placement_opt_in` | An automatic canonical mutation may not newly introduce a manual/unt trusted-calendar placement or host-confirmation dependency. A deliberate provisional placement requires the exact explicit opt-in and is audited. | `tournament_scheduler.operational_acceptability` | `tournament_scheduler.operational_acceptability` | `tests/test_operational_acceptability.py` |
 | `guest_slot_reservation` | The operator reserves guest places as intent; the selection among legal alternatives is recorded as a decision. | `tournament_scheduler.guest_slots` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_guest_slots.py` |
 | `season_quality_baseline` | An operator may accept the current set and severity of non-hard findings as the season's regression reference. The baseline records stable finding ids and measurements (never aggregate counts alone), so later maintenance classifies fresh findings as known/improved/resolved/regressed/new. It never suppresses hard verification failures and never changes the schedule. | `tournament_scheduler.season_baseline` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_season_baseline.py` |
@@ -173,7 +173,7 @@ candidate regresses a higher-priority operational obligation.
 |---|---|---|---|---|
 | `calendar_source_trust` | A per-club calendar is only trustworthy when the configured source produced usable evidence this run. A 'known' status does not prove every candidate time is free; an untrusted calendar yields manual placement, never a silent pass. | `tournament_scheduler.pipeline.source_health` | `tournament_scheduler.calendar_availability` | `tests/test_source_health.py`, `tests/test_calendar_availability.py` |
 | `calendar_interval_classification` | A host's calendar interval is classified fixed_busy (hard external conflict), movable_busy (host-controlled, requires host confirmation) or unclassified. The classification is policy evidence, not a scheduling rule in itself. A promoted season may also carry an explicit event-to-tournament booking association overlay that makes one fixed event non-conflicting only for the associated tournament while that event still covers the tournament's current canonical occupied interval. | `tournament_scheduler.calendar_availability / tournament_scheduler.calendar_bookings` | `tournament_scheduler.planning_contract.external_calendar_conflict` | `tests/test_calendar_availability.py`, `tests/test_movable_capacity_repair.py`, `tests/test_approval_lifecycle.py` |
-| `club_pool_classification` | For each club x age group x scope, the registered teams' aggregate target/actual is classified as complete / intra_club_distribution / minor\|material_club_pool_shortfall / single_team_deviation / over_target. The classification is the single source of truth for whether a residual is a genuine player-pool shortage. | `tournament_scheduler.participation_targets` | — | `tests/test_participation_targets.py` |
+| `club_pool_classification` | For each club x age group x scope, the registered teams' aggregate target/actual is classified as complete / intra_club_distribution / minor\|material_club_pool_shortfall / single_team_deviation / over_target. The classification is the single source of truth for whether a residual is a genuine player-pool shortage. | `tournament_scheduler.participation.targets` | — | `tests/test_participation_targets.py` |
 | `search_coverage_evidence` | A bounded repair/search result records what was actually tried: option_available, search_incomplete, bounded_search_exhausted, proven_infeasible or inapplicable, bound to a search capability/version. Zero options means only that this search found none, never proof of global infeasibility. | `tournament_scheduler.search_capability` | — | `tests/test_search_neighborhood_repair.py` |
 | `approval_lifecycle` | Operator approvals/locks live in decisions.json separately from schedule facts. A changed placement fingerprint becomes a stale approval whose lock is dropped; a participant-locked approval also stales when its roster/game structure changes. An approval whose tournament is gone becomes orphaned. Both require re-review. | `tournament_scheduler.canonical_baseline` | — | `tests/test_approval_lifecycle.py`, `tests/test_canonical_baseline.py` |
 | `verification_completeness` | Verification reports which checks were skipped because their required input was unavailable. An incomplete verification is never a pass. | `tournament_scheduler.planning_contract` | — | `tests/test_planning_contract.py` |
@@ -329,7 +329,7 @@ candidate regresses a higher-priority operational obligation.
 `Hard constraint` · status `active` · operator-waivable: yes  
 **Meaning:** A tournament has an admissible, avoidable-by-free participant shape: even teams and no pause/bye rounds (or the exact age-group team count where configured). An input-constrained scarce shape is surfaced separately, never as a soft preference. An active season/age-group participation withdrawal also makes the team ineligible for the whole age group until it is explicitly released.  
 **Canonical owner:** `tournament_scheduler.effective_tournament_shape`  
-**Input / fact source:** planning_problem registered pool + rounds_per_tournament, reduced for the age group by durable, revision-bound participation_withdrawals records (tournament_scheduler.participation_withdrawals) until an explicit verified release; the registered roster is never rewritten  
+**Input / fact source:** planning_problem registered pool + rounds_per_tournament, reduced for the age group by durable, revision-bound participation_withdrawals records (tournament_scheduler.participation.withdrawals) until an explicit verified release; the registered roster is never rewritten  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.verify_candidate`  
 **Codes:** verifier `bye_team_not_allowed`, `withdrawn_team_participating` · finding `input_constrained_shape` · score —  
 **Providers:** mutation `tournament_scheduler.participant_roster_sizing`, `tournament_scheduler.application.canonical_season.withdrawal` · search `tournament_scheduler.participant_roster_repair`  
@@ -575,11 +575,11 @@ candidate regresses a higher-priority operational obligation.
 
 `Hard constraint` · status `active` · operator-waivable: yes  
 **Meaning:** An explicitly configured participation hard maximum is a legality boundary and is operator-waivable. It is separate from the ordinary participation target, which is a soft objective and never a hard cap.  
-**Canonical owner:** `tournament_scheduler.participation_targets`  
+**Canonical owner:** `tournament_scheduler.participation.targets`  
 **Input / fact source:** planning_problem participation_hard_max / participation_hard_max_by_age_group  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.verify_candidate`  
 **Codes:** verifier `participation_hard_max_exceeded` · finding — · score —  
-**Providers:** mutation `tournament_scheduler.participation_deviation_repair` · search —  
+**Providers:** mutation `tournament_scheduler.participation.deviation_repair` · search —  
 **Evidence / report:** `verify_candidate.violations`, `verify_candidate.waived_violations`, `waiver list`  
 **Tests:** `tests/test_participation_targets.py`, `tests/test_operator_waivers.py`  
 **Precedence:** precedes — · depends on —
@@ -796,11 +796,11 @@ candidate regresses a higher-priority operational obligation.
 
 `Soft objective` · status `active` · operator-waivable: yes  
 **Meaning:** The configured per-team/per-half tournament participation target is a desired optimization goal with evidenced relaxation, not an unconditional obligation or hard bound. Attainment is optimized within real season capacity; a capacity-constrained miss is not itself a planning failure.  
-**Canonical owner:** `tournament_scheduler.participation_targets`  
+**Canonical owner:** `tournament_scheduler.participation.targets`  
 **Input / fact source:** controlled workbook participation_targets_by_age_group / explicit team targets  
-**Verifier / measurement:** `tournament_scheduler.participation_targets.evaluate_participation`  
+**Verifier / measurement:** `tournament_scheduler.participation.targets.evaluate_participation`  
 **Codes:** verifier — · finding `participation_target_deviation`, `participation_shortfalls`, `participation_deviation` · score `participation.spread`, `participation.club_pool_unresolved_avoidable_deviation_count`, `participation.club_pool_unresolved_shortfall_count`, `participation.club_pool_unresolved_season_total_absolute_deviation`, `participation.club_pool_unresolved_max_team_season_deviation`, `participation.club_pool_unresolved_half_total_absolute_deviation`, `participation.club_pool_unresolved_max_team_half_deviation`  
-**Providers:** mutation `tournament_scheduler.participation_deviation_repair` · search `tournament_scheduler.stage3_optimizer`  
+**Providers:** mutation `tournament_scheduler.participation.deviation_repair` · search `tournament_scheduler.stage3_optimizer`  
 **Evidence / report:** `score_candidate.participation.*`, `verify_candidate.participation_deviations`, `rules_model participation_target_deviation`, `rules_model participation_shortfalls`  
 **Tests:** `tests/test_participation_targets.py`  
 **Precedence:** precedes — · depends on —
@@ -809,9 +809,9 @@ candidate regresses a higher-priority operational obligation.
 
 `Soft objective` · status `active` · operator-waivable: yes  
 **Meaning:** Within a multi-team club and age group, participation is rotated evenly across the club's sibling team labels. An aggregate-complete but label-uneven pool is a distribution imbalance, not a missing participation opportunity.  
-**Canonical owner:** `tournament_scheduler.participation_targets`  
+**Canonical owner:** `tournament_scheduler.participation.targets`  
 **Input / fact source:** planning_problem club pools + candidate participations  
-**Verifier / measurement:** `tournament_scheduler.participation_targets`  
+**Verifier / measurement:** `tournament_scheduler.participation.targets`  
 **Codes:** verifier — · finding `intra_club_participation_distribution` · score —  
 **Providers:** mutation `intra_club_distribution_repair` · search —  
 **Evidence / report:** `verify_candidate.participation_club_pools`, `rules_model club_participation_fairness`  
@@ -887,7 +887,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Soft objective` · status `active` · operator-waivable: yes  
 **Meaning:** A team's tournaments should cover the season rather than cluster in one stretch.  
-**Canonical owner:** `tournament_scheduler.temporal_coverage`  
+**Canonical owner:** `tournament_scheduler.participation.temporal_coverage`  
 **Input / fact source:** candidate tournament dates per team  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.score_candidate`  
 **Codes:** verifier — · finding — · score `temporal.max_gap_days`, `temporal.offenders_count`  
@@ -939,9 +939,9 @@ candidate regresses a higher-priority operational obligation.
 
 `Operator decision` · status `active` · operator-waivable: yes  
 **Meaning:** An operator may deliberately live with a bounded participation deviation. The acceptance never changes the target or the schedule, is bound to the deviation scope/magnitude and becomes stale when the target changes or the deviation worsens.  
-**Canonical owner:** `tournament_scheduler.participation_targets`  
+**Canonical owner:** `tournament_scheduler.participation.targets`  
 **Input / fact source:** canonical decisions.json operator acceptances  
-**Verifier / measurement:** `tournament_scheduler.participation_targets.evidence_covers_deviation`  
+**Verifier / measurement:** `tournament_scheduler.participation.targets.evidence_covers_deviation`  
 **Codes:** verifier — · finding — · score —  
 **Providers:** mutation — · search —  
 **Evidence / report:** `season findings`, `participation avoidability classification`  
@@ -1056,7 +1056,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Fact / evidence semantic` · status `active` · operator-waivable: yes  
 **Meaning:** For each club x age group x scope, the registered teams' aggregate target/actual is classified as complete / intra_club_distribution / minor|material_club_pool_shortfall / single_team_deviation / over_target. The classification is the single source of truth for whether a residual is a genuine player-pool shortage.  
-**Canonical owner:** `tournament_scheduler.participation_targets`  
+**Canonical owner:** `tournament_scheduler.participation.targets`  
 **Input / fact source:** planning_problem club pools + candidate participations  
 **Verifier / measurement:** —  
 **Codes:** verifier — · finding — · score —  

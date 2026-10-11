@@ -780,13 +780,13 @@ def _participation_limit_reason(
     """Why *identity* may not take one more participation, or ``None``.
 
     A participation *target* is a strong operational goal, not a hard ceiling
-    (see ``participation_targets.py``), so target overage no longer blocks a
+    (see ``participation/targets.py``), so target overage no longer blocks a
     repair option -- it is reported as bounded deviation evidence by the
     verifier. Only an explicit ``participation_hard_max`` is a genuinely hard
     ceiling, and a matching operator waiver for the exact resulting count
     turns that rejection into an allowed addition.
     """
-    from tournament_scheduler.participation_targets import resolve_hard_max
+    from tournament_scheduler.participation.targets import resolve_hard_max
 
     team = next((t for t in problem.get("teams", []) if _identity(t) == identity), {})
     hard_max = resolve_hard_max(identity, problem, team=team)

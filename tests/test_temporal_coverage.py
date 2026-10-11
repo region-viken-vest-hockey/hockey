@@ -1,10 +1,10 @@
-"""Unit tests for tournament_scheduler.temporal_coverage."""
+"""Unit tests for tournament_scheduler.participation.temporal_coverage."""
 
 from __future__ import annotations
 
 from datetime import date
 
-from tournament_scheduler.temporal_coverage import (
+from tournament_scheduler.participation.temporal_coverage import (
     season_temporal_coverage,
     team_temporal_coverage,
     temporal_offenders,

@@ -30,11 +30,15 @@ from __future__ import annotations
 import copy
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
-from tournament_scheduler.hosting.representation import clubs_represent_same_club, constituent_clubs, host_represented_in
+from tournament_scheduler.hosting.representation import (
+    clubs_represent_same_club,
+    constituent_clubs,
+    host_represented_in,
+)
 from tournament_scheduler.host_team_missing_repair import RepairOption, candidate_fingerprint, search_dimension_tag
 from tournament_scheduler.hosting.coverage import hosting_balance_matrix
 from tournament_scheduler.hosting.responsibility import unexplained_responsibility_transfers
-from tournament_scheduler.participation_withdrawals import eligible_hosting_teams
+from tournament_scheduler.participation.withdrawals import eligible_hosting_teams
 from tournament_scheduler.planning_contract import verify_candidate
 from tournament_scheduler.stage3_optimizer import optimize_candidate
 

@@ -8,7 +8,7 @@ deliberately distinct outcomes share one atomic operation:
   eligible pool. If the reduced shape is avoidably underfilled the operation
   fails closed; the operator must make an explicit withdrawal decision.
 * **genuine season/age-group withdrawal** -- the same removal, together with a
-  durable, revision-bound :mod:`tournament_scheduler.participation_withdrawals`
+  durable, revision-bound :mod:`tournament_scheduler.participation.withdrawals`
   record that makes the team ineligible for the **whole age group** from the
   earliest affected tournament (`effective_from`). The per-tournament ids are
   the roster-mutation scope and provenance, not the eligibility scope. The
@@ -41,7 +41,7 @@ from tournament_scheduler.change_protections import (
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.participation_withdrawals import (
+from tournament_scheduler.participation.withdrawals import (
     ACTIVE as WITHDRAWAL_ACTIVE,
     SCOPE_AGE_GROUP,
     active_withdrawals,
@@ -145,10 +145,7 @@ def withdrawal_report(
     schedule, decisions = snapshot.schedule, snapshot.decisions
     problem = _resolve_plan_problem(schedule, None, decisions)
     plan = schedule.get("plan") or {}
-    from tournament_scheduler.participation_withdrawals import (
-        is_registered_participant,
-        team_identity,
-    )
+    from tournament_scheduler.participation.withdrawals import is_registered_participant, team_identity
 
     present: set[tuple[str, str, str, str, str]] = set()
     for tournament in plan.get("tournaments", []) or []:
@@ -489,9 +486,7 @@ def _restore_participants(
 ) -> dict[str, Any]:
     """Atomically reverse a withdrawal through the complete apply boundary."""
 
-    from tournament_scheduler.participation_withdrawals import (
-        is_registered_participant,
-    )
+    from tournament_scheduler.participation.withdrawals import is_registered_participant
 
     identities = {
         (

@@ -41,7 +41,7 @@ from tournament_scheduler.hosting.responsibility import (
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.participation_withdrawals import (
+from tournament_scheduler.participation.withdrawals import (
     build_withdrawal_records,
     effective_from_for_tournaments,
     project_into_problem,

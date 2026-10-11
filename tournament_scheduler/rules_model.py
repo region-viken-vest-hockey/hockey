@@ -199,7 +199,7 @@ def _participation_target_deviation_rule(plan: SeasonPlan) -> dict[str, Any]:
     """Strong-goal evidence: teams above/below their participation target.
 
     A participation target is a strong operational goal, not a hard legality
-    boundary (see :mod:`tournament_scheduler.participation_targets`). This rule
+    boundary (see :mod:`tournament_scheduler.participation.targets`). This rule
     therefore reports bounded deviation rather than a hard verifier failure:
     exact target satisfaction is preferred, but a genuine over/under deviation
     is allowed as a bounded relaxation with avoidability evidence.
@@ -212,10 +212,7 @@ def _participation_target_deviation_rule(plan: SeasonPlan) -> dict[str, Any]:
     :mod:`planning_half`.
     """
     from . import planning_half
-    from .participation_targets import (
-        BOUNDED_SEARCH_EXHAUSTED,
-        PROVEN_INFEASIBLE,
-    )
+    from tournament_scheduler.participation.targets import BOUNDED_SEARCH_EXHAUSTED, PROVEN_INFEASIBLE
 
     counts: dict[tuple[str, str, str], int] = {}
     explicit_targets: dict[tuple[str, str, str], int] = {}

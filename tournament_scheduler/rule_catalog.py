@@ -196,7 +196,7 @@ _HARD: tuple[RuleEntry, ...] = (
         input_source=(
             "planning_problem registered pool + rounds_per_tournament, reduced for the age group "
             "by durable, revision-bound participation_withdrawals records "
-            "(tournament_scheduler.participation_withdrawals) until an explicit verified release; "
+            "(tournament_scheduler.participation.withdrawals) until an explicit verified release; "
             "the registered roster is never rewritten"
         ),
         verifier_owner="tournament_scheduler.planning_contract.verify_candidate",
@@ -459,10 +459,10 @@ _HARD: tuple[RuleEntry, ...] = (
             "operator-waivable. It is separate from the ordinary participation target, which is "
             "a soft objective and never a hard cap."
         ),
-        canonical_owner="tournament_scheduler.participation_targets",
+        canonical_owner="tournament_scheduler.participation.targets",
         input_source="planning_problem participation_hard_max / participation_hard_max_by_age_group",
         verifier_owner="tournament_scheduler.planning_contract.verify_candidate",
-        mutation_providers=("tournament_scheduler.participation_deviation_repair",),
+        mutation_providers=("tournament_scheduler.participation.deviation_repair",),
         evidence_projection=("verify_candidate.violations", "verify_candidate.waived_violations", "waiver list"),
         tests=("tests/test_participation_targets.py", "tests/test_operator_waivers.py"),
         verifier_codes=("participation_hard_max_exceeded",),
@@ -751,10 +751,10 @@ _SOFT: tuple[RuleEntry, ...] = (
             "hard bound. Attainment is optimized within real season capacity; a "
             "capacity-constrained miss is not itself a planning failure."
         ),
-        canonical_owner="tournament_scheduler.participation_targets",
+        canonical_owner="tournament_scheduler.participation.targets",
         input_source="controlled workbook participation_targets_by_age_group / explicit team targets",
-        verifier_owner="tournament_scheduler.participation_targets.evaluate_participation",
-        mutation_providers=("tournament_scheduler.participation_deviation_repair",),
+        verifier_owner="tournament_scheduler.participation.targets.evaluate_participation",
+        mutation_providers=("tournament_scheduler.participation.deviation_repair",),
         search_providers=("tournament_scheduler.stage3_optimizer",),
         evidence_projection=(
             "score_candidate.participation.*",
@@ -786,9 +786,9 @@ _SOFT: tuple[RuleEntry, ...] = (
             "club's sibling team labels. An aggregate-complete but label-uneven pool is a "
             "distribution imbalance, not a missing participation opportunity."
         ),
-        canonical_owner="tournament_scheduler.participation_targets",
+        canonical_owner="tournament_scheduler.participation.targets",
         input_source="planning_problem club pools + candidate participations",
-        verifier_owner="tournament_scheduler.participation_targets",
+        verifier_owner="tournament_scheduler.participation.targets",
         mutation_providers=("intra_club_distribution_repair",),
         evidence_projection=("verify_candidate.participation_club_pools", "rules_model club_participation_fairness"),
         tests=("tests/test_participation_targets.py", "tests/test_intra_club_distribution.py"),
@@ -906,7 +906,7 @@ _SOFT: tuple[RuleEntry, ...] = (
 
         classification=SOFT_OBJECTIVE,
         meaning="A team's tournaments should cover the season rather than cluster in one stretch.",
-        canonical_owner="tournament_scheduler.temporal_coverage",
+        canonical_owner="tournament_scheduler.participation.temporal_coverage",
         input_source="candidate tournament dates per team",
         verifier_owner="tournament_scheduler.planning_contract.score_candidate",
         evidence_projection=("score_candidate.temporal.*",),
@@ -975,9 +975,9 @@ _DECISIONS: tuple[RuleEntry, ...] = (
             "acceptance never changes the target or the schedule, is bound to the deviation "
             "scope/magnitude and becomes stale when the target changes or the deviation worsens."
         ),
-        canonical_owner="tournament_scheduler.participation_targets",
+        canonical_owner="tournament_scheduler.participation.targets",
         input_source="canonical decisions.json operator acceptances",
-        verifier_owner="tournament_scheduler.participation_targets.evidence_covers_deviation",
+        verifier_owner="tournament_scheduler.participation.targets.evidence_covers_deviation",
         evidence_projection=("season findings", "participation avoidability classification"),
         tests=("tests/test_participation_targets.py", "tests/test_season_maintenance.py"),
     ),
@@ -1124,7 +1124,7 @@ _EVIDENCE: tuple[RuleEntry, ...] = (
             "/ single_team_deviation / over_target. The classification is the single source of "
             "truth for whether a residual is a genuine player-pool shortage."
         ),
-        canonical_owner="tournament_scheduler.participation_targets",
+        canonical_owner="tournament_scheduler.participation.targets",
         input_source="planning_problem club pools + candidate participations",
         evidence_projection=("verify_candidate.participation_club_pools", "rules_model club_participation_fairness"),
         tests=("tests/test_participation_targets.py",),

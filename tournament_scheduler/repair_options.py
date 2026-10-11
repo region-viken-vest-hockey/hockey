@@ -297,7 +297,7 @@ def _participation_options(
     allow_search: bool,
     dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
-    from .participation_deviation_repair import enumerate_participation_deviation_repairs
+    from tournament_scheduler.participation.deviation_repair import enumerate_participation_deviation_repairs
 
     repair_set = enumerate_participation_deviation_repairs(
         plan,

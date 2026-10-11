@@ -205,7 +205,7 @@ def _authoritative_problem(
     from .shared import _resolve_plan_problem
     from tournament_scheduler.canonical_baseline import build_canonical_baseline
     from tournament_scheduler.canonical_state import PARTICIPATION_ACCEPTANCES_KEY
-    from tournament_scheduler.participation_targets import search_evidence_from_acceptances
+    from tournament_scheduler.participation.targets import search_evidence_from_acceptances
 
     effective_decisions = _decisions_with_released_withdrawals(
         decisions, released_withdrawal_ids
@@ -225,7 +225,7 @@ def _authoritative_problem(
     ]
     problem["participation_search_evidence"] = search_evidence_from_acceptances(acceptances)
     if extra_withdrawals:
-        from tournament_scheduler.participation_withdrawals import project_into_problem
+        from tournament_scheduler.participation.withdrawals import project_into_problem
 
         problem = project_into_problem(problem, records=extra_withdrawals)
     return problem
@@ -241,7 +241,7 @@ def _decisions_with_released_withdrawals(
     if not released:
         return dict(decisions)
     from tournament_scheduler.canonical_state import PARTICIPATION_WITHDRAWALS_KEY
-    from tournament_scheduler.participation_withdrawals import RELEASED
+    from tournament_scheduler.participation.withdrawals import RELEASED
 
     effective = dict(decisions)
     effective[PARTICIPATION_WITHDRAWALS_KEY] = [
@@ -277,10 +277,7 @@ def _authorization_withdrawal_records(
     if not isinstance(team, Mapping):
         return []
     tournament_ids = [str(item) for item in parameters.get("tournament_ids") or [] if str(item)]
-    from tournament_scheduler.participation_withdrawals import (
-        build_withdrawal_records,
-        effective_from_for_tournaments,
-    )
+    from tournament_scheduler.participation.withdrawals import build_withdrawal_records, effective_from_for_tournaments
 
     return build_withdrawal_records(
         team=team,

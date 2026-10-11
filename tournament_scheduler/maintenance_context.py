@@ -8,7 +8,7 @@ onto the promoted planning problem.
 from __future__ import annotations
 
 from .canonical_baseline import build_canonical_baseline
-from .participation_targets import search_evidence_from_acceptances
+from tournament_scheduler.participation.targets import search_evidence_from_acceptances
 from .request_constraints import host_sibling_preference_evidence
 from .season_state import DEFAULT_SEASON_ROOT
 from .season_state import load_decisions
@@ -103,7 +103,7 @@ def project_canonical_overlays(
     from .canonical_banned_dates import project_banned_dates_into_problem
     from .canonical_holiday_exceptions import project_exceptions_into_problem
     from .canonical_ice_time_overrides import project_overrides_into_problem
-    from .participation_withdrawals import project_into_problem
+    from tournament_scheduler.participation.withdrawals import project_into_problem
 
     projected: Dict[str, Any] = dict(problem)
     projected = project_exceptions_into_problem(projected, decisions)

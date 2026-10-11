@@ -54,7 +54,7 @@ from .operational_acceptability import (
     check_operational_acceptability,
     required_opt_in_flags,
 )
-from .participation_targets import (
+from tournament_scheduler.participation.targets import (
     club_pool_participation_regressions,
     club_pool_snapshot,
     evaluate_participation,

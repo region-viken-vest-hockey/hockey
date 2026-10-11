@@ -1,6 +1,6 @@
 from datetime import date
 
-from tournament_scheduler.fairness_model import FairnessModelConfig, SeasonFairnessModel
+from tournament_scheduler.participation.fairness_model import FairnessModelConfig, SeasonFairnessModel
 from tournament_scheduler.models import Game, Roster, SeasonPlan, Team, Tournament
 
 

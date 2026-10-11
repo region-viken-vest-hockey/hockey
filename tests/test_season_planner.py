@@ -9,7 +9,7 @@ from unittest.mock import patch
 import pytest
 
 from tournament_scheduler import participant_selection, planning_half
-from tournament_scheduler.fairness_scoring import DEFAULT_FAIRNESS_THRESHOLDS
+from tournament_scheduler.participation.fairness_scoring import DEFAULT_FAIRNESS_THRESHOLDS
 from tournament_scheduler.models import (
     CalendarEvent,
     DatePreference,
@@ -3554,7 +3554,14 @@ class TestRulesReport:
 
     def test_extracted_helper_modules_import_cleanly_with_facade(self):
         """Importing the extracted helper modules first should not break the facade."""
-        from tournament_scheduler import fairness_scoring, game_generation, host_assignment, participant_selection, rules_report as rules_report_module, warnings as warnings_module
+        from tournament_scheduler import (
+            game_generation,
+            host_assignment,
+            participant_selection,
+            rules_report as rules_report_module,
+            warnings as warnings_module,
+        )
+        from tournament_scheduler.participation import fairness_scoring
 
         roster = Roster(teams=[
             Team(club="Jar", label="Jar U10", age_group="U10"),
@@ -4070,7 +4077,7 @@ class TestFairnessGate:
         threshold = planner.fairness_thresholds["max_team_travel_km"]
 
         monkeypatch.setattr(
-            "tournament_scheduler.fairness_scoring.compute_team_travel_distances",
+            "tournament_scheduler.participation.fairness_scoring.compute_team_travel_distances",
             lambda _plan: {jar.label: threshold, kongsberg.label: 0},
         )
         gate = planner._build_fairness_gate(plan)
@@ -4080,7 +4087,7 @@ class TestFairnessGate:
         assert gate["status"] == "pass"
 
         monkeypatch.setattr(
-            "tournament_scheduler.fairness_scoring.compute_team_travel_distances",
+            "tournament_scheduler.participation.fairness_scoring.compute_team_travel_distances",
             lambda _plan: {jar.label: threshold + 1, kongsberg.label: 0},
         )
         gate = planner._build_fairness_gate(plan)

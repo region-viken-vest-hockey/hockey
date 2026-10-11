@@ -15,7 +15,7 @@ from time import perf_counter
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from tournament_scheduler import planning_half
-from tournament_scheduler.fairness_model import SeasonFairnessModel
+from tournament_scheduler.participation.fairness_model import SeasonFairnessModel
 from tournament_scheduler.game_generation import (
     arena_counts as _arena_counts,
     best_round_subset as _best_round_subset,
@@ -26,7 +26,7 @@ from tournament_scheduler.game_generation import (
     pairwise_matchup_score as _pairwise_matchup_score,
     rebalance_rounds as _rebalance_rounds,
 )
-from tournament_scheduler.fairness_scoring import (
+from tournament_scheduler.participation.fairness_scoring import (
     DEFAULT_FAIRNESS_THRESHOLDS,
     build_fairness_gate as _build_fairness_gate,
 )
@@ -54,7 +54,9 @@ from tournament_scheduler.models import (
     team_key,
 )
 from tournament_scheduler.arena_conflicts import find_arena_interval_collisions, tournament_interval
-from tournament_scheduler.host_candidate_selection import participant_derived_host_candidates as _participant_derived_host_candidates
+from tournament_scheduler.host_candidate_selection import (
+    participant_derived_host_candidates as _participant_derived_host_candidates,
+)
 from tournament_scheduler.hosting.representation import constituent_clubs as _constituent_clubs
 from tournament_scheduler.hosting.coverage import hosting_coverage_matrix as _hosting_coverage_matrix
 from tournament_scheduler.responsibility_preserving_repair import (

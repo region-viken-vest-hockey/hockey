@@ -17,10 +17,8 @@ from tournament_scheduler.effective_tournament_shape import compute_effective_to
 from tournament_scheduler.guest_slots import capacity_places, has_open_guest_slots
 from tournament_scheduler.limited_rounds import minimum_same_club_games_for_limited_rounds
 from tournament_scheduler.models import Team
-from tournament_scheduler.participation_targets import INTRA_CLUB_DISTRIBUTION
-from tournament_scheduler.participation_withdrawals import (
-    withdrawn_team_count_for_tournament,
-)
+from tournament_scheduler.participation.targets import INTRA_CLUB_DISTRIBUTION
+from tournament_scheduler.participation.withdrawals import withdrawn_team_count_for_tournament
 from tournament_scheduler.canonical_exception_policy import (
     classify_candidate_violations,
     reclassify_accepted_exceptions,
