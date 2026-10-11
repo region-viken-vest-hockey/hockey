@@ -20,6 +20,14 @@ the human-facing shorthand and delegates to it. Start with `make help`; the
 stable. Behavioral Make-specific safeguards remain in the Makefile/Taskfile
 wrapper where they cannot move cleanly.
 
+Verification commands, from the repository root. `venv/bin/python3` is the project interpreter; `.venv` is not a complete test environment (no pytest or ruff):
+
+- Quick suite, about 2 minutes for roughly 3800 tests: `venv/bin/python3 -m pytest --no-cov -q -m "not live and not harness"`.
+- Lint: `venv/bin/python3 -m ruff check .`.
+- One gate phase: `scripts/check <phase>` with `dependency-lock`, `lint`, `quick`, `operator`, `reproducibility`, `cli-smoke`, `cli-contracts`, `rules-report`, `rule-catalog`, `architecture-docs` or `secret-scan`. `scripts/check` with no argument runs them all, and the pre-push hook runs `make check`.
+- `scripts/check file-length` is not part of `check`. Its baseline is already stale on `main`, so its failures are not caused by a change that only moves files.
+- `dependency-lock` installs pip-tools from PyPI and needs writable pip caches. If `~/.cache` is read-only, set `PIP_CACHE_DIR` and `PIP_TOOLS_CACHE_DIR` to a writable directory first. Refreshing `requirements.lock` must reproduce the committed file byte-for-byte when dependencies are unchanged.
+
 ## Source-of-truth order
 
 When facts/instructions disagree:
