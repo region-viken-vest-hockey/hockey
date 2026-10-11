@@ -10,6 +10,15 @@ CONFIRM_TOURNAMENT_SKILL_FILE = ROOT / ".agents" / "skills" / "rvv-confirm-tourn
 MOVE_TOURNAMENT_SKILL_FILE = ROOT / ".agents" / "skills" / "rvv-move-tournament" / "SKILL.md"
 GUIDE_FILE = ROOT / ".agents" / "commands" / "rvv-miniputt" / "guide.md"
 SCRAPE_LLM_FILE = ROOT / ".agents" / "commands" / "rvv-miniputt" / "scrape-llm.md"
+SEASON_PROCEDURE_DIR = ROOT / ".agents" / "commands" / "rvv-miniputt" / "season"
+
+
+def _season_procedure_text() -> str:
+    """Season guidance is split into focused files; the router plus all parts is the contract."""
+
+    parts = [(ROOT / ".agents" / "commands" / "rvv-miniputt" / "season.md").read_text(encoding="utf-8")]
+    parts += [path.read_text(encoding="utf-8") for path in sorted(SEASON_PROCEDURE_DIR.glob("*.md"))]
+    return "\n".join(parts)
 
 
 def test_rvv_skill_is_harness_neutral_progressive_router() -> None:
@@ -37,9 +46,7 @@ def test_rvv_guidance_prohibits_ad_hoc_canonical_artifact_parsing() -> None:
 
 
 def test_season_procedure_documents_supported_inspection_path() -> None:
-    season = (ROOT / ".agents" / "commands" / "rvv-miniputt" / "season.md").read_text(
-        encoding="utf-8"
-    )
+    season = _season_procedure_text()
     assert "season inspect tournament" in season
     assert "season inspect constraints" in season
     assert "season inspect candidates" in season
@@ -92,7 +99,7 @@ def test_move_tournament_skill_unlocks_safely_and_does_not_silently_reapprove() 
 
 def test_maintenance_runbooks_do_not_default_to_export_materialization() -> None:
     operate = (ROOT / ".agents" / "commands" / "rvv-miniputt" / "operate.md").read_text(encoding="utf-8")
-    season = (ROOT / ".agents" / "commands" / "rvv-miniputt" / "season.md").read_text(encoding="utf-8")
+    season = _season_procedure_text()
     delivery = (ROOT / ".agents" / "commands" / "rvv-miniputt" / "season-delivery.md").read_text(encoding="utf-8")
 
     combined = "\n".join([operate, season, delivery])

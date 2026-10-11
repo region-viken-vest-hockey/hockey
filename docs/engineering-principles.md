@@ -128,6 +128,8 @@ Keep structural extraction separate from policy/behavior changes. Characterize c
 
 There is no hard per-file line limit. Split modules along responsibility boundaries when it genuinely improves clarity, rather than to satisfy an arbitrary length budget.
 
+The executable guard is `scripts/check_file_length.py`, run by `scripts/check`. Files at or under 300 lines pass. A file over 300 lines must be listed in `scripts/file-length-baseline.txt` with its recorded size and may not grow past it. Shrinking a file is encouraged; drop its entry once it is back under 300 lines. Raising a recorded size is an explicit reviewed exception, not a routine baseline refresh. Stable facades and CLI transports should stay small even when a cohesive implementation module may legitimately be larger.
+
 ## Expected operating context
 
 Assume, unless the repository shows otherwise:

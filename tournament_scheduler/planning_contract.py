@@ -54,10 +54,7 @@ from tournament_scheduler.date_policy import (
     holiday_exclusions as _holiday_exclusions,
     problem_date_exclusions as _problem_date_exclusions,
 )
-from tournament_scheduler.hosting.representation import (
-    host_eligible_teams as _host_eligible_teams,
-    host_represented_in as _host_represented_in,
-)
+from tournament_scheduler.hosting.representation import host_eligible_teams as _host_eligible_teams, host_represented_in as _host_represented_in
 from tournament_scheduler.guest_slots import (
     capacity_places as _capacity_places,
     guest_reservation_integrity_violations as _guest_reservation_integrity_violations,
@@ -1791,11 +1788,7 @@ def score_candidate(
     # which is circular (every candidate trivially has zero gap to its own
     # first/last tournament) and would make this metric noise rather than
     # signal for problem-less scoring/comparison callers.
-    from tournament_scheduler.participation.temporal_coverage import (
-        DEFAULT_TEMPORAL_COVERAGE_THRESHOLD_DAYS,
-        season_temporal_coverage,
-        temporal_offenders,
-    )
+    from tournament_scheduler.participation.temporal_coverage import DEFAULT_TEMPORAL_COVERAGE_THRESHOLD_DAYS, season_temporal_coverage, temporal_offenders
 
     season_start = _parse_date(problem.get("start_date")) if problem else None
     season_end = _parse_date(problem.get("end_date")) if problem else None
