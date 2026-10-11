@@ -17,7 +17,7 @@ def _prefer_canonical_calendar_evidence(
     ``schedule.json``'s ``verification_context.problem`` and is what every
     ordinary ``season`` command (``findings``, ``calendar-booking-findings``,
     ``booking-status``) verifies against via
-    ``season_maintenance.load_context`` -> ``_problem_from_schedule``. The
+    ``season.maintenance.load_context`` -> ``_problem_from_schedule``. The
     export gate historically rebuilt its calendar evidence from
     ``.pipeline/stage2_scraping.json`` instead -- a pipeline-local Stage 2
     checkpoint that is not refreshed by ``season refresh-calendars`` and can
@@ -119,10 +119,10 @@ def _build_export_verification_problem(
     if not effective_config or not start_raw or not end_raw:
         return None
     try:
-        from ..canonical_baseline import resolve_canonical_state
-        from ..operator_waivers import load_active_waivers
+        from ..season.baseline_overlay import resolve_canonical_state
+        from ..season.waivers import load_active_waivers
         from ..planning.contract import build_planning_problem
-        from ..season_maintenance import project_canonical_overlays
+        from ..season.maintenance import project_canonical_overlays
 
         start = datetime.strptime(str(start_raw), "%Y-%m-%d")
         end = datetime.strptime(str(end_raw), "%Y-%m-%d")

@@ -28,7 +28,7 @@ from tournament_scheduler.pipeline.state import PipelineState, StageName, StageS
 from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.review.review_packet_exporter import ReviewPacketExporter
 from tournament_scheduler.serialization.season_plan import season_plan_from_dict, season_plan_to_dict
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     apply_candidate,
     fill_guest_slot,

@@ -162,7 +162,7 @@ def test_mismatched_final_operator_evidence_does_not_override_stage3_state(tmp_p
 
 
 def test_context_surfaces_operator_waivers_and_waived_violations(tmp_path):
-    from tournament_scheduler.operator_waivers import create_waiver
+    from tournament_scheduler.season.waivers import create_waiver
 
     create_waiver(
         tmp_path,

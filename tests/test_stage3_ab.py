@@ -66,7 +66,7 @@ class TestBuildAbReport:
         assert report["change_cost"] is None
 
     def test_change_cost_reported_when_problem_carries_canonical_baseline(self):
-        from tournament_scheduler.canonical_baseline import build_canonical_baseline
+        from tournament_scheduler.season.baseline_overlay import build_canonical_baseline
 
         candidate = _clustered_candidate()
         baseline = build_canonical_baseline(

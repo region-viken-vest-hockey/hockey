@@ -20,7 +20,7 @@ _console = Console()
 
 def _cmd_season_repair_options(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season repair-options`` and ``rvv-miniputt season search`` — show repair options."""
-    from ..season_maintenance import repair_options, search
+    from ..season.maintenance import repair_options, search
 
     if args.season_command == "search":
         dimensions = [
@@ -77,7 +77,7 @@ def _cmd_season_repair_options(args: argparse.Namespace) -> int:
 
 def _cmd_season_apply_repair(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season apply-repair`` — apply a repair option."""
-    from ..season_maintenance import apply_repair
+    from ..season.maintenance import apply_repair
 
     result = apply_repair(
         args.season,
@@ -120,7 +120,7 @@ def _cmd_season_apply_repair(args: argparse.Namespace) -> int:
 
 def _cmd_season_accept_deviation(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season accept-deviation`` and ``rvv-miniputt season revoke-acceptance`` — accept or revoke acceptance of a deviation."""
-    from ..season_maintenance import accept_finding, revoke_acceptance
+    from ..season.maintenance import accept_finding, revoke_acceptance
 
     if args.season_command == "accept-deviation":
         result = accept_finding(

@@ -6,7 +6,7 @@ import pytest
 
 from tournament_scheduler.models import Roster, Team
 from tournament_scheduler.roster_loader import RosterConfigError, RosterLoader
-from tournament_scheduler.season_config import _YAML_AVAILABLE
+from tournament_scheduler.season.config import _YAML_AVAILABLE
 
 VALID_CONFIG = {
     "Jar": {"U10": ["Jar 1", "Jar 2"], "U11": ["Jar 1"]},

@@ -14,7 +14,7 @@ import os
 import subprocess
 
 from tournament_scheduler.booking.calendar_bookings import new_manual_assertion_record
-from tournament_scheduler.canonical_state import schedule_fingerprint
+from tournament_scheduler.season.state import schedule_fingerprint
 from tournament_scheduler.infrastructure.canonical_season_store import (
     DECISIONS_SCHEMA_VERSION,
     SEASON_STATE_SCHEMA_VERSION,
@@ -177,7 +177,7 @@ def _public_tournaments_html(work_dir, plan: dict, *, mislabelled_ids: set[str] 
     for a regression test.
     """
 
-    from tournament_scheduler.season_state import booking_status_report
+    from tournament_scheduler.application.canonical_season.store_facade import booking_status_report
 
     rows: dict[str, dict] = {}
     root = os.environ.get("RVV_CANONICAL_SEASON_ROOT")

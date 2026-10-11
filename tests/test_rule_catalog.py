@@ -30,7 +30,7 @@ _VIOLATION_EMITTERS = (
     "tournament_scheduler/planning/contract.py",
     "tournament_scheduler/planning/verification.py",
 )
-_CODE_DICT_EMITTERS = ("tournament_scheduler/canonical_baseline.py",)
+_CODE_DICT_EMITTERS = ("tournament_scheduler/season/baseline_overlay.py",)
 
 # The season findings projector emits the actionable finding codes a
 # controller/user sees. A finding that re-surfaces a raw verifier violation
@@ -360,7 +360,7 @@ def test_hosting_responsibility_finding_code_matches_owner() -> None:
 
 
 def test_request_constraint_codes_match_owner() -> None:
-    from tournament_scheduler import request_constraints
+    from tournament_scheduler.season import request_constraints as request_constraints
 
     expected = {
         "request_team_unavailable": request_constraints.TEAM_UNAVAILABLE,
@@ -550,7 +550,7 @@ def test_regression_tiers_match_the_adoption_precedence() -> None:
 
 def test_impact_priority_tiers_agree_with_regression_tiers() -> None:
     from tournament_scheduler import repair_adoption_guard as guard
-    from tournament_scheduler.impact_analysis import _priority_improvement_tier
+    from tournament_scheduler.season.impact_analysis import _priority_improvement_tier
 
     def improved(prefix: str) -> dict[str, int]:
         return {f"{prefix}_before": 1, f"{prefix}_after": 0}

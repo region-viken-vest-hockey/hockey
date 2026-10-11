@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from ...operator_waivers import WAIVABLE_RULE_IDS
+from ...season.waivers import WAIVABLE_RULE_IDS
 
 
 def add_waiver_parsers(sub: argparse._SubParsersAction) -> None:

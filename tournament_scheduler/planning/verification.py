@@ -19,7 +19,7 @@ from tournament_scheduler.limited_rounds import minimum_same_club_games_for_limi
 from tournament_scheduler.models import Team
 from tournament_scheduler.participation.targets import INTRA_CLUB_DISTRIBUTION
 from tournament_scheduler.participation.withdrawals import withdrawn_team_count_for_tournament
-from tournament_scheduler.canonical_exception_policy import (
+from tournament_scheduler.season.exception_policy import (
     classify_candidate_violations,
     reclassify_accepted_exceptions,
 )
@@ -338,7 +338,7 @@ def _reclassify_accepted_booking_floor(
     """Reclassify governing-floor violations for source-confirmed bookings.
 
     Thin compatibility wrapper over the shared policy owner
-    :func:`tournament_scheduler.canonical_exception_policy.reclassify_accepted_exceptions`:
+    :func:`tournament_scheduler.season.exception_policy.reclassify_accepted_exceptions`:
     the planning verifier stays strict, while an exact, fact-matching accepted
     booking interval becomes a durable feasibility finding instead of a
     new-placement planning violation (no second evidence engine or blanket

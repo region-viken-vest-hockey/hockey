@@ -16,7 +16,7 @@ import os
 from pathlib import Path
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_state import canonical_state_revision
+from tournament_scheduler.season.state import canonical_state_revision
 from tournament_scheduler.infrastructure.canonical_season_store import (
     load_decisions,
     load_schedule,
@@ -234,7 +234,7 @@ def assert_publication_allowed(
         return None
     season = context["season"]
     decisions = context["decisions"]
-    from ..season_state import verify_sealed_reconciliation
+    from ..application.canonical_season.store_facade import verify_sealed_reconciliation
 
     if not is_published_sealed(decisions):
         return None
@@ -372,7 +372,7 @@ def record_publication_seal(
         pages_commit=str(manifest.get("pages_commit") or ""),
         published_at=str(manifest.get("published_at") or manifest.get("generated_at") or ""),
     )
-    from ..season_state import seal_published_season
+    from ..application.canonical_season.store_facade import seal_published_season
 
     report = seal_published_season(
         season=season,

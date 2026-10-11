@@ -931,7 +931,7 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
     elif isinstance(plan_dict, dict) and plan_dict.get("operator_waivers"):
         operator_waivers = list(plan_dict.get("operator_waivers") or [])
     else:
-        from ..operator_waivers import load_active_waivers, waiver_audit_rows
+        from ..season.waivers import load_active_waivers, waiver_audit_rows
 
         operator_waivers = waiver_audit_rows({"operator_waivers": load_active_waivers(work_dir)})
     publication_readiness = plan_dict.get("publication_readiness") if isinstance(plan_dict, dict) else None
@@ -983,7 +983,7 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
         export_checkpoint.get("canonical_season") if isinstance(export_checkpoint, dict) else None
     )
     if canonical_season and isinstance(plan_dict, dict):
-        from ..canonical_baseline import default_season_root
+        from ..season.baseline_overlay import default_season_root
         from .publication_scope import resolve_publication_scope
 
         bound_problem = verification_problem

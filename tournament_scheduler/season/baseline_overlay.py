@@ -1,7 +1,7 @@
 """Baseline-aware planning overlay for a promoted canonical season.
 
 Once an operator deliberately promotes a verified candidate, the canonical
-season state in :mod:`tournament_scheduler.season_state` becomes the
+season state in :mod:`tournament_scheduler.application.canonical_season.store_facade` becomes the
 operational truth.  Later planning/repair must optimise *around* that
 baseline instead of regenerating a wholly new season:
 
@@ -12,7 +12,7 @@ baseline instead of regenerating a wholly new season:
   the problem.
 
 This module owns that contract: it turns canonical schedule facts plus
-decision state into a JSON-safe ``canonical_baseline`` section that can ride
+decision state into a JSON-safe ``season.baseline_overlay`` section that can ride
 inside the stable ``planning_problem``/config payloads, verifies the hard
 locks, and measures a weighted change cost between the baseline and a
 candidate.  It is a pure function library over the existing contracts: no
@@ -27,8 +27,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 CANONICAL_BASELINE_SCHEMA_VERSION = 1
 
-# Default canonical-state root, mirroring ``season_state.DEFAULT_SEASON_ROOT``
-# without importing it (``season_state`` imports this module lazily).  The
+# Default canonical-state root, mirroring ``application.canonical_season.store_facade.DEFAULT_SEASON_ROOT``
+# without importing it (``application.canonical_season.store_facade`` imports this module lazily).  The
 # environment variable is an explicit override used by tests and hermetic
 # tooling so a committed repo ``season/`` cannot silently change an unrelated
 # planning/verification run.
@@ -265,7 +265,7 @@ def build_canonical_baseline(
     schedule: Dict[str, Any],
     decisions: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Build the JSON-safe ``canonical_baseline`` section from canonical state.
+    """Build the JSON-safe ``season.baseline_overlay`` section from canonical state.
 
     A tournament is placement-locked when its decision record says so
     (``approve_tournament`` sets this by default) and participant-locked when
@@ -381,7 +381,7 @@ def load_canonical_baseline(
     root: "str | os.PathLike[str]" = "season",
 ) -> Dict[str, Any]:
     """Load the baseline overlay for *season* from canonical Git-backed state."""
-    from tournament_scheduler.season_state import load_decisions, load_schedule
+    from tournament_scheduler.application.canonical_season.store_facade import load_decisions, load_schedule
 
     schedule = load_schedule(season, root=root)
     decisions = load_decisions(season, root=root)
@@ -395,7 +395,7 @@ def canonical_baseline_for_window(
     root: "str | os.PathLike[str]" = "season",
 ) -> Optional[Dict[str, Any]]:
     """Return the baseline for ``<start_year>-<end_year>`` or ``None`` if absent."""
-    from tournament_scheduler.season_state import SeasonStateError
+    from tournament_scheduler.application.canonical_season.store_facade import SeasonStateError
 
     season = f"{start_year}-{end_year}"
     if not os.path.exists(os.path.join(str(root), season, "schedule.json")):
@@ -470,7 +470,7 @@ def resolve_canonical_state(
         return None
     resolved_root = root or config.get("canonical_season_root") or default_season_root()
     try:
-        from tournament_scheduler.season_state import load_decisions, load_schedule
+        from tournament_scheduler.application.canonical_season.store_facade import load_decisions, load_schedule
 
         schedule = load_schedule(season, root=resolved_root)
         decisions = load_decisions(season, root=resolved_root)

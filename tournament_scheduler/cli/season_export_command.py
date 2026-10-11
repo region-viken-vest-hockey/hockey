@@ -44,7 +44,7 @@ def _cmd_season_export(args: argparse.Namespace) -> int:
 
     from ..pipeline.stage4_export import run as run_export
     from ..pipeline.state import PipelineState
-    from ..season_state import (
+    from ..application.canonical_season.store_facade import (
         SeasonStateError,
         change_request_ledger,
         effective_config_from_verification_problem,
@@ -73,7 +73,7 @@ def _cmd_season_export(args: argparse.Namespace) -> int:
     # export gate verifies against the same live decisions that season
     # findings/repair-options already accepted, instead of re-litigating
     # against stale policy or the raw registered pool.
-    from ..season_maintenance import project_canonical_overlays
+    from ..season.maintenance import project_canonical_overlays
 
     verification_problem = project_canonical_overlays(
         verification_problem,
@@ -164,7 +164,7 @@ def _cmd_season_export(args: argparse.Namespace) -> int:
     # bound: if canonical state advanced while this export ran, the
     # newer state's freshness requirement survives and publication
     # keeps refusing the now-stale artifact.
-    from ..season_state import mark_export_fresh
+    from ..application.canonical_season.store_facade import mark_export_fresh
 
     result["export_freshness"] = mark_export_fresh(
         season=args.season,
@@ -237,7 +237,7 @@ def _cmd_season_export(args: argparse.Namespace) -> int:
 
 def _cmd_season_export_parity(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season export-parity`` — verify export parity between canonical and pipeline exports."""
-    from ..season_state import load_schedule, SeasonStateError
+    from ..application.canonical_season.store_facade import load_schedule, SeasonStateError
 
     try:
         schedule = load_schedule(args.season, root=args.root)
@@ -257,7 +257,7 @@ def _cmd_season_export_parity(args: argparse.Namespace) -> int:
 
 def _cmd_season_status(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season status`` — show canonical season state metadata."""
-    from ..season_state import load_schedule, load_decisions, SeasonStateError
+    from ..application.canonical_season.store_facade import load_schedule, load_decisions, SeasonStateError
 
     try:
         schedule = load_schedule(args.season, root=args.root)
@@ -266,7 +266,7 @@ def _cmd_season_status(args: argparse.Namespace) -> int:
         _console.print(f"[red]✗[/red] {exc}")
         return 1
 
-    from ..season_state import approval_report
+    from ..application.canonical_season.store_facade import approval_report
 
     revision = schedule.get("revision")
     plan = schedule.get("plan", {})

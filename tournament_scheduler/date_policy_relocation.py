@@ -39,7 +39,7 @@ from .planning.contract import (
 )
 
 # Stable finding identity for the batch relocation, surfaced by
-# ``season_maintenance`` so the operation is reachable through the ordinary
+# ``season.maintenance`` so the operation is reachable through the ordinary
 # findings/repair boundary rather than a bespoke command.
 RELOCATION_FINDING_PREFIX = "date_policy_relocation"
 _MAX_DATES_PER_TOURNAMENT = 60

@@ -832,7 +832,7 @@ def archive_entry_from_option(
     """Build an archive entry from a measured, verified repair/search option.
 
     ``option["objectives"]`` is produced by the shared maintenance measurement
-    boundary (``season_maintenance._annotate_pareto``), so the entry vector is
+    boundary (``season.maintenance._annotate_pareto``), so the entry vector is
     the same one the repair report marks non-dominated. The caller supplies the
     stable ref/fingerprint because candidate identity is a lifecycle contract
     owned by the Stage 3 session.

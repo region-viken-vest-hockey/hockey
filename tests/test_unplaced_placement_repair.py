@@ -17,14 +17,14 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
 from tournament_scheduler.repair_adoption_guard import REGRESSION_HOSTING_BALANCE
-from tournament_scheduler.season_maintenance import (
+from tournament_scheduler.season.maintenance import (
     apply_repair,
     list_findings,
     load_context,
     repair_options,
     search,
 )
-from tournament_scheduler.season_state import schedule_fingerprint
+from tournament_scheduler.application.canonical_season.store_facade import schedule_fingerprint
 from tournament_scheduler.unplaced_placement_repair import (
     SEARCH_BOUNDED_EXHAUSTED,
     SEARCH_INCOMPLETE,

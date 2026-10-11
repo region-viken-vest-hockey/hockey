@@ -496,7 +496,7 @@ def test_edited_cancelled_reason_fails_parity(tmp_path):
 
 import re  # noqa: E402
 
-from tournament_scheduler.canonical_state import compute_canonical_state_revision  # noqa: E402
+from tournament_scheduler.season.state import compute_canonical_state_revision  # noqa: E402
 from tournament_scheduler.infrastructure.canonical_season_store import (  # noqa: E402
     CanonicalSeasonSnapshot,
     CanonicalSeasonStore,

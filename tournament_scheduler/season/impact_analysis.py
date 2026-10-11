@@ -12,7 +12,7 @@ from typing import List
 from typing import Mapping
 from typing import Optional
 
-from .rule_catalog import (
+from ..rule_catalog import (
     TIER_HARD,
     TIER_OPERATIONAL_OBLIGATION,
     TIER_STRONG_GOAL,
@@ -109,13 +109,13 @@ def _signature(tournament: Mapping[str, Any]) -> Any:
 
 
 def _plan_fingerprint(plan: Mapping[str, Any]) -> str:
-    from .host_team_missing_repair import candidate_fingerprint
+    from ..host_team_missing_repair import candidate_fingerprint
 
     return candidate_fingerprint(plan)
 
 
 def _plan_content_fingerprint(plan: Mapping[str, Any]) -> str:
     """Return the tournament-content fingerprint including games and metadata."""
-    from .pipeline.fingerprints import stable_payload_sha256
+    from ..pipeline.fingerprints import stable_payload_sha256
 
     return stable_payload_sha256(plan.get("tournaments", []))

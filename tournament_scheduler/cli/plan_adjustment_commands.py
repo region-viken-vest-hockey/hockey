@@ -25,11 +25,11 @@ _console = Console()
 def _cmd_replan(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt replan`` — replan around baseline."""
     from ..pipeline.state import PipelineState
-    from ..canonical_replan import replan_around_baseline
-    from ..operator_waivers import load_active_waivers
+    from ..season.replan import replan_around_baseline
+    from ..season.waivers import load_active_waivers
     from ..pipeline.stage1_config import load_effective_config
     from ..pipeline.state import StageName, StageStatus
-    from ..season_state import apply_candidate
+    from ..application.canonical_season.store_facade import apply_candidate
 
     replan_state = PipelineState(args.work_dir)
     try:

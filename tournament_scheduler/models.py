@@ -191,7 +191,7 @@ class Tournament:
     # never toward RVV participation, hosting or fairness.
     guest_slots: List[Dict[str, object]] = field(default_factory=list)
     # Resolved host-confirmed per-tournament occupied-duration override for this
-    # rendering/verification pass (see canonical_ice_time_overrides). It is a
+    # rendering/verification pass (see season.ice_time_overrides). It is a
     # derived in-memory value, never serialized into the canonical plan: the
     # durable decision lives in decisions.json and is projected into the
     # verification problem / export rendering. ``None`` means use the
@@ -419,7 +419,7 @@ class SeasonPlan:
     # chain-of-thought. See `shared_host_decision.py`.
     shared_host_decisions: List[Dict[str, str]] = field(default_factory=list)
     # Explicit operator-authorized waivers for hard planning rules this plan
-    # relies on (see `operator_waivers.py`). Provenance/audit only -- a
+    # relies on (see `season/waivers.py`). Provenance/audit only -- a
     # waiver is created/revoked through the operator CLI, never by the
     # planner. Each entry mirrors the persisted waiver record.
     operator_waivers: List[Dict[str, object]] = field(default_factory=list)

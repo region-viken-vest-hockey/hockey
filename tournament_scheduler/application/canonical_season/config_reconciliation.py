@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_state import canonical_state_revision, schedule_fingerprint
+from tournament_scheduler.season.state import canonical_state_revision, schedule_fingerprint
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
 from tournament_scheduler.occupancy import ROUND_BUFFER_MINUTES
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256

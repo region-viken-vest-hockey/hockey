@@ -37,8 +37,8 @@ def _mid_planning_decision_problem(
     visible to every mid-planning verification/repair decision.
     """
     try:
-        from ...canonical_baseline import resolve_canonical_baseline
-        from ...operator_waivers import load_active_waivers
+        from ...season.baseline_overlay import resolve_canonical_baseline
+        from ...season.waivers import load_active_waivers
         from ...planning.contract import build_planning_problem
 
         waivers = load_active_waivers(work_dir) if work_dir else None

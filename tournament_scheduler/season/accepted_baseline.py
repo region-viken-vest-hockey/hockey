@@ -13,7 +13,7 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_state import schedule_fingerprint
+from tournament_scheduler.season.state import schedule_fingerprint
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 SEASON_BASELINE_SCHEMA_VERSION = 1

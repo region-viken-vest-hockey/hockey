@@ -44,7 +44,7 @@ from tournament_scheduler.booking.calendar_bookings import (
     associated_tournament_for_event,
     event_fingerprint,
 )
-from tournament_scheduler.canonical_baseline import (
+from tournament_scheduler.season.baseline_overlay import (
     locked_dates as _canonical_locked_dates,
     pinned_tournament_ids as _canonical_pinned_tournament_ids,
     verify_canonical_locks as _verify_canonical_locks,
@@ -68,7 +68,7 @@ from tournament_scheduler.effective_tournament_shape import (
     shape_violation,
 )
 from tournament_scheduler.occupancy import governing_minimum_ice_time_minutes, minimum_playing_requirement_minutes
-from tournament_scheduler.operator_waivers import find_participation_waiver
+from tournament_scheduler.season.waivers import find_participation_waiver
 from tournament_scheduler.participation.targets import SEASON_SCOPE, evaluate_participation
 from tournament_scheduler.participation.withdrawals import (
     eligible_hosting_teams as _eligible_hosting_teams,
@@ -284,7 +284,7 @@ def build_planning_problem(
         # investigate, never an automatic movable/free verdict.
         "unclassified_calendar_events": unclassified_intervals(club_busy_intervals),
         # Canonical Git-backed baseline snapshot (see
-        # canonical_baseline.py), when this plan is a baseline-aware replan
+        # season/baseline_overlay.py), when this plan is a baseline-aware replan
         # of a promoted season. Carries the approved/placement-locked
         # snapshot so verify_candidate can hard-reject a candidate that moves
         # or drops a booked tournament. ``None`` for a from-scratch plan.
@@ -1044,7 +1044,7 @@ def verify_candidate(
     # interval for one instance without touching the age-group default. It must
     # be applied here so arena-interval verification agrees with the canonical
     # calendar-booking coverage check.
-    from tournament_scheduler.canonical_ice_time_overrides import overrides_from_problem
+    from tournament_scheduler.season.ice_time_overrides import overrides_from_problem
 
     ice_time_overrides = overrides_from_problem(problem)
     club_calendar_status_for_conflicts = problem.get("club_calendar_status") or {}
@@ -1379,10 +1379,10 @@ def verify_candidate(
         if pinned not in candidate_ids:
             _violate("pinned_tournament_missing", f"Pinned tournament {pinned!r} is missing from the candidate")
 
-    # Canonical baseline locks (see canonical_baseline.py): a tournament an
+    # Canonical baseline locks (see season/baseline_overlay.py): a tournament an
     # operator approved/booked on a promoted season is a hard-preserve
     # constraint, not a soft preference. This is a no-op for a from-scratch
-    # plan whose problem carries no canonical_baseline section.
+    # plan whose problem carries no season.baseline_overlay section.
     for lock_violation in _verify_canonical_locks(problem.get("canonical_baseline"), candidate):
         _violate(
             lock_violation["code"],

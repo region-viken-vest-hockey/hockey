@@ -8,7 +8,7 @@ import pytest
 
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.planning.contract import build_planning_problem
-from tournament_scheduler.season_baseline import (
+from tournament_scheduler.season.accepted_baseline import (
     IMPROVED,
     KNOWN,
     NEW,
@@ -17,7 +17,7 @@ from tournament_scheduler.season_baseline import (
     compare_findings_to_baseline,
     create_baseline_record,
 )
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     canonical_state_revision,
     load_decisions,
@@ -292,7 +292,7 @@ def _introduce_hard_double_booking(root: Path) -> None:
 
 
 def test_baseline_create_refuses_hard_verification_failures(tmp_path: Path) -> None:
-    from tournament_scheduler.season_maintenance import list_findings
+    from tournament_scheduler.season.maintenance import list_findings
 
     root = _seed_two_club_season(tmp_path)
     _introduce_hard_double_booking(root)

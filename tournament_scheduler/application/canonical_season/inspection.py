@@ -17,10 +17,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_baseline import resolve_approval
-from tournament_scheduler.canonical_state import canonical_state_revision
+from tournament_scheduler.season.baseline_overlay import resolve_approval
+from tournament_scheduler.season.state import canonical_state_revision
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
-from tournament_scheduler.request_constraints import (
+from tournament_scheduler.season.request_constraints import (
     OPPONENT_AVOIDANCE,
     request_constraint_report as build_request_constraint_report,
     team_identity,

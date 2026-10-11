@@ -24,15 +24,15 @@ from __future__ import annotations
 import copy
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_baseline import approval_fingerprint, resolve_approval
-from tournament_scheduler.canonical_history_summary import verification_summary
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.baseline_overlay import approval_fingerprint, resolve_approval
+from tournament_scheduler.season.history_summary import verification_summary
+from tournament_scheduler.season.state import (
     CHANGE_PROTECTIONS_KEY,
     PARTICIPATION_WITHDRAWALS_KEY,
     canonical_state_revision,
     schedule_fingerprint,
 )
-from tournament_scheduler.change_protections import (
+from tournament_scheduler.season.change_protections import (
     ACTIVE as CHANGE_PROTECTION_ACTIVE,
     MUST_NOT_PARTICIPATE,
     build_net_roster_protections,
@@ -54,7 +54,7 @@ from tournament_scheduler.participation.withdrawals import (
 )
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning.contract import verify_candidate
-from tournament_scheduler.request_constraints import compare_request_constraint_violations
+from tournament_scheduler.season.request_constraints import compare_request_constraint_violations
 
 from .removal_policy import (
     evaluate_removal_consequences,
@@ -422,7 +422,7 @@ def _release_withdrawals_decision_only(
             "registration first: " + messages
         )
 
-    from tournament_scheduler.canonical_baseline import (
+    from tournament_scheduler.season.baseline_overlay import (
         build_canonical_baseline,
         verify_canonical_locks,
     )
@@ -684,7 +684,7 @@ def remove_participant(
     )
     verification_problem = project_into_problem(resolved_problem, records=withdrawal_records, plan=plan)
 
-    from tournament_scheduler.canonical_baseline import (
+    from tournament_scheduler.season.baseline_overlay import (
         build_canonical_baseline,
         change_cost,
         verify_canonical_locks,

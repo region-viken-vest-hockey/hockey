@@ -26,7 +26,7 @@ candidate repair against one canonical revision:
   detected even when no single swap directly reverses the previous one.
 
 The guard never verifies a candidate itself and never mutates canonical state:
-:func:`tournament_scheduler.season_maintenance.apply_repair` remains the atomic
+:func:`tournament_scheduler.season.maintenance.apply_repair` remains the atomic
 mutation boundary. The guard consumes the same independent verifier, the same
 soft-quality comparison and the same travel implementation every other surface
 uses, so it cannot drift into a second scoring rule.
@@ -61,7 +61,7 @@ from .rule_catalog import (
     TIER_STRONG_GOAL,
     priority_tier_for_regression,
 )
-from .season_baseline import (
+from .season.accepted_baseline import (
     compare_findings_to_baseline,
     finding_identity_record,
     finding_severity_score,
@@ -777,7 +777,7 @@ def evaluate_adoption(
     Finally an already-visited normalized assignment is refused as a cycle.
 
     The result is evidence, not a mutation: ``adoptable`` is the guard's verdict
-    and the caller (``season_maintenance.apply_repair``) is the boundary that
+    and the caller (``season.maintenance.apply_repair``) is the boundary that
     enforces it.
     """
     before_score = with_unresolved_obligations_count(

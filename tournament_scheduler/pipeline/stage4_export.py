@@ -111,7 +111,7 @@ def _export_approvals(effective_config: dict[str, Any], plan_dict: dict[str, Any
     approval overlay.
     """
     try:
-        from ..canonical_baseline import resolve_canonical_state
+        from ..season.baseline_overlay import resolve_canonical_state
 
         def _as_date(value: Any):
             if hasattr(value, "isoformat") and not isinstance(value, str):
@@ -371,7 +371,7 @@ def run(
     # Render the same host-confirmed per-tournament occupied duration the
     # verifier used, so XLSX/HTML/iCal end times cannot disagree with the
     # canonical occupancy contract.
-    from tournament_scheduler.canonical_ice_time_overrides import apply_overrides_to_plan
+    from tournament_scheduler.season.ice_time_overrides import apply_overrides_to_plan
 
     apply_overrides_to_plan(plan, export_problem)
     export_path = Path(export_dir)
@@ -406,8 +406,8 @@ def run(
     booking_reconciliation: dict[str, Any] | None = None
     booking_reconciliation_error: str | None = None
     try:
-        from ..canonical_baseline import resolve_canonical_state
-        from ..season_state import (
+        from ..season.baseline_overlay import resolve_canonical_state
+        from ..application.canonical_season.store_facade import (
             approval_report,
             booking_status_report,
             calendar_booking_assessment,

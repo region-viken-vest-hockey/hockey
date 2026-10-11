@@ -315,7 +315,7 @@ def _cmd_plan_ab(args: argparse.Namespace) -> int:
     import os
 
     from ..planning.contract import build_planning_problem, extract_candidate
-    from ..operator_waivers import load_active_waivers
+    from ..season.waivers import load_active_waivers
     from ..pipeline.state import PipelineState, StageName
     from tournament_scheduler.stage3.ab import build_ab_report
 
@@ -454,7 +454,7 @@ def _cmd_plan_ab_participants(args: argparse.Namespace) -> int:
     import os
 
     from ..planning.contract import build_planning_problem, extract_candidate
-    from ..operator_waivers import load_active_waivers
+    from ..season.waivers import load_active_waivers
     from ..pipeline.state import PipelineState, StageName
     from tournament_scheduler.stage3.ab import build_ab_report
     from tournament_scheduler.stage3.optimizer import (
@@ -865,7 +865,7 @@ def _cmd_plan_decide(args: argparse.Namespace) -> int:
 
 
 def _cmd_plan_problem(args: argparse.Namespace) -> int:
-    from ..operator_waivers import load_active_waivers
+    from ..season.waivers import load_active_waivers
     from ..planning.contract import build_planning_problem
     from ..pipeline.state import PipelineState, StageName
 

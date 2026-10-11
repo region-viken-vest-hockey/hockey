@@ -22,7 +22,7 @@ This module owns the missing normal path:
 
 Stage 1/2 checkpoints and fingerprints are read-only inputs: refinement never
 rescrapes and never rebuilds the planning baseline. The repair legality and
-mutation stay in the deterministic providers (``season_maintenance``); this
+mutation stay in the deterministic providers (``season.maintenance``); this
 module only composes the session lifecycle, the independent verifier and the
 export boundary.
 
@@ -155,7 +155,7 @@ def refinement_findings(
     plan: Mapping[str, Any], problem: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
     """Stable actionable findings over the unpromoted candidate."""
-    from ..season_maintenance import findings_for_plan
+    from ..season.maintenance import findings_for_plan
 
     return findings_for_plan(plan, problem)
 
@@ -169,7 +169,7 @@ def refinement_options(
     dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
 ) -> dict[str, Any]:
     """Deterministic repair options for one finding on the unpromoted candidate."""
-    from ..season_maintenance import repair_options_for_plan
+    from ..season.maintenance import repair_options_for_plan
 
     return repair_options_for_plan(
         plan, problem, finding_id, allow_search=allow_search, dimensions=dimensions
@@ -279,7 +279,7 @@ def refine_finalized_candidate(
             "instead of refining over a live public projection"
         )
 
-    from ..season_maintenance import apply_repair_to_plan, baseline_for_plan
+    from ..season.maintenance import apply_repair_to_plan, baseline_for_plan
 
     applied = apply_repair_to_plan(
         candidate,

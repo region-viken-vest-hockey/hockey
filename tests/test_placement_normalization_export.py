@@ -15,7 +15,7 @@ from tournament_scheduler.pipeline.export_projection_guard import ExportProjecti
 from tournament_scheduler.pipeline.run_manifest import RunManifest
 from tournament_scheduler.pipeline.stage4_export import run as run_export
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.season_state import promote_from_stage3
+from tournament_scheduler.application.canonical_season.store_facade import promote_from_stage3
 from tournament_scheduler.testing.reviewed_export import build_problem_from_candidate
 
 

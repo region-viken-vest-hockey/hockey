@@ -11,7 +11,7 @@ from .findings_construction import _count
 from .findings_construction import _manual_count
 from .findings_construction import _unresolved_avoidability_count
 from .findings_construction import _unresolved_participation_deviation_count
-from .impact_analysis import _changed_tournament_ids
+from .season.impact_analysis import _changed_tournament_ids
 from .planning.contract import score_candidate
 from .quality_objectives import QUALITY_OBJECTIVE_DIMENSIONS, compare_quality_scores
 from .quality_objectives import quality_objective_vector
@@ -79,7 +79,7 @@ def _objective_vector(
     single uniform dominance check and one bounded Pareto front cover both the
     hard and the soft consequences of a repair.
     """
-    from .request_constraints import count_host_sibling_preference_violations
+    from .season.request_constraints import count_host_sibling_preference_violations
 
     # Compute host sibling preference violations for the candidate plan.
     # We need a minimal decisions-like object with the active constraints.
@@ -164,7 +164,7 @@ def _metric_delta(
     host_sibling_before = 0
     host_sibling_after = 0
     if decisions is not None:
-        from .request_constraints import count_host_sibling_preference_violations
+        from .season.request_constraints import count_host_sibling_preference_violations
         host_sibling_before = count_host_sibling_preference_violations(before_plan, decisions)
         host_sibling_after = count_host_sibling_preference_violations(after_plan, decisions)
     

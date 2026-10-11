@@ -22,7 +22,7 @@ from tournament_scheduler.operational_acceptability import (
     operational_placement_profile,
 )
 from tournament_scheduler.planning.contract import verify_candidate
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     apply_candidate,
     load_schedule,

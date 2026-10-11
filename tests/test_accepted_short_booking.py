@@ -16,7 +16,7 @@ live season is never mutated.
 
 from __future__ import annotations
 
-from tournament_scheduler.canonical_exception_policy import (
+from tournament_scheduler.season.exception_policy import (
     reclassify_accepted_exceptions,
 )
 from tournament_scheduler.booking.calendar_bookings import (
@@ -24,7 +24,7 @@ from tournament_scheduler.booking.calendar_bookings import (
     event_fingerprint,
 )
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     booking_status_report,
     calendar_booking_assessment,
     confirm_calendar_booking,

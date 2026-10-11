@@ -6,18 +6,18 @@ import copy
 from collections import Counter
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     canonical_state_revision,
     compute_canonical_state_revision,
     schedule_fingerprint,
 )
-from tournament_scheduler.change_protections import (
+from tournament_scheduler.season.change_protections import (
     append_change_protections,
     build_move_protections,
     build_net_roster_protections,
     protection_violations,
 )
-from tournament_scheduler.request_constraints import (
+from tournament_scheduler.season.request_constraints import (
     compare_request_constraint_violations,
 )
 from tournament_scheduler.guest_slots import (
@@ -620,7 +620,7 @@ def batch_maintenance(
                 )
             )
 
-    from tournament_scheduler.canonical_baseline import (
+    from tournament_scheduler.season.baseline_overlay import (
         build_canonical_baseline,
         change_cost,
         verify_canonical_locks,

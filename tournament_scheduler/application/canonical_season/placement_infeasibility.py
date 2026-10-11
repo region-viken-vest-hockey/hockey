@@ -22,7 +22,7 @@ from __future__ import annotations
 import copy
 from typing import Any, Iterable, Mapping
 
-from tournament_scheduler.canonical_state import canonical_state_revision
+from tournament_scheduler.season.state import canonical_state_revision
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
 from tournament_scheduler.placement_infeasibility import (
     ACTIVE,

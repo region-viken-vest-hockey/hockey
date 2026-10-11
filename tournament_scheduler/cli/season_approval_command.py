@@ -11,7 +11,7 @@ _console = Console()
 
 def _cmd_season_approve(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season approve`` — approve a tournament."""
-    from ..season_state import approve_tournament
+    from ..application.canonical_season.store_facade import approve_tournament
     from .verification_problem import _canonical_verification_problem
 
     result = approve_tournament(
@@ -38,7 +38,7 @@ def _cmd_season_approve(args: argparse.Namespace) -> int:
 
 def _cmd_season_unapprove(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season unapprove`` — unapprove a tournament."""
-    from ..season_state import unapprove_tournament
+    from ..application.canonical_season.store_facade import unapprove_tournament
 
     result = unapprove_tournament(
         season=args.season,
@@ -61,7 +61,7 @@ def _cmd_season_unapprove(args: argparse.Namespace) -> int:
 
 def _cmd_season_banned_dates(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season banned-dates`` — list banned dates."""
-    from ..season_state import banned_date_report
+    from ..application.canonical_season.store_facade import banned_date_report
 
     result = banned_date_report(
         season=args.season,

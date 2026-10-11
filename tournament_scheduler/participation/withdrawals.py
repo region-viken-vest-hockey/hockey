@@ -36,7 +36,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
-from tournament_scheduler.canonical_state import PARTICIPATION_WITHDRAWALS_KEY
+from tournament_scheduler.season.state import PARTICIPATION_WITHDRAWALS_KEY
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 ACTIVE = "active"

@@ -11,7 +11,7 @@ _console = Console()
 
 def _cmd_season_batch(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season batch`` — atomically compose several scoped canonical mutations in one commit."""
-    from ..season_state import batch_maintenance
+    from ..application.canonical_season.store_facade import batch_maintenance
     from .verification_problem import _canonical_verification_problem
     import json
 

@@ -1,7 +1,7 @@
 """``rvv-miniputt waiver`` — explicit operator authorization of hard-rule exceptions.
 
 This is the canonical, harness-neutral operator surface for creating, listing
-and revoking narrowly scoped waivers (see :mod:`tournament_scheduler.operator_waivers`).
+and revoking narrowly scoped waivers (see :mod:`tournament_scheduler.season.waivers`).
 
 It is deliberately *not* a decision action the planner/optimizer/agent may
 invoke: only an explicit operator action can authorize an exception to a hard
@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Tuple
 
 from rich.console import Console
 
-from ..operator_waivers import (
+from ..season.waivers import (
     WAIVABLE_RULE_IDS,
     WaiverError,
     create_waiver,

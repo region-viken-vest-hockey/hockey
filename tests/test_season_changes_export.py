@@ -78,8 +78,8 @@ def _ledger() -> dict:
 
 
 def _patch_canonical_projection(monkeypatch, tmp_path: Path) -> None:
-    import tournament_scheduler.canonical_baseline as canonical_baseline
-    import tournament_scheduler.season_state as season_state
+    import tournament_scheduler.season.baseline_overlay as canonical_baseline
+    import tournament_scheduler.application.canonical_season.store_facade as season_state
 
     monkeypatch.setattr(
         canonical_baseline,
@@ -130,7 +130,7 @@ def _run_export(tmp_path: Path):
 
 def test_export_writes_change_page_and_links_it_from_the_season_plan(tmp_path, monkeypatch):
     _patch_canonical_projection(monkeypatch, tmp_path)
-    import tournament_scheduler.season_state as season_state
+    import tournament_scheduler.application.canonical_season.store_facade as season_state
 
     monkeypatch.setattr(season_state, "change_request_ledger", lambda *_a, **_k: _ledger())
 
@@ -152,7 +152,7 @@ def test_export_writes_change_page_and_links_it_from_the_season_plan(tmp_path, m
 
 def test_export_omits_change_page_and_nav_when_ledger_is_empty(tmp_path, monkeypatch):
     _patch_canonical_projection(monkeypatch, tmp_path)
-    import tournament_scheduler.season_state as season_state
+    import tournament_scheduler.application.canonical_season.store_facade as season_state
 
     monkeypatch.setattr(
         season_state,

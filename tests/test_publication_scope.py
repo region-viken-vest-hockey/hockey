@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tournament_scheduler.canonical_state import schedule_fingerprint
+from tournament_scheduler.season.state import schedule_fingerprint
 from tournament_scheduler.booking.calendar_bookings import (
     TOURNAMENT_BOOKING_EVIDENCE_KEY,
     new_booking_evidence_record,

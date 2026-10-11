@@ -51,7 +51,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from tournament_scheduler.game_generation import generate_tournament_games
 from tournament_scheduler.date_policy import problem_forbidden_dates as _problem_forbidden_dates
-from tournament_scheduler.canonical_baseline import (
+from tournament_scheduler.season.baseline_overlay import (
     DEFAULT_CHANGE_COST_SCALE,
     DEFAULT_CHANGE_WEIGHTS,
 )
@@ -320,7 +320,7 @@ def _baseline_snapshots(baseline: Optional[Dict[str, Any]]) -> Dict[str, Dict[st
 def _slot_change_category(slot: "_Slot", snapshot: Optional[Dict[str, Any]]) -> str:
     """Classify one slot against its canonical baseline snapshot.
 
-    Mirrors :func:`canonical_baseline.change_cost` exactly (placement beats
+    Mirrors :func:`season.baseline_overlay.change_cost` exactly (placement beats
     participant change), so an optimizer that folds this term into its
     objective is minimizing the same cost the operator sees from
     ``season diff``.

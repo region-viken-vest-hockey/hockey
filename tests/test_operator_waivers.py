@@ -21,7 +21,7 @@ from tournament_scheduler.host_team_missing_repair import (
     enumerate_host_team_missing_repairs,
 )
 from tournament_scheduler.models import Team
-from tournament_scheduler.operator_waivers import (
+from tournament_scheduler.season.waivers import (
     NON_WAIVABLE_STRUCTURAL_INVARIANTS,
     WAIVABLE_RULE_IDS,
     WaiverError,

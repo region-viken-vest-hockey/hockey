@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_state import CHANGE_PROTECTIONS_KEY
+from tournament_scheduler.season.state import CHANGE_PROTECTIONS_KEY
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 ACTIVE = "active"

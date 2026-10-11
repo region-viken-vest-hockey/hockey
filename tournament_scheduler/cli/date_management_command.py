@@ -21,7 +21,7 @@ _console = Console()
 def _cmd_season_ban_date(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season ban-date`` — ban a date."""
     from ..pipeline.state import PipelineState
-    from ..season_state import add_banned_date
+    from ..application.canonical_season.store_facade import add_banned_date
 
     state = PipelineState(args.work_dir)
     result = add_banned_date(
@@ -61,7 +61,7 @@ def _cmd_season_ban_date(args: argparse.Namespace) -> int:
 def _cmd_season_unban_date(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season unban-date`` — unban a date."""
     from ..pipeline.state import PipelineState
-    from ..season_state import release_banned_dates
+    from ..application.canonical_season.store_facade import release_banned_dates
 
     state = PipelineState(args.work_dir)
     result = release_banned_dates(
@@ -88,7 +88,7 @@ def _cmd_season_unban_date(args: argparse.Namespace) -> int:
 def _cmd_season_allow_holiday_date(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season allow-holiday-date`` — allow a holiday date."""
     from ..pipeline.state import PipelineState
-    from ..season_state import allow_holiday_date
+    from ..application.canonical_season.store_facade import allow_holiday_date
 
     state = PipelineState(args.work_dir)
     result = allow_holiday_date(
@@ -120,7 +120,7 @@ def _cmd_season_allow_holiday_date(args: argparse.Namespace) -> int:
 def _cmd_season_disallow_holiday_date(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season disallow-holiday-date`` — disallow holiday date exceptions."""
     from ..pipeline.state import PipelineState
-    from ..season_state import disallow_holiday_dates
+    from ..application.canonical_season.store_facade import disallow_holiday_dates
 
     state = PipelineState(args.work_dir)
     result = disallow_holiday_dates(
@@ -146,7 +146,7 @@ def _cmd_season_disallow_holiday_date(args: argparse.Namespace) -> int:
 def _cmd_season_holiday_date_exceptions(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season holiday-date-exceptions`` — show holiday-date exceptions."""
     from ..pipeline.state import PipelineState
-    from ..season_state import holiday_date_exception_report
+    from ..application.canonical_season.store_facade import holiday_date_exception_report
 
     state = PipelineState(args.work_dir)
     report = holiday_date_exception_report(

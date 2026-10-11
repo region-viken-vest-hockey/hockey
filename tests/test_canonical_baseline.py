@@ -7,7 +7,7 @@ from datetime import date
 
 import pytest
 
-from tournament_scheduler.canonical_baseline import (
+from tournament_scheduler.season.baseline_overlay import (
     build_canonical_baseline,
     change_cost,
     locked_dates,
@@ -17,7 +17,7 @@ from tournament_scheduler.canonical_baseline import (
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
 from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     apply_candidate,
     approve_tournament,
@@ -392,7 +392,7 @@ def test_apply_candidate_allows_responsibility_preserving_change(tmp_path):
 
 
 def test_replan_around_baseline_preserves_ids_and_reports_change_cost(tmp_path):
-    from tournament_scheduler.canonical_replan import replan_around_baseline
+    from tournament_scheduler.season.replan import replan_around_baseline
 
     first = _teams(("A", "B", "C", "D"))
     second = [
@@ -454,7 +454,7 @@ def test_season_diff_cli_reports_change_cost(tmp_path, capsys):
 
 
 def test_resolve_canonical_state_from_planning_window(tmp_path):
-    from tournament_scheduler.canonical_baseline import (
+    from tournament_scheduler.season.baseline_overlay import (
         resolve_canonical_baseline,
         resolve_canonical_season,
         resolve_canonical_state,
@@ -935,7 +935,7 @@ def test_export_verification_problem_degrades_when_canonical_calendar_evidence_m
     del schedule["verification_context"]
     schedule_path.write_text(json.dumps(schedule), encoding="utf-8")
 
-    from tournament_scheduler.season_maintenance import (
+    from tournament_scheduler.season.maintenance import (
         SeasonMaintenanceError,
         load_context,
     )
@@ -995,7 +995,7 @@ def _slot_candidate():
 
 
 def test_search_state_folds_in_canonical_change_cost():
-    from tournament_scheduler.canonical_baseline import DEFAULT_CHANGE_WEIGHTS
+    from tournament_scheduler.season.baseline_overlay import DEFAULT_CHANGE_WEIGHTS
     from tournament_scheduler.stage3.optimizer import (
         DEFAULT_WEIGHTS,
         _SearchState,
@@ -1061,7 +1061,7 @@ def test_optimizer_never_moves_placement_locked_tournament():
 
 
 def test_default_season_root_respects_env_override(monkeypatch):
-    from tournament_scheduler.canonical_baseline import (
+    from tournament_scheduler.season.baseline_overlay import (
         SEASON_ROOT_ENV_VAR,
         default_season_root,
     )

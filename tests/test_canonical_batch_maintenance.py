@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     add_request_constraint,
     approve_tournament,

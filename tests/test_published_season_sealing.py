@@ -24,7 +24,7 @@ from tournament_scheduler.infrastructure.canonical_revision_history import (
 )
 
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
-from tournament_scheduler.canonical_state import canonical_state_revision, schedule_fingerprint
+from tournament_scheduler.season.state import canonical_state_revision, schedule_fingerprint
 from tournament_scheduler.infrastructure.canonical_season_store import (
     DECISIONS_SCHEMA_VERSION,
     SEASON_STATE_SCHEMA_VERSION,
@@ -839,8 +839,8 @@ def test_seal_fails_closed_on_unsupported_materialization(tmp_path: Path) -> Non
 
 
 def test_sealed_season_guards_global_regeneration(tmp_path: Path) -> None:
-    from tournament_scheduler.canonical_replan import replan_around_baseline
-    from tournament_scheduler.season_state import apply_candidate, normalize_placements
+    from tournament_scheduler.season.replan import replan_around_baseline
+    from tournament_scheduler.application.canonical_season.store_facade import apply_candidate, normalize_placements
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -868,7 +868,7 @@ def test_sealed_season_guards_global_regeneration(tmp_path: Path) -> None:
         )
 
     # Targeted, decision-only maintenance still works.
-    from tournament_scheduler.season_state import approve_tournament
+    from tournament_scheduler.application.canonical_season.store_facade import approve_tournament
 
     approve_tournament(season="2026-2027", tournament_id="rvv-1", root=root, actor="tester")
     status = CanonicalSeasonService(root=root).season_lifecycle_report("2026-2027")
@@ -878,7 +878,7 @@ def test_sealed_season_guards_global_regeneration(tmp_path: Path) -> None:
 def test_sealed_service_refuses_caller_constructed_wide_scope(tmp_path: Path) -> None:
     """A caller-built scope or stolen capability token is never authorization."""
 
-    from tournament_scheduler.season_state import apply_candidate as api_apply_candidate
+    from tournament_scheduler.application.canonical_season.store_facade import apply_candidate as api_apply_candidate
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -939,7 +939,7 @@ def test_sealed_service_refuses_caller_constructed_wide_scope(tmp_path: Path) ->
 
 
 def test_sealed_bounded_repair_is_reproduced_and_replays(tmp_path: Path) -> None:
-    from tournament_scheduler.season_maintenance import apply_repair, repair_options
+    from tournament_scheduler.season.maintenance import apply_repair, repair_options
 
     root = tmp_path / "season"
     _write_sealed_repairable_season(root)
@@ -969,7 +969,7 @@ def test_sealed_bounded_repair_is_reproduced_and_replays(tmp_path: Path) -> None
 def _minted_repair_authorization(root: Path):
     """Return a real sealed bounded-repair candidate plus its authorization."""
 
-    from tournament_scheduler.season_maintenance import (
+    from tournament_scheduler.season.maintenance import (
         apply_repair_to_plan,
         load_context,
         repair_options,
@@ -1365,7 +1365,7 @@ def test_sealed_confirm_calendar_booking_batch_replays_mixed_override_history(
         TOURNAMENT_BOOKING_EVIDENCE_KEY,
         iter_events,
     )
-    from tournament_scheduler.canonical_ice_time_overrides import active_overrides
+    from tournament_scheduler.season.ice_time_overrides import active_overrides
 
     root = tmp_path / "season"
     tournaments = [
@@ -1603,7 +1603,7 @@ def test_sealed_scoped_batch_reconciles_immediately(tmp_path: Path) -> None:
 
 
 def test_normalize_placements_dry_run_is_diagnostic_on_sealed_season(tmp_path: Path) -> None:
-    from tournament_scheduler.season_state import normalize_placements
+    from tournament_scheduler.application.canonical_season.store_facade import normalize_placements
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -1613,7 +1613,7 @@ def test_normalize_placements_dry_run_is_diagnostic_on_sealed_season(tmp_path: P
 
 
 def test_reopen_planning_requires_confirmation_and_reason(tmp_path: Path) -> None:
-    from tournament_scheduler.season_state import apply_candidate, reopen_planning
+    from tournament_scheduler.application.canonical_season.store_facade import apply_candidate, reopen_planning
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -1871,7 +1871,7 @@ def _candidate() -> dict:
 
 
 def test_promote_force_cannot_replace_sealed_season(tmp_path: Path) -> None:
-    from tournament_scheduler.season_state import promote_from_stage3, seal_published_season
+    from tournament_scheduler.application.canonical_season.store_facade import promote_from_stage3, seal_published_season
 
     work_dir = tmp_path / ".pipeline"
     root = tmp_path / "season"
@@ -2175,7 +2175,7 @@ def test_publication_guard_blocks_on_unverifiable_previous_snapshot(
 
 
 def test_publication_evidence_report_shows_active_revision_and_delta(tmp_path: Path) -> None:
-    from tournament_scheduler.season_state import publication_evidence_report
+    from tournament_scheduler.application.canonical_season.store_facade import publication_evidence_report
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -2208,7 +2208,7 @@ def test_publication_guard_refuses_sealed_state_without_a_baseline(tmp_path: Pat
 
 def test_republish_seal_invokes_no_planning_or_scrape_path(tmp_path: Path, monkeypatch) -> None:
     import tournament_scheduler.pipeline.stage4_export as stage4_export
-    import tournament_scheduler.season_state as season_state
+    import tournament_scheduler.application.canonical_season.store_facade as season_state
 
     def _boom(*_args, **_kwargs):
         raise AssertionError("republish must not invoke a planning/scrape path")

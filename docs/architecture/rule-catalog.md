@@ -108,14 +108,14 @@ candidate regresses a higher-priority operational obligation.
 | `valid_tournament_date` | A tournament must carry a parseable date; a missing/invalid date is structural corruption. | `tournament_scheduler.planning.contract` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_planning_contract.py` |
 | `date_within_window` | Every tournament date lies inside the configured planning/season window. | `tournament_scheduler.planning.contract` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_planning_contract.py` |
 | `holiday_date_admissible` | Tournaments must not be scheduled on canonically excluded holiday dates for the planning window. | `tournament_scheduler.date_policy` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_holiday_date_policy.py` |
-| `banned_dates_not_used` | Tournaments must not be scheduled on an operator-banned global date. | `tournament_scheduler.canonical_banned_dates` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_canonical_banned_dates.py` |
+| `banned_dates_not_used` | Tournaments must not be scheduled on an operator-banned global date. | `tournament_scheduler.season.banned_dates` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_canonical_banned_dates.py` |
 | `excluded_host_club_not_used` | A club explicitly excluded as host for a scope must not host there. | `tournament_scheduler.planning.contract` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_planning_contract.py` |
 | `host_representation` | A tournament's host club must be represented by its own participating team (shared/joint registrations count for either constituent). This is the hard representation invariant; proportional hosting balance is a separate soft objective. | `tournament_scheduler.hosting.representation` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_stage3_optimizer_host_representation.py`, `tests/test_host_team_missing_repair.py` |
-| `locked_date_preserved` | A canonical locked date must still have a scheduled tournament. | `tournament_scheduler.canonical_baseline` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_canonical_baseline.py` |
-| `pinned_tournament_preserved` | A pinned tournament id must remain present in the candidate. | `tournament_scheduler.canonical_baseline` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_canonical_baseline.py` |
-| `canonical_locked_tournament_preserved` | An approved/placement-locked canonical tournament must not be dropped by replanning. | `tournament_scheduler.canonical_baseline` | `tournament_scheduler.canonical_baseline.verify_canonical_locks` | `tests/test_canonical_baseline.py` |
-| `canonical_placement_preserved` | A placement-locked canonical tournament keeps its protected placement fields. | `tournament_scheduler.canonical_baseline` | `tournament_scheduler.canonical_baseline.verify_canonical_locks` | `tests/test_canonical_baseline.py`, `tests/test_approval_lifecycle.py` |
-| `canonical_participants_preserved` | A participant-locked canonical tournament keeps its protected participant list. | `tournament_scheduler.canonical_baseline` | `tournament_scheduler.canonical_baseline.verify_canonical_locks` | `tests/test_canonical_baseline.py`, `tests/test_approval_lifecycle.py` |
+| `locked_date_preserved` | A canonical locked date must still have a scheduled tournament. | `tournament_scheduler.season.baseline_overlay` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_canonical_baseline.py` |
+| `pinned_tournament_preserved` | A pinned tournament id must remain present in the candidate. | `tournament_scheduler.season.baseline_overlay` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_canonical_baseline.py` |
+| `canonical_locked_tournament_preserved` | An approved/placement-locked canonical tournament must not be dropped by replanning. | `tournament_scheduler.season.baseline_overlay` | `tournament_scheduler.season.baseline_overlay.verify_canonical_locks` | `tests/test_canonical_baseline.py` |
+| `canonical_placement_preserved` | A placement-locked canonical tournament keeps its protected placement fields. | `tournament_scheduler.season.baseline_overlay` | `tournament_scheduler.season.baseline_overlay.verify_canonical_locks` | `tests/test_canonical_baseline.py`, `tests/test_approval_lifecycle.py` |
+| `canonical_participants_preserved` | A participant-locked canonical tournament keeps its protected participant list. | `tournament_scheduler.season.baseline_overlay` | `tournament_scheduler.season.baseline_overlay.verify_canonical_locks` | `tests/test_canonical_baseline.py`, `tests/test_approval_lifecycle.py` |
 | `participation_hard_max` | An explicitly configured participation hard maximum is a legality boundary and is operator-waivable. It is separate from the ordinary participation target, which is a soft objective and never a hard cap. | `tournament_scheduler.participation.targets` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_participation_targets.py`, `tests/test_operator_waivers.py` |
 | `game_team_membership` | Every exported game is between two declared participants of its tournament. | `tournament_scheduler.planning.verification` | `tournament_scheduler.planning.verification.verify_final_candidate` | `tests/test_final_verification.py` |
 | `valid_game_record` | Every exported game record is a well-formed object with distinct participants. | `tournament_scheduler.planning.verification` | `tournament_scheduler.planning.verification.verify_final_candidate` | `tests/test_final_verification.py` |
@@ -125,9 +125,9 @@ candidate regresses a higher-priority operational obligation.
 | `team_unique_per_round` | A team plays at most one game per round. | `tournament_scheduler.planning.verification` | `tournament_scheduler.planning.verification.verify_final_candidate` | `tests/test_final_verification.py` |
 | `tournament_round_count` | A limited-rounds tournament produces exactly the effective configured round count. | `tournament_scheduler.planning.verification` | `tournament_scheduler.planning.verification.verify_final_candidate` | `tests/test_final_verification.py` |
 | `intra_club_game_minimum` | Same-club matchups are limited to the minimum required by the limited-rounds format. | `tournament_scheduler.planning.verification` | `tournament_scheduler.planning.verification.verify_final_candidate` | `tests/test_final_verification.py` |
-| `request_team_unavailable` | A durable operator request constraint: the team must not play inside its declared unavailable date range. | `tournament_scheduler.request_constraints` | `tournament_scheduler.request_constraints.request_constraint_violations` | `tests/test_request_constraints.py` |
-| `request_minimum_gap` | A durable operator request constraint: the team must keep at least the requested days between tournaments. | `tournament_scheduler.request_constraints` | `tournament_scheduler.request_constraints.request_constraint_violations` | `tests/test_request_constraints.py` |
-| `request_opponent_avoidance` | A durable operator request constraint: two teams must not meet inside the declared date range. | `tournament_scheduler.request_constraints` | `tournament_scheduler.request_constraints.request_constraint_violations` | `tests/test_request_constraints.py` |
+| `request_team_unavailable` | A durable operator request constraint: the team must not play inside its declared unavailable date range. | `tournament_scheduler.season.request_constraints` | `tournament_scheduler.season.request_constraints.request_constraint_violations` | `tests/test_request_constraints.py` |
+| `request_minimum_gap` | A durable operator request constraint: the team must keep at least the requested days between tournaments. | `tournament_scheduler.season.request_constraints` | `tournament_scheduler.season.request_constraints.request_constraint_violations` | `tests/test_request_constraints.py` |
+| `request_opponent_avoidance` | A durable operator request constraint: two teams must not meet inside the declared date range. | `tournament_scheduler.season.request_constraints` | `tournament_scheduler.season.request_constraints.request_constraint_violations` | `tests/test_request_constraints.py` |
 
 ## Operational obligations
 
@@ -158,14 +158,14 @@ candidate regresses a higher-priority operational obligation.
 | Rule ID | Meaning | Canonical owner | Verifier / measurement | Tests |
 |---|---|---|---|---|
 | `shared_host_choice` | A joint registration such as Kongsberg/Tønsberg can genuinely require a contextual choice of which constituent physically carries the shared hosting responsibility. This is the limited case where agent/operator judgment over deterministic registration facts is legitimate. | `tournament_scheduler.shared_host_decision` | `tournament_scheduler.hosting.coverage.shared_registration_facts` | `tests/test_shared_host_decision.py` |
-| `operator_waiver` | An authorized operator may explicitly waive a classified hard planning rule for a precise scope. The planner/agent may suggest but never create or broaden a waiver; waived violations stay visible and downgrade publication readiness. | `tournament_scheduler.operator_waivers` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_operator_waivers.py` |
+| `operator_waiver` | An authorized operator may explicitly waive a classified hard planning rule for a precise scope. The planner/agent may suggest but never create or broaden a waiver; waived violations stay visible and downgrade publication readiness. | `tournament_scheduler.season.waivers` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_operator_waivers.py` |
 | `operator_accepted_participation_deviation` | An operator may deliberately live with a bounded participation deviation. The acceptance never changes the target or the schedule, is bound to the deviation scope/magnitude and becomes stale when the target changes or the deviation worsens. | `tournament_scheduler.participation.targets` | `tournament_scheduler.participation.targets.evidence_covers_deviation` | `tests/test_participation_targets.py`, `tests/test_season_maintenance.py` |
 | `manual_placement_opt_in` | An automatic canonical mutation may not newly introduce a manual/unt trusted-calendar placement or host-confirmation dependency. A deliberate provisional placement requires the exact explicit opt-in and is audited. | `tournament_scheduler.operational_acceptability` | `tournament_scheduler.operational_acceptability` | `tests/test_operational_acceptability.py` |
 | `guest_slot_reservation` | The operator reserves guest places as intent; the selection among legal alternatives is recorded as a decision. | `tournament_scheduler.guest_slots` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_guest_slots.py` |
-| `season_quality_baseline` | An operator may accept the current set and severity of non-hard findings as the season's regression reference. The baseline records stable finding ids and measurements (never aggregate counts alone), so later maintenance classifies fresh findings as known/improved/resolved/regressed/new. It never suppresses hard verification failures and never changes the schedule. | `tournament_scheduler.season_baseline` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_season_baseline.py` |
-| `operator_banned_date` | The operator may ban a global date as unusable for every tournament; the ban is durable policy, not a one-off. | `tournament_scheduler.canonical_banned_dates` | — | `tests/test_canonical_banned_dates.py` |
-| `operator_holiday_date_exception` | The operator may allow one date that is excluded only by the derived holiday/date policy; the exception does not override explicit banned dates. | `tournament_scheduler.canonical_holiday_exceptions` | — | `tests/test_holiday_date_policy.py` |
-| `operator_ice_time_override` | The operator may bind a host-confirmed per-tournament occupied duration that differs from the age-group default. Direct manual overrides are explicit, revision-bound and may not go below the actual-round format minimum or governing booking floor. An accepted authoritative calendar association may also bind the source event's exact interval first and surface any format/governing feasibility concern separately. | `tournament_scheduler.canonical_ice_time_overrides` | — | `tests/test_ice_time_overrides.py` |
+| `season_quality_baseline` | An operator may accept the current set and severity of non-hard findings as the season's regression reference. The baseline records stable finding ids and measurements (never aggregate counts alone), so later maintenance classifies fresh findings as known/improved/resolved/regressed/new. It never suppresses hard verification failures and never changes the schedule. | `tournament_scheduler.season.accepted_baseline` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_season_baseline.py` |
+| `operator_banned_date` | The operator may ban a global date as unusable for every tournament; the ban is durable policy, not a one-off. | `tournament_scheduler.season.banned_dates` | — | `tests/test_canonical_banned_dates.py` |
+| `operator_holiday_date_exception` | The operator may allow one date that is excluded only by the derived holiday/date policy; the exception does not override explicit banned dates. | `tournament_scheduler.season.holiday_exceptions` | — | `tests/test_holiday_date_policy.py` |
+| `operator_ice_time_override` | The operator may bind a host-confirmed per-tournament occupied duration that differs from the age-group default. Direct manual overrides are explicit, revision-bound and may not go below the actual-round format minimum or governing booking floor. An accepted authoritative calendar association may also bind the source event's exact interval first and surface any format/governing feasibility concern separately. | `tournament_scheduler.season.ice_time_overrides` | — | `tests/test_ice_time_overrides.py` |
 
 ## Fact / evidence semantics
 
@@ -175,7 +175,7 @@ candidate regresses a higher-priority operational obligation.
 | `calendar_interval_classification` | A host's calendar interval is classified fixed_busy (hard external conflict), movable_busy (host-controlled, requires host confirmation) or unclassified. The classification is policy evidence, not a scheduling rule in itself. A promoted season may also carry an explicit event-to-tournament booking association overlay that makes one fixed event non-conflicting only for the associated tournament while that event still covers the tournament's current canonical occupied interval. | `tournament_scheduler.booking.calendar_availability / tournament_scheduler.booking.calendar_bookings` | `tournament_scheduler.planning.contract.external_calendar_conflict` | `tests/test_calendar_availability.py`, `tests/test_movable_capacity_repair.py`, `tests/test_approval_lifecycle.py` |
 | `club_pool_classification` | For each club x age group x scope, the registered teams' aggregate target/actual is classified as complete / intra_club_distribution / minor\|material_club_pool_shortfall / single_team_deviation / over_target. The classification is the single source of truth for whether a residual is a genuine player-pool shortage. | `tournament_scheduler.participation.targets` | — | `tests/test_participation_targets.py` |
 | `search_coverage_evidence` | A bounded repair/search result records what was actually tried: option_available, search_incomplete, bounded_search_exhausted, proven_infeasible or inapplicable, bound to a search capability/version. Zero options means only that this search found none, never proof of global infeasibility. | `tournament_scheduler.search_capability` | — | `tests/test_search_neighborhood_repair.py` |
-| `approval_lifecycle` | Operator approvals/locks live in decisions.json separately from schedule facts. A changed placement fingerprint becomes a stale approval whose lock is dropped; a participant-locked approval also stales when its roster/game structure changes. An approval whose tournament is gone becomes orphaned. Both require re-review. | `tournament_scheduler.canonical_baseline` | — | `tests/test_approval_lifecycle.py`, `tests/test_canonical_baseline.py` |
+| `approval_lifecycle` | Operator approvals/locks live in decisions.json separately from schedule facts. A changed placement fingerprint becomes a stale approval whose lock is dropped; a participant-locked approval also stales when its roster/game structure changes. An approval whose tournament is gone becomes orphaned. Both require re-review. | `tournament_scheduler.season.baseline_overlay` | — | `tests/test_approval_lifecycle.py`, `tests/test_canonical_baseline.py` |
 | `verification_completeness` | Verification reports which checks were skipped because their required input was unavailable. An incomplete verification is never a pass. | `tournament_scheduler.planning.contract` | — | `tests/test_planning_contract.py` |
 
 ## Stable ID map
@@ -471,7 +471,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Hard constraint` · status `active` · operator-waivable: yes  
 **Meaning:** Tournaments must not be scheduled on an operator-banned global date.  
-**Canonical owner:** `tournament_scheduler.canonical_banned_dates`  
+**Canonical owner:** `tournament_scheduler.season.banned_dates`  
 **Input / fact source:** decisions.json banned dates projected into the planning problem  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
 **Codes:** verifier `banned_date_used` · finding — · score —  
@@ -510,7 +510,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Hard constraint` · status `active` · operator-waivable: yes  
 **Meaning:** A canonical locked date must still have a scheduled tournament.  
-**Canonical owner:** `tournament_scheduler.canonical_baseline`  
+**Canonical owner:** `tournament_scheduler.season.baseline_overlay`  
 **Input / fact source:** canonical decisions.json locked dates  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
 **Codes:** verifier `locked_date_missing` · finding — · score —  
@@ -523,7 +523,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Hard constraint` · status `active` · operator-waivable: yes  
 **Meaning:** A pinned tournament id must remain present in the candidate.  
-**Canonical owner:** `tournament_scheduler.canonical_baseline`  
+**Canonical owner:** `tournament_scheduler.season.baseline_overlay`  
 **Input / fact source:** canonical decisions.json pinned tournament ids  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
 **Codes:** verifier `pinned_tournament_missing` · finding — · score —  
@@ -536,9 +536,9 @@ candidate regresses a higher-priority operational obligation.
 
 `Hard constraint` · status `active` · operator-waivable: no (structural)  
 **Meaning:** An approved/placement-locked canonical tournament must not be dropped by replanning.  
-**Canonical owner:** `tournament_scheduler.canonical_baseline`  
+**Canonical owner:** `tournament_scheduler.season.baseline_overlay`  
 **Input / fact source:** canonical decisions.json locks  
-**Verifier / measurement:** `tournament_scheduler.canonical_baseline.verify_canonical_locks`  
+**Verifier / measurement:** `tournament_scheduler.season.baseline_overlay.verify_canonical_locks`  
 **Codes:** verifier `canonical_locked_tournament_missing` · finding — · score —  
 **Providers:** mutation — · search —  
 **Evidence / report:** `verify_candidate.violations`  
@@ -549,9 +549,9 @@ candidate regresses a higher-priority operational obligation.
 
 `Hard constraint` · status `active` · operator-waivable: no (structural)  
 **Meaning:** A placement-locked canonical tournament keeps its protected placement fields.  
-**Canonical owner:** `tournament_scheduler.canonical_baseline`  
+**Canonical owner:** `tournament_scheduler.season.baseline_overlay`  
 **Input / fact source:** canonical decisions.json locks  
-**Verifier / measurement:** `tournament_scheduler.canonical_baseline.verify_canonical_locks`  
+**Verifier / measurement:** `tournament_scheduler.season.baseline_overlay.verify_canonical_locks`  
 **Codes:** verifier `canonical_placement_locked` · finding — · score —  
 **Providers:** mutation — · search —  
 **Evidence / report:** `verify_candidate.violations`, `season protections`  
@@ -562,9 +562,9 @@ candidate regresses a higher-priority operational obligation.
 
 `Hard constraint` · status `active` · operator-waivable: no (structural)  
 **Meaning:** A participant-locked canonical tournament keeps its protected participant list.  
-**Canonical owner:** `tournament_scheduler.canonical_baseline`  
+**Canonical owner:** `tournament_scheduler.season.baseline_overlay`  
 **Input / fact source:** canonical decisions.json locks  
-**Verifier / measurement:** `tournament_scheduler.canonical_baseline.verify_canonical_locks`  
+**Verifier / measurement:** `tournament_scheduler.season.baseline_overlay.verify_canonical_locks`  
 **Codes:** verifier `canonical_participants_locked` · finding — · score —  
 **Providers:** mutation — · search —  
 **Evidence / report:** `verify_candidate.violations`, `season protections`  
@@ -692,9 +692,9 @@ candidate regresses a higher-priority operational obligation.
 
 `Hard constraint` · status `active` · operator-waivable: yes  
 **Meaning:** A durable operator request constraint: the team must not play inside its declared unavailable date range.  
-**Canonical owner:** `tournament_scheduler.request_constraints`  
+**Canonical owner:** `tournament_scheduler.season.request_constraints`  
 **Input / fact source:** canonical decisions.json request constraints  
-**Verifier / measurement:** `tournament_scheduler.request_constraints.request_constraint_violations`  
+**Verifier / measurement:** `tournament_scheduler.season.request_constraints.request_constraint_violations`  
 **Codes:** verifier `team_unavailable` · finding — · score —  
 **Providers:** mutation — · search —  
 **Evidence / report:** `season constraints --json`, `canonical apply boundary refusals`  
@@ -705,9 +705,9 @@ candidate regresses a higher-priority operational obligation.
 
 `Hard constraint` · status `active` · operator-waivable: yes  
 **Meaning:** A durable operator request constraint: the team must keep at least the requested days between tournaments.  
-**Canonical owner:** `tournament_scheduler.request_constraints`  
+**Canonical owner:** `tournament_scheduler.season.request_constraints`  
 **Input / fact source:** canonical decisions.json request constraints  
-**Verifier / measurement:** `tournament_scheduler.request_constraints.request_constraint_violations`  
+**Verifier / measurement:** `tournament_scheduler.season.request_constraints.request_constraint_violations`  
 **Codes:** verifier `minimum_gap` · finding — · score —  
 **Providers:** mutation — · search —  
 **Evidence / report:** `season constraints --json`, `canonical apply boundary refusals`  
@@ -718,9 +718,9 @@ candidate regresses a higher-priority operational obligation.
 
 `Hard constraint` · status `active` · operator-waivable: yes  
 **Meaning:** A durable operator request constraint: two teams must not meet inside the declared date range.  
-**Canonical owner:** `tournament_scheduler.request_constraints`  
+**Canonical owner:** `tournament_scheduler.season.request_constraints`  
 **Input / fact source:** canonical decisions.json request constraints  
-**Verifier / measurement:** `tournament_scheduler.request_constraints.request_constraint_violations`  
+**Verifier / measurement:** `tournament_scheduler.season.request_constraints.request_constraint_violations`  
 **Codes:** verifier `opponent_avoidance` · finding — · score —  
 **Providers:** mutation — · search —  
 **Evidence / report:** `season constraints --json`, `canonical apply boundary refusals`  
@@ -926,7 +926,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Operator decision` · status `active` · operator-waivable: yes  
 **Meaning:** An authorized operator may explicitly waive a classified hard planning rule for a precise scope. The planner/agent may suggest but never create or broaden a waiver; waived violations stay visible and downgrade publication readiness.  
-**Canonical owner:** `tournament_scheduler.operator_waivers`  
+**Canonical owner:** `tournament_scheduler.season.waivers`  
 **Input / fact source:** canonical operator waiver records  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
 **Codes:** verifier — · finding `operator_waivers` · score —  
@@ -978,7 +978,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Operator decision` · status `active` · operator-waivable: yes  
 **Meaning:** An operator may accept the current set and severity of non-hard findings as the season's regression reference. The baseline records stable finding ids and measurements (never aggregate counts alone), so later maintenance classifies fresh findings as known/improved/resolved/regressed/new. It never suppresses hard verification failures and never changes the schedule.  
-**Canonical owner:** `tournament_scheduler.season_baseline`  
+**Canonical owner:** `tournament_scheduler.season.accepted_baseline`  
 **Input / fact source:** canonical decisions.json season baseline + fresh season findings  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
 **Codes:** verifier — · finding — · score —  
@@ -991,7 +991,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Operator decision` · status `active` · operator-waivable: yes  
 **Meaning:** The operator may ban a global date as unusable for every tournament; the ban is durable policy, not a one-off.  
-**Canonical owner:** `tournament_scheduler.canonical_banned_dates`  
+**Canonical owner:** `tournament_scheduler.season.banned_dates`  
 **Input / fact source:** canonical decisions.json banned dates  
 **Verifier / measurement:** —  
 **Codes:** verifier — · finding — · score —  
@@ -1004,7 +1004,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Operator decision` · status `active` · operator-waivable: yes  
 **Meaning:** The operator may allow one date that is excluded only by the derived holiday/date policy; the exception does not override explicit banned dates.  
-**Canonical owner:** `tournament_scheduler.canonical_holiday_exceptions`  
+**Canonical owner:** `tournament_scheduler.season.holiday_exceptions`  
 **Input / fact source:** canonical decisions.json holiday_date_exceptions  
 **Verifier / measurement:** —  
 **Codes:** verifier — · finding — · score —  
@@ -1017,7 +1017,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Operator decision` · status `active` · operator-waivable: yes  
 **Meaning:** The operator may bind a host-confirmed per-tournament occupied duration that differs from the age-group default. Direct manual overrides are explicit, revision-bound and may not go below the actual-round format minimum or governing booking floor. An accepted authoritative calendar association may also bind the source event's exact interval first and surface any format/governing feasibility concern separately.  
-**Canonical owner:** `tournament_scheduler.canonical_ice_time_overrides`  
+**Canonical owner:** `tournament_scheduler.season.ice_time_overrides`  
 **Input / fact source:** canonical decisions.json ice_time_minutes_overrides  
 **Verifier / measurement:** —  
 **Codes:** verifier — · finding — · score —  
@@ -1082,7 +1082,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Fact / evidence semantic` · status `active` · operator-waivable: yes  
 **Meaning:** Operator approvals/locks live in decisions.json separately from schedule facts. A changed placement fingerprint becomes a stale approval whose lock is dropped; a participant-locked approval also stales when its roster/game structure changes. An approval whose tournament is gone becomes orphaned. Both require re-review.  
-**Canonical owner:** `tournament_scheduler.canonical_baseline`  
+**Canonical owner:** `tournament_scheduler.season.baseline_overlay`  
 **Input / fact source:** canonical decisions.json approvals  
 **Verifier / measurement:** —  
 **Codes:** verifier `stale_approval`, `orphaned_approval` · finding `stale_approvals`, `orphaned_approvals` · score —  

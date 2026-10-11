@@ -12,7 +12,7 @@ from tournament_scheduler.application.canonical_season_service import CanonicalS
 from tournament_scheduler.application.canonical_season.removal_policy import (
     evaluate_removal_consequences,
 )
-from tournament_scheduler.canonical_state import canonical_state_revision, schedule_fingerprint
+from tournament_scheduler.season.state import canonical_state_revision, schedule_fingerprint
 from tournament_scheduler.infrastructure.canonical_season_store import (
     DECISIONS_SCHEMA_VERSION,
     SEASON_STATE_SCHEMA_VERSION,
@@ -22,7 +22,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
 )
 from tournament_scheduler.planning.verification import verify_final_candidate
 from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
-from tournament_scheduler.season_maintenance import (
+from tournament_scheduler.season.maintenance import (
     list_findings,
     load_context,
     project_canonical_overlays,
@@ -38,7 +38,7 @@ from tournament_scheduler.participation.withdrawals import (
 )
 from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
 from tournament_scheduler.published_mutation_history import reconcile_published_baseline
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     batch_maintenance,
     load_decisions,
     load_schedule,
@@ -1121,7 +1121,7 @@ def test_ringerike_ju8_withdrawal_regression_case(tmp_path: Path) -> None:
 
     # A sealed season refuses whole-season regeneration even after a durable
     # withdrawal: the retirement is not a licence to rebuild the season.
-    from tournament_scheduler.canonical_replan import replan_around_baseline
+    from tournament_scheduler.season.replan import replan_around_baseline
     from tournament_scheduler.published_baseline import SeasonSealedError
 
     with pytest.raises(SeasonSealedError):
@@ -1264,7 +1264,7 @@ def test_canonical_verification_problem_fails_closed_on_overlay_projection_error
     empty_work_dir = tmp_path / ".pipeline"
     empty_work_dir.mkdir()
 
-    import tournament_scheduler.season_maintenance as season_maintenance
+    import tournament_scheduler.season.maintenance as season_maintenance
 
     def _explode(*args: object, **kwargs: object) -> dict:
         raise RuntimeError("overlay projection exploded")
@@ -1306,7 +1306,7 @@ def test_replan_problem_carries_durable_withdrawal(tmp_path: Path) -> None:
     ineligibility, so it never removes the team from the age-group pool.
     """
 
-    from tournament_scheduler.canonical_replan import replan_around_baseline
+    from tournament_scheduler.season.replan import replan_around_baseline
 
     root = tmp_path / "season"
     problem = _ringerike_problem()

@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from .application.canonical_season.scoped_mutation import authorization_history_details
 from .application.canonical_season.scoped_mutation import authorize_bounded_repair
-from .canonical_baseline import build_canonical_baseline
-from .canonical_baseline import change_cost
+from .season.baseline_overlay import build_canonical_baseline
+from .season.baseline_overlay import change_cost
 from .finding_resolution import annotate_resolutions
 from .finding_resolution import resolution_summary
 from .findings_construction import _findings_for_option
@@ -19,10 +19,10 @@ from .findings_construction import _require_finding
 from .findings_construction import construct_findings
 from .findings_construction import findings_for_plan
 from .host_team_missing_repair import candidate_fingerprint
-from .impact_analysis import _changed_team_ids
-from .impact_analysis import _changed_tournament_ids
-from .impact_analysis import _plan_fingerprint
-from .impact_analysis import _priority_improvement_tier
+from .season.impact_analysis import _changed_team_ids
+from .season.impact_analysis import _changed_tournament_ids
+from .season.impact_analysis import _plan_fingerprint
+from .season.impact_analysis import _priority_improvement_tier
 from .local_repair_options import apply_local_repair_option
 from .maintenance_context import load_maintenance_context
 from .operational_acceptability import check_operational_acceptability
@@ -50,13 +50,13 @@ from .repair_adoption_guard import evaluate_adoption
 from .repair_options import DEFAULT_DIMENSIONS
 from .repair_options import SEASON_MAINTENANCE_SCHEMA_VERSION
 from .repair_options import _options_for_finding
-from .request_constraints import active_request_constraints
-from .request_constraints import compare_constraint_violations
-from .request_constraints import request_constraint_report
+from .season.request_constraints import active_request_constraints
+from .season.request_constraints import compare_constraint_violations
+from .season.request_constraints import request_constraint_report
 from .rule_catalog import annotate_findings
-from .season_state import DEFAULT_SEASON_ROOT
-from .season_state import apply_candidate
-from .season_state import canonical_state_revision
+from .application.canonical_season.store_facade import DEFAULT_SEASON_ROOT
+from .application.canonical_season.store_facade import apply_candidate
+from .application.canonical_season.store_facade import canonical_state_revision
 from typing import Any
 from typing import Dict
 from typing import Iterable
@@ -91,7 +91,7 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
     annotate_findings(findings)
     annotate_resolutions(findings)
     baseline = decisions.get("season_baseline") or None
-    from .season_baseline import compare_findings_to_baseline
+    from .season.accepted_baseline import compare_findings_to_baseline
 
     baseline_comparison = compare_findings_to_baseline(baseline, findings)
     # Hard verification is never baselineable: a hard failure must never let a

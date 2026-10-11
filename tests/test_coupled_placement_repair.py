@@ -29,13 +29,13 @@ from tournament_scheduler.repair_adoption_guard import (
     REGRESSION_TRAVEL,
     REGRESSION_UNIQUE_OPPONENTS,
 )
-from tournament_scheduler.season_maintenance import (
+from tournament_scheduler.season.maintenance import (
     apply_repair,
     list_findings,
     repair_options,
     search,
 )
-from tournament_scheduler.season_state import load_schedule
+from tournament_scheduler.application.canonical_season.store_facade import load_schedule
 
 YEAR = "2026-2027"
 

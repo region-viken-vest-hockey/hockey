@@ -10,7 +10,7 @@ from .interactive_state_io import _current_run_id, _read_stage3_interactive_stat
 def _active_waivers_for_state(state: "Any") -> "list[dict[str, Any]]":
     """This run's active operator waivers, so an optimizer pass verifies
     against the same explicit exceptions the operator authorized."""
-    from ...operator_waivers import load_active_waivers
+    from ...season.waivers import load_active_waivers
 
     return load_active_waivers(state.work_dir)
 
@@ -26,7 +26,7 @@ def _canonical_baseline_for(cfg: "dict[str, Any]", start: "Any", end: "Any") -> 
     """
     from datetime import date as _date, datetime as _datetime
 
-    from ...canonical_baseline import resolve_canonical_baseline
+    from ...season.baseline_overlay import resolve_canonical_baseline
 
     start_date = start.date() if isinstance(start, _datetime) else start
     end_date = end.date() if isinstance(end, _datetime) else end

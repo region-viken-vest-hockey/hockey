@@ -319,7 +319,7 @@ def test_real_sep_21_baseline_reconciles_with_durable_history() -> None:
     if publication_plan is None:
         pytest.skip("canonical history for the publication revision is unavailable")
 
-    from tournament_scheduler.canonical_ice_time_overrides import active_overrides
+    from tournament_scheduler.season.ice_time_overrides import active_overrides
     from tournament_scheduler.infrastructure.canonical_revision_history import load_canonical_schedule_at_revision
     from tournament_scheduler.published_baseline import (
         effective_projection_from_canonical_schedule,

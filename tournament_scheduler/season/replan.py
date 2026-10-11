@@ -9,7 +9,7 @@ with its change cost, canonical-lock violations and hard verification.
 
 Nothing here writes canonical state.  The candidate is a transient Stage 3
 artifact; persisting it is a separate, explicitly verified
-:func:`tournament_scheduler.season_state.apply_candidate` (or the normal
+:func:`tournament_scheduler.application.canonical_season.store_facade.apply_candidate` (or the normal
 promotion path).
 """
 
@@ -19,14 +19,14 @@ import os
 from datetime import date
 from typing import Any, Dict, Iterable, Optional
 
-from tournament_scheduler.canonical_baseline import (
+from tournament_scheduler.season.baseline_overlay import (
     build_canonical_baseline,
     change_cost,
     verify_canonical_locks,
 )
 from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
 from tournament_scheduler.participation.targets import search_evidence_from_acceptances
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     DEFAULT_SEASON_ROOT,
     load_decisions,
     load_participation_acceptances,
@@ -50,7 +50,7 @@ def replan_around_baseline(
     """Search around the canonical baseline and return a verified candidate.
 
     The returned dict contains the ``candidate``, the enriched ``problem``
-    (including the ``canonical_baseline`` section), the weighted
+    (including the ``season.baseline_overlay`` section), the weighted
     ``change_cost`` relative to canonical state, the canonical
     ``lock_violations``, and the hard ``verification`` result.  Callers must
     reject any result with lock violations or a failing verification before
@@ -77,10 +77,10 @@ def replan_around_baseline(
     # Active canonical operator banned dates are canonical decisions, not
     # transient config: project them into the existing banned_dates read path so
     # the optimizer and its verifier respect them.
-    from tournament_scheduler.canonical_banned_dates import (
+    from tournament_scheduler.season.banned_dates import (
         project_banned_dates_into_problem,
     )
-    from tournament_scheduler.canonical_holiday_exceptions import (
+    from tournament_scheduler.season.holiday_exceptions import (
         project_exceptions_into_problem,
     )
     from tournament_scheduler.participation.withdrawals import project_into_problem

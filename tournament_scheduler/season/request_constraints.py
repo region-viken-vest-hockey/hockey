@@ -3,7 +3,7 @@
 Club feedback usually states *intent* ("we cannot play 2027-02-21", "keep at
 least 21 days between our tournaments", "do not place us with opponent X that
 weekend"), not an exact replacement schedule. Granular
-:mod:`tournament_scheduler.change_protections` guard the *result* of one
+:mod:`tournament_scheduler.season.change_protections` guard the *result* of one
 accepted mutation; request constraints preserve the higher-level semantic
 requirement and are enforced by every later canonical schedule-changing commit
 until an operator explicitly releases/supersedes them.
@@ -19,7 +19,7 @@ from collections import defaultdict
 from datetime import date as _date
 from typing import Any, Iterable, Mapping
 
-from tournament_scheduler.canonical_state import REQUEST_CONSTRAINTS_KEY
+from tournament_scheduler.season.state import REQUEST_CONSTRAINTS_KEY
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 ACTIVE = "active"

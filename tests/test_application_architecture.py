@@ -273,7 +273,7 @@ def test_canonical_season_state_has_one_persistence_owner():
     store_source = Path(
         "tournament_scheduler/infrastructure/canonical_season_store.py"
     ).read_text(encoding="utf-8")
-    facade_source = Path("tournament_scheduler/season_state.py").read_text(encoding="utf-8")
+    facade_source = Path("tournament_scheduler/application/canonical_season/store_facade.py").read_text(encoding="utf-8")
     service_source = Path(
         "tournament_scheduler/application/canonical_season_service.py"
     ).read_text(encoding="utf-8")

@@ -18,9 +18,9 @@ import pytest
 
 from tournament_scheduler.participation.deviation_repair import _classification
 from tournament_scheduler.pareto import non_dominated_indices
-from tournament_scheduler.season_baseline import compare_findings_to_baseline
+from tournament_scheduler.season.accepted_baseline import compare_findings_to_baseline
 from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
-from tournament_scheduler.season_maintenance import (
+from tournament_scheduler.season.maintenance import (
     MAINTENANCE_DEFECT_DIMENSIONS,
     PARETO_DIMENSIONS,
     TRAVEL_OBJECTIVE_DIMENSIONS,
@@ -40,7 +40,7 @@ from tournament_scheduler.season_maintenance import (
     season_audit,
 )
 from tournament_scheduler.quality_objectives import QUALITY_OBJECTIVE_DIMENSIONS
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     add_request_constraint,
     canonical_state_revision,
     load_decisions,
@@ -54,7 +54,7 @@ from tournament_scheduler.season_state import (
 )
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
 from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
-from tournament_scheduler.canonical_baseline import approval_fingerprint
+from tournament_scheduler.season.baseline_overlay import approval_fingerprint
 
 
 YEAR = "2026-2027"
@@ -1733,7 +1733,7 @@ def test_unplaced_obligation_is_a_manual_finding_without_a_tournament_id() -> No
     """An unplaced obligation is planning work, not a scheduled tournament:
     it must surface as a stable-id manual finding whose identity does not
     depend on a tournament id."""
-    from tournament_scheduler.season_maintenance import _unplaced_findings
+    from tournament_scheduler.season.maintenance import _unplaced_findings
 
     findings = _unplaced_findings(
         {
@@ -1905,7 +1905,7 @@ def test_intra_club_distribution_is_not_an_actionable_participation_finding() ->
     """An aggregate-complete multi-team pool split 5+3 is intra-club
     distribution: visible as evidence but not an unresolved finding/search
     objective (only a genuine club-pool deficit is)."""
-    from tournament_scheduler.season_maintenance import (
+    from tournament_scheduler.season.maintenance import (
         _manual_count,
         _participation_findings,
         _unresolved_participation_deviation_count,
@@ -2236,8 +2236,8 @@ def test_season_audit_cli_reaches_pass_with_complete_owner_evidence(
 def test_season_audit_each_request_constraint_rule_fails_independently(
     tmp_path: Path, definition: Dict[str, Any], expected_rule: str
 ) -> None:
-    from tournament_scheduler.canonical_state import REQUEST_CONSTRAINTS_KEY
-    from tournament_scheduler.request_constraints import (
+    from tournament_scheduler.season.state import REQUEST_CONSTRAINTS_KEY
+    from tournament_scheduler.season.request_constraints import (
         append_request_constraints,
         validate_and_normalize,
     )
@@ -2352,8 +2352,8 @@ def test_season_audit_stays_incomplete_when_hosting_owner_evidence_is_missing(
 def test_season_audit_revision_drift_is_never_a_pass(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from tournament_scheduler import season_maintenance
-    from tournament_scheduler.canonical_state import CANONICAL_STATE_REVISION_KEY
+    from tournament_scheduler.season import maintenance as season_maintenance
+    from tournament_scheduler.season.state import CANONICAL_STATE_REVISION_KEY
 
     root, _plan_dict, _problem_dict, _revision = _clean_sealed_season(tmp_path)
     real_load_context = season_maintenance.load_context
@@ -2393,7 +2393,7 @@ def test_season_sealed_placement_locked_donor_is_not_moved(tmp_path: Path) -> No
         encoding="utf-8",
     )
     # Reload the season to get the updated decisions.
-    from tournament_scheduler.season_maintenance import load_context
+    from tournament_scheduler.season.maintenance import load_context
     schedule, decisions, plan, problem = load_context(YEAR, root=root)
     revision = schedule_fingerprint(plan)
 
@@ -2413,7 +2413,7 @@ def test_season_sealed_participant_roster_remains_editable_unless_locked(tmp_pat
     _seal_season(root, plan, problem, revision)
     # Now, we should be able to accept a participation deviation (edit the roster) unless the participant is locked.
     # We'll try to accept a deviation for the team Nordby 1 in the before_christmas scope.
-    from tournament_scheduler.season_maintenance import list_findings, accept_finding
+    from tournament_scheduler.season.maintenance import list_findings, accept_finding
     findings = list_findings(YEAR, root=root)
     # Find a participation finding for Nordby 1, before_christmas.
     finding = _participation_finding(findings, club="Nordby", team="Nordby 1", scope="before_christmas")
@@ -2472,7 +2472,7 @@ def test_season_sealed_dry_run_consequence_gates_block_unacceptable_regressions(
     _seal_season(root, plan, problem, schedule_fingerprint(plan))
     # Now, we expect a hosting imbalance finding for Charlie (deficit) and Alpha (excess).
     # We'll generate repair options for the hosting balance finding for Charlie.
-    from tournament_scheduler.season_maintenance import list_findings, repair_options
+    from tournament_scheduler.season.maintenance import list_findings, repair_options
     findings = list_findings(YEAR, root=root)
     # We will use the string "hosting" directly
     host_findings = [f for f in findings["findings"] if f["category"] == "hosting"]
@@ -2497,7 +2497,7 @@ def test_season_sealed_dry_run_consequence_gates_block_unacceptable_regressions(
     if rejected:
         option = rejected[0]
         # We expect that the option is not applicable due to consequence.
-        from tournament_scheduler.season_maintenance import _option_is_applicable
+        from tournament_scheduler.season.maintenance import _option_is_applicable
         assert _option_is_applicable(option) is False
 def test_season_sealed_successful_motion_reconciles_schedule_and_decisions(tmp_path: Path) -> None:
     print("Test started")
@@ -2509,11 +2509,11 @@ def test_season_sealed_successful_motion_reconciles_schedule_and_decisions(tmp_p
     schedule_path = root / YEAR / "schedule.json"
     schedule_dict = json.loads(schedule_path.read_text())
     decisions_dict = json.loads(decisions_path.read_text())
-    from tournament_scheduler.season_maintenance import list_findings
+    from tournament_scheduler.season.maintenance import list_findings
     # Get the canonical revision after sealing
-    from tournament_scheduler.season_state import load_schedule, load_decisions, canonical_state_revision
+    from tournament_scheduler.application.canonical_season.store_facade import load_schedule, load_decisions, canonical_state_revision
     schedule_after_seal = load_schedule(YEAR, root=root)
-    from tournament_scheduler.season_state import load_schedule
+    from tournament_scheduler.application.canonical_season.store_facade import load_schedule
     decisions_after_seal = load_decisions(YEAR, root=root)
     revision = canonical_state_revision(schedule_after_seal, decisions_after_seal)
     findings = list_findings(YEAR, root=root)
@@ -2536,7 +2536,7 @@ def test_season_sealed_successful_motion_reconciles_schedule_and_decisions(tmp_p
     assert result["ok"] is True
     # Check that the schedule.json and decisions.json are updated correctly.
     # We can check that the revision has advanced.
-    from tournament_scheduler.season_state import load_schedule, load_decisions, canonical_state_revision
+    from tournament_scheduler.application.canonical_season.store_facade import load_schedule, load_decisions, canonical_state_revision
     schedule_after = load_schedule(YEAR, root=root)
     decisions_after = load_decisions(YEAR, root=root)
     revision_after = canonical_state_revision(schedule_after, decisions_after)

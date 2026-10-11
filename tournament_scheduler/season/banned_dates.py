@@ -25,7 +25,7 @@ from __future__ import annotations
 from datetime import date as _date
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_state import BANNED_DATES_KEY
+from tournament_scheduler.season.state import BANNED_DATES_KEY
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 ACTIVE = "active"

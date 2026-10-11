@@ -11,7 +11,7 @@ _console = Console()
 
 def _cmd_season_normalize_placements(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season normalize-placements`` — normalize placements."""
-    from ..season_state import normalize_placements
+    from ..application.canonical_season.store_facade import normalize_placements
 
     result = normalize_placements(
         season=args.season,
@@ -31,7 +31,7 @@ def _cmd_season_normalize_placements(args: argparse.Namespace) -> int:
 
 def _cmd_season_normalize_arena_identities(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season normalize-arena-identities`` — normalize arena identities."""
-    from ..season_state import normalize_arena_identities
+    from ..application.canonical_season.store_facade import normalize_arena_identities
 
     result = normalize_arena_identities(
         season=args.season,

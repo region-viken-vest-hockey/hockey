@@ -11,12 +11,12 @@ from tournament_scheduler.local_repair_options import (
 from tournament_scheduler.movable_capacity_repair import (
     enumerate_movable_capacity_repairs,
 )
-from tournament_scheduler.season_maintenance import (
+from tournament_scheduler.season.maintenance import (
     apply_repair,
     list_findings,
     repair_options,
 )
-from tournament_scheduler.season_state import load_schedule, schedule_fingerprint
+from tournament_scheduler.application.canonical_season.store_facade import load_schedule, schedule_fingerprint
 
 SEASON = "2026-2027"
 

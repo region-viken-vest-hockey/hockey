@@ -29,14 +29,14 @@ from tournament_scheduler.search_neighborhood_repair import (
     enumerate_search_neighborhood_repairs,
     findings_are_locally_searchable,
 )
-from tournament_scheduler.season_maintenance import (
+from tournament_scheduler.season.maintenance import (
     apply_repair,
     list_findings,
     load_context,
     search,
     supported_dimensions_for_finding,
 )
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     add_banned_date,
     allow_holiday_date,
     holiday_date_exception_report,

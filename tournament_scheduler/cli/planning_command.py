@@ -23,7 +23,7 @@ _console = Console()
 
 def _cmd_season_promote(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season promote`` — promote a plan to canonical season."""
-    from ..season_state import (
+    from ..application.canonical_season.store_facade import (
         promote_from_stage3,
         schedule_path,
         decisions_path,
@@ -66,7 +66,7 @@ def _cmd_season_promote(args: argparse.Namespace) -> int:
 def _cmd_season_plan(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season plan`` — generate a plan."""
     from ..pipeline.state import PipelineState
-    from ..season_state import plan
+    from ..application.canonical_season.store_facade import plan
 
     state = PipelineState(args.work_dir)
     result = plan(
@@ -100,11 +100,11 @@ def _cmd_season_plan(args: argparse.Namespace) -> int:
 def _cmd_season_replan(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season replan`` — replan around baseline."""
     from ..pipeline.state import PipelineState
-    from ..canonical_replan import replan_around_baseline
-    from ..operator_waivers import load_active_waivers
+    from ..season.replan import replan_around_baseline
+    from ..season.waivers import load_active_waivers
     from ..pipeline.stage1_config import load_effective_config
     from ..pipeline.state import StageName, StageStatus
-    from ..season_state import apply_candidate
+    from ..application.canonical_season.store_facade import apply_candidate
 
     replan_state = PipelineState(args.work_dir)
     try:
@@ -192,13 +192,13 @@ def _cmd_season_replan(args: argparse.Namespace) -> int:
 def _cmd_season_diff_apply(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season diff`` and ``rvv-miniputt season apply`` — compare or apply a candidate plan."""
     from ..pipeline.state import PipelineState
-    from ..canonical_baseline import build_canonical_baseline, change_cost
-    from ..season_state import load_decisions, load_schedule
-    from ..operator_waivers import load_active_waivers
+    from ..season.baseline_overlay import build_canonical_baseline, change_cost
+    from ..application.canonical_season.store_facade import load_decisions, load_schedule
+    from ..season.waivers import load_active_waivers
     from ..pipeline.stage1_config import load_effective_config
     from ..pipeline.state import StageName
     from ..planning.contract import build_planning_problem, extract_candidate
-    from ..season_state import apply_candidate
+    from ..application.canonical_season.store_facade import apply_candidate
 
     candidate_path = _Path(args.candidate)
     if not candidate_path.exists():

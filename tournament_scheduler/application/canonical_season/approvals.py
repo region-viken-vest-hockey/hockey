@@ -5,18 +5,18 @@ from __future__ import annotations
 import copy
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_baseline import (
+from tournament_scheduler.season.baseline_overlay import (
     approval_fingerprint,
     approval_placement_fingerprint,
     resolve_approval,
 )
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     CHANGE_PROTECTIONS_KEY,
     PARTICIPATION_ACCEPTANCES_KEY,
     canonical_state_revision,
     participation_acceptance_id,
 )
-from tournament_scheduler.change_protections import (
+from tournament_scheduler.season.change_protections import (
     ACTIVE as CHANGE_PROTECTION_ACTIVE,
     RELEASED as CHANGE_PROTECTION_RELEASED,
     active_change_protections,

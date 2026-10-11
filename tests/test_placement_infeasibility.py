@@ -37,8 +37,8 @@ from tournament_scheduler.placement_infeasibility import (
     proofs_by_obligation,
     search_scope_complete,
 )
-from tournament_scheduler.season_maintenance import list_findings, load_context, season_audit
-from tournament_scheduler.season_state import (
+from tournament_scheduler.season.maintenance import list_findings, load_context, season_audit
+from tournament_scheduler.application.canonical_season.store_facade import (
     placement_infeasibility_report,
     record_placement_infeasibility_proofs,
     release_placement_infeasibility_proofs,

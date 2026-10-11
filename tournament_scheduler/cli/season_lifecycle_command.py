@@ -13,7 +13,7 @@ _console = Console()
 
 def _cmd_season_inventory(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season inventory``."""
-    from ..season_state import history_inventory
+    from ..application.canonical_season.store_facade import history_inventory
     import json as _json
 
     report = history_inventory(
@@ -65,7 +65,7 @@ def _cmd_season_lifecycle(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season lifecycle``."""
     import json as _json
 
-    from ..season_state import season_lifecycle_report
+    from ..application.canonical_season.store_facade import season_lifecycle_report
 
     report = season_lifecycle_report(args.season, root=args.root)
     if args.json:
@@ -98,7 +98,7 @@ def _cmd_season_lifecycle(args: argparse.Namespace) -> int:
 
 def _cmd_season_normalize_arenas(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season normalize-arenas``."""
-    from ..season_state import normalize_arena_identities
+    from ..application.canonical_season.store_facade import normalize_arena_identities
     import json as _json
 
     schedule, _decisions = normalize_arena_identities(
@@ -136,7 +136,7 @@ def _cmd_season_publication_evidence(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season publication-evidence``."""
     import json as _json
 
-    from ..season_state import publication_evidence_report
+    from ..application.canonical_season.store_facade import publication_evidence_report
 
     report = publication_evidence_report(args.season, root=args.root)
     if args.json:
@@ -201,7 +201,7 @@ def _cmd_season_reopen_planning(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season reopen-planning``."""
     import json as _json
 
-    from ..season_state import reopen_planning
+    from ..application.canonical_season.store_facade import reopen_planning
 
     report = reopen_planning(
         season=args.season,
@@ -231,7 +231,7 @@ def _cmd_season_seal_published(args: argparse.Namespace) -> int:
         projection_from_export_artifacts,
         tournament_projection,
     )
-    from ..season_state import seal_published_season
+    from ..application.canonical_season.store_facade import seal_published_season
 
     published_exports = find_published_exports_for_season(args.season, season_root=args.root)
     if not published_exports:

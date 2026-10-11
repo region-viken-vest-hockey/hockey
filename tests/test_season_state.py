@@ -7,7 +7,7 @@ from tournament_scheduler.pipeline.state import PipelineState, StageName, StageS
 from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
 import pytest
 
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     approve_tournament,
     canonical_state_revision,

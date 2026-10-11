@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
-from tournament_scheduler.canonical_ice_time_overrides import active_overrides
+from tournament_scheduler.season.ice_time_overrides import active_overrides
 from tournament_scheduler.published_baseline import (
     SEASON_LIFECYCLE_KEY,
     STATE_PUBLISHED_SEALED,

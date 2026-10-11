@@ -172,7 +172,7 @@ def _booking_rows_by_tournament(
     season: str,
     season_root: str | os.PathLike[str],
 ) -> dict[str, dict[str, Any]]:
-    from tournament_scheduler.season_state import booking_status_report
+    from tournament_scheduler.application.canonical_season.store_facade import booking_status_report
 
     report = booking_status_report(season=season, root=season_root)
     rows: dict[str, dict[str, Any]] = {}
@@ -528,7 +528,7 @@ def resolve_publication_scope(
         season_root = os.environ.get("RVV_CANONICAL_SEASON_ROOT") or "season"
     decisions: dict[str, Any] | None = None
     try:
-        from tournament_scheduler.season_state import load_decisions
+        from tournament_scheduler.application.canonical_season.store_facade import load_decisions
 
         decisions = load_decisions(str(season), root=season_root)
     except Exception:  # noqa: BLE001 - NOT_CHECKABLE, caller falls back to audit gate

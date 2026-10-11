@@ -5,13 +5,13 @@ from __future__ import annotations
 import copy
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     BANNED_DATES_KEY,
     HOLIDAY_DATE_EXCEPTIONS_KEY,
     REQUEST_CONSTRAINTS_KEY,
     canonical_state_revision,
 )
-from tournament_scheduler.canonical_banned_dates import (
+from tournament_scheduler.season.banned_dates import (
     ACTIVE as BANNED_DATE_ACTIVE,
     RELEASED as BANNED_DATE_RELEASED,
     BannedDateError,
@@ -20,7 +20,7 @@ from tournament_scheduler.canonical_banned_dates import (
     banned_date_report as build_banned_date_report,
     validate_and_normalize as normalize_banned_date,
 )
-from tournament_scheduler.canonical_holiday_exceptions import (
+from tournament_scheduler.season.holiday_exceptions import (
     ACTIVE as HOLIDAY_EXCEPTION_ACTIVE,
     RELEASED as HOLIDAY_EXCEPTION_RELEASED,
     HolidayDateExceptionError,
@@ -29,7 +29,7 @@ from tournament_scheduler.canonical_holiday_exceptions import (
     exception_report as build_holiday_exception_report,
     validate_and_normalize as normalize_holiday_exception,
 )
-from tournament_scheduler.request_constraints import (
+from tournament_scheduler.season.request_constraints import (
     ACTIVE as REQUEST_CONSTRAINT_ACTIVE,
     RELEASED as REQUEST_CONSTRAINT_RELEASED,
     RequestConstraintError,

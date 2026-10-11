@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from tournament_scheduler.operator_waivers import scope_fingerprint
+from tournament_scheduler.season.waivers import scope_fingerprint
 from tournament_scheduler.participation.targets import (
     AVOIDABLE,
     club_pool_participation_regressions,

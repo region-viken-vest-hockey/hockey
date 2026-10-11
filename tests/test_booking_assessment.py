@@ -12,7 +12,7 @@ import json
 
 from tournament_scheduler.booking.calendar_bookings import booking_assessment
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     booking_status_report,
     calendar_booking_assessment,
     confirm_calendar_booking,
@@ -57,7 +57,7 @@ def _promote(tmp_path, tournaments):
     state = PipelineState(work_dir)
     state.write_stage(StageName.PLANNING, {"plan": _plan(tournaments)}, status=StageStatus.DONE)
     write_reviewed_stage4_export(state)
-    from tournament_scheduler.season_state import promote_from_stage3
+    from tournament_scheduler.application.canonical_season.store_facade import promote_from_stage3
 
     promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
     return root
@@ -443,7 +443,7 @@ def test_date_window_days_is_configurable(tmp_path):
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
     problem = _problem([_event("2026-09-15", "10:00", "12:00")])
     from tournament_scheduler.booking.calendar_bookings import booking_assessment
-    from tournament_scheduler.season_state import load_schedule
+    from tournament_scheduler.application.canonical_season.store_facade import load_schedule
 
     plan = load_schedule("2026-2027", root=root)["plan"]
     decisions = load_decisions("2026-2027", root=root)

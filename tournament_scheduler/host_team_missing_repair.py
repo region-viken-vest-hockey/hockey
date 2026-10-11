@@ -33,7 +33,7 @@ from .effective_tournament_shape import compute_effective_tournament_shape
 from .game_generation import generate_tournament_games
 from .hosting.representation import clubs_represent_same_club, constituent_clubs, host_eligible_teams
 from .models import Team
-from .operator_waivers import find_participation_waiver
+from .season.waivers import find_participation_waiver
 from .planning.contract import (
     _parse_date,
     candidate_content_fingerprint,

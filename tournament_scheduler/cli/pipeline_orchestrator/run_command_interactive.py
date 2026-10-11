@@ -507,7 +507,7 @@ def _cmd_run_interactive(args: argparse.Namespace) -> int:
         # shared/joint-club hosting decision in its published placements, so
         # do not pause the harness to re-decide one before Stage 3 adopts
         # the canonical baseline.
-        from ...canonical_baseline import resolve_canonical_state
+        from ...season.baseline_overlay import resolve_canonical_state
 
         if resolve_canonical_state(cfg, start.date(), end.date()) is not None:
             shared_host_decisions = []

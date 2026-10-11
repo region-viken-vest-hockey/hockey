@@ -7,13 +7,13 @@ onto the promoted planning problem.
 
 from __future__ import annotations
 
-from .canonical_baseline import build_canonical_baseline
+from .season.baseline_overlay import build_canonical_baseline
 from tournament_scheduler.participation.targets import search_evidence_from_acceptances
-from .request_constraints import host_sibling_preference_evidence
-from .season_state import DEFAULT_SEASON_ROOT
-from .season_state import load_decisions
-from .season_state import load_participation_acceptances
-from .season_state import load_schedule
+from .season.request_constraints import host_sibling_preference_evidence
+from .application.canonical_season.store_facade import DEFAULT_SEASON_ROOT
+from .application.canonical_season.store_facade import load_decisions
+from .application.canonical_season.store_facade import load_participation_acceptances
+from .application.canonical_season.store_facade import load_schedule
 from typing import Any
 from typing import Dict
 from typing import Mapping
@@ -34,7 +34,7 @@ def load_maintenance_context(
     - problem: The planning problem with canonical overlays projected
 
     The canonical baseline is built and injected into the problem under
-    ``problem["canonical_baseline"]`` for use by verification and repair.
+    ``problem["season.baseline_overlay"]`` for use by verification and repair.
 
     Args:
         season: The season identifier
@@ -100,9 +100,9 @@ def project_canonical_overlays(
         project_associations_into_problem,
         project_manual_assertions_into_problem,
     )
-    from .canonical_banned_dates import project_banned_dates_into_problem
-    from .canonical_holiday_exceptions import project_exceptions_into_problem
-    from .canonical_ice_time_overrides import project_overrides_into_problem
+    from .season.banned_dates import project_banned_dates_into_problem
+    from .season.holiday_exceptions import project_exceptions_into_problem
+    from .season.ice_time_overrides import project_overrides_into_problem
     from tournament_scheduler.participation.withdrawals import project_into_problem
 
     projected: Dict[str, Any] = dict(problem)

@@ -13,7 +13,7 @@ from tournament_scheduler.booking.calendar_bookings import (
     BOOKING_CONFIRMED_BOOKED,
     booking_assessment,
 )
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     canonical_state_revision,
     schedule_fingerprint,
 )
@@ -79,7 +79,7 @@ def refresh_calendars(
     from tournament_scheduler.pipeline import stage1_config, stage2_scraping
     from tournament_scheduler.pipeline.state import PipelineState
     from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
-    from tournament_scheduler.season_maintenance import list_findings
+    from tournament_scheduler.season.maintenance import list_findings
 
     snapshot = service.load(season)
     schedule = copy.deepcopy(snapshot.schedule)

@@ -22,7 +22,7 @@ from tests.test_canonical_batch_maintenance import (
     _tournaments_by_id,
 )
 from tests.test_participant_removal import _write_canonical
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     batch_maintenance,
     load_decisions,

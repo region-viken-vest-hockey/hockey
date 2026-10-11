@@ -353,8 +353,8 @@ class TestRunStage4:
             status=StageStatus.DONE,
         )
 
-        import tournament_scheduler.canonical_baseline as canonical_baseline
-        import tournament_scheduler.season_state as season_state
+        import tournament_scheduler.season.baseline_overlay as canonical_baseline
+        import tournament_scheduler.application.canonical_season.store_facade as season_state
 
         monkeypatch.setattr(
             canonical_baseline,
@@ -421,8 +421,8 @@ class TestRunStage4:
             status=StageStatus.DONE,
         )
 
-        import tournament_scheduler.canonical_baseline as canonical_baseline
-        import tournament_scheduler.season_state as season_state
+        import tournament_scheduler.season.baseline_overlay as canonical_baseline
+        import tournament_scheduler.application.canonical_season.store_facade as season_state
 
         monkeypatch.setattr(
             canonical_baseline,
@@ -548,8 +548,8 @@ class TestRunStage4:
             "canonical_season_root": str(tmp_path / "season"),
         }
 
-        import tournament_scheduler.canonical_baseline as canonical_baseline
-        import tournament_scheduler.season_state as season_state
+        import tournament_scheduler.season.baseline_overlay as canonical_baseline
+        import tournament_scheduler.application.canonical_season.store_facade as season_state
 
         monkeypatch.setattr(
             canonical_baseline,
@@ -707,8 +707,8 @@ class TestRunStage4:
             status=StageStatus.DONE,
         )
 
-        import tournament_scheduler.canonical_baseline as canonical_baseline
-        import tournament_scheduler.season_state as season_state
+        import tournament_scheduler.season.baseline_overlay as canonical_baseline
+        import tournament_scheduler.application.canonical_season.store_facade as season_state
 
         monkeypatch.setattr(
             canonical_baseline,

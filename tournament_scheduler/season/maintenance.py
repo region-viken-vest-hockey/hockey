@@ -19,40 +19,40 @@ never a snapshot promoted with the season -- so stale derived evidence cannot
 masquerade as the current canonical truth. The module owns no scheduling rule
 and no persistence: it composes the existing provider boundary
 (``local_repair_options`` plus the hosting/participation providers) with the
-canonical atomically-verified mutation boundary (``season_state.apply_candidate``).
+canonical atomically-verified mutation boundary (``application.canonical_season.store_facade.apply_candidate``).
 """
 
 from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
-from .canonical_baseline import build_canonical_baseline
-from .planning.contract import score_candidate, verify_candidate
-from .quality_objectives import (
+from .baseline_overlay import build_canonical_baseline
+from ..planning.contract import score_candidate, verify_candidate
+from ..quality_objectives import (
     with_unresolved_obligations_count,
 )
 from .request_constraints import (
     active_request_constraints,
 )
-from .finding_resolution import annotate_resolutions
-from .rule_catalog import annotate_findings
-from .season_state import (
+from ..finding_resolution import annotate_resolutions
+from ..rule_catalog import annotate_findings
+from ..application.canonical_season.store_facade import (
     DEFAULT_SEASON_ROOT,
     canonical_state_revision,
     record_participation_acceptance,
     revoke_participation_acceptance,
 )
-from .maintenance_context import (
+from ..maintenance_context import (
     load_maintenance_context,
 )
-from .findings_construction import (
+from ..findings_construction import (
     construct_findings,
     _require_finding,
 )
-from .search_coverage import (
+from ..search_coverage import (
     cheap_search_coverage,
 )
-from .repair_options import (
+from ..repair_options import (
     DEFAULT_DIMENSIONS,
     SEASON_MAINTENANCE_SCHEMA_VERSION,
 )
@@ -62,8 +62,8 @@ from .impact_analysis import (
 )
 
 # Owners of the decomposed maintenance families; re-exported here so
-# callers keep the season_maintenance surface.
-from .findings_construction import (
+# callers keep the season.maintenance surface.
+from ..findings_construction import (
     BOOKING_FEASIBILITY,  # noqa: F401
     CLUB_DISTRIBUTION,  # noqa: F401
     HARD_VIOLATION,  # noqa: F401
@@ -98,17 +98,17 @@ from .findings_construction import (
 from .impact_analysis import (
     plan_fingerprint,  # noqa: F401
 )
-from .maintenance_context import (
+from ..maintenance_context import (
     SeasonMaintenanceError,  # noqa: F401
     project_canonical_overlays,  # noqa: F401
 )
-from .option_evaluation import (
+from ..option_evaluation import (
     MAINTENANCE_DEFECT_DIMENSIONS,  # noqa: F401
     PARETO_DIMENSIONS,  # noqa: F401
     TRAVEL_OBJECTIVE_DIMENSIONS,  # noqa: F401
     _travel_metrics,  # noqa: F401
 )
-from .repair_application import (
+from ..repair_application import (
     MAX_PARETO_REPRESENTATIVES,  # noqa: F401
     _annotate_pareto,  # noqa: F401
     _effective_search_coverage,  # noqa: F401
@@ -118,7 +118,7 @@ from .repair_application import (
     baseline_for_plan,  # noqa: F401
     list_findings,  # noqa: F401
 )
-from .repair_options import (
+from ..repair_options import (
     DATE_MOVING_FINDING_CODES,  # noqa: F401
     SUPPORTED_DIMENSIONS_BY_CATEGORY,  # noqa: F401
     _collect,  # noqa: F401
@@ -143,7 +143,7 @@ load_context = load_maintenance_context
 
 
 REQUEST_CONSTRAINT_OWNER = (
-    "tournament_scheduler.request_constraints.request_constraint_violations"
+    "tournament_scheduler.season.request_constraints.request_constraint_violations"
 )
 HOSTING_COVERAGE_OWNER = "tournament_scheduler.hosting.coverage.hosting_coverage_matrix"
 HOSTING_RESPONSIBILITY_OWNER = (
@@ -172,8 +172,8 @@ def _audit_owner_evidence(
     missing input or a failed owner leaves its catalog rule ``incomplete`` with
     an actionable reason instead of a false green.
     """
-    from .hosting.coverage import hosting_coverage_matrix
-    from .hosting.responsibility import (
+    from ..hosting.coverage import hosting_coverage_matrix
+    from ..hosting.responsibility import (
         RESPONSIBILITY_TRANSFER_CODE,
         hosting_responsibility_facts,
     )
@@ -281,10 +281,10 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
     from the canonical lifecycle owner, so a stale or unreconciled season cannot
     report a green completion.
     """
-    from .canonical_baseline import verify_canonical_locks
-    from .planning.verification import verify_final_candidate
-    from .repair_adoption_guard import season_wide_audit
-    from .season_state import season_lifecycle_report
+    from .baseline_overlay import verify_canonical_locks
+    from ..planning.verification import verify_final_candidate
+    from ..repair_adoption_guard import season_wide_audit
+    from ..application.canonical_season.store_facade import season_lifecycle_report
 
     schedule, decisions, plan, problem = load_context(season, root=root)
     revision = canonical_state_revision(schedule, decisions)
@@ -293,7 +293,7 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
     # findings before constructing the season-wide hard gate. The raw planning
     # verifier remains strict, but an exact accepted source interval is a
     # resolved fact rather than an unresolved hard violation.
-    from .canonical_exception_policy import reclassify_accepted_exceptions
+    from .exception_policy import reclassify_accepted_exceptions
 
     accepted_booking = reclassify_accepted_exceptions(
         problem, plan, list(verification.get("violations") or [])
@@ -398,14 +398,14 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
         current_revision=revision_after,
         covered_verifier_owners=(
             "tournament_scheduler.planning.verification.verify_final_candidate",
-            "tournament_scheduler.canonical_baseline.verify_canonical_locks",
+            "tournament_scheduler.season.baseline_overlay.verify_canonical_locks",
             *owner_covered,
         ),
         incomplete_reasons=owner_incomplete_reasons,
     )
     audit["revision_stable"] = revision == revision_after
     audit["content_fingerprint_after"] = _plan_content_fingerprint(plan_after)
-    from .pipeline.fingerprints import stable_payload_sha256
+    from ..pipeline.fingerprints import stable_payload_sha256
 
     # Booking/confirmation/protection/acceptance metadata lives in decisions and
     # is part of the canonical revision; surface its identity explicitly so the

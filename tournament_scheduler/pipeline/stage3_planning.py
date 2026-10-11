@@ -495,7 +495,7 @@ def run(
     # The durable canonical files are resolved from the configured season
     # root, independent of `.pipeline`, and the same overlay is folded into
     # the planning problem so locks gate every later search.
-    from ..canonical_baseline import resolve_canonical_season, resolve_canonical_state
+    from ..season.baseline_overlay import resolve_canonical_season, resolve_canonical_state
 
     canonical_season = resolve_canonical_season(config, planning_start.date(), end_date.date())
     canonical_state: dict[str, Any] | None = None

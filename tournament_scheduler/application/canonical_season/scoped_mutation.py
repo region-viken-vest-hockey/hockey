@@ -29,7 +29,7 @@ import copy
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping
 
-from tournament_scheduler.canonical_state import canonical_state_revision
+from tournament_scheduler.season.state import canonical_state_revision
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
 from tournament_scheduler.pipeline.export_projection_guard import (
     diff_tournament_projection,
@@ -203,8 +203,8 @@ def _authoritative_problem(
 
     from .approvals import _acceptance_record_id
     from .shared import _resolve_plan_problem
-    from tournament_scheduler.canonical_baseline import build_canonical_baseline
-    from tournament_scheduler.canonical_state import PARTICIPATION_ACCEPTANCES_KEY
+    from tournament_scheduler.season.baseline_overlay import build_canonical_baseline
+    from tournament_scheduler.season.state import PARTICIPATION_ACCEPTANCES_KEY
     from tournament_scheduler.participation.targets import search_evidence_from_acceptances
 
     effective_decisions = _decisions_with_released_withdrawals(
@@ -240,7 +240,7 @@ def _decisions_with_released_withdrawals(
     released = {str(item) for item in (released_withdrawal_ids or []) if str(item)}
     if not released:
         return dict(decisions)
-    from tournament_scheduler.canonical_state import PARTICIPATION_WITHDRAWALS_KEY
+    from tournament_scheduler.season.state import PARTICIPATION_WITHDRAWALS_KEY
     from tournament_scheduler.participation.withdrawals import RELEASED
 
     effective = dict(decisions)
@@ -380,9 +380,9 @@ def _reproduce_operation(
                 problem=problem,
             )
     elif operation == OPERATION_BOUNDED_REPAIR:
-        # Imported lazily: ``season_maintenance`` imports this module for its own
+        # Imported lazily: ``season.maintenance`` imports this module for its own
         # apply path, so a module-level import would be circular.
-        from tournament_scheduler.season_maintenance import apply_repair_to_plan
+        from tournament_scheduler.season.maintenance import apply_repair_to_plan
 
         reproduction = apply_repair_to_plan(
             plan,

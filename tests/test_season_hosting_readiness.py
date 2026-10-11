@@ -13,7 +13,7 @@ from pathlib import Path
 
 from tournament_scheduler.pipeline.audit_context import build_audit_context, build_audit_evidence
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.season_state import load_schedule, move_tournament, promote_from_stage3
+from tournament_scheduler.application.canonical_season.store_facade import load_schedule, move_tournament, promote_from_stage3
 from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
 
 

@@ -18,7 +18,7 @@ from typing import Any, Mapping
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.canonical_ice_time_overrides import active_overrides
+from tournament_scheduler.season.ice_time_overrides import active_overrides
 from tournament_scheduler.published_baseline import (
     SEASON_LIFECYCLE_KEY,
     STATE_PROMOTED,

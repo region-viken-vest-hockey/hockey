@@ -22,7 +22,7 @@ from tournament_scheduler.application.canonical_season_service import (
     STALE_APPROVAL_STATUS,
     CanonicalSeasonService,
 )
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     CANONICAL_STATE_REVISION_KEY,
     PARTICIPATION_ACCEPTANCES_KEY,
     PARTICIPATION_ACCEPTANCE_PREFIX,

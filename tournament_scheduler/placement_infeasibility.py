@@ -17,7 +17,7 @@ makes the proof stale and the obligation actionable again. This module owns
 that identity and the pure build/validate logic. It does not run a search, does
 not persist anything and encodes no hockey rules -- the provider owns the search
 mechanics, the canonical-season service owns persistence and
-:mod:`season_maintenance` owns attaching the evidence to findings.
+:mod:`season.maintenance` owns attaching the evidence to findings.
 """
 
 from __future__ import annotations

@@ -5,8 +5,8 @@ from __future__ import annotations
 import copy
 from typing import Any, Mapping, Sequence
 
-from tournament_scheduler.canonical_baseline import approval_fingerprint
-from tournament_scheduler.canonical_state import canonical_state_revision, schedule_fingerprint
+from tournament_scheduler.season.baseline_overlay import approval_fingerprint
+from tournament_scheduler.season.state import canonical_state_revision, schedule_fingerprint
 from tournament_scheduler.infrastructure.canonical_season_store import CanonicalSeasonSnapshot, SeasonStateError
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state

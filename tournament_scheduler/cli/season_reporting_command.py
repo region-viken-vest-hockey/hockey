@@ -11,7 +11,7 @@ _console = Console()
 
 def _cmd_season_history(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season history`` — show season history."""
-    from ..season_state import history_inventory
+    from ..application.canonical_season.store_facade import history_inventory
 
     result = history_inventory(
         season=args.season,
@@ -33,7 +33,7 @@ def _cmd_season_history(args: argparse.Namespace) -> int:
 
 def _cmd_season_compact_history(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season compact-history`` — show compact season history."""
-    from ..season_state import compact_history
+    from ..application.canonical_season.store_facade import compact_history
 
     result = compact_history(
         season=args.season,
@@ -55,7 +55,7 @@ def _cmd_season_compact_history(args: argparse.Namespace) -> int:
 
 def _cmd_season_tourney_inspection(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season tourney-inspection`` — inspect tournament details."""
-    from ..season_state import tournament_inspection
+    from ..application.canonical_season.store_facade import tournament_inspection
 
     result = tournament_inspection(
         season=args.season,
@@ -77,7 +77,7 @@ def _cmd_season_tourney_inspection(args: argparse.Namespace) -> int:
 
 def _cmd_season_placement_infeasibility(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season placement-infeasibility`` — show placement infeasibility details."""
-    from ..season_state import placement_infeasibility_report
+    from ..application.canonical_season.store_facade import placement_infeasibility_report
 
     result = placement_infeasibility_report(
         season=args.season,
@@ -98,7 +98,7 @@ def _cmd_season_placement_infeasibility(args: argparse.Namespace) -> int:
 
 def _cmd_season_decision_ledger(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season decision-ledger`` — show decision ledger."""
-    from ..season_state import change_request_ledger
+    from ..application.canonical_season.store_facade import change_request_ledger
 
     result = change_request_ledger(
         season=args.season,
@@ -120,7 +120,7 @@ def _cmd_season_decision_ledger(args: argparse.Namespace) -> int:
 
 def _cmd_season_guest_slot_report(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season guest-slot-report`` — show guest slot report."""
-    from ..season_state import guest_slot_report
+    from ..application.canonical_season.store_facade import guest_slot_report
 
     result = guest_slot_report(
         season=args.season,
@@ -142,7 +142,7 @@ def _cmd_season_guest_slot_report(args: argparse.Namespace) -> int:
 
 def _cmd_season_inspect_tournament(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season inspect tournament`` — inspect tournament details."""
-    from ..season_state import tournament_inspection
+    from ..application.canonical_season.store_facade import tournament_inspection
 
     result = tournament_inspection(
         season=args.season,
@@ -165,7 +165,7 @@ def _cmd_season_inspect_tournament(args: argparse.Namespace) -> int:
 
 def _cmd_season_inspect_constraints(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season inspect constraints`` — inspect request constraints."""
-    from ..season_state import constraint_inspection
+    from ..application.canonical_season.store_facade import constraint_inspection
 
     result = constraint_inspection(
         season=args.season,
@@ -190,7 +190,7 @@ def _cmd_season_inspect_constraints(args: argparse.Namespace) -> int:
 
 def _cmd_season_inspect_candidates(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season inspect candidates`` — list replacement candidates."""
-    from ..season_state import replacement_candidates
+    from ..application.canonical_season.store_facade import replacement_candidates
 
     result = replacement_candidates(
         season=args.season,

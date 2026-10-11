@@ -11,7 +11,7 @@ _console = Console()
 
 def _cmd_season_set_ice_time_minutes(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season set-ice-time-minutes`` — set ice time minutes for a tournament."""
-    from ..season_state import set_ice_time_minutes
+    from ..application.canonical_season.store_facade import set_ice_time_minutes
 
     result = set_ice_time_minutes(
         season=args.season,
@@ -37,7 +37,7 @@ def _cmd_season_set_ice_time_minutes(args: argparse.Namespace) -> int:
 
 def _cmd_season_clear_ice_time_minutes(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season clear-ice-time-minutes`` — clear ice time minutes for a tournament."""
-    from ..season_state import clear_ice_time_minutes
+    from ..application.canonical_season.store_facade import clear_ice_time_minutes
 
     result = clear_ice_time_minutes(
         season=args.season,
@@ -56,7 +56,7 @@ def _cmd_season_clear_ice_time_minutes(args: argparse.Namespace) -> int:
 
 def _cmd_season_ice_time_overrides(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season ice-time-overrides`` — show ice time overrides."""
-    from ..season_state import ice_time_override_report
+    from ..application.canonical_season.store_facade import ice_time_override_report
 
     result = ice_time_override_report(
         season=args.season,
@@ -78,7 +78,7 @@ def _cmd_season_ice_time_overrides(args: argparse.Namespace) -> int:
 
 def _cmd_season_set_manual_booking_assertion(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season set-manual-booking-assertion`` — set manual booking assertion."""
-    from ..season_state import set_manual_booking_assertion
+    from ..application.canonical_season.store_facade import set_manual_booking_assertion
 
     set_manual_booking_assertion(
         season=args.season,
@@ -99,7 +99,7 @@ def _cmd_season_set_manual_booking_assertion(args: argparse.Namespace) -> int:
 
 def _cmd_season_clear_manual_booking_assertion(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season clear-manual-booking-assertion`` — clear manual booking assertion."""
-    from ..season_state import clear_manual_booking_assertion
+    from ..application.canonical_season.store_facade import clear_manual_booking_assertion
 
     clear_manual_booking_assertion(
         season=args.season,
@@ -120,7 +120,7 @@ def _cmd_season_clear_manual_booking_assertion(args: argparse.Namespace) -> int:
 
 def _cmd_season_club_booking_sources(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season club-booking-sources`` — set or show club booking sources."""
-    from ..season_state import club_booking_sources, set_club_booking_source
+    from ..application.canonical_season.store_facade import club_booking_sources, set_club_booking_source
 
     if args.club is not None and args.source is not None:
         # Set club booking source
@@ -158,7 +158,7 @@ def _cmd_season_club_booking_sources(args: argparse.Namespace) -> int:
 
 def _cmd_season_change_protections(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season change-protections`` — change protection status for clubs."""
-    from ..season_state import change_protection_report
+    from ..application.canonical_season.store_facade import change_protection_report
 
     result = change_protection_report(
         season=args.season,
@@ -180,7 +180,7 @@ def _cmd_season_change_protections(args: argparse.Namespace) -> int:
 
 def _cmd_season_release_protection(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season release-protection`` — release protection for a club."""
-    from ..season_state import release_change_protections
+    from ..application.canonical_season.store_facade import release_change_protections
 
     release_change_protections(
         season=args.season,

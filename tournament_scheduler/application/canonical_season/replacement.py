@@ -6,17 +6,17 @@ import copy
 from datetime import date as _date
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_baseline import approval_fingerprint, resolve_approval
-from tournament_scheduler.canonical_history_summary import verification_summary
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.baseline_overlay import approval_fingerprint, resolve_approval
+from tournament_scheduler.season.history_summary import verification_summary
+from tournament_scheduler.season.state import (
     canonical_state_revision,
     schedule_fingerprint,
 )
-from tournament_scheduler.change_protections import (
+from tournament_scheduler.season.change_protections import (
     build_participant_replacement_protections,
     protection_violations,
 )
-from tournament_scheduler.request_constraints import (
+from tournament_scheduler.season.request_constraints import (
     compare_request_constraint_violations,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (
@@ -368,7 +368,7 @@ def replace_participant(
     removed_identity = replacement["removed_identity"]
     added_identity = replacement["added_identity"]
 
-    from tournament_scheduler.canonical_baseline import (
+    from tournament_scheduler.season.baseline_overlay import (
         build_canonical_baseline,
         change_cost,
         verify_canonical_locks,

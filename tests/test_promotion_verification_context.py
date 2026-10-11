@@ -25,7 +25,7 @@ from tournament_scheduler.pipeline.verification_context import (
     resolve_promotion_verification_context,
 )
 from tournament_scheduler.planning.contract import extract_candidate, verify_candidate
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     decisions_path,
     promote_from_stage3,
@@ -478,7 +478,7 @@ def test_canonical_findings_and_publish_preflight_agree_on_bound_hard_rules(tmp_
     from tournament_scheduler.pipeline.verification_context import (
         resolve_publish_verification_context,
     )
-    from tournament_scheduler.season_maintenance import list_findings
+    from tournament_scheduler.season.maintenance import list_findings
 
     work_dir, root, _state, _plan, _result = _stage_odd_team_export(tmp_path)
     assert main(["season", "promote", "--work-dir", str(work_dir), "--root", str(root)]) == 0

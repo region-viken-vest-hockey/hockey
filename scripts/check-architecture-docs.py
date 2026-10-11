@@ -52,7 +52,7 @@ REQUIRED_OWNERS = (
     "tournament_scheduler/application/canonical_season_service.py",
     "tournament_scheduler/application/canonical_season/lifecycle.py",
     "tournament_scheduler/infrastructure/canonical_season_store.py",
-    "tournament_scheduler/season_baseline.py",
+    "tournament_scheduler/season/accepted_baseline.py",
     "tournament_scheduler/published_baseline.py",
     "tournament_scheduler/published_mutation_history.py",
     "tournament_scheduler/pipeline/pages_publish.py",

@@ -148,7 +148,7 @@ def _stateless_current_fingerprint(work_dir: Any, run_id: str | None) -> str:
 
 
 # Concise labels for the material metrics a convergence mutation can change.
-# The values come straight from the canonical ``season_maintenance`` delta; the
+# The values come straight from the canonical ``season.maintenance`` delta; the
 # labels only make the trace readable to an operator.
 _MATERIAL_METRIC_LABELS: tuple[tuple[str, str], ...] = (
     ("hard_violations", "hard violations"),
@@ -414,7 +414,7 @@ def run_bounded_convergence(
         option_provider = option_provider or refinement_options
         apply_provider = apply_provider or refine_finalized_candidate
     if body_provider is None:
-        from ..season_maintenance import apply_repair_to_plan
+        from ..season.maintenance import apply_repair_to_plan
 
         body_provider = apply_repair_to_plan
     if materialize_provider is None:

@@ -21,7 +21,7 @@ _console = Console()
 def _cmd_season_refresh_calendars(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season refresh-calendars`` — refresh calendar evidence."""
     from ..pipeline.state import PipelineState
-    from ..season_state import refresh_calendars
+    from ..application.canonical_season.store_facade import refresh_calendars
 
     state = PipelineState(args.work_dir)
     result = refresh_calendars(
@@ -80,7 +80,7 @@ def _cmd_season_refresh_calendars(args: argparse.Namespace) -> int:
 def _cmd_season_reconcile_config(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season reconcile-config`` — reconcile configuration."""
     from ..pipeline.state import PipelineState
-    from ..season_state import reconcile_config
+    from ..application.canonical_season.store_facade import reconcile_config
 
     state = PipelineState(args.work_dir)
     result = reconcile_config(

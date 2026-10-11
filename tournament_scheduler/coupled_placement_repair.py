@@ -34,7 +34,7 @@ import copy
 from itertools import product
 from typing import Any, Collection, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from .canonical_baseline import PLACEMENT_FIELDS, change_cost
+from .season.baseline_overlay import PLACEMENT_FIELDS, change_cost
 from .host_team_missing_repair import (
     RepairOption,
     _identity,
@@ -935,7 +935,7 @@ def _build_coupled_option(
     # new external-calendar collision is represented as manual work (or that
     # newly depends on host confirmation) is classified explicitly here -- with
     # deterministic evidence -- and kept out of the auto-applicable Pareto set
-    # by ``season_maintenance`` unless the operator opts in.
+    # by ``season.maintenance`` unless the operator opts in.
     operational_acceptability: Optional[Dict[str, Any]] = None
     if problem:
         final_verification = (

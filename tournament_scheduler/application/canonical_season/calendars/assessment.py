@@ -19,10 +19,10 @@ from tournament_scheduler.booking.calendar_bookings import (
     new_booking_evidence_record,
     valid_active_associations,
 )
-from tournament_scheduler.canonical_ice_time_overrides import (
+from tournament_scheduler.season.ice_time_overrides import (
     overrides_from_problem,
 )
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     canonical_state_revision,
 )
 

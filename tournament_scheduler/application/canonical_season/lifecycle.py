@@ -5,22 +5,22 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     CANONICAL_STATE_REVISION_KEY,
     compute_canonical_state_revision,
     migrate_participation_acceptance_ids,
 )
-from tournament_scheduler.change_protections import (
+from tournament_scheduler.season.change_protections import (
     protection_violations,
 )
-from tournament_scheduler.request_constraints import (
+from tournament_scheduler.season.request_constraints import (
     compare_request_constraint_violations,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (
     CanonicalSeasonSnapshot,
     SeasonStateError,
 )
-from tournament_scheduler.canonical_ice_time_overrides import active_overrides
+from tournament_scheduler.season.ice_time_overrides import active_overrides
 from tournament_scheduler.published_baseline import (
     active_baseline,
     effective_projection_from_canonical_schedule,

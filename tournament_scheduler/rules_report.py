@@ -116,7 +116,7 @@ _PRIMARY_SOURCE_FILES: tuple[str, ...] = (
     "tournament_scheduler/season_planner.py",
     "tournament_scheduler/game_generation.py",
     "tournament_scheduler/models.py",
-    "tournament_scheduler/season_config.py",
+    "tournament_scheduler/season/config.py",
 )
 
 

@@ -8,7 +8,7 @@ from tournament_scheduler.booking.calendar_bookings import (
     TOURNAMENT_BOOKING_EVIDENCE_KEY,
     booking_status_report as _booking_status_report,
 )
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     canonical_state_revision,
 )
 

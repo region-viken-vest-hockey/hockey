@@ -42,7 +42,7 @@ import re
 
 from tournament_scheduler.club_registry import canonicalize_club_name
 from tournament_scheduler.models import Roster, Team
-from tournament_scheduler.season_config import _YAML_AVAILABLE, yaml
+from tournament_scheduler.season.config import _YAML_AVAILABLE, yaml
 
 
 class RosterConfigError(ValueError):

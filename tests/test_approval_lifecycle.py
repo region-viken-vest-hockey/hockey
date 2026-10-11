@@ -9,14 +9,14 @@ from datetime import date
 import pytest
 
 from tournament_scheduler.booking.calendar_bookings import event_fingerprint
-from tournament_scheduler.canonical_baseline import (
+from tournament_scheduler.season.baseline_overlay import (
     build_canonical_baseline,
     resolve_canonical_baseline,
     verify_canonical_locks,
 )
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     apply_candidate,
     approval_report,
@@ -98,7 +98,7 @@ def _rename_team(tournament, old_label, new_label):
 
 
 def _scoped_approval_record(tournament, *, participants_locked=False):
-    from tournament_scheduler.canonical_baseline import (
+    from tournament_scheduler.season.baseline_overlay import (
         approval_fingerprint,
         approval_placement_fingerprint,
     )
@@ -879,7 +879,7 @@ def test_confirm_calendar_booking_uses_previous_override_in_interval_evidence(tm
     """A prior override is the previous effective interval, not the age default."""
     root = _promote(tmp_path, [_tournament("t1")])
     base_problem = _host_a_problem([])
-    from tournament_scheduler.season_state import set_ice_time_minutes
+    from tournament_scheduler.application.canonical_season.store_facade import set_ice_time_minutes
 
     set_ice_time_minutes(
         season="2026-2027",
@@ -1161,7 +1161,7 @@ def test_calendar_booking_association_uses_accepted_override_when_default_durati
     assert findings["findings"] == []
 
     from tournament_scheduler.booking.calendar_bookings import project_associations_into_problem
-    from tournament_scheduler.canonical_ice_time_overrides import project_overrides_into_problem
+    from tournament_scheduler.season.ice_time_overrides import project_overrides_into_problem
     from tournament_scheduler.planning.contract import verify_candidate
 
     plan = load_schedule("2026-2027", root=root)["plan"]
@@ -1662,7 +1662,7 @@ def test_apply_candidate_marks_changed_unlocked_approval_stale(tmp_path):
 
 
 def test_placement_only_approval_survives_roster_change_at_owner_boundary():
-    from tournament_scheduler.canonical_baseline import resolve_approval
+    from tournament_scheduler.season.baseline_overlay import resolve_approval
 
     tournament = _tournament("t1")
     record = _scoped_approval_record(tournament, participants_locked=False)
@@ -1676,7 +1676,7 @@ def test_placement_only_approval_survives_roster_change_at_owner_boundary():
 
 
 def test_placement_only_approval_stales_on_placement_change_at_owner_boundary():
-    from tournament_scheduler.canonical_baseline import resolve_approval
+    from tournament_scheduler.season.baseline_overlay import resolve_approval
 
     tournament = _tournament("t1")
     record = _scoped_approval_record(tournament, participants_locked=False)
@@ -1691,7 +1691,7 @@ def test_placement_only_approval_stales_on_placement_change_at_owner_boundary():
 
 
 def test_participant_locked_approval_stales_on_roster_change_at_owner_boundary():
-    from tournament_scheduler.canonical_baseline import resolve_approval
+    from tournament_scheduler.season.baseline_overlay import resolve_approval
 
     tournament = _tournament("t1")
     record = _scoped_approval_record(tournament, participants_locked=True)
@@ -1704,7 +1704,7 @@ def test_participant_locked_approval_stales_on_roster_change_at_owner_boundary()
 
 
 def test_legacy_approval_without_placement_scope_keeps_full_payload_staleness():
-    from tournament_scheduler.canonical_baseline import (
+    from tournament_scheduler.season.baseline_overlay import (
         approval_fingerprint,
         resolve_approval,
     )
@@ -1851,8 +1851,8 @@ def test_approved_tournament_still_participates_in_collision_verification(tmp_pa
 
 
 def test_full_lifecycle_approve_replan_unapprove_move_reapprove(tmp_path):
-    from tournament_scheduler.canonical_baseline import approval_fingerprint
-    from tournament_scheduler.canonical_replan import replan_around_baseline
+    from tournament_scheduler.season.baseline_overlay import approval_fingerprint
+    from tournament_scheduler.season.replan import replan_around_baseline
 
     first = _teams(("A", "B", "C", "D"))
     second = [
@@ -2402,7 +2402,7 @@ def test_below_floor_booking_findings_and_export_preflight_parity(tmp_path):
     source-confirmed exact short interval for the same revision (ADR 0005)."""
 
     from tournament_scheduler.planning.verification import verify_final_candidate
-    from tournament_scheduler.season_maintenance import list_findings, load_context
+    from tournament_scheduler.season.maintenance import list_findings, load_context
 
     event = {
         "date": "2026-09-12",
@@ -2677,7 +2677,7 @@ def test_manual_booking_cli_set_status_and_clear(tmp_path, capsys):
 def test_manual_assertion_advances_canonical_revision(tmp_path):
     """The durable manual overlay participates in canonical-state identity."""
 
-    from tournament_scheduler.canonical_state import canonical_state_revision
+    from tournament_scheduler.season.state import canonical_state_revision
 
     root = _promote(tmp_path, [_tournament("t1")])
     problem = _host_a_problem([])

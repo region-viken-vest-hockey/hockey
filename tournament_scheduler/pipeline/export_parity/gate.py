@@ -51,7 +51,7 @@ def resolve_canonical_freshness(
         return CanonicalFreshness()
     root = Path(season_root) if season_root else Path(repo_dir) / "season"
     try:
-        from ...canonical_state import canonical_state_revision
+        from ...season.state import canonical_state_revision
         from ...infrastructure.canonical_season_store import CanonicalSeasonStore
 
         snapshot = CanonicalSeasonStore(root).load(season)

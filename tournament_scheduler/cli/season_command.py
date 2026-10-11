@@ -13,7 +13,7 @@ _console = Console()
 
 def _cmd_season(args) -> int:
     """Handle canonical Git-backed season-state commands."""
-    from ..season_state import (
+    from ..application.canonical_season.store_facade import (
         SeasonStateError,
     )
     from .season_approval_command import (

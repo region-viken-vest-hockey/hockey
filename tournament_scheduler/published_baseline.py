@@ -200,9 +200,9 @@ def effective_projection_problem_from_schedule(
     problem = projection_problem_from_schedule(schedule)
     if problem is None:
         return None
-    # Imported lazily: ``season_maintenance`` reaches this module through the
+    # Imported lazily: ``season.maintenance`` reaches this module through the
     # canonical application layer, so a top-level import would cycle.
-    from tournament_scheduler.season_maintenance import project_canonical_overlays
+    from tournament_scheduler.season.maintenance import project_canonical_overlays
 
     return project_canonical_overlays(
         problem,
