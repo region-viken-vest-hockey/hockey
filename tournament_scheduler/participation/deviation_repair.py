@@ -23,7 +23,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
 from tournament_scheduler.host_team_missing_repair import RepairOption, candidate_fingerprint, search_dimension_tag
 from tournament_scheduler.planning_contract import verify_candidate
-from tournament_scheduler.stage3_optimizer import optimize_candidate
+from tournament_scheduler.stage3.optimizer import optimize_candidate
 
 PARTICIPATION_FINDING_PREFIX = "participation_deviation"
 _DEFAULT_ITERATIONS = 800

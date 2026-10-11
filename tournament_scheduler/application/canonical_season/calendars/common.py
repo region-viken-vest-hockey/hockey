@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from typing import Any, Mapping
 
-from tournament_scheduler.calendar_bookings import (
+from tournament_scheduler.booking.calendar_bookings import (
     BOOKING_CONFIRMED_BOOKED,
     BOOKING_CONFIRMED_NOT_BOOKED,
     BOOKING_MANUALLY_BOOKED,
@@ -206,7 +206,7 @@ def _manual_conflict_with_classification(
     (associations/overlaps); it does not know about a durable manual booking
     assertion (#454), so a valid calendar association can silently coexist with
     a later active ``manually_not_booked`` assertion. Mirrors the conflict
-    semantics already used by :func:`~tournament_scheduler.calendar_bookings.booking_status_report`,
+    semantics already used by :func:`~tournament_scheduler.booking.calendar_bookings.booking_status_report`,
     applied to a freshly computed (not-yet-persisted) classification rather
     than the last persisted calendar evidence.
     """

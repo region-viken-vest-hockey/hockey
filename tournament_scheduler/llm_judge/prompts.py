@@ -242,7 +242,7 @@ def build_action_decision_prompt(context: DecisionContext) -> str:
     works for any context whose ``available_actions`` come from the full
     :data:`~tournament_scheduler.application.decisions.DECISION_ACTION_IDS`
     vocabulary — e.g. the Stage 3 optimizer promote/reject decision
-    (:func:`tournament_scheduler.stage3_decision.build_stage3_decision_context`)
+    (:func:`tournament_scheduler.stage3.decision.build_stage3_decision_context`)
     or a mid-planning critic rerun-vs-best-attempt decision.
     """
     lines = [f"OBJECTIVE: {context.objective}", ""]

@@ -15,7 +15,7 @@ duration). It
 * does not block an unrelated canonical mutation, and
 * never authorizes a new, worsened or materially modified violation, because
   the underlying matcher
-  (:func:`tournament_scheduler.calendar_bookings.accepted_booking_interval_evidence`)
+  (:func:`tournament_scheduler.booking.calendar_bookings.accepted_booking_interval_evidence`)
   requires an exact fact match.
 
 The module also classifies a candidate's hard violations against the
@@ -35,7 +35,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
-from tournament_scheduler.calendar_bookings import (
+from tournament_scheduler.booking.calendar_bookings import (
     accepted_booking_interval_evidence,
     governing_floor_finding,
     tournament_occupancy_interval_facts,

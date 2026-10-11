@@ -1,6 +1,6 @@
 """Tests for planner-neutral calendar availability semantics (issue #373)."""
 
-from tournament_scheduler.calendar_availability import (
+from tournament_scheduler.booking.calendar_availability import (
     CLASSIFICATION_SOURCE_CONFIGURED,
     CLASSIFICATION_SOURCE_UNCLASSIFIED,
     CalendarAvailability,

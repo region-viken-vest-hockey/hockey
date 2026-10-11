@@ -117,9 +117,9 @@ def _maybe_run_stage3_cp_sat_shadow(
     from time import perf_counter
 
     from ...pipeline.run_manifest import RunManifest
-    from ...stage3_cpsat import CpSatNoCandidate, CpSatUnavailable
-    from ...stage3_engine import run_planner
-    from ...stage3_shadow import build_shadow_report
+    from tournament_scheduler.stage3.cpsat import CpSatNoCandidate, CpSatUnavailable
+    from tournament_scheduler.stage3.engine import run_planner
+    from tournament_scheduler.stage3.shadow import build_shadow_report
     from .stage3_cpsat_cache import cp_sat_cache_key, read_cp_sat_cache_entry, write_cp_sat_cache_entry
 
     budget = float(cfg.get("cp_sat_shadow_budget_seconds", _CP_SAT_AUTO_SHADOW_BUDGET_SECONDS))

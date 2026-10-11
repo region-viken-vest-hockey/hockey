@@ -82,18 +82,18 @@ tournament_scheduler/rules_model.py	853
 # obligation dicts, and their imports (~36 lines) on top of that.
 tournament_scheduler/season_planner.py	2702
 tournament_scheduler/spond/spond_exporter.py	449
-tournament_scheduler/stage3_cpsat.py	704
-# stage3_decision.py grew by 1 line for issue #324 (one extra weight-name
+tournament_scheduler/stage3/cpsat.py	704
+# stage3/decision.py grew by 1 line for issue #324 (one extra weight-name
 # entry, `same_club_excess_over_2`, in the existing `_V2_OPTIMIZER_WEIGHT_NAMES`
 # tuple literal) -- not a splittable chunk on its own.
-tournament_scheduler/stage3_decision.py	353
-# stage3_optimizer.py grew by 13 lines for issue #324 (a `same_club_excess_over_2`
+tournament_scheduler/stage3/decision.py	353
+# stage3/optimizer.py grew by 13 lines for issue #324 (a `same_club_excess_over_2`
 # weight entry plus a matching two-line penalty term added at both of its two
 # existing club-concentration scoring sites, `_objective` and
 # `_SearchState._club_contribution`) -- each site is a couple of lines woven
 # into an already-large scoring function, not a cohesive standalone chunk
 # worth extracting out of this already 2200+-line legacy optimizer module.
-tournament_scheduler/stage3_optimizer.py	2706
+tournament_scheduler/stage3/optimizer.py	2706
 tournament_scheduler/tools/calendar_compare.py	401
 tournament_scheduler/utils/rich_output.py	596
 tournament_scheduler/warnings.py	508
@@ -133,7 +133,7 @@ tournament_scheduler/application/season_blockers.py	478
 tournament_scheduler/application/stage3_controller.py	340
 tournament_scheduler/application/stage3_session.py	780
 tournament_scheduler/application/stage3_session_store.py	777
-tournament_scheduler/calendar_bookings.py	2488
+tournament_scheduler/booking/calendar_bookings.py	2488
 tournament_scheduler/candidate_weekends.py	362
 tournament_scheduler/canonical_baseline.py	684
 tournament_scheduler/canonical_exception_policy.py	430

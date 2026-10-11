@@ -43,7 +43,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
-from .calendar_availability import (
+from tournament_scheduler.booking.calendar_availability import (
     CalendarAvailability,
     CalendarEventClassificationRule,
 )

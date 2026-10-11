@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from tournament_scheduler.calendar_availability import host_confirmation_from_evidence
+from tournament_scheduler.booking.calendar_availability import host_confirmation_from_evidence
 from tournament_scheduler.hosting.representation import host_eligible_teams, host_represented_in
 from tournament_scheduler.models import Tournament
 from tournament_scheduler.participant_selection import deficit_score

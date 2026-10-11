@@ -1289,7 +1289,7 @@ def test_sealed_confirm_calendar_booking_reconciles_shorter_authoritative_interv
     can prove its provenance instead of refusing the otherwise-correct match.
     """
 
-    from tournament_scheduler.calendar_bookings import iter_events
+    from tournament_scheduler.booking.calendar_bookings import iter_events
 
     root = tmp_path / "season"
     tournaments = [_tournament("rvv-1", "2026-10-11", "10:00", "Alpha Arena", "Alpha")]
@@ -1359,7 +1359,7 @@ def test_sealed_confirm_calendar_booking_batch_replays_mixed_override_history(
     must equal that replayed chain instead of failing as phantom drift.
     """
 
-    from tournament_scheduler.calendar_bookings import (
+    from tournament_scheduler.booking.calendar_bookings import (
         BOOKING_CONFIRMED_BOOKED,
         CALENDAR_BOOKING_ASSOCIATIONS_KEY,
         TOURNAMENT_BOOKING_EVIDENCE_KEY,

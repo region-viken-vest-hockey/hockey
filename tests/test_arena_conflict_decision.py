@@ -7,7 +7,7 @@ one of the collision's own two tournament ids, enforced deterministically by
 """
 
 from tournament_scheduler.application.decisions import DecisionAction, validate_decision_action
-from tournament_scheduler.arena_conflict_decision import (
+from tournament_scheduler.booking.arena_conflict_decision import (
     arena_conflict_decision_record,
     build_arena_conflict_decision_context,
     build_arena_conflict_decision_prompt,

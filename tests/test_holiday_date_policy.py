@@ -44,7 +44,7 @@ from tournament_scheduler.season_state import (
     release_banned_dates,
     schedule_fingerprint,
 )
-from tournament_scheduler.stage3_optimizer import optimize_candidate
+from tournament_scheduler.stage3.optimizer import optimize_candidate
 
 WINDOW_START = date(2026, 9, 1)
 WINDOW_END = date(2027, 4, 30)

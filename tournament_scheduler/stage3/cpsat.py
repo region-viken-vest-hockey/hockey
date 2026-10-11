@@ -17,14 +17,14 @@ from time import perf_counter
 from types import SimpleNamespace
 from typing import Any, Dict, Optional
 
-from .hosting.representation import clubs_represent_same_club as _clubs_represent_same_club
-from .models import Team
-from .effective_tournament_shape import compute_effective_tournament_shape, shape_violation
-from .participant_roster_sizing import fixed_cohort_shape_for
-from .planning_contract import CANDIDATE_SCHEMA_VERSION
-from .stage3_cpsat_club_cap import build_club_excess_terms
-from .stage3_cpsat_diagnostics import raise_host_not_represented
-from .stage3_cpsat_slots import (
+from tournament_scheduler.hosting.representation import clubs_represent_same_club as _clubs_represent_same_club
+from tournament_scheduler.models import Team
+from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape, shape_violation
+from tournament_scheduler.participant_roster_sizing import fixed_cohort_shape_for
+from tournament_scheduler.planning_contract import CANDIDATE_SCHEMA_VERSION
+from tournament_scheduler.stage3.cpsat_club_cap import build_club_excess_terms
+from tournament_scheduler.stage3.cpsat_diagnostics import raise_host_not_represented
+from tournament_scheduler.stage3.cpsat_slots import (
     TeamIdentity as TeamIdentity,
     _TournamentSlot as _TournamentSlot,
     _active_slots as _active_slots,
@@ -575,7 +575,7 @@ def optimize_candidate_cp_sat(
             "OR-Tools is required for engine='cp-sat' (install the cpsat extra)"
         ) from exc
 
-    from .pipeline.fingerprints import stable_payload_sha256
+    from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
     baseline_fingerprint = stable_payload_sha256(candidate.get("tournaments", []))
     problem_fingerprint = stable_payload_sha256(problem) if problem is not None else None

@@ -72,7 +72,7 @@ def _run_refinement_loop(
     from ...serialization.season_plan import resolve_plan_dict
     from ...serialization.season_plan import season_plan_from_dict
     from ...pipeline.state import StageName
-    from ...stage3_optimizer import optimize_candidate
+    from tournament_scheduler.stage3.optimizer import optimize_candidate
     from ..plan_critic import generate_critic_findings, suggest_moves
 
     workflow = ManualAdjustmentWorkflow(state)

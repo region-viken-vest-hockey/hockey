@@ -16,8 +16,8 @@ from tournament_scheduler.cli.plan_command import (
     _run_engine_or_report_error,
 )
 from tournament_scheduler.pipeline.state import PipelineState, StageName
-from tournament_scheduler.stage3_ab import build_ab_report
-from tournament_scheduler.stage3_optimizer import optimize_candidate
+from tournament_scheduler.stage3.ab import build_ab_report
+from tournament_scheduler.stage3.optimizer import optimize_candidate
 
 
 def test_parse_weight_overrides_empty():

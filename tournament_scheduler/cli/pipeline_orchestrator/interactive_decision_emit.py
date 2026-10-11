@@ -524,8 +524,8 @@ def _emit_stage3_interactive_decision(
     )
     from ...application.stage3_session_store import Stage3SessionStore, fingerprint_plan
     from ...planning_contract import extract_candidate
-    from ...stage3_ab import build_ab_report
-    from ...stage3_decision import (
+    from tournament_scheduler.stage3.ab import build_ab_report
+    from tournament_scheduler.stage3.decision import (
         STAGE3_DECISION_ACTIONS,
         _OPTIMIZE_PLAN_SCHEMAS,
         build_stage3_decision_context,

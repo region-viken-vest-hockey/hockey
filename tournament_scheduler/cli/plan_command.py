@@ -68,8 +68,8 @@ def _run_engine_or_report_error(
     infeasible/timed-out solve are expected outcomes, not bugs, so they get a
     one-line message rather than propagating as an unhandled exception.
     """
-    from ..stage3_cpsat import CpSatNoCandidate, CpSatUnavailable
-    from ..stage3_engine import run_planner
+    from tournament_scheduler.stage3.cpsat import CpSatNoCandidate, CpSatUnavailable
+    from tournament_scheduler.stage3.engine import run_planner
 
     try:
         return run_planner(engine=engine, problem=problem, baseline=baseline, request=request)
@@ -317,7 +317,7 @@ def _cmd_plan_ab(args: argparse.Namespace) -> int:
     from ..planning_contract import build_planning_problem, extract_candidate
     from ..operator_waivers import load_active_waivers
     from ..pipeline.state import PipelineState, StageName
-    from ..stage3_ab import build_ab_report
+    from tournament_scheduler.stage3.ab import build_ab_report
 
     state = PipelineState(args.work_dir)
     config = state.read_stage(StageName.CONFIG)
@@ -378,7 +378,7 @@ def _cmd_plan_ab(args: argparse.Namespace) -> int:
     report = build_ab_report(old_candidate, new_candidate, problem)
 
     if args.output_dir:
-        from ..stage3_shadow import build_shadow_report
+        from tournament_scheduler.stage3.shadow import build_shadow_report
 
         os.makedirs(args.output_dir, exist_ok=True)
         shadow_report = build_shadow_report(
@@ -456,8 +456,8 @@ def _cmd_plan_ab_participants(args: argparse.Namespace) -> int:
     from ..planning_contract import build_planning_problem, extract_candidate
     from ..operator_waivers import load_active_waivers
     from ..pipeline.state import PipelineState, StageName
-    from ..stage3_ab import build_ab_report
-    from ..stage3_optimizer import (
+    from tournament_scheduler.stage3.ab import build_ab_report
+    from tournament_scheduler.stage3.optimizer import (
         optimize_candidate_participants_bounded_multi_seed,
         repair_schedule_conflicts_bounded_multi_seed,
     )
@@ -614,7 +614,7 @@ def _execute_optimize_plan(
 
     from ..pipeline.state import PipelineState, StageName
     from ..planning_contract import extract_candidate
-    from ..stage3_ab import build_ab_report
+    from tournament_scheduler.stage3.ab import build_ab_report
 
     action_arguments = action_arguments or {}
 
@@ -695,7 +695,7 @@ def _cmd_plan_decision_context(args: argparse.Namespace) -> int:
     ``optimize_plan``/``request_operator`` instead of a Python quality
     heuristic deciding automatically.
     """
-    from ..stage3_decision import build_stage3_decision_context
+    from tournament_scheduler.stage3.decision import build_stage3_decision_context
 
     try:
         report = _load_json_file(args.ab_report)
@@ -742,7 +742,7 @@ def _cmd_plan_decide(args: argparse.Namespace) -> int:
     cannot bypass the verifier by prose.
     """
     from ..application.decisions import DecisionAction, decide, record_llm_decision
-    from ..stage3_decision import apply_stage3_candidate, build_stage3_decision_context
+    from tournament_scheduler.stage3.decision import apply_stage3_candidate, build_stage3_decision_context
 
     try:
         report = _load_json_file(args.ab_report)

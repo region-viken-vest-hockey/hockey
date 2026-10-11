@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from tournament_scheduler.stage3_optimizer import _Slot, _host_move_is_valid, _swap_is_valid
+from tournament_scheduler.stage3.optimizer import _Slot, _host_move_is_valid, _swap_is_valid
 
 
 def _problem() -> dict:

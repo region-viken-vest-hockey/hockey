@@ -6,7 +6,7 @@ import copy
 import re
 from typing import Any, Mapping
 
-from tournament_scheduler.calendar_bookings import (
+from tournament_scheduler.booking.calendar_bookings import (
     BOOKING_AUTHORITY_CALENDAR,
     BOOKING_CONFIRMED_BOOKED,
     CALENDAR_BOOKING_ASSOCIATIONS_KEY,
@@ -19,7 +19,7 @@ from tournament_scheduler.calendar_bookings import (
     tournament_occupancy_interval_facts,
 )
 from tournament_scheduler.canonical_exception_policy import reclassify_accepted_source_interval
-from tournament_scheduler.calendar_availability import CalendarAvailability, interval_availability
+from tournament_scheduler.booking.calendar_availability import CalendarAvailability, interval_availability
 from tournament_scheduler.canonical_baseline import (
     approval_fingerprint,
     approval_placement_fingerprint,

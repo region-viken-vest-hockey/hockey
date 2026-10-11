@@ -358,7 +358,7 @@ class TestStage3InteractiveDecisionLoop:
             "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
             return_value=(plan, False, False),
         ), patch(
-            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            "tournament_scheduler.stage3.cpsat.optimize_candidate_cp_sat",
             return_value=shadow_candidate,
         ) as optimize_candidate_cp_sat:
             exit_code = _cmd_run_interactive(args)
@@ -385,7 +385,7 @@ class TestStage3InteractiveDecisionLoop:
         degrade safely inside `/run` ... never break the production
         workflow unnecessarily" -- a missing OR-Tools dependency must not
         stop the normal Stage 3 decision from being emitted."""
-        from tournament_scheduler.stage3_cpsat import CpSatUnavailable
+        from tournament_scheduler.stage3.cpsat import CpSatUnavailable
 
         args = _args(work_dir=str(tmp_path), resume_from="3")
         plan = _plan_checkpoint(seed=1)
@@ -399,7 +399,7 @@ class TestStage3InteractiveDecisionLoop:
             "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
             return_value=(plan, False, False),
         ), patch(
-            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            "tournament_scheduler.stage3.cpsat.optimize_candidate_cp_sat",
             side_effect=CpSatUnavailable("OR-Tools not installed"),
         ):
             exit_code = _cmd_run_interactive(args)
@@ -421,7 +421,7 @@ class TestStage3InteractiveDecisionLoop:
         status) must degrade the same way: the normal Stage 3 decision still
         gets emitted, with the timeout recorded as shadow evidence rather
         than interrupting `/run`."""
-        from tournament_scheduler.stage3_cpsat import CpSatNoCandidate
+        from tournament_scheduler.stage3.cpsat import CpSatNoCandidate
 
         args = _args(work_dir=str(tmp_path), resume_from="3")
         plan = _plan_checkpoint(seed=1)
@@ -435,7 +435,7 @@ class TestStage3InteractiveDecisionLoop:
             "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
             return_value=(plan, False, False),
         ), patch(
-            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            "tournament_scheduler.stage3.cpsat.optimize_candidate_cp_sat",
             side_effect=CpSatNoCandidate("UNKNOWN", 15.0),
         ):
             exit_code = _cmd_run_interactive(args)
@@ -456,8 +456,8 @@ class TestStage3InteractiveDecisionLoop:
         """issue #262 P0: optimize_plan must invoke the generic Stage 3 v2
         optimizer, not rerun the legacy SeasonPlanner via _run_stage3."""
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
-        from tournament_scheduler.stage3_ab import build_ab_report
-        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+        from tournament_scheduler.stage3.ab import build_ab_report
+        from tournament_scheduler.stage3.decision import build_stage3_decision_context
 
         plan1 = _plan_checkpoint(seed=1)
         report = build_ab_report(plan1["plan"], plan1["plan"])
@@ -494,7 +494,7 @@ class TestStage3InteractiveDecisionLoop:
         ), patch(
             "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
         ) as run_stage3, patch(
-            "tournament_scheduler.stage3_optimizer.optimize_candidate",
+            "tournament_scheduler.stage3.optimizer.optimize_candidate",
             return_value=plan2_candidate,
         ) as optimize_candidate:
             exit_code = _cmd_run_interactive(args)
@@ -522,8 +522,8 @@ class TestStage3InteractiveDecisionLoop:
         answerable: no raw attempt count removes ``optimize_plan`` or forces
         escalation."""
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
-        from tournament_scheduler.stage3_ab import build_ab_report
-        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+        from tournament_scheduler.stage3.ab import build_ab_report
+        from tournament_scheduler.stage3.decision import build_stage3_decision_context
 
         plan1 = _plan_checkpoint(seed=1)
         report = build_ab_report(plan1["plan"], plan1["plan"])
@@ -599,8 +599,8 @@ class TestStage3InteractiveDecisionLoop:
         which engine actually produced it."""
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
         from tournament_scheduler.pipeline.evidence_bundle import read_stage3_attempt_log
-        from tournament_scheduler.stage3_ab import build_ab_report
-        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+        from tournament_scheduler.stage3.ab import build_ab_report
+        from tournament_scheduler.stage3.decision import build_stage3_decision_context
 
         plan1 = _plan_checkpoint(seed=1)
         report = build_ab_report(plan1["plan"], plan1["plan"])
@@ -645,7 +645,7 @@ class TestStage3InteractiveDecisionLoop:
         ), patch(
             "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
         ) as run_stage3, patch(
-            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            "tournament_scheduler.stage3.cpsat.optimize_candidate_cp_sat",
             return_value=plan2_candidate,
         ) as optimize_candidate_cp_sat:
             exit_code = _cmd_run_interactive(args)
@@ -678,9 +678,9 @@ class TestStage3InteractiveDecisionLoop:
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
         from tournament_scheduler.pipeline.evidence_bundle import read_stage3_attempt_log
         from tournament_scheduler.pipeline.state import StageName as _StageName
-        from tournament_scheduler.stage3_ab import build_ab_report
-        from tournament_scheduler.stage3_cpsat import CpSatNoCandidate
-        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+        from tournament_scheduler.stage3.ab import build_ab_report
+        from tournament_scheduler.stage3.cpsat import CpSatNoCandidate
+        from tournament_scheduler.stage3.decision import build_stage3_decision_context
 
         plan1 = _plan_checkpoint(seed=1)
         report = build_ab_report(plan1["plan"], plan1["plan"])
@@ -723,7 +723,7 @@ class TestStage3InteractiveDecisionLoop:
         ), patch(
             "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
         ) as run_stage3, patch(
-            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            "tournament_scheduler.stage3.cpsat.optimize_candidate_cp_sat",
             side_effect=CpSatNoCandidate("INFEASIBLE", 5.0),
         ):
             exit_code = _cmd_run_interactive(args)
@@ -746,8 +746,8 @@ class TestStage3InteractiveDecisionLoop:
         the shared multi-objective search and offers every non-dominated
         candidate by candidate_ref, instead of a single rerun."""
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
-        from tournament_scheduler.stage3_ab import build_ab_report
-        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+        from tournament_scheduler.stage3.ab import build_ab_report
+        from tournament_scheduler.stage3.decision import build_stage3_decision_context
 
         plan1 = _plan_checkpoint(seed=1)
         report = build_ab_report(plan1["plan"], plan1["plan"])
@@ -812,7 +812,7 @@ class TestStage3InteractiveDecisionLoop:
         ), patch(
             "tournament_scheduler.cli.pipeline_orchestrator.run_command_interactive._run_stage3",
         ) as run_stage3, patch(
-            "tournament_scheduler.stage3_optimizer.optimize_candidate_pareto",
+            "tournament_scheduler.stage3.optimizer.optimize_candidate_pareto",
             return_value=fake_portfolio_result,
         ) as optimize_candidate_pareto:
             exit_code = _cmd_run_interactive(args)
@@ -843,7 +843,7 @@ class TestStage3InteractiveDecisionLoop:
         to already be on disk (there is no single "just reran" candidate
         for a multi-candidate Pareto attempt)."""
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
-        from tournament_scheduler.stage3_decision import STAGE3_DECISION_ACTIONS
+        from tournament_scheduler.stage3.decision import STAGE3_DECISION_ACTIONS
 
         plan1 = _plan_checkpoint(seed=1)
         candidate_a = _candidate(seed=2)
@@ -922,8 +922,8 @@ class TestStage3InteractiveDecisionLoop:
         import copy
 
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
-        from tournament_scheduler.stage3_ab import build_ab_report
-        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+        from tournament_scheduler.stage3.ab import build_ab_report
+        from tournament_scheduler.stage3.decision import build_stage3_decision_context
 
         plan1 = _plan_checkpoint(seed=1)
         plan2 = _plan_checkpoint(seed=2)
@@ -986,8 +986,8 @@ class TestStage3InteractiveDecisionLoop:
         paired with the newly applied candidate."""
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
         from tournament_scheduler.cli.pipeline_orchestrator.stage3_cpsat_cache import write_cp_sat_cache_entry
-        from tournament_scheduler.stage3_ab import build_ab_report
-        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+        from tournament_scheduler.stage3.ab import build_ab_report
+        from tournament_scheduler.stage3.decision import build_stage3_decision_context
 
         plan1 = _plan_checkpoint(seed=1)
         shadow_candidate = _candidate(seed=5)
@@ -1069,8 +1069,8 @@ class TestStage3InteractiveDecisionLoop:
         import json as _json
 
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
-        from tournament_scheduler.stage3_ab import build_ab_report
-        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+        from tournament_scheduler.stage3.ab import build_ab_report
+        from tournament_scheduler.stage3.decision import build_stage3_decision_context
 
         plan1 = _plan_checkpoint(seed=1)
         plan2 = _plan_checkpoint(seed=2)
@@ -1141,8 +1141,8 @@ class TestStage3InteractiveDecisionLoop:
 
     def test_keep_baseline_restores_best_plan_and_clears_state(self, state, tmp_path):
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
-        from tournament_scheduler.stage3_ab import build_ab_report
-        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+        from tournament_scheduler.stage3.ab import build_ab_report
+        from tournament_scheduler.stage3.decision import build_stage3_decision_context
 
         plan1 = _plan_checkpoint(seed=1)
         plan2 = _plan_checkpoint(seed=2)
@@ -1912,8 +1912,8 @@ class TestStage4StaleCheckpointGuard:
         path), the checkpoint is no longer stale and the very next
         invocation's --resume-from 4 must be allowed to reach Stage 4."""
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _write_stage3_interactive_state
-        from tournament_scheduler.stage3_ab import build_ab_report
-        from tournament_scheduler.stage3_decision import build_stage3_decision_context
+        from tournament_scheduler.stage3.ab import build_ab_report
+        from tournament_scheduler.stage3.decision import build_stage3_decision_context
 
         plan1 = _plan_checkpoint(seed=1)
         plan2 = _plan_checkpoint(seed=2)
@@ -2055,7 +2055,7 @@ class TestStage3CpSatCacheAndBudgetGuard:
 
         plan = _plan_checkpoint(seed=1)
         with patch(
-            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            "tournament_scheduler.stage3.cpsat.optimize_candidate_cp_sat",
             return_value=self._shadow_candidate(2),
         ) as solve_mock:
             _emit_stage3_interactive_decision(
@@ -2085,7 +2085,7 @@ class TestStage3CpSatCacheAndBudgetGuard:
         plan1 = _plan_checkpoint(seed=1)
         plan2 = _plan_checkpoint(seed=3)
         with patch(
-            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            "tournament_scheduler.stage3.cpsat.optimize_candidate_cp_sat",
             return_value=self._shadow_candidate(2),
         ) as solve_mock:
             _emit_stage3_interactive_decision(
@@ -2109,7 +2109,7 @@ class TestStage3CpSatCacheAndBudgetGuard:
 
         plan = _plan_checkpoint(seed=1)
         with patch(
-            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            "tournament_scheduler.stage3.cpsat.optimize_candidate_cp_sat",
             return_value=self._shadow_candidate(2),
         ) as solve_mock:
             _emit_stage3_interactive_decision(
@@ -2135,7 +2135,7 @@ class TestStage3CpSatCacheAndBudgetGuard:
 
         plan = {"plan": self._shadow_candidate(2), "warnings": []}
         with patch(
-            "tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat",
+            "tournament_scheduler.stage3.cpsat.optimize_candidate_cp_sat",
         ) as solve_mock:
             exit_code = _emit_stage3_interactive_decision(
                 state, str(tmp_path), self._cfg(), {}, None, None, plan, lambda msg: None,
@@ -2156,7 +2156,7 @@ class TestStage3CpSatCacheAndBudgetGuard:
 
         plan = _plan_checkpoint(seed=1)
         cfg = self._cfg(stage3_wall_clock_ceiling_seconds=10.0)
-        with patch("tournament_scheduler.stage3_cpsat.optimize_candidate_cp_sat") as solve_mock:
+        with patch("tournament_scheduler.stage3.cpsat.optimize_candidate_cp_sat") as solve_mock:
             exit_code = _emit_stage3_interactive_decision(
                 state, str(tmp_path), cfg, {}, None, None, plan, lambda msg: None,
                 stage3_elapsed_seconds=999.0,

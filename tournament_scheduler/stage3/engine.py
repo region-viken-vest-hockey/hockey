@@ -56,7 +56,7 @@ def run_planner(
     request = dict(request or {})
 
     if engine == "local_search":
-        from .stage3_optimizer import optimize_candidate
+        from tournament_scheduler.stage3.optimizer import optimize_candidate
 
         return optimize_candidate(
             baseline,
@@ -75,7 +75,7 @@ def run_planner(
         )
 
     if engine == "cp_sat":
-        from .stage3_cpsat import optimize_candidate_cp_sat
+        from tournament_scheduler.stage3.cpsat import optimize_candidate_cp_sat
 
         return optimize_candidate_cp_sat(
             baseline,

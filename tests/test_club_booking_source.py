@@ -15,7 +15,7 @@ import json
 
 import pytest
 
-from tournament_scheduler.calendar_bookings import (
+from tournament_scheduler.booking.calendar_bookings import (
     CALENDAR_BOOKING_ASSOCIATIONS_KEY,
     CLUB_BOOKING_SOURCE_ASSERTIONS_KEY,
     MANUAL_BOOKING_ASSERTIONS_KEY,

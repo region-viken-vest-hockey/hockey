@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 
-from tournament_scheduler.calendar_bookings import booking_assessment
+from tournament_scheduler.booking.calendar_bookings import booking_assessment
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.season_state import (
     booking_status_report,
@@ -442,7 +442,7 @@ def test_authority_is_reported_separately_from_source_checkability(tmp_path):
 def test_date_window_days_is_configurable(tmp_path):
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
     problem = _problem([_event("2026-09-15", "10:00", "12:00")])
-    from tournament_scheduler.calendar_bookings import booking_assessment
+    from tournament_scheduler.booking.calendar_bookings import booking_assessment
     from tournament_scheduler.season_state import load_schedule
 
     plan = load_schedule("2026-2027", root=root)["plan"]

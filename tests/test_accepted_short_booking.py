@@ -19,7 +19,7 @@ from __future__ import annotations
 from tournament_scheduler.canonical_exception_policy import (
     reclassify_accepted_exceptions,
 )
-from tournament_scheduler.calendar_bookings import (
+from tournament_scheduler.booking.calendar_bookings import (
     REJECTED_BOOKING_EVIDENCE_KEY,
     event_fingerprint,
 )

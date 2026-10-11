@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Mapping
 
-from .application.decisions import DecisionAction, DecisionContext
+from tournament_scheduler.application.decisions import DecisionAction, DecisionContext
 
 ARENA_CONFLICT_DECISION_ACTIONS: "tuple[str, ...]" = ("resolve_arena_conflict", "request_operator")
 

@@ -17,7 +17,7 @@ rich>=14.0.0
 # pyyaml>=6.0
 
 # Optional: enables the shadow/experimental CP-SAT Stage 3 engine
-# (tournament_scheduler/stage3_cpsat.py, issue #276), selected via
+# (tournament_scheduler/stage3/cpsat.py, issue #276), selected via
 # `--engine cp-sat`. Without it, engine="cp_sat" raises a clean
 # CpSatUnavailable CLI error; engine="local_search" (default) is unaffected.
 # ortools>=9.10

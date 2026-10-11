@@ -1,16 +1,16 @@
-"""Unit tests for tournament_scheduler.stage3_engine (issue #276 Phase 1)."""
+"""Unit tests for tournament_scheduler.stage3.engine (issue #276 Phase 1)."""
 
 from __future__ import annotations
 
 import pytest
 
-from tournament_scheduler.stage3_engine import (
+from tournament_scheduler.stage3.engine import (
     DEFAULT_ENGINE,
     ENGINE_CHOICES,
     UnknownEngineError,
     run_planner,
 )
-from tournament_scheduler.stage3_optimizer import optimize_candidate
+from tournament_scheduler.stage3.optimizer import optimize_candidate
 
 
 def _team(club: str, label: str, age_group: str) -> dict:
@@ -116,7 +116,7 @@ class TestRunPlanner:
 
         monkeypatch.setattr(builtins, "__import__", _blocked_import)
 
-        from tournament_scheduler.stage3_cpsat import CpSatUnavailable
+        from tournament_scheduler.stage3.cpsat import CpSatUnavailable
 
         candidate = _clustered_candidate()
         with pytest.raises(CpSatUnavailable):

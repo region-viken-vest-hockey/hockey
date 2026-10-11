@@ -1,4 +1,4 @@
-"""Unit tests for tournament_scheduler.stage3_cpsat_club_cap (issue #326)."""
+"""Unit tests for tournament_scheduler.stage3.cpsat_club_cap (issue #326)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import pytest
 
 from ortools.sat.python import cp_model
 
-from tournament_scheduler.stage3_cpsat_club_cap import build_club_excess_terms
+from tournament_scheduler.stage3.cpsat_club_cap import build_club_excess_terms
 
 ortools = pytest.importorskip(
     "ortools", reason="OR-Tools is the optional 'cpsat' extra; skip when not installed"

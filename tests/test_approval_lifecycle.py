@@ -8,7 +8,7 @@ from datetime import date
 
 import pytest
 
-from tournament_scheduler.calendar_bookings import event_fingerprint
+from tournament_scheduler.booking.calendar_bookings import event_fingerprint
 from tournament_scheduler.canonical_baseline import (
     build_canonical_baseline,
     resolve_canonical_baseline,
@@ -233,7 +233,7 @@ def test_calendar_booking_confirmation_binds_event_only_to_matching_tournament(t
     assert decisions["decisions"]["t1"]["participants_locked"] is False
 
     from tournament_scheduler.planning_contract import verify_candidate
-    from tournament_scheduler.calendar_bookings import project_associations_into_problem
+    from tournament_scheduler.booking.calendar_bookings import project_associations_into_problem
 
     plan = load_schedule("2026-2027", root=root)["plan"]
     associated_problem = project_associations_into_problem(problem, decisions, plan)
@@ -458,7 +458,7 @@ def test_projection_downgrades_historical_weak_positive_booking_evidence(tmp_pat
     definition of "confirmed booked" is a currently-valid explicit association.
     """
 
-    from tournament_scheduler.calendar_bookings import TOURNAMENT_BOOKING_EVIDENCE_KEY
+    from tournament_scheduler.booking.calendar_bookings import TOURNAMENT_BOOKING_EVIDENCE_KEY
 
     root = _promote(tmp_path, [_tournament("t1")])
     problem = _host_a_problem(
@@ -628,7 +628,7 @@ def test_projection_distinguishes_explicit_negative_from_absence(tmp_path):
     authoritative. Historical evidence is preserved either way.
     """
 
-    from tournament_scheduler.calendar_bookings import TOURNAMENT_BOOKING_EVIDENCE_KEY
+    from tournament_scheduler.booking.calendar_bookings import TOURNAMENT_BOOKING_EVIDENCE_KEY
 
     root = _promote(tmp_path, [_tournament("t1"), _tournament("t2", date_str="2026-09-19")])
     problem = _host_a_problem([])
@@ -1098,7 +1098,7 @@ def test_stale_calendar_booking_association_fails_closed_when_tournament_moves(t
 
     findings = calendar_booking_findings(season="2026-2027", root=root, problem=problem)
     assert "tournament_arena_changed" in findings["findings"][0]["reasons"]
-    from tournament_scheduler.calendar_bookings import project_associations_into_problem
+    from tournament_scheduler.booking.calendar_bookings import project_associations_into_problem
     from tournament_scheduler.planning_contract import verify_candidate
 
     plan = load_schedule("2026-2027", root=root)["plan"]
@@ -1129,7 +1129,7 @@ def test_stale_calendar_booking_association_fails_closed_when_start_time_changes
 
     findings = calendar_booking_findings(season="2026-2027", root=root, problem=problem)
     assert "tournament_start_time_changed" in findings["findings"][0]["reasons"]
-    from tournament_scheduler.calendar_bookings import project_associations_into_problem
+    from tournament_scheduler.booking.calendar_bookings import project_associations_into_problem
     from tournament_scheduler.planning_contract import verify_candidate
 
     plan = load_schedule("2026-2027", root=root)["plan"]
@@ -1160,7 +1160,7 @@ def test_calendar_booking_association_uses_accepted_override_when_default_durati
     findings = calendar_booking_findings(season="2026-2027", root=root, problem=migrated_problem)
     assert findings["findings"] == []
 
-    from tournament_scheduler.calendar_bookings import project_associations_into_problem
+    from tournament_scheduler.booking.calendar_bookings import project_associations_into_problem
     from tournament_scheduler.canonical_ice_time_overrides import project_overrides_into_problem
     from tournament_scheduler.planning_contract import verify_candidate
 
@@ -2201,7 +2201,7 @@ def test_rejection_export_carries_traceable_manual_queue_item(tmp_path):
 def test_manual_confirmation_precedes_negative_calendar_evidence_in_export(tmp_path):
     """Manual booker authority stays booked even next to contradictory evidence."""
 
-    from tournament_scheduler.calendar_bookings import TOURNAMENT_BOOKING_EVIDENCE_KEY
+    from tournament_scheduler.booking.calendar_bookings import TOURNAMENT_BOOKING_EVIDENCE_KEY
 
     root = _promote(tmp_path, [_tournament("t1")])
     problem = _host_a_problem([])

@@ -222,7 +222,7 @@ _HARD: tuple[RuleEntry, ...] = (
         input_source="candidate tournament roster club labels",
         verifier_owner="tournament_scheduler.planning_contract.verify_candidate",
         mutation_providers=("tournament_scheduler.participant_selection",),
-        search_providers=("tournament_scheduler.search_neighborhood_repair", "tournament_scheduler.stage3_cpsat_club_cap"),
+        search_providers=("tournament_scheduler.search_neighborhood_repair", "tournament_scheduler.stage3.cpsat_club_cap"),
         evidence_projection=("verify_candidate.violations",),
         tests=("tests/test_planning_contract.py",),
         verifier_codes=("club_hard_max_exceeded",),
@@ -257,7 +257,7 @@ _HARD: tuple[RuleEntry, ...] = (
             "intervals. A failure to evaluate the interval data is itself a blocking "
             "verification result, not a silent pass."
         ),
-        canonical_owner="tournament_scheduler.arena_conflicts",
+        canonical_owner="tournament_scheduler.booking.arena_conflicts",
         input_source="candidate start_time/duration + arena identity",
         verifier_owner="tournament_scheduler.planning_contract.verify_candidate",
         mutation_providers=("arena_conflict_decision", "date_policy_relocation"),
@@ -755,7 +755,7 @@ _SOFT: tuple[RuleEntry, ...] = (
         input_source="controlled workbook participation_targets_by_age_group / explicit team targets",
         verifier_owner="tournament_scheduler.participation.targets.evaluate_participation",
         mutation_providers=("tournament_scheduler.participation.deviation_repair",),
-        search_providers=("tournament_scheduler.stage3_optimizer",),
+        search_providers=("tournament_scheduler.stage3.optimizer",),
         evidence_projection=(
             "score_candidate.participation.*",
             "verify_candidate.participation_deviations",
@@ -1089,7 +1089,7 @@ _EVIDENCE: tuple[RuleEntry, ...] = (
         ),
         canonical_owner="tournament_scheduler.pipeline.source_health",
         input_source="Stage 2 source/calendar evidence + cache provenance",
-        verifier_owner="tournament_scheduler.calendar_availability",
+        verifier_owner="tournament_scheduler.booking.calendar_availability",
         evidence_projection=("club_calendar_status", "manual_calendar_placements", "rules_model calendar_trust_by_host"),
         tests=("tests/test_source_health.py", "tests/test_calendar_availability.py"),
         finding_codes=("manual_calendar_placements",),
@@ -1102,7 +1102,7 @@ _EVIDENCE: tuple[RuleEntry, ...] = (
             "movable_busy (host-controlled, requires host confirmation) or unclassified. The "
             "classification is policy evidence, not a scheduling rule in itself. A promoted season may also carry an explicit event-to-tournament booking association overlay that makes one fixed event non-conflicting only for the associated tournament while that event still covers the tournament's current canonical occupied interval."
         ),
-        canonical_owner="tournament_scheduler.calendar_availability / tournament_scheduler.calendar_bookings",
+        canonical_owner="tournament_scheduler.booking.calendar_availability / tournament_scheduler.booking.calendar_bookings",
         input_source="configured/stage-2 calendar intervals + decisions.json calendar_booking_associations",
         verifier_owner="tournament_scheduler.planning_contract.external_calendar_conflict",
         mutation_providers=("movable_capacity_repair", "CanonicalSeasonService.confirm_calendar_booking"),

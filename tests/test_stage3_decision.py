@@ -1,15 +1,15 @@
-"""Unit tests for tournament_scheduler.stage3_decision (issue #260 Phase 4)."""
+"""Unit tests for tournament_scheduler.stage3.decision (issue #260 Phase 4)."""
 
 from __future__ import annotations
 
 from tournament_scheduler.application.decisions import DecisionAction, decide
-from tournament_scheduler.stage3_ab import build_ab_report
-from tournament_scheduler.stage3_decision import (
+from tournament_scheduler.stage3.ab import build_ab_report
+from tournament_scheduler.stage3.decision import (
     STAGE3_DECISION_ACTIONS,
     apply_stage3_candidate,
     build_stage3_decision_context,
 )
-from tournament_scheduler.stage3_optimizer import optimize_candidate
+from tournament_scheduler.stage3.optimizer import optimize_candidate
 
 
 def _team(club: str, label: str, age_group: str) -> dict:

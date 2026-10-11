@@ -214,7 +214,7 @@ def test_refresh_calendars_new_conflict_is_not_hidden_by_approval(tmp_path: Path
 def test_refresh_calendars_preserves_manual_booking_assertion(tmp_path: Path, monkeypatch) -> None:
     """A calendar refresh must not erase or demote an explicit manual assertion."""
 
-    from tournament_scheduler.calendar_bookings import MANUAL_BOOKING_ASSERTIONS_KEY
+    from tournament_scheduler.booking.calendar_bookings import MANUAL_BOOKING_ASSERTIONS_KEY
 
     root = _promote(tmp_path)
     set_manual_booking_assertion(

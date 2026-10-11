@@ -6,7 +6,7 @@ import os
 from datetime import date as _date, datetime, timezone
 from typing import Any, Mapping
 
-from tournament_scheduler.calendar_bookings import (
+from tournament_scheduler.booking.calendar_bookings import (
     project_associations_into_problem,
     project_manual_assertions_into_problem,
 )

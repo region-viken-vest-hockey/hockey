@@ -34,13 +34,13 @@ from itertools import combinations
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from tournament_scheduler import planning_half
-from tournament_scheduler.calendar_availability import (
+from tournament_scheduler.booking.calendar_availability import (
     CLASSIFICATION_SOURCE_INFERRED,
     CalendarAvailability,
     interval_availability,
     unclassified_intervals,
 )
-from tournament_scheduler.calendar_bookings import (
+from tournament_scheduler.booking.calendar_bookings import (
     associated_tournament_for_event,
     event_fingerprint,
 )
@@ -647,7 +647,7 @@ def apply_calendar_interpretations(
     entries = interpretations or ()
     if not entries or not club_busy_intervals:
         return club_busy_intervals or {}
-    from .calendar_availability import is_unclassified_event
+    from tournament_scheduler.booking.calendar_availability import is_unclassified_event
 
     merged: Dict[str, List[Dict[str, str]]] = {
         club: [dict(entry) for entry in club_entries]
@@ -1033,9 +1033,9 @@ def verify_candidate(
     # duration), not just an arena/date pair — arenas routinely host more
     # than one age group's tournament in a day back-to-back. Reuse the same
     # planner-independent interval-collision logic Stage 3/4 already share
-    # (`arena_conflicts.py`) instead of a naive same-arena/same-date check,
+    # (`booking/arena_conflicts.py`) instead of a naive same-arena/same-date check,
     # which would flag normal same-day scheduling as a false positive.
-    from tournament_scheduler.arena_conflicts import find_arena_interval_collisions, tournament_interval
+    from tournament_scheduler.booking.arena_conflicts import find_arena_interval_collisions, tournament_interval
     from tournament_scheduler.serialization.season_plan import tournament_from_dict
 
     configured_ice_time_minutes = problem.get("ice_time_minutes") or {}

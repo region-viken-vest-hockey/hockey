@@ -1,4 +1,4 @@
-"""CP-SAT hard-invariant diagnostics, split out of `stage3_cpsat.py`.
+"""CP-SAT hard-invariant diagnostics, split out of `stage3/cpsat.py`.
 
 issue #323 P0: after the baseline/Stage 3 host-derivation fix, a slot's fixed
 `host_club` should always have at least one roster-eligible representing team

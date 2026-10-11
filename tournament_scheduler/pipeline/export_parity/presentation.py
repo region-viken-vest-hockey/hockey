@@ -24,9 +24,9 @@ from .records import STATUS_FAIL, STATUS_NOT_CHECKABLE, STATUS_PASS
 from .xlsx_reader import read_xlsx
 
 # The canonical public vocabulary is owned by
-# :mod:`tournament_scheduler.calendar_bookings`; imported (not re-declared) so a
+# :mod:`tournament_scheduler.booking.calendar_bookings`; imported (not re-declared) so a
 # renamed or added state cannot silently desynchronize this contract.
-from tournament_scheduler.calendar_bookings import (
+from tournament_scheduler.booking.calendar_bookings import (
     BOOKING_AMBIGUOUS,
     BOOKING_CONFIRMED_BOOKED,
     BOOKING_CONFIRMED_NOT_BOOKED,

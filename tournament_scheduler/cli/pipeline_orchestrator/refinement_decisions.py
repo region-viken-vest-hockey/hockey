@@ -85,8 +85,8 @@ def _decide_refinement_candidate(
     """
     from ...application.decisions import decide, record_llm_decision
     from ...llm_judge import build_action_decision_prompt, get_judge_if_headless, parse_action_verdict
-    from ...stage3_ab import build_ab_report
-    from ...stage3_decision import build_stage3_decision_context
+    from tournament_scheduler.stage3.ab import build_ab_report
+    from tournament_scheduler.stage3.decision import build_stage3_decision_context
 
     try:
         judge = get_judge_if_headless()

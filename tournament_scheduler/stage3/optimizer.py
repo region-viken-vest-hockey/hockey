@@ -49,32 +49,32 @@ from datetime import date, timedelta
 from itertools import combinations
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
-from .game_generation import generate_tournament_games
-from .date_policy import problem_forbidden_dates as _problem_forbidden_dates
-from .canonical_baseline import (
+from tournament_scheduler.game_generation import generate_tournament_games
+from tournament_scheduler.date_policy import problem_forbidden_dates as _problem_forbidden_dates
+from tournament_scheduler.canonical_baseline import (
     DEFAULT_CHANGE_COST_SCALE,
     DEFAULT_CHANGE_WEIGHTS,
 )
-from .hosting.representation import clubs_represent_same_club as _clubs_represent_same_club
-from .hosting.representation import swap_breaks_host_representation as _swap_breaks_host_representation
-from .models import Team
-from .pareto import dominates as _dominates
-from .pareto import representative_indices as _representative_indices
-from .pareto import vectors_equal as _vectors_equal
-from .quality_objectives import (
+from tournament_scheduler.hosting.representation import clubs_represent_same_club as _clubs_represent_same_club
+from tournament_scheduler.hosting.representation import swap_breaks_host_representation as _swap_breaks_host_representation
+from tournament_scheduler.models import Team
+from tournament_scheduler.pareto import dominates as _dominates
+from tournament_scheduler.pareto import representative_indices as _representative_indices
+from tournament_scheduler.pareto import vectors_equal as _vectors_equal
+from tournament_scheduler.quality_objectives import (
     QUALITY_OBJECTIVE_DIMENSIONS,
     quality_objective_vector,
 )
-from . import planning_half
-from .planning_contract import (
+from tournament_scheduler import planning_half
+from tournament_scheduler.planning_contract import (
     CANDIDATE_SCHEMA_VERSION,
     HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT,
     _parse_date,
     _team_identity,
     external_calendar_conflict,
 )
-from .occupancy import required_ice_minutes
-from .utils.slot_finder import parse_time
+from tournament_scheduler.occupancy import required_ice_minutes
+from tournament_scheduler.utils.slot_finder import parse_time
 
 # Fixed candidate start times for the move_slots search (issue #262 P1).
 # The planning_problem contract does not carry per-time-of-day calendar
@@ -1913,7 +1913,7 @@ def optimize_candidate_pareto(
     Deterministic for a given *seed* (each epoch uses ``seed + epoch_index``).
     Does not mutate *candidate*.
     """
-    from .planning_contract import score_candidate, verify_candidate
+    from tournament_scheduler.planning_contract import score_candidate, verify_candidate
 
     resolved_weights = dict(DEFAULT_WEIGHTS)
     resolved_vectors = weight_vectors or _default_pareto_weight_vectors(resolved_weights)
@@ -2148,7 +2148,7 @@ def _group_metrics(slots: List[_Slot]) -> _GroupMetrics:
 
 def _within_bounds(current: _GroupMetrics, baseline: _GroupMetrics) -> bool:
     """True if *current* weakly Pareto-dominates *baseline* on every metric
-    :mod:`tournament_scheduler.stage3_ab` treats as protected for A/B
+    :mod:`tournament_scheduler.stage3.ab` treats as protected for A/B
     promotion (issue #257 Task 2's "other existing protected A/B metrics
     must not regress") — not just the explicitly-named subset. A move that
     trades e.g. unique-pair diversity for fewer 3+ repeats is a real
@@ -2489,7 +2489,7 @@ def _repair_search(
     gap check runs before the expensive full-candidate verifier call, so an
     infeasible move is rejected without materializing/verifying at all.
     """
-    from .planning_contract import verify_candidate
+    from tournament_scheduler.planning_contract import verify_candidate
 
     split_date = _parse_date((problem or {}).get("christmas_split_date"))
     allow_cross_half_moves = bool((problem or {}).get("allow_cross_half_moves"))
@@ -2603,7 +2603,7 @@ def repair_schedule_conflicts_bounded_multi_seed(
     byte-for-byte unchanged if no seed improves on the baseline, including
     when the baseline already has zero hard violations (nothing to repair).
     """
-    from .planning_contract import verify_candidate
+    from tournament_scheduler.planning_contract import verify_candidate
 
     slots, untouched = _build_slots(candidate, problem)
     if len(slots) < 2 or iterations <= 0 or not seeds:

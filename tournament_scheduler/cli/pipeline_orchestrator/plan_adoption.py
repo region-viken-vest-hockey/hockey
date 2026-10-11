@@ -61,8 +61,8 @@ def _decide_plan_adoption(
         parse_action_verdict,
     )
     from ...planning_contract import extract_candidate
-    from ...stage3_ab import build_ab_report
-    from ...stage3_decision import build_stage3_decision_context
+    from tournament_scheduler.stage3.ab import build_ab_report
+    from tournament_scheduler.stage3.decision import build_stage3_decision_context
 
     try:
         judge = get_judge_if_headless()

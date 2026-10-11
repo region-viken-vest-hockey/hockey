@@ -18,7 +18,7 @@ from tournament_scheduler.canonical_ice_time_overrides import (
     project_overrides_into_problem,
 )
 from tournament_scheduler.canonical_state import canonical_state_revision
-from tournament_scheduler.calendar_bookings import tournament_occupancy_interval_facts
+from tournament_scheduler.booking.calendar_bookings import tournament_occupancy_interval_facts
 from tournament_scheduler.occupancy import effective_ice_time_minutes, tournament_end_time
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.published_mutation_history import replayed_occupancy_overrides
@@ -552,7 +552,7 @@ def test_confirm_calendar_booking_reconciles_adjacent_authoritative_intervals(tm
     conflict instead of rejecting a correct calendar placement.
     """
 
-    from tournament_scheduler.calendar_bookings import iter_events
+    from tournament_scheduler.booking.calendar_bookings import iter_events
 
     root = _promote(
         tmp_path,
@@ -631,7 +631,7 @@ def test_confirm_calendar_booking_reconciles_adjacent_authoritative_intervals(tm
 def test_confirm_calendar_booking_rejects_real_overlapping_actual_intervals(tmp_path):
     """A genuine overlap between two real booked intervals still fails closed."""
 
-    from tournament_scheduler.calendar_bookings import iter_events
+    from tournament_scheduler.booking.calendar_bookings import iter_events
 
     root = _promote(
         tmp_path,

@@ -109,7 +109,7 @@ class TestPendingStage3SubdecisionContext:
     def test_reemits_pending_arena_conflict_instead_of_restarting_stage3(self, tmp_path, capsys):
         import json
 
-        from tournament_scheduler.arena_conflict_decision import build_arena_conflict_decision_context
+        from tournament_scheduler.booking.arena_conflict_decision import build_arena_conflict_decision_context
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _current_run_id
 
         state = PipelineState(tmp_path)
@@ -225,7 +225,7 @@ class TestResolveArenaConflictDecisionsPauseAndResume:
     def test_a_recorded_decision_survives_a_stage3_rebuild_by_stable_key(self, tmp_path):
         import json
 
-        from tournament_scheduler.arena_conflict_decision import arena_conflict_decision_record, collision_key
+        from tournament_scheduler.booking.arena_conflict_decision import arena_conflict_decision_record, collision_key
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _current_run_id
 
         state = PipelineState(tmp_path)
@@ -269,7 +269,7 @@ class TestResolveArenaConflictDecisionsPauseAndResume:
     def test_unmappable_recorded_key_does_not_suppress_still_real_collision(self, tmp_path, capsys):
         import json
 
-        from tournament_scheduler.arena_conflict_decision import arena_conflict_decision_record
+        from tournament_scheduler.booking.arena_conflict_decision import arena_conflict_decision_record
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _current_run_id
 
         state = PipelineState(tmp_path)
@@ -295,7 +295,7 @@ class TestResolveArenaConflictDecisionsPauseAndResume:
         import json
         from datetime import datetime
 
-        from tournament_scheduler.arena_conflict_decision import arena_conflict_decision_record
+        from tournament_scheduler.booking.arena_conflict_decision import arena_conflict_decision_record
         from tournament_scheduler.cli.pipeline_orchestrator import interactive_decision_emit as emit
         from tournament_scheduler.cli.pipeline_orchestrator.interactive_state_io import _current_run_id
         from tournament_scheduler.pipeline.state import StageName
