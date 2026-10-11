@@ -479,7 +479,7 @@ class TestRunStage4:
         distinct booked/pending badge mapping for selected cards.
         """
 
-        from tournament_scheduler.calendar_bookings import (
+        from tournament_scheduler.booking.calendar_bookings import (
             BOOKING_CONFIRMED_BOOKED,
             BOOKING_UNKNOWN,
             OPERATIONAL_BOOKED,

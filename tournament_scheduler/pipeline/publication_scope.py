@@ -30,7 +30,7 @@ evidence rejects or contradicts it is held. Accepted booking evidence stays
 mandatory for the ``booked`` projection.
 
 It never invents booking authority or a new verdict from prose. It reuses the
-canonical booking evidence owner (:mod:`tournament_scheduler.calendar_bookings`)
+canonical booking evidence owner (:mod:`tournament_scheduler.booking.calendar_bookings`)
 and the canonical hosting-responsibility owner
 (:mod:`tournament_scheduler.hosting.responsibility`); it only classifies what
 those owners already establish.

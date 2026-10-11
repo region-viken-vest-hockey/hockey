@@ -4,7 +4,7 @@ Pure functions with no ``SeasonPlanner`` dependency, reused by every module
 that needs to know whether a team's club label "represents" a given
 physical host club: the baseline planner (``season_planner.py``), the
 independent verifier (``planning_contract.py``), the Stage 3 local
-optimizer (``stage3_optimizer.py``), and CP-SAT (``stage3_cpsat.py``). A
+optimizer (``stage3/optimizer.py``), and CP-SAT (``stage3/cpsat.py``). A
 single implementation here keeps the "shared/joint registration counts for
 either physical constituent" rule consistent everywhere it is enforced.
 """

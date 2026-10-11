@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from ..calendar_availability import (
+from tournament_scheduler.booking.calendar_availability import (
     classify_club_event,
     legacy_kind,
 )

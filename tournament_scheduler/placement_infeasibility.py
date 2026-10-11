@@ -118,7 +118,7 @@ def capacity_fingerprint(
     any per-tournament ice-time override.
     """
 
-    from .calendar_bookings import club_calendar_fingerprint
+    from tournament_scheduler.booking.calendar_bookings import club_calendar_fingerprint
 
     host = str(obligation.get("responsible_host") or obligation.get("host_club") or "")
     age_group = str(obligation.get("age_group") or "")

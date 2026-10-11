@@ -19,8 +19,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from .pipeline.fingerprints import stable_payload_sha256
-from .stage3_ab import build_ab_report
+from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
+from tournament_scheduler.stage3.ab import build_ab_report
 
 SHADOW_REPORT_SCHEMA_VERSION = 1
 

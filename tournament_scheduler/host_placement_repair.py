@@ -671,7 +671,7 @@ def _unclassified_calendar_events(problem: Mapping[str, Any]) -> List[Dict[str, 
     explicit = problem.get("unclassified_calendar_events")
     if explicit is not None:
         return [dict(entry) for entry in explicit if isinstance(entry, Mapping)]
-    from .calendar_availability import unclassified_intervals
+    from tournament_scheduler.booking.calendar_availability import unclassified_intervals
 
     return unclassified_intervals(problem.get("club_busy_intervals"))
 
@@ -768,7 +768,7 @@ def _interpretation_options(
     if not finding.host_club:
         return out, rejected
     effective = _effective_busy_intervals(problem, candidate)
-    from .calendar_availability import is_unclassified_event
+    from tournament_scheduler.booking.calendar_availability import is_unclassified_event
 
     entries = [
         entry

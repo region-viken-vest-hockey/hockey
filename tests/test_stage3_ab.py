@@ -1,9 +1,9 @@
-"""Unit tests for tournament_scheduler.stage3_ab (issue #257, scope items 6-7)."""
+"""Unit tests for tournament_scheduler.stage3.ab (issue #257, scope items 6-7)."""
 
 from __future__ import annotations
 
-from tournament_scheduler.stage3_ab import build_ab_report
-from tournament_scheduler.stage3_optimizer import optimize_candidate
+from tournament_scheduler.stage3.ab import build_ab_report
+from tournament_scheduler.stage3.optimizer import optimize_candidate
 
 
 def _team(club: str, label: str, age_group: str) -> dict:

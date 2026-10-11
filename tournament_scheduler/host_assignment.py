@@ -4,7 +4,7 @@ issue #262 P1: this module is the *legacy* `SeasonPlanner` baseline/fallback
 generator's heuristic policy (completion-ratio/recency/holiday/streak host
 ranking in `assign_hosts`'s `_score`, and the travel-to-preferred-start-time
 bucketing in `find_slot_for_tournament`). It must not be imported by
-`stage3_optimizer.py` or any other canonical LLM-directed decision path —
+`stage3/optimizer.py` or any other canonical LLM-directed decision path —
 those paths use deterministic facts only (e.g. `problem["clubs"]`,
 `problem["club_calendar_status"]`, arena/date/time interval checks), never
 this module's heuristic ranking. `tests/test_architecture_boundaries.py`
@@ -16,7 +16,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from tournament_scheduler.calendar_availability import (
+from tournament_scheduler.booking.calendar_availability import (
     CalendarAvailability,
     classify_club_event,
 )

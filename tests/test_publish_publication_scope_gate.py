@@ -13,7 +13,7 @@ import json
 import os
 import subprocess
 
-from tournament_scheduler.calendar_bookings import new_manual_assertion_record
+from tournament_scheduler.booking.calendar_bookings import new_manual_assertion_record
 from tournament_scheduler.canonical_state import schedule_fingerprint
 from tournament_scheduler.infrastructure.canonical_season_store import (
     DECISIONS_SCHEMA_VERSION,

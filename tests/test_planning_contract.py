@@ -807,7 +807,7 @@ class TestVerifyCandidateWithProblem:
         The planning problem exposes it separately from a configured booking,
         while hard verification still treats it as occupied rather than
         assuming it is free."""
-        from tournament_scheduler.calendar_availability import unclassified_intervals
+        from tournament_scheduler.booking.calendar_availability import unclassified_intervals
 
         teams = [_team("Kongsberg", "Kongsberg 1", "U10"), _team("Jar", "Jar 1", "U10")]
         candidate = {

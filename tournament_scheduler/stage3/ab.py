@@ -15,9 +15,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from .canonical_baseline import change_cost
-from .planning_contract import score_candidate, verify_candidate
-from .quality_objectives import (
+from tournament_scheduler.canonical_baseline import change_cost
+from tournament_scheduler.planning_contract import score_candidate, verify_candidate
+from tournament_scheduler.quality_objectives import (
     compare_quality_scores as _compare_scores,
     with_unresolved_obligations_count as _with_unresolved_count,
 )

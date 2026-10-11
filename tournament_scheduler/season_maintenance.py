@@ -370,7 +370,7 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
             continue
         existing_finding_keys.add(key)
         findings.append(finding)
-    from .calendar_bookings import association_findings
+    from tournament_scheduler.booking.calendar_bookings import association_findings
 
     findings.extend(association_findings(problem=problem, plan=plan, decisions=decisions))
     annotate_findings(findings)

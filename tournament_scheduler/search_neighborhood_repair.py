@@ -40,7 +40,7 @@ from .hosting.responsibility import (
     unexplained_responsibility_transfers,
 )
 from .final_verification import verify_canonical_candidate
-from .stage3_optimizer import optimize_candidate
+from tournament_scheduler.stage3.optimizer import optimize_candidate
 
 SEARCH_ENGINE = "local_search"
 # Bounded budget: a neighborhood search is a last-resort provider, not the

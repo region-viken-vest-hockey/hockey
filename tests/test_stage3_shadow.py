@@ -1,9 +1,9 @@
-"""Unit tests for tournament_scheduler.stage3_shadow (issue #276)."""
+"""Unit tests for tournament_scheduler.stage3.shadow (issue #276)."""
 
 from __future__ import annotations
 
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
-from tournament_scheduler.stage3_shadow import build_shadow_report
+from tournament_scheduler.stage3.shadow import build_shadow_report
 
 
 def _team(club: str, label: str, age_group: str) -> dict:

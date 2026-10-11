@@ -363,7 +363,7 @@ def test_worse_participation_blocks_dominance_over_a_quality_gain():
     """A candidate with materially worse bounded participation deviation must
     not be promoted merely because it improves a lower-priority quality metric
     (issue #376)."""
-    from tournament_scheduler.stage3_ab import build_ab_report
+    from tournament_scheduler.stage3.ab import build_ab_report
 
     a, b = _team("Jar", "Jar 1"), _team("Kongsberg", "Kongsberg 1")
     problem = _problem(teams=[a, b], targets={"before_christmas": 3, "after_christmas": 3})

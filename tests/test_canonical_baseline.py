@@ -996,7 +996,7 @@ def _slot_candidate():
 
 def test_search_state_folds_in_canonical_change_cost():
     from tournament_scheduler.canonical_baseline import DEFAULT_CHANGE_WEIGHTS
-    from tournament_scheduler.stage3_optimizer import (
+    from tournament_scheduler.stage3.optimizer import (
         DEFAULT_WEIGHTS,
         _SearchState,
         _build_slots,
@@ -1028,7 +1028,7 @@ def test_search_state_folds_in_canonical_change_cost():
 
 
 def test_optimizer_never_moves_placement_locked_tournament():
-    from tournament_scheduler.stage3_optimizer import optimize_candidate
+    from tournament_scheduler.stage3.optimizer import optimize_candidate
 
     candidate = _slot_candidate()
     baseline = build_canonical_baseline(
@@ -1073,7 +1073,7 @@ def test_default_season_root_respects_env_override(monkeypatch):
 
 
 def test_high_change_cost_suppresses_published_churn():
-    from tournament_scheduler.stage3_optimizer import optimize_candidate
+    from tournament_scheduler.stage3.optimizer import optimize_candidate
 
     candidate = _slot_candidate()
     baseline = build_canonical_baseline(_schedule(candidate["tournaments"]), {"decisions": {}})

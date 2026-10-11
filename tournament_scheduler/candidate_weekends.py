@@ -30,7 +30,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any, Callable, Dict, Hashable, List, Mapping, Optional, Sequence, Set, Tuple
 
-from .calendar_availability import (
+from tournament_scheduler.booking.calendar_availability import (
     CLASSIFICATION_SOURCE_INFERRED,
     classify_club_event_detailed,
 )

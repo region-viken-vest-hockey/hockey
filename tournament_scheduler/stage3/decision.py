@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from .application.decisions import DecisionContext
+from tournament_scheduler.application.decisions import DecisionContext
 
 # The optimizer/A/B capability only ever needs this subset of the global
 # DECISION_ACTION_IDS vocabulary. Keep it narrow here too, rather than
@@ -192,7 +192,7 @@ def build_stage3_decision_context(
 ) -> DecisionContext:
     """Build the :class:`DecisionContext` for an old-vs-new Stage 3 A/B *report*.
 
-    *report* is whatever :func:`tournament_scheduler.stage3_ab.build_ab_report`
+    *report* is whatever :func:`tournament_scheduler.stage3.ab.build_ab_report`
     returned. ``apply_candidate`` is deterministically blocked whenever the
     new candidate itself fails the verifier
     (``report["new"]["verification"]["ok"]`` is ``False``) — a still-invalid
@@ -344,7 +344,7 @@ def apply_stage3_candidate(work_dir: str, candidate: Dict[str, Any]) -> None:
     which does not carry this problem because it never leaves a stale
     baseline-derived key behind.
     """
-    from .pipeline.state import PipelineState, StageName, StageStatus
+    from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 
     state = PipelineState(work_dir)
     checkpoint = dict(state.read_stage(StageName.PLANNING) or {})

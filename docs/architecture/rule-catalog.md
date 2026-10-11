@@ -100,7 +100,7 @@ candidate regresses a higher-priority operational obligation.
 | `tournament_roster_shape` | A tournament has an admissible, avoidable-by-free participant shape: even teams and no pause/bye rounds (or the exact age-group team count where configured). An input-constrained scarce shape is surfaced separately, never as a soft preference. An active season/age-group participation withdrawal also makes the team ineligible for the whole age group until it is explicitly released. | `tournament_scheduler.effective_tournament_shape` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_effective_tournament_shape.py`, `tests/test_planning_contract.py`, `tests/test_participant_removal.py` |
 | `club_hard_max` | At most three teams from one club may participate in one tournament. | `tournament_scheduler.planning_contract` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_planning_contract.py` |
 | `tournament_ice_booking_duration` | A tournament's configured ice_time_minutes is the complete hall occupancy window. It must be at least the actual rounds times round length plus the per-round changeover buffer. A proposed placement must also meet any governing per-series-round booking floor; a source-confirmed accepted booking interval below that floor or below the planned round structure is recorded exactly at the reconciliation boundary and surfaced as a durable feasibility finding (the plan must adapt, not the recorded booking), not a new-placement planning violation. The accepted interval stays factual even when its format is operationally unusable; that concern remains a separate durable finding/action. | `tournament_scheduler.occupancy` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_occupancy.py`, `tests/test_planning_contract.py`, `tests/test_stage1_config.py` |
-| `arena_interval_non_overlap` | Two tournaments must never require the same arena in overlapping datetime intervals. A failure to evaluate the interval data is itself a blocking verification result, not a silent pass. | `tournament_scheduler.arena_conflicts` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_arena_conflicts.py`, `tests/test_planning_contract.py` |
+| `arena_interval_non_overlap` | Two tournaments must never require the same arena in overlapping datetime intervals. A failure to evaluate the interval data is itself a blocking verification result, not a silent pass. | `tournament_scheduler.booking.arena_conflicts` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_arena_conflicts.py`, `tests/test_planning_contract.py` |
 | `tournament_capacity` | A tournament must not exceed its configured participant capacity. | `tournament_scheduler.planning_contract` | `tournament_scheduler.planning_contract.verify_candidate` | `tests/test_planning_contract.py` |
 | `tournament_min_size` | A tournament with enough registered teams in its age group must have at least three participants. | `tournament_scheduler.final_verification` | `tournament_scheduler.final_verification.verify_final_candidate` | `tests/test_final_verification.py` |
 | `parallel_capacity` | A tournament must not schedule more concurrent games than the configured parallel capacity. | `tournament_scheduler.final_verification` | `tournament_scheduler.final_verification.verify_final_candidate` | `tests/test_final_verification.py` |
@@ -171,8 +171,8 @@ candidate regresses a higher-priority operational obligation.
 
 | Rule ID | Meaning | Canonical owner | Verifier / measurement | Tests |
 |---|---|---|---|---|
-| `calendar_source_trust` | A per-club calendar is only trustworthy when the configured source produced usable evidence this run. A 'known' status does not prove every candidate time is free; an untrusted calendar yields manual placement, never a silent pass. | `tournament_scheduler.pipeline.source_health` | `tournament_scheduler.calendar_availability` | `tests/test_source_health.py`, `tests/test_calendar_availability.py` |
-| `calendar_interval_classification` | A host's calendar interval is classified fixed_busy (hard external conflict), movable_busy (host-controlled, requires host confirmation) or unclassified. The classification is policy evidence, not a scheduling rule in itself. A promoted season may also carry an explicit event-to-tournament booking association overlay that makes one fixed event non-conflicting only for the associated tournament while that event still covers the tournament's current canonical occupied interval. | `tournament_scheduler.calendar_availability / tournament_scheduler.calendar_bookings` | `tournament_scheduler.planning_contract.external_calendar_conflict` | `tests/test_calendar_availability.py`, `tests/test_movable_capacity_repair.py`, `tests/test_approval_lifecycle.py` |
+| `calendar_source_trust` | A per-club calendar is only trustworthy when the configured source produced usable evidence this run. A 'known' status does not prove every candidate time is free; an untrusted calendar yields manual placement, never a silent pass. | `tournament_scheduler.pipeline.source_health` | `tournament_scheduler.booking.calendar_availability` | `tests/test_source_health.py`, `tests/test_calendar_availability.py` |
+| `calendar_interval_classification` | A host's calendar interval is classified fixed_busy (hard external conflict), movable_busy (host-controlled, requires host confirmation) or unclassified. The classification is policy evidence, not a scheduling rule in itself. A promoted season may also carry an explicit event-to-tournament booking association overlay that makes one fixed event non-conflicting only for the associated tournament while that event still covers the tournament's current canonical occupied interval. | `tournament_scheduler.booking.calendar_availability / tournament_scheduler.booking.calendar_bookings` | `tournament_scheduler.planning_contract.external_calendar_conflict` | `tests/test_calendar_availability.py`, `tests/test_movable_capacity_repair.py`, `tests/test_approval_lifecycle.py` |
 | `club_pool_classification` | For each club x age group x scope, the registered teams' aggregate target/actual is classified as complete / intra_club_distribution / minor\|material_club_pool_shortfall / single_team_deviation / over_target. The classification is the single source of truth for whether a residual is a genuine player-pool shortage. | `tournament_scheduler.participation.targets` | — | `tests/test_participation_targets.py` |
 | `search_coverage_evidence` | A bounded repair/search result records what was actually tried: option_available, search_incomplete, bounded_search_exhausted, proven_infeasible or inapplicable, bound to a search capability/version. Zero options means only that this search found none, never proof of global infeasibility. | `tournament_scheduler.search_capability` | — | `tests/test_search_neighborhood_repair.py` |
 | `approval_lifecycle` | Operator approvals/locks live in decisions.json separately from schedule facts. A changed placement fingerprint becomes a stale approval whose lock is dropped; a participant-locked approval also stales when its roster/game structure changes. An approval whose tournament is gone becomes orphaned. Both require re-review. | `tournament_scheduler.canonical_baseline` | — | `tests/test_approval_lifecycle.py`, `tests/test_canonical_baseline.py` |
@@ -345,7 +345,7 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** candidate tournament roster club labels  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.verify_candidate`  
 **Codes:** verifier `club_hard_max_exceeded` · finding — · score —  
-**Providers:** mutation `tournament_scheduler.participant_selection` · search `tournament_scheduler.search_neighborhood_repair`, `tournament_scheduler.stage3_cpsat_club_cap`  
+**Providers:** mutation `tournament_scheduler.participant_selection` · search `tournament_scheduler.search_neighborhood_repair`, `tournament_scheduler.stage3.cpsat_club_cap`  
 **Evidence / report:** `verify_candidate.violations`  
 **Tests:** `tests/test_planning_contract.py`  
 **Precedence:** precedes — · depends on —
@@ -367,7 +367,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Hard constraint` · status `active` · operator-waivable: yes  
 **Meaning:** Two tournaments must never require the same arena in overlapping datetime intervals. A failure to evaluate the interval data is itself a blocking verification result, not a silent pass.  
-**Canonical owner:** `tournament_scheduler.arena_conflicts`  
+**Canonical owner:** `tournament_scheduler.booking.arena_conflicts`  
 **Input / fact source:** candidate start_time/duration + arena identity  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.verify_candidate`  
 **Codes:** verifier `arena_interval_conflict`, `arena_interval_check_failed` · finding — · score —  
@@ -800,7 +800,7 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** controlled workbook participation_targets_by_age_group / explicit team targets  
 **Verifier / measurement:** `tournament_scheduler.participation.targets.evaluate_participation`  
 **Codes:** verifier — · finding `participation_target_deviation`, `participation_shortfalls`, `participation_deviation` · score `participation.spread`, `participation.club_pool_unresolved_avoidable_deviation_count`, `participation.club_pool_unresolved_shortfall_count`, `participation.club_pool_unresolved_season_total_absolute_deviation`, `participation.club_pool_unresolved_max_team_season_deviation`, `participation.club_pool_unresolved_half_total_absolute_deviation`, `participation.club_pool_unresolved_max_team_half_deviation`  
-**Providers:** mutation `tournament_scheduler.participation.deviation_repair` · search `tournament_scheduler.stage3_optimizer`  
+**Providers:** mutation `tournament_scheduler.participation.deviation_repair` · search `tournament_scheduler.stage3.optimizer`  
 **Evidence / report:** `score_candidate.participation.*`, `verify_candidate.participation_deviations`, `rules_model participation_target_deviation`, `rules_model participation_shortfalls`  
 **Tests:** `tests/test_participation_targets.py`  
 **Precedence:** precedes — · depends on —
@@ -1032,7 +1032,7 @@ candidate regresses a higher-priority operational obligation.
 **Meaning:** A per-club calendar is only trustworthy when the configured source produced usable evidence this run. A 'known' status does not prove every candidate time is free; an untrusted calendar yields manual placement, never a silent pass.  
 **Canonical owner:** `tournament_scheduler.pipeline.source_health`  
 **Input / fact source:** Stage 2 source/calendar evidence + cache provenance  
-**Verifier / measurement:** `tournament_scheduler.calendar_availability`  
+**Verifier / measurement:** `tournament_scheduler.booking.calendar_availability`  
 **Codes:** verifier — · finding `manual_calendar_placements` · score —  
 **Providers:** mutation — · search —  
 **Evidence / report:** `club_calendar_status`, `manual_calendar_placements`, `rules_model calendar_trust_by_host`  
@@ -1043,7 +1043,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Fact / evidence semantic` · status `active` · operator-waivable: yes  
 **Meaning:** A host's calendar interval is classified fixed_busy (hard external conflict), movable_busy (host-controlled, requires host confirmation) or unclassified. The classification is policy evidence, not a scheduling rule in itself. A promoted season may also carry an explicit event-to-tournament booking association overlay that makes one fixed event non-conflicting only for the associated tournament while that event still covers the tournament's current canonical occupied interval.  
-**Canonical owner:** `tournament_scheduler.calendar_availability / tournament_scheduler.calendar_bookings`  
+**Canonical owner:** `tournament_scheduler.booking.calendar_availability / tournament_scheduler.booking.calendar_bookings`  
 **Input / fact source:** configured/stage-2 calendar intervals + decisions.json calendar_booking_associations  
 **Verifier / measurement:** `tournament_scheduler.planning_contract.external_calendar_conflict`  
 **Codes:** verifier — · finding `external_calendar_conflicts`, `movable_host_confirmation_required`, `movable_capacity_opportunity`, `stale_calendar_booking_association` · score —  

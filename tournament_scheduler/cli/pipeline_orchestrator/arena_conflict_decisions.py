@@ -40,7 +40,7 @@ def _collision_facts(candidate: "dict[str, Any]", ice_time_for_age_group: "dict[
     """Return structured facts for every current arena/time collision pair
     in *candidate*'s tournaments (a tournament already demoted to an unplaced
     obligation is no longer in ``tournaments``, so it cannot be a side)."""
-    from ...arena_conflicts import arena_interval_collision_pairs, tournament_intervals
+    from tournament_scheduler.booking.arena_conflicts import arena_interval_collision_pairs, tournament_intervals
     from ...serialization.season_plan import tournament_from_dict
 
     tournaments = [t for t in candidate.get("tournaments", []) if isinstance(t, dict) and not t.get("cancelled")]
@@ -147,7 +147,7 @@ def _collision_facts_with_keys(
     candidate: "dict[str, Any]", ice_time_for_age_group: "dict[str, int]"
 ) -> "list[dict[str, Any]]":
     """Collision facts tagged with their stable ``collision_key``."""
-    from ...arena_conflict_decision import collision_key
+    from tournament_scheduler.booking.arena_conflict_decision import collision_key
 
     facts_rows = _collision_facts(candidate, ice_time_for_age_group)
     for facts in facts_rows:
@@ -168,7 +168,7 @@ def _apply_recorded_arena_decisions(
     unapplied so a still-real collision stays visible instead of being
     hidden by its old record.
     """
-    from ...arena_conflict_decision import side_label
+    from tournament_scheduler.booking.arena_conflict_decision import side_label
 
     facts_rows = _collision_facts_with_keys(candidate, ice_time_for_age_group)
     applied: "set[Any]" = set()
@@ -212,7 +212,7 @@ def _pending_arena_collisions(
 
 def _arena_conflict_context(run_id: str, facts: "dict[str, Any]") -> "tuple[Any, dict[str, Any]]":
     """Build the pending :class:`DecisionContext` and marker for one collision."""
-    from ...arena_conflict_decision import build_arena_conflict_decision_context
+    from tournament_scheduler.booking.arena_conflict_decision import build_arena_conflict_decision_context
 
     clean_facts = {key: value for key, value in facts.items() if key != "_key"}
     return build_arena_conflict_decision_context(run_id, clean_facts), {"key": facts["_key"]}
@@ -244,7 +244,7 @@ def _resolve_arena_conflict_decisions(
     import json as _json
 
     from ...application.decisions import decide, record_llm_decision
-    from ...arena_conflict_decision import (
+    from tournament_scheduler.booking.arena_conflict_decision import (
         arena_conflict_decision_record,
         build_arena_conflict_decision_context,
         build_arena_conflict_decision_prompt,

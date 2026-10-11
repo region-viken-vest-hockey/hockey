@@ -37,7 +37,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ..arena_conflicts import find_arena_interval_collisions
+from tournament_scheduler.booking.arena_conflicts import find_arena_interval_collisions
 from ..final_verification import verify_final_candidate
 from ..planning_contract import extract_candidate
 from .export_lifecycle import EXPORT_LIFECYCLE_FILENAME, write_draft_manifest

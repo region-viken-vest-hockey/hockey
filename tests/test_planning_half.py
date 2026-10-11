@@ -16,7 +16,7 @@ from datetime import date
 
 from tournament_scheduler import planning_half
 from tournament_scheduler.planning_contract import score_candidate
-from tournament_scheduler.stage3_optimizer import (
+from tournament_scheduler.stage3.optimizer import (
     _Slot,
     _date_swap_is_valid,
     _within_half_date_move_candidates,
@@ -299,7 +299,7 @@ def _engine_candidate():
 
 class TestMoveDatesWithinHalfPlumbing:
     def test_run_planner_forwards_move_dates_within_half_to_local_search(self):
-        from tournament_scheduler.stage3_engine import run_planner
+        from tournament_scheduler.stage3.engine import run_planner
 
         candidate = _engine_candidate()
         problem = {
@@ -338,7 +338,7 @@ class TestMoveDatesWithinHalfPlumbing:
             assert planning_half.tournament_half(date.fromisoformat(t["date"]), split) == "before_christmas"
 
     def test_optimize_plan_schemas_expose_move_dates_within_half(self):
-        from tournament_scheduler.stage3_decision import (
+        from tournament_scheduler.stage3.decision import (
             _PARETO_OPTIMIZE_PLAN_SCHEMA,
             _V2_OPTIMIZER_OPTIMIZE_PLAN_SCHEMA,
         )

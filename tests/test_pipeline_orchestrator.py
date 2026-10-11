@@ -285,7 +285,7 @@ def _worse_candidate() -> dict:
 
 
 def _better_candidate() -> dict:
-    from tournament_scheduler.stage3_optimizer import optimize_candidate
+    from tournament_scheduler.stage3.optimizer import optimize_candidate
 
     return optimize_candidate(_worse_candidate(), iterations=3000, seed=1)
 
@@ -991,7 +991,7 @@ class TestRunRefinementLoop:
                                     write_checkpoint_mock,
                                 ):
                                     with patch(
-                                        "tournament_scheduler.stage3_optimizer.optimize_candidate",
+                                        "tournament_scheduler.stage3.optimizer.optimize_candidate",
                                         optimize_mock,
                                     ):
                                         tone, updated = _run_refinement_loop(

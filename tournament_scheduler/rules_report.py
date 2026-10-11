@@ -109,7 +109,7 @@ _PRIMARY_SOURCE_FILES: tuple[str, ...] = (
     "tournament_scheduler/rules_report_operational_rules.py",
     "tournament_scheduler/final_verification.py",
     "tournament_scheduler/planning_contract.py",
-    "tournament_scheduler/arena_conflicts.py",
+    "tournament_scheduler/booking/arena_conflicts.py",
     "tournament_scheduler/participant_selection.py",
     "tournament_scheduler/warnings.py",
     "tournament_scheduler/host_assignment.py",

@@ -74,8 +74,8 @@ def _run_stage3_v2_optimize(
     from ...planning_contract import build_planning_problem, extract_candidate
     from ...pipeline.evidence_bundle import append_stage3_attempt_log_entry
     from ...pipeline.state import StageName, StageStatus
-    from ...stage3_cpsat import CpSatNoCandidate, CpSatUnavailable
-    from ...stage3_engine import run_planner
+    from tournament_scheduler.stage3.cpsat import CpSatNoCandidate, CpSatUnavailable
+    from tournament_scheduler.stage3.engine import run_planner
 
     arguments = arguments or {}
     planning_checkpoint = state.read_stage(StageName.PLANNING)
@@ -164,7 +164,7 @@ def _run_stage3_v2_optimize(
         # this exact (problem, baseline, request) triple is served from
         # cache instead of re-solving.
         from .stage3_cpsat_cache import cp_sat_cache_key, write_cp_sat_cache_entry
-        from ...stage3_shadow import build_shadow_report
+        from tournament_scheduler.stage3.shadow import build_shadow_report
 
         try:
             cache_key = cp_sat_cache_key(problem, baseline_candidate, request)
@@ -207,14 +207,14 @@ def _run_stage3_pareto_optimize(
     ``candidate_ref`` (see :func:`_emit_stage3_pareto_decision`).
 
     Returns ``(portfolio, abort)`` -- *portfolio* is
-    :func:`~tournament_scheduler.stage3_optimizer.optimize_candidate_pareto`'s
+    :func:`~tournament_scheduler.stage3.optimizer.optimize_candidate_pareto`'s
     ``"candidates"`` list (each still missing ``candidate_ref``, assigned by
     the caller), or ``None`` with *abort* ``True`` when there is no baseline
     candidate to search from.
     """
     from ...planning_contract import build_planning_problem, extract_candidate
     from ...pipeline.state import StageName
-    from ...stage3_optimizer import optimize_candidate_pareto
+    from tournament_scheduler.stage3.optimizer import optimize_candidate_pareto
 
     arguments = arguments or {}
     planning_checkpoint = state.read_stage(StageName.PLANNING)

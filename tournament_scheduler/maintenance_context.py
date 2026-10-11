@@ -96,7 +96,7 @@ def project_canonical_overlays(
     The overlay projections may return the same mapping or a copy; every call
     is written back explicitly so ordering and equality are preserved.
     """
-    from .calendar_bookings import (
+    from tournament_scheduler.booking.calendar_bookings import (
         project_associations_into_problem,
         project_manual_assertions_into_problem,
     )

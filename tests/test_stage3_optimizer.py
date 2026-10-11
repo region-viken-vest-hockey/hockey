@@ -1,4 +1,4 @@
-"""Unit tests for tournament_scheduler.stage3_optimizer (issue #257, scope item 5)."""
+"""Unit tests for tournament_scheduler.stage3.optimizer (issue #257, scope item 5)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import random
 import pytest
 
 from tournament_scheduler.planning_contract import score_candidate, verify_candidate
-from tournament_scheduler.stage3_optimizer import optimize_candidate, optimize_candidate_pareto
+from tournament_scheduler.stage3.optimizer import optimize_candidate, optimize_candidate_pareto
 
 
 def _team(club: str, label: str, age_group: str) -> dict:
@@ -119,20 +119,20 @@ class TestOptimizeCandidate:
 
 class TestPerAgeGroupWeights:
     def test_resolve_weights_falls_back_to_base(self):
-        from tournament_scheduler.stage3_optimizer import DEFAULT_WEIGHTS, _resolve_weights
+        from tournament_scheduler.stage3.optimizer import DEFAULT_WEIGHTS, _resolve_weights
 
         resolved = _resolve_weights(DEFAULT_WEIGHTS, {"JU12": {"gap_under_7": 99.0}}, "JU14")
         assert resolved == DEFAULT_WEIGHTS
 
     def test_resolve_weights_applies_age_group_override_on_top_of_base(self):
-        from tournament_scheduler.stage3_optimizer import DEFAULT_WEIGHTS, _resolve_weights
+        from tournament_scheduler.stage3.optimizer import DEFAULT_WEIGHTS, _resolve_weights
 
         resolved = _resolve_weights(DEFAULT_WEIGHTS, {"JU12": {"gap_under_7": 99.0}}, "JU12")
         assert resolved["gap_under_7"] == 99.0
         assert resolved["pair_repeat"] == DEFAULT_WEIGHTS["pair_repeat"]
 
     def test_objective_weights_each_age_group_independently(self):
-        from tournament_scheduler.stage3_optimizer import DEFAULT_WEIGHTS, _build_slots, _objective
+        from tournament_scheduler.stage3.optimizer import DEFAULT_WEIGHTS, _build_slots, _objective
 
         two_group_candidate = {
             "tournaments": [
@@ -459,7 +459,7 @@ class TestSearchStateIncrementalMatchesFullRecompute:
         tournaments/teams that a team plays in several tournaments across
         the season -- this is what exercises the "a team is a member of
         both slots in this move" telescoping edge cases in
-        :class:`tournament_scheduler.stage3_optimizer._SearchState`."""
+        :class:`tournament_scheduler.stage3.optimizer._SearchState`."""
         tournaments = []
         base_index = 0
         for age_group, n_teams, n_tournaments, roster_size in [
@@ -484,7 +484,7 @@ class TestSearchStateIncrementalMatchesFullRecompute:
         return {"schema_version": 1, "tournaments": tournaments}
 
     def test_incremental_team_swaps_match_full_objective(self):
-        from tournament_scheduler.stage3_optimizer import (
+        from tournament_scheduler.stage3.optimizer import (
             DEFAULT_WEIGHTS,
             _SearchState,
             _build_slots,
@@ -517,7 +517,7 @@ class TestSearchStateIncrementalMatchesFullRecompute:
             assert state.total == pytest.approx(state.full_objective(DEFAULT_WEIGHTS), abs=1e-6)
 
     def test_candidate_swaps_never_move_teams_between_u_and_ju(self):
-        from tournament_scheduler.stage3_optimizer import _build_slots, _candidate_swaps
+        from tournament_scheduler.stage3.optimizer import _build_slots, _candidate_swaps
 
         u10_teams = [_team("Jar", "Jar 1", "U10"), _team("Kongsberg", "Kongsberg 1", "U10")]
         ju10_teams = [_team("Jar", "Jar 2", "JU10"), _team("Kongsberg", "Kongsberg 2", "JU10")]
@@ -543,7 +543,7 @@ class TestSearchStateIncrementalMatchesFullRecompute:
     def test_swap_rejected_when_it_would_create_a_4th_same_club_team(self):
         """issue #326: a swap that would push a tournament to 4+ teams from
         one club is illegal outright, regardless of objective weight."""
-        from tournament_scheduler.stage3_optimizer import _build_slots, _swap_is_valid
+        from tournament_scheduler.stage3.optimizer import _build_slots, _swap_is_valid
 
         jar_heavy = [
             _team("Jar", "Jar 1", "U11"),
@@ -569,7 +569,7 @@ class TestSearchStateIncrementalMatchesFullRecompute:
         assert not _swap_is_valid(slots, 0, 3, 1, 0)
 
     def test_incremental_date_swaps_match_full_objective(self):
-        from tournament_scheduler.stage3_optimizer import (
+        from tournament_scheduler.stage3.optimizer import (
             DEFAULT_WEIGHTS,
             _SearchState,
             _build_slots,
@@ -602,7 +602,7 @@ class TestSearchStateIncrementalMatchesFullRecompute:
         """A team that plays in *both* tournaments being swapped/date-swapped
         (issue #265 P0's telescoping-sum correctness argument) must not
         throw off the incremental total."""
-        from tournament_scheduler.stage3_optimizer import (
+        from tournament_scheduler.stage3.optimizer import (
             DEFAULT_WEIGHTS,
             _SearchState,
             _build_slots,
@@ -802,7 +802,7 @@ class TestClubLevelOpponentIdentity:
         }
 
     def test_objective_is_invariant_to_squad_label_swap(self):
-        from tournament_scheduler.stage3_optimizer import (
+        from tournament_scheduler.stage3.optimizer import (
             DEFAULT_WEIGHTS,
             _build_slots,
             _objective,
@@ -824,7 +824,7 @@ class TestClubLevelOpponentIdentity:
         )
 
     def test_incremental_state_matches_full_objective_with_multi_squad_clubs(self):
-        from tournament_scheduler.stage3_optimizer import (
+        from tournament_scheduler.stage3.optimizer import (
             DEFAULT_WEIGHTS,
             _SearchState,
             _build_slots,
@@ -856,7 +856,7 @@ class TestClubLevelOpponentIdentity:
         """Finding #1: many sibling squads each meeting B once must not score
         the same as one squad meeting B repeatedly."""
 
-        from tournament_scheduler.stage3_optimizer import (
+        from tournament_scheduler.stage3.optimizer import (
             DEFAULT_WEIGHTS,
             _build_slots,
             _group_metrics,
@@ -916,7 +916,7 @@ class TestClubLevelOpponentIdentity:
         per cross-club squad pair, so removing one of several sibling squads
         must not zero the pair."""
 
-        from tournament_scheduler.stage3_optimizer import (
+        from tournament_scheduler.stage3.optimizer import (
             DEFAULT_WEIGHTS,
             _SearchState,
             _build_slots,

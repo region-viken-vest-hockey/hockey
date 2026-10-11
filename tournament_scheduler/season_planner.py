@@ -50,7 +50,7 @@ from tournament_scheduler.models import (
     overlapping_age_groups,
     team_key,
 )
-from tournament_scheduler.arena_conflicts import find_arena_interval_collisions, tournament_interval
+from tournament_scheduler.booking.arena_conflicts import find_arena_interval_collisions, tournament_interval
 from tournament_scheduler.host_candidate_selection import participant_derived_host_candidates as _participant_derived_host_candidates
 from tournament_scheduler.hosting.representation import constituent_clubs as _constituent_clubs
 from tournament_scheduler.hosting.coverage import hosting_coverage_matrix as _hosting_coverage_matrix
@@ -66,7 +66,7 @@ from tournament_scheduler.hosting.same_age_repair import (
     same_age_reallocation_candidates as _same_age_reallocation_candidates,
 )
 from tournament_scheduler.hosting.same_age_repair_apply import attempt_same_age_repairs as _attempt_same_age_repairs
-from tournament_scheduler.calendar_availability import host_confirmation_from_evidence
+from tournament_scheduler.booking.calendar_availability import host_confirmation_from_evidence
 from tournament_scheduler.planning_contract import external_calendar_conflict
 from tournament_scheduler.tournament_identity import allocate_tournament_id
 from tournament_scheduler.participant_roster_sizing import (

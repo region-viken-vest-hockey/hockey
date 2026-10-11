@@ -1,6 +1,6 @@
 from datetime import date
 
-from tournament_scheduler.arena_conflicts import (
+from tournament_scheduler.booking.arena_conflicts import (
     arena_interval_collisions,
     find_arena_interval_collisions,
     tournament_interval,

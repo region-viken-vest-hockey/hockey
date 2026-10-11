@@ -113,7 +113,7 @@ def test_shared_host_transition_records_run_scoped_decision(tmp_path):
 
 
 def test_arena_transition_applies_conflict_and_binds_next_collision(tmp_path):
-    from tournament_scheduler.arena_conflict_decision import (
+    from tournament_scheduler.booking.arena_conflict_decision import (
         build_arena_conflict_decision_context,
     )
 
@@ -171,7 +171,7 @@ def test_arena_transition_applies_conflict_and_binds_next_collision(tmp_path):
 
 
 def test_arena_transition_rejects_stale_fingerprint_before_mutating(tmp_path):
-    from tournament_scheduler.arena_conflict_decision import (
+    from tournament_scheduler.booking.arena_conflict_decision import (
         build_arena_conflict_decision_context,
     )
 
@@ -527,7 +527,7 @@ def test_arena_transition_accepts_demotion_when_attempt_already_exceeds_target(t
         Stage3SessionStore,
         fingerprint_plan,
     )
-    from tournament_scheduler.arena_conflict_decision import (
+    from tournament_scheduler.booking.arena_conflict_decision import (
         build_arena_conflict_decision_context,
     )
 

@@ -20,8 +20,8 @@ from pathlib import Path
 FORBIDDEN_MODULES = {"participant_selection", "host_assignment"}
 
 CANONICAL_PATH_MODULES = [
-    "tournament_scheduler.stage3_optimizer",
-    "tournament_scheduler.stage3_decision",
+    "tournament_scheduler.stage3.optimizer",
+    "tournament_scheduler.stage3.decision",
     "tournament_scheduler.pipeline.stage3_planning",
     # tournament_scheduler.cli.pipeline_orchestrator is a package (split for
     # the 300-line-per-file guideline) -- list every submodule individually
@@ -73,10 +73,10 @@ def _module_path(dotted_name: str) -> Path:
 
 
 def test_stage3_optimizer_does_not_import_legacy_policy_modules() -> None:
-    imported = _imported_module_names(_module_path("tournament_scheduler.stage3_optimizer"))
+    imported = _imported_module_names(_module_path("tournament_scheduler.stage3.optimizer"))
     forbidden_hits = imported & FORBIDDEN_MODULES
     assert not forbidden_hits, (
-        f"stage3_optimizer.py must not import legacy SeasonPlanner policy "
+        f"stage3/optimizer.py must not import legacy SeasonPlanner policy "
         f"modules {sorted(forbidden_hits)} (issue #262 P1) -- the canonical "
         "LLM-directed path must use deterministic facts, not legacy "
         "heuristic weights/rankings."

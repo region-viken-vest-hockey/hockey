@@ -83,7 +83,7 @@ def _normalized_approvals(approvals: Any) -> dict[str, Mapping[str, Any]]:
 
 
 def _interval_for(tournament: Mapping[str, Any], ice_time_for_age_group: Mapping[str, int]):
-    from .arena_conflicts import tournament_interval
+    from tournament_scheduler.booking.arena_conflicts import tournament_interval
     from .serialization.season_plan import tournament_from_dict
 
     if not tournament.get("start_time"):

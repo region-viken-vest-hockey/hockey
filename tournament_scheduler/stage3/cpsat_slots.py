@@ -1,4 +1,4 @@
-"""CP-SAT slot/team setup helpers, split out of `stage3_cpsat.py`.
+"""CP-SAT slot/team setup helpers, split out of `stage3/cpsat.py`.
 
 These functions build the immutable inputs `_solve_slot_group` optimizes
 over (the fixed-skeleton tournament slots, the participant universe, and
@@ -15,10 +15,10 @@ from datetime import date
 from itertools import combinations
 from typing import Any, Dict, Iterable, Optional, Tuple
 
-from . import planning_half
-from .game_generation import generate_tournament_games
-from .models import Team
-from .planning_contract import _parse_date, _team_identity
+from tournament_scheduler import planning_half
+from tournament_scheduler.game_generation import generate_tournament_games
+from tournament_scheduler.models import Team
+from tournament_scheduler.planning_contract import _parse_date, _team_identity
 
 TeamIdentity = Tuple[str, str, str]
 

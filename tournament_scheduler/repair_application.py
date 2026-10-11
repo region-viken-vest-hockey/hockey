@@ -85,7 +85,7 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
     verification["ok"] = not remaining_violations
     verification["booking_feasibility_warnings"] = accepted_floor_findings
     findings = construct_findings(plan, problem, verification, decisions=decisions)
-    from .calendar_bookings import association_findings
+    from tournament_scheduler.booking.calendar_bookings import association_findings
 
     findings.extend(association_findings(problem=problem, plan=plan, decisions=decisions))
     annotate_findings(findings)

@@ -52,7 +52,7 @@ def _emit_stage3_pareto_decision(
     )
     from ...application.stage3_session_store import Stage3SessionStore, fingerprint_plan
     from ...pipeline.fingerprints import stable_payload_sha256
-    from ...stage3_decision import STAGE3_DECISION_ACTIONS, _OPTIMIZE_PLAN_SCHEMAS
+    from tournament_scheduler.stage3.decision import STAGE3_DECISION_ACTIONS, _OPTIMIZE_PLAN_SCHEMAS
 
     run_id = _current_run_id(state)
     interactive_state = _read_stage3_interactive_state(state, expected_run_id=run_id)

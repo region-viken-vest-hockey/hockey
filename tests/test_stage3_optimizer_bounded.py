@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from tournament_scheduler.planning_contract import score_candidate, verify_candidate
-from tournament_scheduler.stage3_optimizer import (
+from tournament_scheduler.stage3.optimizer import (
     optimize_candidate_participants_bounded,
     optimize_candidate_participants_bounded_multi_seed,
 )

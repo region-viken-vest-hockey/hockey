@@ -32,7 +32,7 @@ from tournament_scheduler.season_state import (
     load_participation_acceptances,
     load_schedule,
 )
-from tournament_scheduler.stage3_engine import DEFAULT_ENGINE, run_planner
+from tournament_scheduler.stage3.engine import DEFAULT_ENGINE, run_planner
 
 
 def replan_around_baseline(

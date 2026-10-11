@@ -1,4 +1,4 @@
-"""Unit tests for tournament_scheduler.stage3_cpsat (issue #276 Phase 2/3)."""
+"""Unit tests for tournament_scheduler.stage3.cpsat (issue #276 Phase 2/3)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ ortools = pytest.importorskip(
 from ortools.sat.python import cp_model
 
 from tournament_scheduler.planning_contract import score_candidate, verify_candidate
-from tournament_scheduler.stage3_cpsat import (
+from tournament_scheduler.stage3.cpsat import (
     CpSatNoCandidate,
     optimize_candidate_cp_sat,
 )

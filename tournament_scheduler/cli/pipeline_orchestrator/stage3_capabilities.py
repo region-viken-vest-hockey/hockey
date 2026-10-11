@@ -172,7 +172,7 @@ class InteractiveStage3Capabilities:
         self, session: Stage3Session, action: DecisionAction
     ) -> Stage3CapabilityResult:
         from ...pipeline.state import StageName, StageStatus
-        from ...stage3_decision import invalidate_stale_candidate_checkpoint_keys
+        from tournament_scheduler.stage3.decision import invalidate_stale_candidate_checkpoint_keys
         from .arena_conflict_decisions import (
             _apply_arena_conflict_decision,
             _arena_conflict_context,
@@ -202,7 +202,7 @@ class InteractiveStage3Capabilities:
         candidate_changed = False
 
         if action.action_id == "resolve_arena_conflict":
-            from ...arena_conflict_decision import arena_conflict_decision_record
+            from tournament_scheduler.booking.arena_conflict_decision import arena_conflict_decision_record
 
             facts = dict(((session.pending_decision or {}).get("context") or {}).get("facts") or {})
             side_ids = {str(side.get("tournament_id", "")) for side in facts.get("sides", [])}
@@ -315,7 +315,7 @@ class InteractiveStage3Capabilities:
         from ...local_repair_options import apply_local_repair_option
         from ...planning_contract import extract_candidate
         from ...pipeline.state import StageName, StageStatus
-        from ...stage3_decision import invalidate_stale_candidate_checkpoint_keys
+        from tournament_scheduler.stage3.decision import invalidate_stale_candidate_checkpoint_keys
         from ...application.stage3_session_store import fingerprint_plan
 
         best_plan = session.candidate
@@ -374,7 +374,7 @@ class InteractiveStage3Capabilities:
         from ...application.stage3_session import candidate_content_fingerprint
         from ...application.stage3_session_store import extract_candidate_body, fingerprint_plan
         from ...pipeline.state import StageName, StageStatus
-        from ...stage3_decision import invalidate_stale_candidate_checkpoint_keys
+        from tournament_scheduler.stage3.decision import invalidate_stale_candidate_checkpoint_keys
 
         candidate_ref = str(action.arguments.get("candidate_ref") or "")
         pending_candidates = list((session.pending_decision or {}).get("candidates") or [])
