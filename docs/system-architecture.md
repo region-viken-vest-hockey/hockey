@@ -168,6 +168,8 @@ guards in `tests/test_hosting_package_layout.py`,
 `tests/test_publication_package_layout.py`
 enforce the placement and the import rule.
 
+Recorded exceptions: `publication/` still reaches outward for a few existing dependencies, tracked for follow-up rather than enforced by the locality guard: `pipeline/fingerprints` (stable payload hashing), `html` (the cancelled-tournaments filename constant), `hosting` and `season` helpers, and, lazily, `application/canonical_season/store_facade` (booking status and decision loads in `scope`). The publication-lifecycle orchestration that imports the canonical season store stays in `pipeline/publication_lifecycle`.
+
 ## Scheduling-rule implementation map
 
 Scheduling rules must have one authoritative implementation and remain valid across initial generation, optimization, repair, promoted-season maintenance and export. Do not fix a persistent invariant only in whichever planner path first exposed the bug.
