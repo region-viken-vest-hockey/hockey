@@ -20,6 +20,18 @@ the human-facing shorthand and delegates to it. Start with `make help`; the
 stable. Behavioral Make-specific safeguards remain in the Makefile/Taskfile
 wrapper where they cannot move cleanly.
 
+### Pushing from the sandbox
+
+A global pre-push hook runs `make check` (the quick PR tier: dependency lock, lint, file length, quick tests, rules report, CLI contracts, secret scan). It takes about five minutes, so run `git push` in the foreground with a generous timeout. Never background it.
+
+- **Network:** the `dependency-lock` phase needs `pypi.org` and `files.pythonhosted.org`. Pushes and PR creation need `github.com`. Declare these hosts in the harness's network allowlist for the push command. Do not work around the hook.
+- **Caches:** the hook defaults `PIP_TOOLS_CACHE_DIR`, `PIP_CACHE_DIR` and `MISE_CACHE_DIR` to a writable scratch directory when they are unset. A sandbox that mounts the home cache read-only needs nothing more. Set them yourself only to choose a different location.
+- **Verify the lock first:** `scripts/check dependency-lock` must exit 0 and leave `requirements.lock` unchanged before the push.
+- **Config writes:** in a sandboxed shell, `.git/config.lock` can be mounted and cannot be removed, so any command that writes `.git/config` fails with "could not lock config file". Use `git switch --no-track -c <branch>` and `gh pr create --head <branch>`, which need no upstream. Do not set upstream tracking from inside the sandbox.
+- **Partial success:** if `git push` exits non-zero after the remote branch exists, confirm with `git ls-remote --heads origin <branch>` against `git rev-parse HEAD` before retrying or repeating the push.
+- **Stale locks:** remove `.git/config.lock` only after confirming that no git process holds it. Ask the owner first if the lock is not clearly stale.
+- **Bypass:** `SKIP_LOCAL_CHECK=1` skips the local gate. Use it only when the repository owner has decided the gate does not apply.
+
 ## Source-of-truth order
 
 When facts/instructions disagree:
