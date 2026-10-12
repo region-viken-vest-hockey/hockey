@@ -25,10 +25,12 @@ from tournament_scheduler.season.maintenance import (
     search,
 )
 from tournament_scheduler.application.canonical_season.store_facade import schedule_fingerprint
+from tournament_scheduler.repair.capability import (
+    COVERAGE_BOUNDED_EXHAUSTED,
+    COVERAGE_OPTION_AVAILABLE,
+    COVERAGE_SEARCH_INCOMPLETE,
+)
 from tournament_scheduler.repair.unplaced_placement import (
-    SEARCH_BOUNDED_EXHAUSTED,
-    SEARCH_INCOMPLETE,
-    SEARCH_OPTION_AVAILABLE,
     enumerate_unplaced_placement_repairs,
 )
 
@@ -417,7 +419,7 @@ def test_participant_reselection_applies_to_a_colliding_alternate_date(tmp_path:
     ]
     assert reselected, report["options"]
     coverage = report["finding"]["search_coverage"]
-    assert coverage["status"] == SEARCH_OPTION_AVAILABLE
+    assert coverage["status"] == COVERAGE_OPTION_AVAILABLE
     assert "participant_reselection" in coverage["attempted"]
 
     result = apply_repair(
@@ -474,7 +476,7 @@ def test_inapplicable_reselection_terminates_search_coverage(tmp_path: Path) -> 
 
     coverage = result["coverage"]["unplaced_placement:U10:2026-10-10:1"]
     assert result["options"] == []
-    assert coverage["status"] == SEARCH_BOUNDED_EXHAUSTED
+    assert coverage["status"] == COVERAGE_BOUNDED_EXHAUSTED
     assert coverage["untried"] == []
     assert coverage["inapplicable"] == ["participant_reselection"]
     assert coverage["proven_infeasible"] is False
@@ -482,18 +484,18 @@ def test_inapplicable_reselection_terminates_search_coverage(tmp_path: Path) -> 
     # still-retryable direction once the search has resolved it.
     bounded = search(YEAR, "unplaced_placement:U10:2026-10-10:1", root=root)
     assert bounded["option_count"] == 0
-    assert bounded["finding"]["search_coverage"]["status"] == SEARCH_BOUNDED_EXHAUSTED
+    assert bounded["finding"]["search_coverage"]["status"] == COVERAGE_BOUNDED_EXHAUSTED
     assert bounded["finding"]["search_coverage"]["inapplicable"] == [
         "participant_reselection"
     ]
-    assert bounded["escalation"]["reason"] == SEARCH_BOUNDED_EXHAUSTED
+    assert bounded["escalation"]["reason"] == COVERAGE_BOUNDED_EXHAUSTED
     assert bounded["escalation"]["untried_dimensions"] == []
     # Repeated searches are stable: the resolved dimension is not re-advertised
     # as retryable and the read-only search never mutates canonical state.
     repeated = search(YEAR, "unplaced_placement:U10:2026-10-10:1", root=root)
     assert repeated["revision"] == bounded["revision"]
     assert repeated["option_count"] == 0
-    assert repeated["finding"]["search_coverage"]["status"] == SEARCH_BOUNDED_EXHAUSTED
+    assert repeated["finding"]["search_coverage"]["status"] == COVERAGE_BOUNDED_EXHAUSTED
     assert repeated["finding"]["search_coverage"]["untried"] == []
 
 
@@ -576,7 +578,7 @@ def test_capacity_release_crosses_age_groups_when_arena_is_shared(tmp_path: Path
     # Jar arena on the only usable date.
     cheap = repair_options(YEAR, "unplaced_placement:U12:2027-01-10:1", root=root)
     assert cheap["option_count"] == 0
-    assert cheap["finding"]["search_coverage"]["status"] == SEARCH_INCOMPLETE
+    assert cheap["finding"]["search_coverage"]["status"] == COVERAGE_SEARCH_INCOMPLETE
 
     bounded = search(YEAR, "unplaced_placement:U12:2027-01-10:1", root=root)
 
@@ -643,7 +645,7 @@ def test_findings_expose_attempted_and_untried_dimensions(tmp_path: Path) -> Non
 
     # The planner's own bounded_repair_exhausted flag must not read as global
     # infeasibility: untried capability dimensions are reported explicitly.
-    assert coverage["status"] == SEARCH_INCOMPLETE
+    assert coverage["status"] == COVERAGE_SEARCH_INCOMPLETE
     assert coverage["untried"]
     assert coverage["proven_infeasible"] is False
     assert "capacity_release" in coverage["untried"]
@@ -657,7 +659,7 @@ def test_search_reports_option_available_and_searches_untried_dimensions(tmp_pat
     bounded = search(YEAR, "unplaced_placement:U12:2027-01-10:1", root=root)
 
     coverage = bounded["finding"]["search_coverage"]
-    assert coverage["status"] == SEARCH_OPTION_AVAILABLE
+    assert coverage["status"] == COVERAGE_OPTION_AVAILABLE
     assert coverage["proven_infeasible"] is False
 
 
@@ -699,7 +701,7 @@ def test_search_incomplete_is_distinct_from_bounded_search_exhausted(tmp_path: P
 
     coverage = result["coverage"]["unplaced_placement:U10:2026-10-10:1"]
     assert result["options"] == []
-    assert coverage["status"] == SEARCH_BOUNDED_EXHAUSTED
+    assert coverage["status"] == COVERAGE_BOUNDED_EXHAUSTED
     assert coverage["untried"] == []
     assert coverage["proven_infeasible"] is False
 
@@ -978,9 +980,9 @@ def test_bounded_exhaustion_marker_from_superseded_search_is_retryable(tmp_path:
     assert finding["bounded_repair_exhausted"] is True
     assert finding["bounded_repair_exhausted_stale"] is True
     coverage = finding["search_coverage"]
-    assert coverage["status"] == SEARCH_INCOMPLETE
+    assert coverage["status"] == COVERAGE_SEARCH_INCOMPLETE
     assert coverage["capability_stale"] is True
-    assert coverage["previous_status"] == SEARCH_BOUNDED_EXHAUSTED
+    assert coverage["previous_status"] == COVERAGE_BOUNDED_EXHAUSTED
     assert coverage["proven_infeasible"] is False
     assert coverage["capability"]["fingerprint"] == unplaced_placement_search_capability().fingerprint
 
@@ -988,7 +990,7 @@ def test_bounded_exhaustion_marker_from_superseded_search_is_retryable(tmp_path:
     # produces a verified option.
     bounded = search(YEAR, finding["finding_id"], root=root)
     assert bounded["option_count"] >= 1
-    assert bounded["finding"]["search_coverage"]["status"] == SEARCH_OPTION_AVAILABLE
+    assert bounded["finding"]["search_coverage"]["status"] == COVERAGE_OPTION_AVAILABLE
 
 
 def test_exhaustion_marker_from_current_search_is_not_stale(tmp_path: Path) -> None:
@@ -1014,4 +1016,4 @@ def test_exhaustion_marker_from_current_search_is_not_stale(tmp_path: Path) -> N
     assert finding["search_coverage"]["capability_stale"] is False
     # The cheap listing still reports the supported ladder as untried; the
     # current marker is not itself an option-available claim.
-    assert finding["search_coverage"]["status"] == SEARCH_INCOMPLETE
+    assert finding["search_coverage"]["status"] == COVERAGE_SEARCH_INCOMPLETE

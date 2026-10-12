@@ -67,6 +67,8 @@ from tournament_scheduler.planning.contract import (
 )
 from tournament_scheduler.repair.capability import (
     COVERAGE_BOUNDED_EXHAUSTED,
+    COVERAGE_OPTION_AVAILABLE,
+    COVERAGE_SEARCH_INCOMPLETE,
     SearchCapability,
     capability_is_stale,
     mark_coverage_stale,
@@ -93,12 +95,9 @@ SEARCH_DIMENSIONS: Tuple[str, ...] = (
 )
 SUPPORTED_DIMENSIONS: Tuple[str, ...] = CHEAP_DIMENSIONS + SEARCH_DIMENSIONS
 
-# How a bounded/complete search ended. ``proven_infeasible`` is deliberately
-# never produced by this provider (no exhaustive proof capability exists).
-SEARCH_OPTION_AVAILABLE = "option_available"
-SEARCH_INCOMPLETE = "search_incomplete"
-SEARCH_BOUNDED_EXHAUSTED = "bounded_search_exhausted"
-SEARCH_PROVEN_INFEASIBLE = "proven_infeasible"
+# How a bounded/complete search ended is the shared coverage vocabulary owned by
+# ``repair.capability``. ``proven_infeasible`` is deliberately never produced by
+# this provider (no exhaustive proof capability exists).
 
 # Bounded neighborhoods: enough alternatives for a controller to choose from
 # without turning one obligation into a season-wide scan. issue: a cap tight
@@ -1031,11 +1030,11 @@ def _coverage(
         if dimension not in attempted and dimension not in inapplicable
     ]
     if found_option:
-        status = SEARCH_OPTION_AVAILABLE
+        status = COVERAGE_OPTION_AVAILABLE
     elif not allow_search or untried:
-        status = SEARCH_INCOMPLETE
+        status = COVERAGE_SEARCH_INCOMPLETE
     else:
-        status = SEARCH_BOUNDED_EXHAUSTED
+        status = COVERAGE_BOUNDED_EXHAUSTED
     return {
         "status": status,
         "attempted": [dimension for dimension in SUPPORTED_DIMENSIONS if dimension in attempted],
@@ -1088,10 +1087,6 @@ __all__ = [
     "DIMENSION_PARTICIPANT_RESELECTION",
     "DIMENSION_SAME_DATE_START_TIME",
     "DIMENSION_SAME_HOST_DATE",
-    "SEARCH_BOUNDED_EXHAUSTED",
-    "SEARCH_INCOMPLETE",
-    "SEARCH_OPTION_AVAILABLE",
-    "SEARCH_PROVEN_INFEASIBLE",
     "SEARCH_DIMENSIONS",
     "SUPPORTED_DIMENSIONS",
     "UNPLACED_PLACEMENT_CAPABILITY",

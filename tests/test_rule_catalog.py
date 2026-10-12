@@ -16,6 +16,7 @@ names stay the executable truth.
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 from tournament_scheduler.rules import catalog, catalog_doc
@@ -752,3 +753,25 @@ def test_sanctioned_code_tables_are_not_stale() -> None:
 
 def test_render_check_uses_the_repository_root_by_default() -> None:
     assert catalog_doc.main(["--check"]) == 0
+
+
+def test_search_coverage_vocabulary_has_one_owner() -> None:
+    """Coverage status strings are defined only by ``repair.capability``.
+
+    A second module-level definition of one of these statuses is a parallel
+    vocabulary that can drift from the catalog's ``search_coverage_evidence``
+    rule. Consumers import the owner's constants instead.
+    """
+    owner = REPO_ROOT / "tournament_scheduler/repair/capability.py"
+    definition = re.compile(
+        r'^[A-Z_]+\s*=\s*"(option_available|search_incomplete|'
+        r'bounded_search_exhausted|proven_infeasible)"',
+        re.MULTILINE,
+    )
+    offenders = [
+        f"{path.relative_to(REPO_ROOT)}: {match.group(0)}"
+        for path in sorted((REPO_ROOT / "tournament_scheduler").rglob("*.py"))
+        if path != owner
+        for match in definition.finditer(path.read_text())
+    ]
+    assert offenders == [], "coverage status defined outside repair.capability: " + ", ".join(offenders)

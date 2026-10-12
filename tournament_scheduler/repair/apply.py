@@ -38,10 +38,10 @@ from tournament_scheduler.scoring.pareto import non_dominated_indices, represent
 from tournament_scheduler.planning.contract import score_candidate
 from tournament_scheduler.scoring.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
 from tournament_scheduler.repair.dispatch import _option_is_applicable
-from tournament_scheduler.repair.coverage import (
-    SEARCH_COVERAGE_BOUNDED_EXHAUSTED,
-    SEARCH_COVERAGE_INCOMPLETE,
-    SEARCH_COVERAGE_OPTION_AVAILABLE,
+from tournament_scheduler.repair.capability import (
+    COVERAGE_BOUNDED_EXHAUSTED,
+    COVERAGE_OPTION_AVAILABLE,
+    COVERAGE_SEARCH_INCOMPLETE,
 )
 from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.repair.adoption_guard import RepairPassLedger
@@ -645,12 +645,12 @@ def _effective_search_coverage(
     coverage["applicable_option_count"] = applicable_count
     coverage["non_applicable_option_count"] = raw_option_count - applicable_count
     if applicable_count:
-        coverage["status"] = SEARCH_COVERAGE_OPTION_AVAILABLE
+        coverage["status"] = COVERAGE_OPTION_AVAILABLE
     elif coverage.get("search_requested"):
-        coverage["status"] = SEARCH_COVERAGE_BOUNDED_EXHAUSTED
+        coverage["status"] = COVERAGE_BOUNDED_EXHAUSTED
         coverage["proven_infeasible"] = False
-    elif coverage.get("status") == SEARCH_COVERAGE_OPTION_AVAILABLE:
-        coverage["status"] = SEARCH_COVERAGE_INCOMPLETE
+    elif coverage.get("status") == COVERAGE_OPTION_AVAILABLE:
+        coverage["status"] = COVERAGE_SEARCH_INCOMPLETE
     return coverage
 
 

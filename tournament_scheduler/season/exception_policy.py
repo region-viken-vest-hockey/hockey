@@ -41,6 +41,7 @@ from tournament_scheduler.booking.calendar_bookings import (
     tournament_occupancy_interval_facts,
 )
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
+from tournament_scheduler.rules.catalog import CATALOG_BY_ID
 
 # Rule codes for which an exact, source-confirmed canonical exception may
 # downgrade an otherwise-hard violation to a durable follow-up finding. Kept as
@@ -53,9 +54,7 @@ from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 # becomes a durable feasibility finding/action (the plan must adapt, not the
 # recorded booking). Recording reality is not the same as approving the
 # format; only an explicit operator acceptance can reach this path.
-ACCEPTED_EXCEPTION_RULE_CODES = frozenset(
-    {"ice_time_governing_minimum", "ice_time_playing_minimum"}
-)
+ACCEPTED_EXCEPTION_RULE_CODES = frozenset(CATALOG_BY_ID["tournament_ice_booking_duration"].verifier_codes)
 
 # Baseline-vs-candidate classification buckets.
 RESOLVED = "resolved"

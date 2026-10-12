@@ -44,9 +44,11 @@ from tournament_scheduler.application.canonical_season.store_facade import (
     release_placement_infeasibility_proofs,
 )
 from tournament_scheduler.repair.capability import SearchCapability
+from tournament_scheduler.repair.capability import (
+    COVERAGE_BOUNDED_EXHAUSTED,
+    COVERAGE_SEARCH_INCOMPLETE,
+)
 from tournament_scheduler.repair.unplaced_placement import (
-    SEARCH_BOUNDED_EXHAUSTED,
-    SEARCH_INCOMPLETE,
     enumerate_unplaced_placement_repairs,
     unplaced_placement_search_capability,
 )
@@ -119,7 +121,7 @@ def test_full_scope_exhaustion_without_proof_stays_actionable(tmp_path: Path) ->
     root = _infeasible_fixture(tmp_path)
 
     coverage = _coverage(root)
-    assert coverage["status"] == SEARCH_BOUNDED_EXHAUSTED
+    assert coverage["status"] == COVERAGE_BOUNDED_EXHAUSTED
     assert coverage["untried"] == []
     assert coverage["proven_infeasible"] is False
     assert search_scope_complete(coverage) is True
@@ -275,7 +277,7 @@ def test_proof_is_scoped_to_the_obligation_and_current_capacity(tmp_path: Path) 
 
     # A coverage payload that only claims exhaustion (no proof) must never be
     # treated as an infeasibility proof.
-    incomplete = {"status": SEARCH_INCOMPLETE, "search_requested": False, "untried": ["host"]}
+    incomplete = {"status": COVERAGE_SEARCH_INCOMPLETE, "search_requested": False, "untried": ["host"]}
     assert build_infeasibility_proof(
         obligation=obligation,
         coverage=incomplete,

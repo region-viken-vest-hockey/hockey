@@ -40,6 +40,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
+from tournament_scheduler.repair.capability import COVERAGE_BOUNDED_EXHAUSTED
+
 PHASE_AUDIT_REQUIRED = "audit_required"
 PHASE_CONVERGENCE_REQUIRED = "convergence_required"
 PHASE_COMPLETE = "complete"
@@ -52,15 +54,10 @@ ALL_PHASES = frozenset({PHASE_AUDIT_REQUIRED, PHASE_CONVERGENCE_REQUIRED, PHASE_
 # not the same thing as a Pareto-stable automatic stop.
 TERMINAL_PASS = "pass"
 TERMINAL_OPERATOR_REQUIRED = "operator_required"
-TERMINAL_BOUNDED_SEARCH_EXHAUSTED = "bounded_search_exhausted"
+TERMINAL_BOUNDED_SEARCH_EXHAUSTED = COVERAGE_BOUNDED_EXHAUSTED
 TERMINAL_PARETO_STABLE = "pareto_stable"
 TERMINAL_REASONS = frozenset(
-    {
-        TERMINAL_PASS,
-        TERMINAL_OPERATOR_REQUIRED,
-        TERMINAL_BOUNDED_SEARCH_EXHAUSTED,
-        TERMINAL_PARETO_STABLE,
-    }
+    {TERMINAL_PASS, TERMINAL_OPERATOR_REQUIRED, TERMINAL_BOUNDED_SEARCH_EXHAUSTED, TERMINAL_PARETO_STABLE}
 )
 
 # Resumable pause reasons. A budget pause keeps the workflow pending in

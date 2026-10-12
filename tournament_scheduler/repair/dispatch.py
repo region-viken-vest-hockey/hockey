@@ -19,6 +19,7 @@ from tournament_scheduler.season.findings import ROSTER_SHAPE
 from tournament_scheduler.season.findings import TEMPORAL_CLUSTERING
 from tournament_scheduler.repair.local_options import enumerate_local_repair_options
 from tournament_scheduler.repair.coverage import derive_search_coverage
+from tournament_scheduler.repair.search_neighborhood import DATE_MOVE_VIOLATION_CODES
 from tournament_scheduler.repair.coverage import maintenance_search_capability
 from typing import Any
 from typing import Dict
@@ -40,13 +41,6 @@ DEFAULT_DIMENSIONS: Tuple[str, str, str] = ("participants", "host")
 
 
 
-# Findings that require a genuine date move (not just participant/host
-# reselection) to repair. Kept in sync with
-# ``repair.search_neighborhood.DATE_MOVE_VIOLATION_CODES``: the search provider
-# owns the mechanics, this module owns the coverage vocabulary.
-DATE_MOVING_FINDING_CODES = frozenset({"holiday_date_used"})
-
-
 # Supported repair/search dimensions per finding category. These describe the
 # neighborhood a bounded search may widen into, not a scheduling rule.
 SUPPORTED_DIMENSIONS_BY_CATEGORY: Dict[str, Tuple[str, ...]] = {
@@ -66,7 +60,7 @@ SUPPORTED_DIMENSIONS_BY_CATEGORY: Dict[str, Tuple[str, ...]] = {
 def supported_dimensions_for_finding(finding: Mapping[str, Any]) -> Tuple[str, ...]:
     """Canonical supported search dimensions for one finding's category."""
     code = str(finding.get("code") or "")
-    if code in DATE_MOVING_FINDING_CODES:
+    if code in DATE_MOVE_VIOLATION_CODES:
         # A date-admissibility defect is only repairable by moving the
         # tournament to a new admissible date, not by re-pairing participants.
         return ("date", "participants", "host")

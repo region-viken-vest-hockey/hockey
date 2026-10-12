@@ -35,7 +35,7 @@ from .request_constraints import (
     active_request_constraints,
 )
 from tournament_scheduler.season.finding_resolution import annotate_resolutions
-from tournament_scheduler.rules.catalog import annotate_findings
+from tournament_scheduler.rules.catalog import CATALOG_BY_ID, annotate_findings
 from ..application.canonical_season.store_facade import (
     DEFAULT_SEASON_ROOT,
     canonical_state_revision,
@@ -119,7 +119,7 @@ from tournament_scheduler.repair.apply import (
     list_findings,  # noqa: F401
 )
 from tournament_scheduler.repair.dispatch import (
-    DATE_MOVING_FINDING_CODES,  # noqa: F401
+    DATE_MOVE_VIOLATION_CODES,  # noqa: F401
     SUPPORTED_DIMENSIONS_BY_CATEGORY,  # noqa: F401
     _collect,  # noqa: F401
     _coupled_placement_options,  # noqa: F401
@@ -142,13 +142,11 @@ from tournament_scheduler.repair.dispatch import (
 load_context = load_maintenance_context
 
 
-REQUEST_CONSTRAINT_OWNER = (
-    "tournament_scheduler.season.request_constraints.request_constraint_violations"
-)
-HOSTING_COVERAGE_OWNER = "tournament_scheduler.hosting.coverage.hosting_coverage_matrix"
-HOSTING_RESPONSIBILITY_OWNER = (
-    "tournament_scheduler.hosting.responsibility.hosting_responsibility_facts"
-)
+# Owner paths are the catalog's verifier owners, so this audit cannot drift from
+# the rule registry it reports against.
+REQUEST_CONSTRAINT_OWNER = CATALOG_BY_ID["request_team_unavailable"].verifier_owner
+HOSTING_COVERAGE_OWNER = CATALOG_BY_ID["hosting_age_group_coverage"].verifier_owner
+HOSTING_RESPONSIBILITY_OWNER = CATALOG_BY_ID["hosting_responsibility"].verifier_owner
 
 _REQUEST_CONSTRAINT_RULES = (
     "request_team_unavailable",
