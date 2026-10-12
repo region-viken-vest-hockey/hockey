@@ -490,6 +490,24 @@ _HARD: tuple[RuleEntry, ...] = (
         waivable=False,
     ),
     RuleEntry(
+        id="accepted_change_protection",
+        classification=HARD_CONSTRAINT,
+        meaning=(
+            "The protected intent of an accepted maintenance change (a team's must/must-not "
+            "participation, or an accepted placement field) survives later canonical mutations "
+            "until an operator explicitly releases or supersedes it. A protection guards the exact "
+            "result of one accepted change; it is neither the semantic request nor a baseline "
+            "approval lock."
+        ),
+        canonical_owner="tournament_scheduler.season.change_protections",
+        input_source="decisions.json change_protections (active records)",
+        verifier_owner="tournament_scheduler.season.change_protections.protection_violations",
+        evidence_projection=("change_protection_report", "decisions.json change_protections"),
+        tests=("tests/test_season_state.py",),
+        verifier_codes=("change_protection_violation",),
+        waivable=False,
+    ),
+    RuleEntry(
         id="participation_hard_max",
         classification=HARD_CONSTRAINT,
         meaning=(

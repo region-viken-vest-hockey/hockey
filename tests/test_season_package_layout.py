@@ -11,6 +11,7 @@ SEASON_DIR = PACKAGE_ROOT / "season"
 SEASON_MODULES = {
     "acceptability",
     "accepted_baseline",
+    "audit_owners",
     "banned_dates",
     "baseline_overlay",
     "change_protections",

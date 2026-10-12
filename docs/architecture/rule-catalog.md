@@ -122,6 +122,7 @@ candidate regresses a higher-priority operational obligation.
 | `canonical_locked_tournament_preserved` | hard (0) | An approved/placement-locked canonical tournament must not be dropped by replanning. | `tournament_scheduler.season.baseline_overlay` | `tournament_scheduler.season.baseline_overlay.verify_canonical_locks` | `tests/test_canonical_baseline.py` |
 | `canonical_placement_preserved` | hard (0) | A placement-locked canonical tournament keeps its protected placement fields. | `tournament_scheduler.season.baseline_overlay` | `tournament_scheduler.season.baseline_overlay.verify_canonical_locks` | `tests/test_canonical_baseline.py`, `tests/test_approval_lifecycle.py` |
 | `canonical_participants_preserved` | hard (0) | A participant-locked canonical tournament keeps its protected participant list. | `tournament_scheduler.season.baseline_overlay` | `tournament_scheduler.season.baseline_overlay.verify_canonical_locks` | `tests/test_canonical_baseline.py`, `tests/test_approval_lifecycle.py` |
+| `accepted_change_protection` | hard (0) | The protected intent of an accepted maintenance change (a team's must/must-not participation, or an accepted placement field) survives later canonical mutations until an operator explicitly releases or supersedes it. A protection guards the exact result of one accepted change; it is neither the semantic request nor a baseline approval lock. | `tournament_scheduler.season.change_protections` | `tournament_scheduler.season.change_protections.protection_violations` | `tests/test_season_state.py` |
 | `participation_hard_max` | hard (0) | An explicitly configured participation hard maximum is a legality boundary and is operator-waivable. It is separate from the ordinary participation target, which is a soft objective and never a hard cap. | `tournament_scheduler.participation.targets` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_participation_targets.py`, `tests/test_operator_waivers.py` |
 | `game_team_membership` | hard (0) | Every exported game is between two declared participants of its tournament. | `tournament_scheduler.planning.verification` | `tournament_scheduler.planning.verification.verify_final_candidate` | `tests/test_final_verification.py` |
 | `valid_game_record` | hard (0) | Every exported game record is a well-formed object with distinct participants. | `tournament_scheduler.planning.verification` | `tournament_scheduler.planning.verification.verify_final_candidate` | `tests/test_final_verification.py` |
@@ -218,6 +219,7 @@ candidate regresses a higher-priority operational obligation.
 | `canonical_locked_tournament_missing` (verifier) | `canonical_locked_tournament_preserved` |
 | `canonical_placement_locked` (verifier) | `canonical_placement_preserved` |
 | `canonical_participants_locked` (verifier) | `canonical_participants_preserved` |
+| `change_protection_violation` (verifier) | `accepted_change_protection` |
 | `participation_hard_max_exceeded` (verifier) | `participation_hard_max` |
 | `game_team_not_participant` (verifier) | `game_team_membership` |
 | `invalid_game_record` (verifier) | `valid_game_record` |
@@ -619,6 +621,20 @@ candidate regresses a higher-priority operational obligation.
 **Providers:** mutation — · search —  
 **Evidence / report:** `verify_candidate.violations`, `season protections`  
 **Tests:** `tests/test_canonical_baseline.py`, `tests/test_approval_lifecycle.py`  
+**Precedence:** precedes — · depends on —
+
+### `accepted_change_protection`
+
+`Hard constraint` · status `active` · operator-waivable: no (structural)  
+**Priority tier:** hard (0)  
+**Meaning:** The protected intent of an accepted maintenance change (a team's must/must-not participation, or an accepted placement field) survives later canonical mutations until an operator explicitly releases or supersedes it. A protection guards the exact result of one accepted change; it is neither the semantic request nor a baseline approval lock.  
+**Canonical owner:** `tournament_scheduler.season.change_protections`  
+**Input / fact source:** decisions.json change_protections (active records)  
+**Verifier / measurement:** `tournament_scheduler.season.change_protections.protection_violations`  
+**Codes:** verifier `change_protection_violation` · finding — · score —  
+**Providers:** mutation — · search —  
+**Evidence / report:** `change_protection_report`, `decisions.json change_protections`  
+**Tests:** `tests/test_season_state.py`  
 **Precedence:** precedes — · depends on —
 
 ### `participation_hard_max`
