@@ -26,8 +26,8 @@ from tournament_scheduler.repair.coupled_placement import (
 from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
 from tournament_scheduler.repair.adoption_guard import (
     REGRESSION_TEMPORAL_OFFENDERS,
+    REGRESSION_INTER_CLUB_COVERAGE,
     REGRESSION_TRAVEL,
-    REGRESSION_UNIQUE_OPPONENTS,
 )
 from tournament_scheduler.season.maintenance import (
     apply_repair,
@@ -44,7 +44,7 @@ YEAR = "2026-2027"
 # trade-offs the operator must name explicitly under the cross-rule adoption
 # guard; they are not silently waived.
 _COUPLED_TRADE_OFFS = [
-    REGRESSION_UNIQUE_OPPONENTS,
+    REGRESSION_INTER_CLUB_COVERAGE,
     REGRESSION_TEMPORAL_OFFENDERS,
     REGRESSION_TRAVEL,
 ]

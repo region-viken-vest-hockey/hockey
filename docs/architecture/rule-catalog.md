@@ -8,6 +8,11 @@ owns each one, and which semantics take precedence when they interact*. It is me
 and navigation only: the deterministic implementations named by each entry remain the
 executable truth.
 
+Priority tiers order adoption regressions: hard (0), operational obligation (1), strong
+goal (2), soft (3). A strong goal is a soft objective whose evidenced relaxation the
+planner still optimises; prose that calls such a rule a "strong goal" means this tier,
+while its classification remains `soft_objective`.
+
 Search this page for a rule ID (for example `host_representation`,
 `hosting_age_group_coverage`, `hosting_proportional_balance` or
 `arena_interval_non_overlap`) to find the owning facade, its verifier and its tests

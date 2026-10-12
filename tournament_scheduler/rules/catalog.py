@@ -42,6 +42,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from tournament_scheduler.rules.evidence_categories import EVIDENCE_CATEGORIES
+
 # --- classification vocabulary ------------------------------------------------
 
 HARD_CONSTRAINT = "hard_constraint"
@@ -877,7 +879,7 @@ _SOFT: tuple[RuleEntry, ...] = (
     ),
     RuleEntry(
         id="inter_club_diversity",
-        regression_codes=("same_club_clustering_worse",),
+        regression_codes=("same_club_clustering_worse", "inter_club_coverage_worse"),
 
         classification=SOFT_OBJECTIVE,
         meaning="Tournaments should mix teams across clubs rather than concentrating same-club matchups.",
@@ -1534,6 +1536,11 @@ def validate_catalog(repo_root: Path | None = None) -> list[str]:
                     f"(first by {direction_owner[finding_code]}, again by {entry.id})"
                 )
             direction_owner[finding_code] = entry.id
+
+    # Evidence category names are the audit's identity space; each may be declared once.
+    evidence_names = [category.name for category in EVIDENCE_CATEGORIES]
+    for name in sorted({name for name in evidence_names if evidence_names.count(name) > 1}):
+        problems.append(f"evidence category {name!r} is declared more than once")
 
     # Precedence / dependency references must exist and precedence must be acyclic.
     for entry in RULE_CATALOG:

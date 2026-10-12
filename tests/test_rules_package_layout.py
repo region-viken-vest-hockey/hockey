@@ -12,6 +12,7 @@ RULES_MODULES = {
     "capacity_rules",
     "catalog",
     "catalog_doc",
+    "evidence_categories",
     "model",
     "obligations",
     "operational_rules",
