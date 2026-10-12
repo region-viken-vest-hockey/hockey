@@ -156,7 +156,7 @@ block merging.
 
 ## Local pre-push gate and sandboxed harnesses
 
-A global pre-push hook runs `make check` (the quick PR tier: dependency lock, lint, file length, quick tests, rules report, CLI contracts, secret scan). It takes about five minutes, so run `git push` in the foreground with a generous timeout. Never background it.
+A global pre-push hook scopes its gate to the push. A push that changes only Markdown under `docs/` or at the repository root runs the cheap gate (`scripts/check lint file-length quick rule-catalog architecture-docs`, about 30 seconds). Any other push runs the full quick PR tier, `make check`: dependency lock, lint, file length, quick tests, rules report, CLI contracts, secret scan. The rules report is the expensive phase, about two and a half minutes. The generated rules report (`docs/rvv-miniputt-rules-report.md`) counts as code, so a push that changes it runs the full gate. An empty push list also runs the full gate. Run `git push` in the foreground with a generous timeout, because a full gate can take five minutes. Never background it.
 
 - **Network:** the `dependency-lock` phase needs `pypi.org` and `files.pythonhosted.org`. Pushes and PR creation need `github.com`. Declare these hosts in the harness's network allowlist for the push command. Do not work around the hook.
 - **Caches:** the hook defaults `PIP_TOOLS_CACHE_DIR`, `PIP_CACHE_DIR` and `MISE_CACHE_DIR` to a writable scratch directory when they are unset. A sandbox that mounts the home cache read-only needs nothing more. Set them yourself only to choose a different location.
