@@ -141,7 +141,6 @@ _NON_SCHEDULING_DIAGNOSTIC_PREFIXES = (
 _GRANDFATHERED_UNREGISTERED_CODES = frozenset(
     {
         "change_protection_violation",
-        "duplicate_calendar_booking_association",
         "fewer_distinct_opponent_clubs",
         "fewer_unique_opponents",
         "hard_violations",
@@ -236,6 +235,44 @@ def test_booking_feasibility_warnings_has_one_booking_floor_owner() -> None:
     assert {entry.id for entry in catalog.RULE_CATALOG if code in entry.finding_codes} == {owner}
     assert catalog.rule_id_for_finding_code(code) == owner
     assert code not in _GRANDFATHERED_UNREGISTERED_CODES
+
+
+def test_duplicate_calendar_booking_association_has_one_calendar_interval_owner() -> None:
+    # The booking association overlay is fact/evidence about a host calendar
+    # event; two active tournament claims on one event are contradictory evidence
+    # surfaced as a finding (not a verifier hard violation), so it belongs with
+    # the stale-association sibling under the calendar interval rule.
+    from tournament_scheduler.booking.calendar_bookings import association_findings
+
+    code = "duplicate_calendar_booking_association"
+    owner = "calendar_interval_classification"
+    assert _all_emitted_codes_by_module()[code] == {"tournament_scheduler/booking/calendar_bookings.py"}
+    assert {entry.id for entry in catalog.RULE_CATALOG if code in entry.finding_codes} == {owner}
+    assert catalog.rule_id_for_finding_code(code) == owner
+    assert catalog.CATALOG_BY_ID[owner].classification == catalog.FACT_EVIDENCE_SEMANTIC
+    assert code not in _GRANDFATHERED_UNREGISTERED_CODES
+
+    decisions = {
+        "calendar_booking_associations": [
+            {"id": "a1", "event_fingerprint": "evt", "tournament_id": "t1", "status": "active"},
+            {"id": "a2", "event_fingerprint": "evt", "tournament_id": "t2", "status": "active"},
+        ]
+    }
+    findings = [
+        finding
+        for finding in association_findings(problem=None, plan=None, decisions=decisions)
+        if finding["code"] == code
+    ]
+    assert findings == [
+        {
+            "code": code,
+            "event_fingerprint": "evt",
+            "tournament_ids": ["t1", "t2"],
+            "reasons": ["event_has_multiple_active_tournament_associations"],
+        }
+    ]
+    catalog.annotate_findings(findings)
+    assert findings[0]["rule_id"] == owner
 
 
 _TOURNAMENT_IDENTITY_CODES = (
