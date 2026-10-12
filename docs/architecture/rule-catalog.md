@@ -103,6 +103,7 @@ candidate regresses a higher-priority operational obligation.
 | `team_unique_in_tournament` | hard (0) | A team may appear at most once in a single tournament. | `tournament_scheduler.planning.contract` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_planning_contract.py` |
 | `team_unique_per_date` | hard (0) | A team may not be scheduled in two different tournaments on the same date. | `tournament_scheduler.planning.contract` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_planning_contract.py` |
 | `tournament_roster_shape` | hard (0) | A tournament has an admissible, avoidable-by-free participant shape: even teams and no pause/bye rounds (or the exact age-group team count where configured). An input-constrained scarce shape is surfaced separately, never as a soft preference. An active season/age-group participation withdrawal also makes the team ineligible for the whole age group until it is explicitly released. | `tournament_scheduler.shape.effective_shape` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_effective_tournament_shape.py`, `tests/test_planning_contract.py`, `tests/test_participant_removal.py` |
+| `tournament_durable_identity` | hard (0) | Every active tournament carries exactly one non-empty durable id, active ids are unique, and every lineage, manual pin or operator-waiver reference names a known tournament id. Ids are opaque lifecycle identifiers and are never derived from mutable placement fields. Structural: never operator-waivable. | `tournament_scheduler.shape.identity` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_tournament_identity.py`, `tests/test_rule_catalog.py` |
 | `club_hard_max` | hard (0) | At most three teams from one club may participate in one tournament. | `tournament_scheduler.planning.contract` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_planning_contract.py` |
 | `tournament_ice_booking_duration` | hard (0) | A tournament's configured ice_time_minutes is the complete hall occupancy window. It must be at least the actual rounds times round length plus the per-round changeover buffer. A proposed placement must also meet any governing per-series-round booking floor; a source-confirmed accepted booking interval below that floor or below the planned round structure is recorded exactly at the reconciliation boundary and surfaced as a durable feasibility finding (the plan must adapt, not the recorded booking), not a new-placement planning violation. The accepted interval stays factual even when its format is operationally unusable; that concern remains a separate durable finding/action. | `tournament_scheduler.shape.occupancy` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_occupancy.py`, `tests/test_planning_contract.py`, `tests/test_stage1_config.py` |
 | `arena_interval_non_overlap` | hard (0) | Two tournaments must never require the same arena in overlapping datetime intervals. A failure to evaluate the interval data is itself a blocking verification result, not a silent pass. | `tournament_scheduler.booking.arena_conflicts` | `tournament_scheduler.planning.contract.verify_candidate` | `tests/test_arena_conflicts.py`, `tests/test_planning_contract.py` |
@@ -192,6 +193,11 @@ candidate regresses a higher-priority operational obligation.
 | `duplicate_participation_same_date` (verifier) | `team_unique_per_date` |
 | `bye_team_not_allowed` (verifier) | `tournament_roster_shape` |
 | `withdrawn_team_participating` (verifier) | `tournament_roster_shape` |
+| `missing_tournament_id` (verifier) | `tournament_durable_identity` |
+| `duplicate_tournament_id` (verifier) | `tournament_durable_identity` |
+| `unknown_lineage_tournament_id` (verifier) | `tournament_durable_identity` |
+| `unknown_pinned_tournament_id` (verifier) | `tournament_durable_identity` |
+| `unknown_waiver_tournament_id` (verifier) | `tournament_durable_identity` |
 | `club_hard_max_exceeded` (verifier) | `club_hard_max` |
 | `ice_time_playing_minimum` (verifier) | `tournament_ice_booking_duration` |
 | `ice_time_governing_minimum` (verifier) | `tournament_ice_booking_duration` |
@@ -345,6 +351,20 @@ candidate regresses a higher-priority operational obligation.
 **Providers:** mutation `tournament_scheduler.planning.participant_roster_sizing`, `tournament_scheduler.application.canonical_season.withdrawal` · search `tournament_scheduler.repair.participant_roster`  
 **Evidence / report:** `verify_candidate.violations`, `verify_candidate.input_constrained_shapes`  
 **Tests:** `tests/test_effective_tournament_shape.py`, `tests/test_planning_contract.py`, `tests/test_participant_removal.py`  
+**Precedence:** precedes — · depends on —
+
+### `tournament_durable_identity`
+
+`Hard constraint` · status `active` · operator-waivable: no (structural)  
+**Priority tier:** hard (0)  
+**Meaning:** Every active tournament carries exactly one non-empty durable id, active ids are unique, and every lineage, manual pin or operator-waiver reference names a known tournament id. Ids are opaque lifecycle identifiers and are never derived from mutable placement fields. Structural: never operator-waivable.  
+**Canonical owner:** `tournament_scheduler.shape.identity`  
+**Input / fact source:** candidate tournaments[].id/derived_from, identity_registry, manual_adjustments, operator_waivers scope  
+**Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
+**Codes:** verifier `missing_tournament_id`, `duplicate_tournament_id`, `unknown_lineage_tournament_id`, `unknown_pinned_tournament_id`, `unknown_waiver_tournament_id` · finding — · score —  
+**Providers:** mutation `tournament_scheduler.pipeline.tournament_updater`, `tournament_scheduler.planning.season_planner` · search —  
+**Evidence / report:** `verify_candidate.violations`  
+**Tests:** `tests/test_tournament_identity.py`, `tests/test_rule_catalog.py`  
 **Precedence:** precedes — · depends on —
 
 ### `club_hard_max`
