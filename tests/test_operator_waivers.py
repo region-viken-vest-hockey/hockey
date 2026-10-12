@@ -16,7 +16,7 @@ import pytest
 from tournament_scheduler.application.decisions import DECISION_ACTION_IDS
 from tournament_scheduler.planning.verification import publication_readiness, verify_final_candidate
 from tournament_scheduler.game_generation import generate_tournament_games
-from tournament_scheduler.host_team_missing_repair import (
+from tournament_scheduler.repair.host_team_missing import (
     apply_host_team_missing_repair_option,
     enumerate_host_team_missing_repairs,
 )

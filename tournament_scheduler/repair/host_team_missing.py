@@ -27,14 +27,14 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
-from .planning import half as planning_half
-from .application.decisions import DecisionContext
-from .effective_tournament_shape import compute_effective_tournament_shape
-from .game_generation import generate_tournament_games
-from .hosting.representation import clubs_represent_same_club, constituent_clubs, host_eligible_teams
-from .models import Team
-from .season.waivers import find_participation_waiver
-from .planning.contract import (
+from tournament_scheduler.planning import half as planning_half
+from tournament_scheduler.application.decisions import DecisionContext
+from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape
+from tournament_scheduler.game_generation import generate_tournament_games
+from tournament_scheduler.hosting.representation import clubs_represent_same_club, constituent_clubs, host_eligible_teams
+from tournament_scheduler.models import Team
+from tournament_scheduler.season.waivers import find_participation_waiver
+from tournament_scheduler.planning.contract import (
     _parse_date,
     candidate_content_fingerprint,
     external_calendar_conflict,

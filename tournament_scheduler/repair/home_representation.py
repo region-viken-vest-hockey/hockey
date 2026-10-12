@@ -43,9 +43,9 @@ from __future__ import annotations
 import copy
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from .home_representation import home_representation_rows
-from .hosting.representation import clubs_represent_same_club
-from .host_team_missing_repair import (
+from tournament_scheduler.home_representation import home_representation_rows
+from tournament_scheduler.hosting.representation import clubs_represent_same_club
+from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
     _codes,
     _find_tournament,
@@ -65,9 +65,9 @@ from tournament_scheduler.participation.targets import (
     club_pool_sibling_spread,
     evaluate_participation,
 )
-from .planning.contract import _parse_date, score_candidate, verify_candidate
-from .quality_objectives import compare_quality_scores, with_unresolved_obligations_count
-from .team_schedule_quality import compare_changed_team_schedule_consequence
+from tournament_scheduler.planning.contract import _parse_date, score_candidate, verify_candidate
+from tournament_scheduler.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
+from tournament_scheduler.team_schedule_quality import compare_changed_team_schedule_consequence
 
 HOME_REPRESENTATION_FINDING_PREFIX = "home_representation"
 
@@ -1093,7 +1093,7 @@ def _club_pool_travel_regressions(
     club pool's total is the right object, so an offsetting redistribution is
     not a regression.
     """
-    from .team_schedule_quality import team_schedule_profile
+    from tournament_scheduler.team_schedule_quality import team_schedule_profile
 
     out: List[Dict[str, Any]] = []
     for club, age_group in sorted(set(club_age_pairs)):

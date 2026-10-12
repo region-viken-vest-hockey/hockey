@@ -54,7 +54,7 @@ from tournament_scheduler.booking.arena_conflicts import find_arena_interval_col
 from tournament_scheduler.host_candidate_selection import participant_derived_host_candidates as _participant_derived_host_candidates
 from tournament_scheduler.hosting.representation import constituent_clubs as _constituent_clubs
 from tournament_scheduler.hosting.coverage import hosting_coverage_matrix as _hosting_coverage_matrix
-from tournament_scheduler.responsibility_preserving_repair import (
+from tournament_scheduler.repair.responsibility_preserving import (
     find_same_host_date_placement as _find_same_host_date_placement,
 )
 from tournament_scheduler.hosting.cross_age_repair import (
@@ -93,7 +93,7 @@ from tournament_scheduler.participant_selection import (
 from tournament_scheduler.participant_relocation import (
     relocate_structurally_impossible_scheduled_slots as _relocate_structurally_impossible_scheduled_slots,
 )
-from tournament_scheduler.participant_roster_repair import (
+from tournament_scheduler.repair.participant_roster import (
     attempt_underfilled_roster_repairs as _attempt_underfilled_roster_repairs,
 )
 from tournament_scheduler.roster_size_planning import (
@@ -2488,7 +2488,7 @@ class SeasonPlanner:
         # re-openable in canonical maintenance instead of inheriting an
         # out-of-date ``bounded_repair_exhausted``.
         if entry.get("bounded_repair_exhausted") and not entry.get("search_capability"):
-            from tournament_scheduler.unplaced_placement_repair import (
+            from tournament_scheduler.repair.unplaced_placement import (
                 unplaced_placement_search_capability,
             )
 

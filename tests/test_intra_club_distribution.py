@@ -18,7 +18,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
-from tournament_scheduler.intra_club_distribution_repair import (
+from tournament_scheduler.repair.intra_club_distribution import (
     apply_intra_club_distribution_repair_option,
     enumerate_intra_club_distribution_repairs,
     intra_club_distribution_finding_id,

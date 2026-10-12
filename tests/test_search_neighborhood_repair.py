@@ -7,7 +7,7 @@ from tournament_scheduler.local_repair_options import (
     apply_local_repair_option,
     enumerate_local_repair_options,
 )
-from tournament_scheduler.search_neighborhood_repair import (
+from tournament_scheduler.repair.search_neighborhood import (
     apply_search_neighborhood_repair_option,
     build_search_neighborhood_decision_context,
     enumerate_search_neighborhood_repairs,
@@ -360,7 +360,7 @@ def test_bounded_search_rejects_a_host_move_that_transfers_responsibility(monkey
     fairness model did not assign it to is not an improvement (#361). The seed
     is surfaced as explicit rejection evidence instead of a selectable option.
     """
-    import tournament_scheduler.search_neighborhood_repair as snr
+    import tournament_scheduler.repair.search_neighborhood as snr
 
     candidate = _candidate()
     problem = _problem()

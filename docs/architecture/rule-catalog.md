@@ -293,7 +293,7 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** planning_problem.teams[].age_group + candidate tournament age_group  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
 **Codes:** verifier `age_group_mismatch` · finding — · score —  
-**Providers:** mutation `tournament_scheduler.participant_selection` · search `tournament_scheduler.search_neighborhood_repair`  
+**Providers:** mutation `tournament_scheduler.participant_selection` · search `tournament_scheduler.repair.search_neighborhood`  
 **Evidence / report:** `verify_candidate.violations`, `rules_model age_group_exact_match`  
 **Tests:** `tests/test_planning_contract.py`  
 **Precedence:** precedes — · depends on —
@@ -306,7 +306,7 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** candidate tournament roster  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
 **Codes:** verifier `duplicate_team_in_tournament` · finding — · score —  
-**Providers:** mutation `tournament_scheduler.participant_selection` · search `tournament_scheduler.search_neighborhood_repair`  
+**Providers:** mutation `tournament_scheduler.participant_selection` · search `tournament_scheduler.repair.search_neighborhood`  
 **Evidence / report:** `verify_candidate.violations`  
 **Tests:** `tests/test_planning_contract.py`  
 **Precedence:** precedes — · depends on —
@@ -319,7 +319,7 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** candidate tournament dates + roster  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
 **Codes:** verifier `duplicate_participation_same_date` · finding — · score —  
-**Providers:** mutation `tournament_scheduler.participant_selection` · search `tournament_scheduler.search_neighborhood_repair`  
+**Providers:** mutation `tournament_scheduler.participant_selection` · search `tournament_scheduler.repair.search_neighborhood`  
 **Evidence / report:** `verify_candidate.violations`, `rules_model no_same_date_double_participation`  
 **Tests:** `tests/test_planning_contract.py`  
 **Precedence:** precedes — · depends on —
@@ -332,7 +332,7 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** planning_problem registered pool + rounds_per_tournament, reduced for the age group by durable, revision-bound participation_withdrawals records (tournament_scheduler.participation.withdrawals) until an explicit verified release; the registered roster is never rewritten  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
 **Codes:** verifier `bye_team_not_allowed`, `withdrawn_team_participating` · finding `input_constrained_shape` · score —  
-**Providers:** mutation `tournament_scheduler.participant_roster_sizing`, `tournament_scheduler.application.canonical_season.withdrawal` · search `tournament_scheduler.participant_roster_repair`  
+**Providers:** mutation `tournament_scheduler.participant_roster_sizing`, `tournament_scheduler.application.canonical_season.withdrawal` · search `tournament_scheduler.repair.participant_roster`  
 **Evidence / report:** `verify_candidate.violations`, `verify_candidate.input_constrained_shapes`  
 **Tests:** `tests/test_effective_tournament_shape.py`, `tests/test_planning_contract.py`, `tests/test_participant_removal.py`  
 **Precedence:** precedes — · depends on —
@@ -345,7 +345,7 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** candidate tournament roster club labels  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
 **Codes:** verifier `club_hard_max_exceeded` · finding — · score —  
-**Providers:** mutation `tournament_scheduler.participant_selection` · search `tournament_scheduler.search_neighborhood_repair`, `tournament_scheduler.stage3.cpsat_club_cap`  
+**Providers:** mutation `tournament_scheduler.participant_selection` · search `tournament_scheduler.repair.search_neighborhood`, `tournament_scheduler.stage3.cpsat_club_cap`  
 **Evidence / report:** `verify_candidate.violations`  
 **Tests:** `tests/test_planning_contract.py`  
 **Precedence:** precedes — · depends on —
@@ -371,7 +371,7 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** candidate start_time/duration + arena identity  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
 **Codes:** verifier `arena_interval_conflict`, `arena_interval_check_failed` · finding — · score —  
-**Providers:** mutation `arena_conflict_decision`, `date_policy_relocation` · search `tournament_scheduler.search_neighborhood_repair`  
+**Providers:** mutation `arena_conflict_decision`, `date_policy_relocation` · search `tournament_scheduler.repair.search_neighborhood`  
 **Evidence / report:** `verify_candidate.violations`, `plan.arena_day_collisions`, `rules_model arena_day_collisions`  
 **Tests:** `tests/test_arena_conflicts.py`, `tests/test_planning_contract.py`  
 **Precedence:** precedes — · depends on —
@@ -397,7 +397,7 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** planning_problem registered pool + candidate capacity  
 **Verifier / measurement:** `tournament_scheduler.planning.verification.verify_final_candidate`  
 **Codes:** verifier `tournament_under_minimum` · finding — · score —  
-**Providers:** mutation `tournament_scheduler.underfilled_roster_repair` · search —  
+**Providers:** mutation `tournament_scheduler.repair.underfilled_roster` · search —  
 **Evidence / report:** `verify_final_candidate.violations`  
 **Tests:** `tests/test_final_verification.py`  
 **Precedence:** precedes — · depends on —
@@ -488,7 +488,7 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** planning_problem manual_adjustments excluded_host_clubs  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
 **Codes:** verifier `excluded_host_club_used` · finding — · score —  
-**Providers:** mutation `host_placement_repair` · search `tournament_scheduler.search_neighborhood_repair`  
+**Providers:** mutation `host_placement_repair` · search `tournament_scheduler.repair.search_neighborhood`  
 **Evidence / report:** `verify_candidate.violations`, `rules_model excluded_host_clubs_not_used`  
 **Tests:** `tests/test_planning_contract.py`  
 **Precedence:** precedes — · depends on —
@@ -501,7 +501,7 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** candidate host_club + tournament roster  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
 **Codes:** verifier `host_team_missing` · finding — · score —  
-**Providers:** mutation `host_team_missing_repair`, `placement_preserving_roster_repair` · search `tournament_scheduler.search_neighborhood_repair`  
+**Providers:** mutation `host_team_missing_repair`, `placement_preserving_roster_repair` · search `tournament_scheduler.repair.search_neighborhood`  
 **Evidence / report:** `verify_candidate.violations`  
 **Tests:** `tests/test_stage3_optimizer_host_representation.py`, `tests/test_host_team_missing_repair.py`  
 **Precedence:** precedes `hosting_age_group_coverage`, `hosting_proportional_balance` · depends on —
@@ -735,7 +735,7 @@ candidate regresses a higher-priority operational obligation.
 **Input / fact source:** planning_problem eligible teams (registered roster minus durable age-group withdrawals) + candidate tournaments (hosting_coverage_matrix)  
 **Verifier / measurement:** `tournament_scheduler.hosting.coverage.hosting_coverage_matrix`  
 **Codes:** verifier — · finding `unresolved_hosting_obligations`, `unresolved_hosting`, `unresolved_hosting_obligation` · score `hosting.unresolved_obligations_count`  
-**Providers:** mutation `hosting_balance_repair`, `host_placement_repair`, `unplaced_placement_repair`, `hosting_same_age_repair`, `hosting_cross_age_repair` · search `tournament_scheduler.search_neighborhood_repair`  
+**Providers:** mutation `hosting_balance_repair`, `host_placement_repair`, `unplaced_placement_repair`, `hosting_same_age_repair`, `hosting_cross_age_repair` · search `tournament_scheduler.repair.search_neighborhood`  
 **Evidence / report:** `plan.unresolved_hosting_obligations`, `verify_candidate.unresolved_hosting_obligations`, `publication_readiness unresolved_hosting`, `rules_model hosting_obligation_coverage`  
 **Tests:** `tests/test_hosting_coverage.py`, `tests/test_hosting_same_age_repair.py`  
 **Precedence:** precedes `hosting_proportional_balance` · depends on `host_representation`

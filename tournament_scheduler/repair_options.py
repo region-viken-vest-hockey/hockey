@@ -42,7 +42,7 @@ DEFAULT_DIMENSIONS: Tuple[str, str, str] = ("participants", "host")
 
 # Findings that require a genuine date move (not just participant/host
 # reselection) to repair. Kept in sync with
-# ``search_neighborhood_repair.DATE_MOVE_VIOLATION_CODES``: the search provider
+# ``repair.search_neighborhood.DATE_MOVE_VIOLATION_CODES``: the search provider
 # owns the mechanics, this module owns the coverage vocabulary.
 DATE_MOVING_FINDING_CODES = frozenset({"holiday_date_used"})
 
@@ -155,7 +155,7 @@ def _unplaced_options(
     can tell ``option_available``/``search_incomplete``/
     ``bounded_search_exhausted`` apart.
     """
-    from .unplaced_placement_repair import enumerate_unplaced_placement_repairs
+    from tournament_scheduler.repair.unplaced_placement import enumerate_unplaced_placement_repairs
 
     repair_set = enumerate_unplaced_placement_repairs(
         plan,
@@ -195,7 +195,7 @@ def _coupled_placement_options(
     coupled, independently verified candidate.
     """
 
-    from .coupled_placement_repair import enumerate_coupled_placement_repairs
+    from tournament_scheduler.repair.coupled_placement import enumerate_coupled_placement_repairs
 
     identity = finding.get("team_identity") or {}
     focus_team = (
@@ -228,7 +228,7 @@ def _home_representation_options(
     participation counts). A coupled placement option is never produced here:
     host/date/arena and hosting responsibility are deliberately unchanged.
     """
-    from .home_representation_repair import enumerate_home_representation_repairs
+    from tournament_scheduler.repair.home_representation import enumerate_home_representation_repairs
 
     repair_set = enumerate_home_representation_repairs(
         plan,
@@ -252,7 +252,7 @@ def _intra_club_distribution_options(
     ``allow_search``). It never moves dates/hosts/arenas/slots and never
     transfers hosting responsibility.
     """
-    from .intra_club_distribution_repair import enumerate_intra_club_distribution_repairs
+    from tournament_scheduler.repair.intra_club_distribution import enumerate_intra_club_distribution_repairs
 
     repair_set = enumerate_intra_club_distribution_repairs(
         plan,
@@ -278,7 +278,7 @@ def _movable_capacity_options(
     caller's ``dimensions`` do not narrow it further: its whole result already
     is the bounded same-host search for this obligation.
     """
-    from .movable_capacity_repair import enumerate_movable_capacity_repairs
+    from tournament_scheduler.repair.movable_capacity import enumerate_movable_capacity_repairs
 
     repair_set = enumerate_movable_capacity_repairs(plan, problem)
     return _collect(
@@ -322,7 +322,7 @@ def _hard_options(
     allow_search: bool,
     dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
-    from .search_neighborhood_repair import enumerate_search_neighborhood_repairs
+    from tournament_scheduler.repair.search_neighborhood import enumerate_search_neighborhood_repairs
 
     repair_set = enumerate_local_repair_options(plan, problem)
     options, rejected, families = _collect(

@@ -8,7 +8,7 @@ from tournament_scheduler.local_repair_options import (
     apply_local_repair_option,
     enumerate_local_repair_options,
 )
-from tournament_scheduler.movable_capacity_repair import (
+from tournament_scheduler.repair.movable_capacity import (
     enumerate_movable_capacity_repairs,
 )
 from tournament_scheduler.season.maintenance import (

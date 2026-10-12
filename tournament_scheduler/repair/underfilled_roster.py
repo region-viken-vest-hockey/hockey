@@ -31,9 +31,9 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from .application.decisions import DecisionContext
-from .effective_tournament_shape import compute_effective_tournament_shape
-from .host_team_missing_repair import (
+from tournament_scheduler.application.decisions import DecisionContext
+from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape
+from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
     _codes,
     _count_code,
@@ -49,7 +49,7 @@ from .host_team_missing_repair import (
     _team_ref,
     candidate_fingerprint,
 )
-from .planning.contract import (
+from tournament_scheduler.planning.contract import (
     HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT,
     _parse_date,
     verify_candidate,
@@ -287,7 +287,7 @@ def _edit_roster(
 ) -> None:
     """Remove and/or add one participant and regenerate that tournament's games.
 
-    ``host_team_missing_repair._mutate_participants`` always appends a team, so
+    ``repair.host_team_missing._mutate_participants`` always appends a team, so
     it cannot express a remove-only relocation. This is the same mutation with
     optional remove/add halves, kept local to the fill/swap family.
     """

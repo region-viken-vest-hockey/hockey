@@ -4,7 +4,7 @@
 deficits, surplus hosting, candidate donor tournaments) as pure functions.
 This module actually *applies* a repair: it needs `SeasonPlanner`'s live
 tournament-build pipeline (participant selection, host/slot search, game
-generation, participation counters), so -- like `host_representation_repair.py`
+generation, participation counters), so -- like `repair/host_representation.py`
 -- it operates directly on planner internals and is kept separate from the
 pure evidence module.
 

@@ -157,6 +157,7 @@ moved one domain slice at a time.
 | `season/` | canonical season state and lifecycle records, promoted-season maintenance and its accepted baseline, approvals, requests, protections and waivers | moved |
 | `season_planner.py`, `application/` | Stage 1/2 season planner (planning domain) and canonical use-case orchestration (application layer) | not yet moved |
 | `publication/` | sealed-season publication identity and published baseline, reconciliation with canonical mutations, export projection guard, tournament-scoped republish eligibility, publication evidence and export lifecycle manifests | moved |
+| `repair/` | repair providers: bounded, verified repair options per finding family (placement, host representation, roster fill, spread, movable ice, unplaced obligations, date relocation, neighborhood search); the dispatch and adoption boundary stays in `repair_options`/`local_repair_options`/`repair_application` | moved |
 | `cli/`, `pipeline/`, `html/`, `excel/`, `csv/`, `ical/` | CLI transport, use-case orchestration and rendering/export adapters | layer adapters |
 
 Layer rules for domain packages (`hosting/`, `participation/`): they must not import
@@ -165,7 +166,7 @@ guards in `tests/test_hosting_package_layout.py`,
 `tests/test_participation_package_layout.py`, `tests/test_planning_package_layout.py`,
 `tests/test_season_package_layout.py`, `tests/test_clubs_package_layout.py`,
 `tests/test_intake_package_layout.py`, `tests/test_rules_package_layout.py` and
-`tests/test_publication_package_layout.py`
+`tests/test_publication_package_layout.py` and `tests/test_repair_package_layout.py`
 enforce the placement and the import rule.
 
 Recorded exceptions: `publication/` still reaches outward for a few existing dependencies, tracked for follow-up rather than enforced by the locality guard: `pipeline/fingerprints` (stable payload hashing), `html` (the cancelled-tournaments filename constant), `hosting` and `season` helpers, and, lazily, `application/canonical_season/store_facade` (booking status and decision loads in `scope`). The publication-lifecycle orchestration that imports the canonical season store stays in `pipeline/publication_lifecycle`.

@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
-from tournament_scheduler.host_team_missing_repair import RepairOption, candidate_fingerprint, search_dimension_tag
+from tournament_scheduler.repair.host_team_missing import RepairOption, candidate_fingerprint, search_dimension_tag
 from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.stage3.optimizer import optimize_candidate
 

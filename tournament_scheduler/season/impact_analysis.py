@@ -109,7 +109,7 @@ def _signature(tournament: Mapping[str, Any]) -> Any:
 
 
 def _plan_fingerprint(plan: Mapping[str, Any]) -> str:
-    from ..host_team_missing_repair import candidate_fingerprint
+    from tournament_scheduler.repair.host_team_missing import candidate_fingerprint
 
     return candidate_fingerprint(plan)
 

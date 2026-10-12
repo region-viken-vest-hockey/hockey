@@ -40,11 +40,11 @@ from __future__ import annotations
 import copy
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 
-from .planning import half as planning_half
-from .candidate_weekends import season_weekend_dates
-from .date_policy import problem_forbidden_dates as _problem_forbidden_dates
-from .hosting.representation import clubs_represent_same_club, constituent_clubs
-from .host_team_missing_repair import (
+from tournament_scheduler.planning import half as planning_half
+from tournament_scheduler.candidate_weekends import season_weekend_dates
+from tournament_scheduler.date_policy import problem_forbidden_dates as _problem_forbidden_dates
+from tournament_scheduler.hosting.representation import clubs_represent_same_club, constituent_clubs
+from tournament_scheduler.repair.host_team_missing import (
     GENERATED_START_TIMES,
     RepairOption,
     _candidate_start_times,
@@ -55,8 +55,8 @@ from .host_team_missing_repair import (
     bounded_start_times,
     candidate_fingerprint,
 )
-from .models import Team  # noqa: F401  (re-exported for callers/tests)
-from .planning.contract import (
+from tournament_scheduler.models import Team  # noqa: F401  (re-exported for callers/tests)
+from tournament_scheduler.planning.contract import (
     HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT,
     _parse_date,
     _team_identity,
@@ -65,7 +65,7 @@ from .planning.contract import (
     movable_calendar_opportunity,
     verify_candidate,
 )
-from .search_capability import (
+from tournament_scheduler.search_capability import (
     COVERAGE_BOUNDED_EXHAUSTED,
     SearchCapability,
     capability_is_stale,

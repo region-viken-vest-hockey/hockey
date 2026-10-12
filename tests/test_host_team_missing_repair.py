@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 from tournament_scheduler.application.decisions import DecisionAction, decide
-from tournament_scheduler.host_team_missing_repair import (
+from tournament_scheduler.repair.host_team_missing import (
     apply_host_team_missing_repair_option,
     build_host_team_missing_decision_context,
     candidate_fingerprint,

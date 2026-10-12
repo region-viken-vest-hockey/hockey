@@ -23,15 +23,15 @@ import copy
 from datetime import date
 from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 
-from .planning import half as planning_half
-from .candidate_weekends import season_weekend_dates
-from .date_policy import problem_date_exclusions
-from .host_team_missing_repair import (
+from tournament_scheduler.planning import half as planning_half
+from tournament_scheduler.candidate_weekends import season_weekend_dates
+from tournament_scheduler.date_policy import problem_date_exclusions
+from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
     _candidate_start_times,
     candidate_fingerprint,
 )
-from .planning.contract import (
+from tournament_scheduler.planning.contract import (
     _parse_date,
     _team_identity,
     external_calendar_conflict,
@@ -132,7 +132,7 @@ def relocate_excluded_date_tournaments(
     verification = verify_candidate(working, dict(problem))
     demotions: List[Dict[str, Any]] = []
     if demote_unresolved and unresolved:
-        from .placement_normalization import REASON_EXCLUDED_DATE, demote_tournament_to_unplaced
+        from tournament_scheduler.placement_normalization import REASON_EXCLUDED_DATE, demote_tournament_to_unplaced
 
         for entry in unresolved:
             obligation = demote_tournament_to_unplaced(

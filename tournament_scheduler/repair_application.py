@@ -18,7 +18,7 @@ from .findings_construction import _infer_finding_id
 from .findings_construction import _require_finding
 from .findings_construction import construct_findings
 from .findings_construction import findings_for_plan
-from .host_team_missing_repair import candidate_fingerprint
+from tournament_scheduler.repair.host_team_missing import candidate_fingerprint
 from .season.impact_analysis import _changed_team_ids
 from .season.impact_analysis import _changed_tournament_ids
 from .season.impact_analysis import _plan_fingerprint
@@ -159,7 +159,7 @@ def apply_repair(
     # it, not from whatever the caller happened to pass to ``apply-repair``.
     # Prefer the option's own stable dimension tag so applying a returned
     # search option does not require the harness to replay its flags.
-    from .host_team_missing_repair import search_dimensions_from_option_id
+    from tournament_scheduler.repair.host_team_missing import search_dimensions_from_option_id
 
     recovered_dimensions = search_dimensions_from_option_id(option_id)
     if recovered_dimensions is not None:
@@ -559,7 +559,7 @@ def _apply_option(
             dimensions=option_dimensions,
         )
     if family == "search_neighborhood":
-        from .search_neighborhood_repair import apply_search_neighborhood_repair_option
+        from tournament_scheduler.repair.search_neighborhood import apply_search_neighborhood_repair_option
 
         return apply_search_neighborhood_repair_option(
             plan,
@@ -570,13 +570,13 @@ def _apply_option(
             dimensions=option_dimensions,
         )
     if family == "movable_capacity":
-        from .movable_capacity_repair import apply_movable_capacity_repair_option
+        from tournament_scheduler.repair.movable_capacity import apply_movable_capacity_repair_option
 
         return apply_movable_capacity_repair_option(
             plan, problem, option_id=option_id, expected_fingerprint=fingerprint
         )
     if family == "home_representation":
-        from .home_representation_repair import apply_home_representation_repair_option
+        from tournament_scheduler.repair.home_representation import apply_home_representation_repair_option
 
         return apply_home_representation_repair_option(
             plan,
@@ -586,7 +586,7 @@ def _apply_option(
             arguments=dict(arguments) or None,
         )
     if family == "intra_club_distribution":
-        from .intra_club_distribution_repair import (
+        from tournament_scheduler.repair.intra_club_distribution import (
             apply_intra_club_distribution_repair_option,
         )
 
@@ -599,7 +599,7 @@ def _apply_option(
             scope=scope,
         )
     if family == "coupled_placement":
-        from .coupled_placement_repair import apply_coupled_placement_repair_option
+        from tournament_scheduler.repair.coupled_placement import apply_coupled_placement_repair_option
 
         return apply_coupled_placement_repair_option(
             plan,
@@ -609,7 +609,7 @@ def _apply_option(
             arguments=dict(arguments) or None,
         )
     if family == "unplaced_placement":
-        from .unplaced_placement_repair import apply_unplaced_placement_repair_option
+        from tournament_scheduler.repair.unplaced_placement import apply_unplaced_placement_repair_option
 
         return apply_unplaced_placement_repair_option(
             plan,

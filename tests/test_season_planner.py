@@ -30,7 +30,7 @@ from tournament_scheduler.season_planner import (
     _club_share_explains_shortfall,
 )
 from tournament_scheduler.host_assignment import find_slot_for_tournament
-from tournament_scheduler.host_representation_repair import repair_host_representation
+from tournament_scheduler.repair.host_representation import repair_host_representation
 from tournament_scheduler.testing.canonical_input import OfflineScheduler, all_weekend_dates
 from tournament_scheduler.warnings import holiday_heavy_weekend_dates
 

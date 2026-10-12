@@ -14,15 +14,15 @@ import copy
 from itertools import combinations
 from typing import Any, Dict, Iterable, List, Mapping, Tuple
 
-from .host_placement_repair import (
+from tournament_scheduler.repair.host_placement import (
     _calendar_trusted,
     _candidate_weekend_dates,
     _clear_unresolved_placement,
     _effective_busy_intervals,
     _is_manual_slot_failure,
 )
-from .hosting.representation import clubs_represent_same_club
-from .host_team_missing_repair import (
+from tournament_scheduler.hosting.representation import clubs_represent_same_club
+from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
     _candidate_start_times,
     _codes,
@@ -37,7 +37,7 @@ from .host_team_missing_repair import (
     _team_ref,
     candidate_fingerprint,
 )
-from .planning.contract import (
+from tournament_scheduler.planning.contract import (
     _parse_date,
     external_calendar_conflict,
     movable_calendar_opportunity,

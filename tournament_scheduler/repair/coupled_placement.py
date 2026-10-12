@@ -34,8 +34,8 @@ import copy
 from itertools import product
 from typing import Any, Collection, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from .season.baseline_overlay import PLACEMENT_FIELDS, change_cost
-from .host_team_missing_repair import (
+from tournament_scheduler.season.baseline_overlay import PLACEMENT_FIELDS, change_cost
+from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
     _identity,
     _participation_counts,
@@ -44,13 +44,13 @@ from .host_team_missing_repair import (
     _team_ref,
     candidate_fingerprint,
 )
-from .hosting.representation import clubs_represent_same_club
-from .hosting.responsibility import (
+from tournament_scheduler.hosting.representation import clubs_represent_same_club
+from tournament_scheduler.hosting.responsibility import (
     hosting_responsibility_facts,
     unexplained_responsibility_transfers,
 )
-from .movable_capacity_repair import _replacement_rank, _roster_variants
-from .operational_acceptability import (
+from tournament_scheduler.repair.movable_capacity import _replacement_rank, _roster_variants
+from tournament_scheduler.operational_acceptability import (
     check_operational_acceptability,
     required_opt_in_flags,
 )
@@ -59,9 +59,9 @@ from tournament_scheduler.participation.targets import (
     club_pool_snapshot,
     evaluate_participation,
 )
-from .pipeline.fingerprints import stable_payload_sha256
-from .planning.contract import verify_candidate
-from .team_schedule_quality import (
+from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
+from tournament_scheduler.planning.contract import verify_candidate
+from tournament_scheduler.team_schedule_quality import (
     TeamIdentity,
     compare_changed_team_schedule_consequence,
 )

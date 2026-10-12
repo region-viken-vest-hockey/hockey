@@ -18,15 +18,15 @@ from __future__ import annotations
 import inspect
 from typing import Any, Callable, Dict, Mapping, Tuple
 
-from .date_policy_relocation import (
+from tournament_scheduler.repair.date_policy_relocation import (
     apply_date_policy_relocation_option,
     enumerate_date_policy_relocations,
 )
-from .host_placement_repair import (
+from tournament_scheduler.repair.host_placement import (
     apply_host_placement_repair_option,
     enumerate_host_placement_repairs,
 )
-from .home_representation_repair import (
+from tournament_scheduler.repair.home_representation import (
     apply_home_representation_repair_option,
     enumerate_home_representation_repairs,
 )
@@ -34,12 +34,12 @@ from .hosting.balance_repair import (
     apply_hosting_balance_repair_option,
     enumerate_hosting_balance_repairs,
 )
-from .host_team_missing_repair import (
+from tournament_scheduler.repair.host_team_missing import (
     apply_host_team_missing_repair_option,
     candidate_fingerprint,
     enumerate_host_team_missing_repairs,
 )
-from .movable_capacity_repair import (
+from tournament_scheduler.repair.movable_capacity import (
     apply_movable_capacity_repair_option,
     enumerate_movable_capacity_repairs,
 )
@@ -47,19 +47,19 @@ from tournament_scheduler.participation.deviation_repair import (
     apply_participation_deviation_repair_option,
     enumerate_participation_deviation_repairs,
 )
-from .coupled_placement_repair import (
+from tournament_scheduler.repair.coupled_placement import (
     apply_coupled_placement_repair_option,
     enumerate_coupled_placement_repairs,
 )
-from .placement_preserving_roster_repair import (
+from tournament_scheduler.repair.placement_preserving_roster import (
     apply_placement_preserving_roster_repair_option,
     enumerate_placement_preserving_roster_repairs,
 )
-from .search_neighborhood_repair import (
+from tournament_scheduler.repair.search_neighborhood import (
     apply_search_neighborhood_repair_option,
     enumerate_search_neighborhood_repairs,
 )
-from .underfilled_roster_repair import (
+from tournament_scheduler.repair.underfilled_roster import (
     apply_underfilled_roster_repair_option,
     enumerate_underfilled_roster_repairs,
 )

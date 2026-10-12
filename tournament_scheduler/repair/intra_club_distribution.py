@@ -4,7 +4,7 @@
 classification. When a multi-team pool has *enough aggregate* participation but
 the nominal sibling labels are uneven, the classification is
 ``intra_club_distribution``: a pure redistribution opportunity, not a missing
-participation opportunity. :mod:`tournament_scheduler.home_representation_repair`
+participation opportunity. :mod:`tournament_scheduler.repair.home_representation`
 owns the analogous *home-appearance* spread; this module owns the participation
 spread semantic separately (they are independent quality layers).
 
@@ -41,10 +41,10 @@ from __future__ import annotations
 import copy
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from .guest_slots import guest_slot_summary
-from .home_representation import home_representation_rows
-from .hosting.representation import clubs_represent_same_club
-from .host_team_missing_repair import (
+from tournament_scheduler.guest_slots import guest_slot_summary
+from tournament_scheduler.home_representation import home_representation_rows
+from tournament_scheduler.hosting.representation import clubs_represent_same_club
+from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
     _codes,
     _find_tournament,
@@ -62,14 +62,14 @@ from tournament_scheduler.participation.targets import (
     club_pool_sibling_spread,
     evaluate_participation,
 )
-from .planning.contract import (
+from tournament_scheduler.planning.contract import (
     _parse_date,
     _participation_search_evidence,
     score_candidate,
     verify_candidate,
 )
-from .quality_objectives import compare_quality_scores, with_unresolved_obligations_count
-from .team_schedule_quality import compare_changed_team_schedule_consequence
+from tournament_scheduler.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
+from tournament_scheduler.team_schedule_quality import compare_changed_team_schedule_consequence
 
 INTRA_CLUB_DISTRIBUTION_FINDING_PREFIX = "intra_club_participation_distribution"
 

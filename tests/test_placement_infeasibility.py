@@ -44,7 +44,7 @@ from tournament_scheduler.application.canonical_season.store_facade import (
     release_placement_infeasibility_proofs,
 )
 from tournament_scheduler.search_capability import SearchCapability
-from tournament_scheduler.unplaced_placement_repair import (
+from tournament_scheduler.repair.unplaced_placement import (
     SEARCH_BOUNDED_EXHAUSTED,
     SEARCH_INCOMPLETE,
     enumerate_unplaced_placement_repairs,

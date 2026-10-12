@@ -17,7 +17,7 @@ from tournament_scheduler.warnings import _club_calendar_available
 
 
 def participants_with_host_represented(planner, participants, age_group, period, home_club, already_used):
-    """Read-only variant of `host_representation_repair.repair_host_representation`.
+    """Read-only variant of `repair.host_representation.repair_host_representation`.
 
     Must not mutate planner counters -- unlike that function, a rejected
     repair candidate here must leave no trace, so the swap is only computed

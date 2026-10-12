@@ -33,7 +33,7 @@ from tournament_scheduler.placement_infeasibility import (
     proofs_by_obligation,
     replace_obligation_proof,
 )
-from tournament_scheduler.unplaced_placement_repair import (
+from tournament_scheduler.repair.unplaced_placement import (
     enumerate_unplaced_placement_repairs,
     unplaced_placement_search_capability,
 )

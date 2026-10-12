@@ -11,7 +11,7 @@ from tournament_scheduler.local_repair_options import (
     apply_local_repair_option,
     enumerate_local_repair_options,
 )
-from tournament_scheduler.placement_preserving_roster_repair import (
+from tournament_scheduler.repair.placement_preserving_roster import (
     apply_placement_preserving_roster_repair_option,
     build_placement_preserving_roster_decision_context,
     enumerate_placement_preserving_roster_repairs,

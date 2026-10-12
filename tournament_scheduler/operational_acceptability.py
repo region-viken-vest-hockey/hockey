@@ -125,7 +125,7 @@ def operational_placement_profile(
         for entry in plan_dict.get("unresolved_tournament_placements") or []
         if isinstance(entry, Mapping) and entry.get("id")
     }
-    from .host_placement_repair import is_manual_slot_failure
+    from tournament_scheduler.repair.host_placement import is_manual_slot_failure
 
     for tournament in plan_dict.get("tournaments") or []:
         if not isinstance(tournament, Mapping):

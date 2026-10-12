@@ -673,7 +673,7 @@ def run(
     candidate_weekends_by_tournament: dict[str, dict] = {}
     if export_problem:
         try:
-            from ..host_placement_repair import collect_candidate_weekend_evidence
+            from tournament_scheduler.repair.host_placement import collect_candidate_weekend_evidence
 
             for bundle in collect_candidate_weekend_evidence(plan_dict, export_problem):
                 key = str(bundle.get("tournament_id") or "") or str(bundle.get("finding_id") or "")

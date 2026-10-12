@@ -31,9 +31,9 @@ from dataclasses import dataclass
 from itertools import combinations
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from .application.decisions import DecisionContext
-from .hosting.representation import clubs_represent_same_club
-from .host_team_missing_repair import (
+from tournament_scheduler.application.decisions import DecisionContext
+from tournament_scheduler.hosting.representation import clubs_represent_same_club
+from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
     TeamIdentity,
     _codes,
@@ -50,7 +50,7 @@ from .host_team_missing_repair import (
     candidate_fingerprint,
 )
 from tournament_scheduler.participation.targets import resolve_season_target
-from .planning.contract import _parse_date, verify_candidate
+from tournament_scheduler.planning.contract import _parse_date, verify_candidate
 
 # The family owns participant-only repairs for these hard findings. Anything
 # else (a missing host team, a bad date, an arena conflict) belongs to another

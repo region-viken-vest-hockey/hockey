@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
-from ...host_team_missing_repair import candidate_fingerprint
+from tournament_scheduler.repair.host_team_missing import candidate_fingerprint
 
 from .interactive_state_io import (
     _clear_arena_conflict_state,

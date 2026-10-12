@@ -30,10 +30,10 @@ FORBIDDEN_LIFECYCLE_IMPORTS = (
     "tournament_scheduler.season_planner",
     "tournament_scheduler.stage3.optimizer",
     "tournament_scheduler.local_repair_options",
-    "tournament_scheduler.host_team_missing_repair",
-    "tournament_scheduler.search_neighborhood_repair",
-    "tournament_scheduler.underfilled_roster_repair",
-    "tournament_scheduler.host_placement_repair",
+    "tournament_scheduler.repair.host_team_missing",
+    "tournament_scheduler.repair.search_neighborhood",
+    "tournament_scheduler.repair.underfilled_roster",
+    "tournament_scheduler.repair.host_placement",
 )
 
 # The only authoritative interactive Stage 3 side-state filenames allowed in

@@ -1015,7 +1015,7 @@ def test_search_option_identity_is_stable_and_applyable_without_replaying_dimens
 
 
 def test_search_dimension_tag_round_trips() -> None:
-    from tournament_scheduler.host_team_missing_repair import (
+    from tournament_scheduler.repair.host_team_missing import (
         search_dimension_tag,
         search_dimensions_from_option_id,
     )

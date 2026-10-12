@@ -3,7 +3,7 @@
 from copy import deepcopy
 
 from tournament_scheduler.application.decisions import DecisionAction, decide
-from tournament_scheduler.host_placement_repair import (
+from tournament_scheduler.repair.host_placement import (
     apply_host_placement_repair_option,
     build_host_placement_decision_context,
     collect_candidate_weekend_evidence,

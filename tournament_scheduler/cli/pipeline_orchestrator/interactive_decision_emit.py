@@ -219,7 +219,7 @@ def _host_team_missing_repair_context(
     context (which can still offer ``keep_baseline``); the first-attempt path
     keeps it ``False`` so the rejection evidence is always surfaced.
     """
-    from ...host_team_missing_repair import build_host_team_missing_decision_context
+    from tournament_scheduler.repair.host_team_missing import build_host_team_missing_decision_context
     from ...planning.contract import extract_candidate
 
     violations = _baseline_hard_violations_for_plan(plan, problem)
@@ -254,7 +254,7 @@ def _underfilled_roster_repair_context(
     rejection evidence; the harness never hand-edits a participant list.
     """
     from ...planning.contract import extract_candidate
-    from ...underfilled_roster_repair import build_underfilled_roster_decision_context
+    from tournament_scheduler.repair.underfilled_roster import build_underfilled_roster_decision_context
 
     violations = _baseline_hard_violations_for_plan(plan, problem)
     if not any(str(v).startswith("bye_team_not_allowed:") for v in violations):
@@ -287,7 +287,7 @@ def _placement_preserving_roster_repair_context(
     substitution option ids plus explicit rejection evidence so the cheap
     roster repair is always tried before any date/host or solver pass.
     """
-    from ...placement_preserving_roster_repair import (
+    from tournament_scheduler.repair.placement_preserving_roster import (
         build_placement_preserving_roster_decision_context,
     )
     from ...planning.contract import extract_candidate
@@ -388,7 +388,7 @@ def _search_neighborhood_repair_context(
     "proven infeasible" from "search budget exhausted".
     """
     from ...planning.contract import extract_candidate
-    from ...search_neighborhood_repair import (
+    from tournament_scheduler.repair.search_neighborhood import (
         build_search_neighborhood_decision_context,
         findings_are_locally_searchable,
     )
@@ -433,7 +433,7 @@ def _host_placement_repair_context(
     optimizer cannot improve must still fall through to the ordinary
     comparison context and stay finalizable via ``keep_baseline``.
     """
-    from ...host_placement_repair import (
+    from tournament_scheduler.repair.host_placement import (
         build_host_placement_decision_context,
         candidate_has_manual_slot_failure,
     )

@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from tournament_scheduler.responsibility_preserving_repair import (
+from tournament_scheduler.repair.responsibility_preserving import (
     find_same_host_date_placement,
 )
 

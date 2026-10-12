@@ -28,18 +28,18 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from .application.decisions import DecisionContext
-from .host_team_missing_repair import (
+from tournament_scheduler.application.decisions import DecisionContext
+from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
     _codes,
     _identity,
     candidate_fingerprint,
 )
-from .hosting.responsibility import (
+from tournament_scheduler.hosting.responsibility import (
     responsibility_regression_reason,
     unexplained_responsibility_transfers,
 )
-from .planning.verification import verify_canonical_candidate
+from tournament_scheduler.planning.verification import verify_canonical_candidate
 from tournament_scheduler.stage3.optimizer import optimize_candidate
 
 SEARCH_ENGINE = "local_search"

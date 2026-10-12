@@ -25,7 +25,7 @@ from tournament_scheduler.season.maintenance import (
     search,
 )
 from tournament_scheduler.application.canonical_season.store_facade import schedule_fingerprint
-from tournament_scheduler.unplaced_placement_repair import (
+from tournament_scheduler.repair.unplaced_placement import (
     SEARCH_BOUNDED_EXHAUSTED,
     SEARCH_INCOMPLETE,
     SEARCH_OPTION_AVAILABLE,
@@ -954,7 +954,7 @@ def test_bounded_exhaustion_marker_from_superseded_search_is_retryable(tmp_path:
     obligation instead of inheriting the superseded result.
     """
     from tournament_scheduler.search_capability import SearchCapability
-    from tournament_scheduler.unplaced_placement_repair import (
+    from tournament_scheduler.repair.unplaced_placement import (
         unplaced_placement_search_capability,
     )
 
@@ -992,7 +992,7 @@ def test_bounded_exhaustion_marker_from_superseded_search_is_retryable(tmp_path:
 
 
 def test_exhaustion_marker_from_current_search_is_not_stale(tmp_path: Path) -> None:
-    from tournament_scheduler.unplaced_placement_repair import (
+    from tournament_scheduler.repair.unplaced_placement import (
         unplaced_placement_search_capability,
     )
 

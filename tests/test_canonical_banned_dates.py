@@ -19,7 +19,7 @@ from tournament_scheduler.season.banned_dates import (
 )
 from tournament_scheduler.season.state import canonical_state_revision
 from tournament_scheduler.date_policy import problem_forbidden_dates
-from tournament_scheduler.host_placement_repair import _candidate_weekend_dates
+from tournament_scheduler.repair.host_placement import _candidate_weekend_dates
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.season.maintenance import apply_repair, load_context

@@ -42,13 +42,13 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
-from .planning import half as planning_half
-from .application.decisions import DecisionContext
-from .candidate_weekends import enumerate_candidate_weekends, season_weekend_dates
-from .date_policy import problem_date_exclusions as _problem_date_exclusions
-from .date_policy import problem_forbidden_dates as _problem_forbidden_dates
-from .hosting.representation import constituent_clubs
-from .host_team_missing_repair import (
+from tournament_scheduler.planning import half as planning_half
+from tournament_scheduler.application.decisions import DecisionContext
+from tournament_scheduler.candidate_weekends import enumerate_candidate_weekends, season_weekend_dates
+from tournament_scheduler.date_policy import problem_date_exclusions as _problem_date_exclusions
+from tournament_scheduler.date_policy import problem_forbidden_dates as _problem_forbidden_dates
+from tournament_scheduler.hosting.representation import constituent_clubs
+from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
     _candidate_start_times,
     _codes,
@@ -58,7 +58,7 @@ from .host_team_missing_repair import (
     _slug,
     candidate_fingerprint,
 )
-from .planning.contract import (
+from tournament_scheduler.planning.contract import (
     _parse_date,
     _team_identity,
     apply_calendar_interpretations,

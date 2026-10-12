@@ -18,13 +18,13 @@ from tournament_scheduler.date_policy import (
     holiday_excluded_dates,
     problem_forbidden_dates,
 )
-from tournament_scheduler.date_policy_relocation import (
+from tournament_scheduler.repair.date_policy_relocation import (
     apply_date_policy_relocation_option,
     enumerate_date_policy_relocations,
     relocate_excluded_date_tournaments,
 )
 from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
-from tournament_scheduler.search_neighborhood_repair import (
+from tournament_scheduler.repair.search_neighborhood import (
     DATE_MOVE_VIOLATION_CODES,
     enumerate_search_neighborhood_repairs,
     findings_are_locally_searchable,

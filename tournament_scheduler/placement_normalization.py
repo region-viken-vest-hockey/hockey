@@ -119,7 +119,7 @@ def classify_tournament(
 
     Returns ``{"state", "reason", "tournament_id", "age_group", "date"}``.
     """
-    from .host_placement_repair import is_manual_slot_failure
+    from tournament_scheduler.repair.host_placement import is_manual_slot_failure
 
     tournament_id = str(tournament.get("id") or "")
     base = {
@@ -262,7 +262,7 @@ def _obligation_from_tournament(
         "source_tournament_id": verdict.get("tournament_id"),
         "normalized_from": "placement_normalization",
     }
-    from .unplaced_placement_repair import unplaced_placement_search_capability
+    from tournament_scheduler.repair.unplaced_placement import unplaced_placement_search_capability
 
     obligation["search_capability"] = unplaced_placement_search_capability().to_dict()
     evidence = verdict.get("evidence")

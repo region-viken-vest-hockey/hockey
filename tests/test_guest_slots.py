@@ -43,7 +43,7 @@ from tournament_scheduler.testing.reviewed_export import (
     build_problem_from_candidate,
     write_reviewed_stage4_export,
 )
-from tournament_scheduler.underfilled_roster_repair import enumerate_underfilled_roster_repairs
+from tournament_scheduler.repair.underfilled_roster import enumerate_underfilled_roster_repairs
 
 
 def _round_robin(teams: list[dict]) -> list[dict]:

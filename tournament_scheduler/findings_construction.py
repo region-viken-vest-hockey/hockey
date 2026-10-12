@@ -20,8 +20,8 @@ from .placement_infeasibility import stale_coverage_from_proof
 from .planning.contract import verify_candidate
 from .rule_catalog import annotate_findings
 from .search_coverage import cheap_search_coverage
-from .unplaced_placement_repair import obligation_search_coverage
-from .unplaced_placement_repair import unplaced_placement_search_capability
+from tournament_scheduler.repair.unplaced_placement import obligation_search_coverage
+from tournament_scheduler.repair.unplaced_placement import unplaced_placement_search_capability
 from typing import Any
 from typing import Dict
 from typing import Iterable
@@ -397,7 +397,7 @@ def _manual_findings(
     # slot may be calendar-free while still being an unconfirmed booking. Own
     # the same stable finding id as ``host_placement_repair`` so its repair
     # options are reachable without reconstructing the marker in a caller.
-    from .host_placement_repair import is_manual_slot_failure
+    from tournament_scheduler.repair.host_placement import is_manual_slot_failure
 
     for tournament in plan.get("tournaments") or []:
         tournament_id = str(tournament.get("id") or "")
@@ -515,7 +515,7 @@ def _movable_capacity_findings(
     ``manual_placement`` finding so a caller can select the ice opportunity
     directly instead of reconstructing it from provider options.
     """
-    from .movable_capacity_repair import movable_capacity_opportunities
+    from tournament_scheduler.repair.movable_capacity import movable_capacity_opportunities
 
     out: List[Dict[str, Any]] = []
     for opportunity in movable_capacity_opportunities(plan, problem):
@@ -733,7 +733,7 @@ def _home_representation_findings(
     mutate the schedule.
     """
     from .home_representation import home_representation_rows
-    from .home_representation_repair import home_representation_finding_id
+    from tournament_scheduler.repair.home_representation import home_representation_finding_id
 
     rows = home_representation_rows(
         (problem or {}).get("teams") or [], (plan or {}).get("tournaments") or []
@@ -779,7 +779,7 @@ def _intra_club_distribution_findings(
     exact sibling counts/targets, the current spread and the scope so the repair
     provider (and the operator) never has to reconstruct the classification.
     """
-    from .intra_club_distribution_repair import intra_club_distribution_finding_id
+    from tournament_scheduler.repair.intra_club_distribution import intra_club_distribution_finding_id
 
     out: List[Dict[str, Any]] = []
     for pool in verification.get("participation_club_pools") or []:

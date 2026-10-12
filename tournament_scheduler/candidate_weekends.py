@@ -1,6 +1,6 @@
 """Conflict-aware manual-placement candidate weekends.
 
-When the bounded responsibility-preserving repair (``responsibility_preserving_repair``
+When the bounded responsibility-preserving repair (``repair.responsibility_preserving``
 + ``host_placement_repair``) cannot commit an automatic placement, the operator
 still needs to see *which* concrete weekends could work for the responsible host
 and why the others did not. This module owns that suggestion slice.
