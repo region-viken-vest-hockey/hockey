@@ -1149,6 +1149,7 @@ _EVIDENCE: tuple[RuleEntry, ...] = (
         tests=("tests/test_calendar_availability.py", "tests/test_movable_capacity_repair.py", "tests/test_approval_lifecycle.py"),
         finding_codes=(
             "external_calendar_conflicts",
+            "manual_external_conflict_placements",
             "movable_host_confirmation_required",
             "movable_capacity_opportunity",
             "duplicate_calendar_booking_association",

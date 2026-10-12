@@ -144,7 +144,6 @@ _GRANDFATHERED_UNREGISTERED_CODES = frozenset(
         "fewer_distinct_opponent_clubs",
         "fewer_unique_opponents",
         "hard_violations",
-        "manual_external_conflict_placements",
         "more_repeated_opponent_excess",
         "opponent_measure_changed",
         "participation_count_changed",
@@ -273,6 +272,40 @@ def test_duplicate_calendar_booking_association_has_one_calendar_interval_owner(
     ]
     catalog.annotate_findings(findings)
     assert findings[0]["rule_id"] == owner
+
+
+def test_manual_external_conflict_placements_has_one_calendar_interval_owner() -> None:
+    # The approval-blocker code for a known external calendar conflict is the
+    # fixed_busy classification surfaced for manual placement, so it belongs with
+    # the external_calendar_conflicts reason under the calendar interval rule.
+    # It is a finding code, not a verifier code: the verifier's raw key is mapped
+    # to external_calendar_conflicts, and only the approval refusal emits this code.
+    from tournament_scheduler.application.canonical_season.shared import _attributable_blockers
+
+    code = "manual_external_conflict_placements"
+    owner = "calendar_interval_classification"
+    assert _all_emitted_codes_by_module()[code] == {"tournament_scheduler/application/canonical_season/shared.py"}
+    assert {entry.id for entry in catalog.RULE_CATALOG if code in entry.finding_codes} == {owner}
+    assert {entry.id for entry in catalog.RULE_CATALOG if code in entry.verifier_codes} == set()
+    assert catalog.rule_id_for_finding_code(code) == owner
+    assert catalog.rule_id_for_verifier_code(code) is None
+    assert catalog.CATALOG_BY_ID[owner].classification == catalog.FACT_EVIDENCE_SEMANTIC
+    assert code not in _GRANDFATHERED_UNREGISTERED_CODES
+
+    verification = {
+        "violations": [],
+        "manual_external_conflict_placements": [
+            {"tournament_id": "t1", "host_club": "Club A", "age_group": "U10", "date": "2026-01-10"},
+        ],
+    }
+    hard, unresolved = _attributable_blockers(verification, "t1")
+    assert hard == []
+    assert [blocker["code"] for blocker in unresolved] == [code]
+    catalog.annotate_findings(unresolved)
+    assert unresolved[0]["rule_id"] == owner
+
+    _, other = _attributable_blockers(verification, "t2")
+    assert other == []
 
 
 _TOURNAMENT_IDENTITY_CODES = (

@@ -255,6 +255,7 @@ candidate regresses a higher-priority operational obligation.
 | `manual_placement` (finding) | `manual_placement_opt_in` |
 | `manual_calendar_placements` (finding) | `calendar_source_trust` |
 | `external_calendar_conflicts` (finding) | `calendar_interval_classification` |
+| `manual_external_conflict_placements` (finding) | `calendar_interval_classification` |
 | `movable_host_confirmation_required` (finding) | `calendar_interval_classification` |
 | `movable_capacity_opportunity` (finding) | `calendar_interval_classification` |
 | `duplicate_calendar_booking_association` (finding) | `calendar_interval_classification` |
@@ -1132,7 +1133,7 @@ candidate regresses a higher-priority operational obligation.
 **Canonical owner:** `tournament_scheduler.booking.calendar_availability / tournament_scheduler.booking.calendar_bookings`  
 **Input / fact source:** configured/stage-2 calendar intervals + decisions.json calendar_booking_associations  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.external_calendar_conflict`  
-**Codes:** verifier — · finding `external_calendar_conflicts`, `movable_host_confirmation_required`, `movable_capacity_opportunity`, `duplicate_calendar_booking_association`, `stale_calendar_booking_association` · score —  
+**Codes:** verifier — · finding `external_calendar_conflicts`, `manual_external_conflict_placements`, `movable_host_confirmation_required`, `movable_capacity_opportunity`, `duplicate_calendar_booking_association`, `stale_calendar_booking_association` · score —  
 **Providers:** mutation `movable_capacity_repair`, `CanonicalSeasonService.confirm_calendar_booking` · search —  
 **Evidence / report:** `movable_allocations_used`, `manual_external_conflict_placements`, `calendar_booking_associations`  
 **Tests:** `tests/test_calendar_availability.py`, `tests/test_movable_capacity_repair.py`, `tests/test_approval_lifecycle.py`  
