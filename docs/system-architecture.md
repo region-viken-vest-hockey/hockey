@@ -152,8 +152,8 @@ moved one domain slice at a time.
 | `intake/` | season input intake: SharePoint registration import and roster configuration loading | moved |
 | `stage3/` | Stage 3 search: local optimizer, CP-SAT engine and its slot/club-cap/diagnostic helpers, engine dispatch, A/B and shadow comparison, decision context | moved |
 | `planning/` | planning contract (candidate extraction, planning problem, independent hard verifier and scorer), its distribution scoring blocks, the before/after-Christmas split and final export verification | moved |
-| `rules/` | rules model, operational obligations and the rules report with its capacity and operational entries | moved |
-| `rule_catalog.py`, `pareto.py`, `quality_objectives.py` and related flat modules | rule registry and shared multi-objective scoring used across domains | not yet moved |
+| `rules/` | the canonical rule catalog (`catalog`), the rules model, operational obligations and the rules report with its capacity and operational entries | moved |
+| `scoring/` | shared quality objective vector (`quality_objectives`), the single Pareto dominance relation and bounded down-select (`pareto`), and plan metric helpers (`game_metrics`) | moved |
 | `season/` | canonical season state and lifecycle records, promoted-season maintenance and its accepted baseline, approvals, requests, protections and waivers | moved |
 | `season_planner.py`, `application/` | Stage 1/2 season planner (planning domain) and canonical use-case orchestration (application layer) | not yet moved |
 | `publication/` | sealed-season publication identity and published baseline, reconciliation with canonical mutations, export projection guard, tournament-scoped republish eligibility, publication evidence and export lifecycle manifests | moved |
@@ -166,7 +166,8 @@ guards in `tests/test_hosting_package_layout.py`,
 `tests/test_participation_package_layout.py`, `tests/test_planning_package_layout.py`,
 `tests/test_season_package_layout.py`, `tests/test_clubs_package_layout.py`,
 `tests/test_intake_package_layout.py`, `tests/test_rules_package_layout.py` and
-`tests/test_publication_package_layout.py` and `tests/test_repair_package_layout.py`
+`tests/test_publication_package_layout.py`, `tests/test_repair_package_layout.py` and
+`tests/test_scoring_package_layout.py`
 enforce the placement and the import rule.
 
 Recorded exceptions: `publication/` still reaches outward for a few existing dependencies, tracked for follow-up rather than enforced by the locality guard: `pipeline/fingerprints` (stable payload hashing), `html` (the cancelled-tournaments filename constant), `hosting` and `season` helpers, and, lazily, `application/canonical_season/store_facade` (booking status and decision loads in `scope`). The publication-lifecycle orchestration that imports the canonical season store stays in `pipeline/publication_lifecycle`.
@@ -213,7 +214,7 @@ Generators and optimizers may consume these rules to construct candidates, but t
 
 ### Canonical rule catalog
 
-`tournament_scheduler/rule_catalog.py` is the one searchable, metadata-only registry of every active scheduling semantic: its stable ID, primary classification (`hard_constraint`, `operational_obligation`, `soft_objective`, `operator_decision`, `fact_evidence_semantic`), meaning, canonical owner/facade, input source, verifier/measurement owner, mutation/search providers, evidence projection, tests, status and the small amount of `precedes`/`depends_on` precedence that actually matters. The generated agent-facing table lives in [`architecture/rule-catalog.md`](architecture/rule-catalog.md) and is kept current by `scripts/render-rule-catalog.py`.
+`tournament_scheduler/rules/catalog.py` is the one searchable, metadata-only registry of every active scheduling semantic: its stable ID, primary classification (`hard_constraint`, `operational_obligation`, `soft_objective`, `operator_decision`, `fact_evidence_semantic`), meaning, canonical owner/facade, input source, verifier/measurement owner, mutation/search providers, evidence projection, tests, status and the small amount of `precedes`/`depends_on` precedence that actually matters. The generated agent-facing table lives in [`architecture/rule-catalog.md`](architecture/rule-catalog.md) and is kept current by `scripts/render-rule-catalog.py`.
 
 The catalog is navigation/identity only -- it never verifies, scores or generates rule code; the deterministic implementations it names remain the executable truth. The canonical verifier annotates each returned violation with its stable `rule_id`, the season-findings projector attaches each finding's `rule_id` (plus a `counts_by_rule_id` summary), quality/score metrics carry an `objective_id` for every registered score path, and the per-run Rules ("Regler") model attaches the matching `catalog_id` plus the catalog's classification/meaning/owner. The Regler HTML and rules report also render a reference section generated directly from `rule_catalog.active_catalog_references()`, so the surfaces consume one identity instead of maintaining a second semantic list. `tests/test_rule_catalog.py` guards against duplicate IDs, unregistered public verifier codes or season finding codes, unregistered quality score paths, ambiguous finding-code ownership, invalid precedence references, owner/test drift and a stale generated table.
 

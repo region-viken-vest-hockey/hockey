@@ -24,7 +24,7 @@ from tournament_scheduler.season.exception_policy import (
     reclassify_accepted_exceptions,
 )
 from tournament_scheduler.planning.contract import verify_candidate as _verify_candidate
-from tournament_scheduler.rule_catalog import annotate_violations
+from tournament_scheduler.rules.catalog import annotate_violations
 
 MIN_TEAMS_PER_TOURNAMENT = 3
 

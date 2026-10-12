@@ -40,7 +40,7 @@ from collections import defaultdict
 from typing import Any
 
 from tournament_scheduler.models import SeasonPlan
-from tournament_scheduler.rule_catalog import catalog_id_for_rules_model_entry, rules_model_semantics
+from tournament_scheduler.rules.catalog import catalog_id_for_rules_model_entry, rules_model_semantics
 from tournament_scheduler.rules.obligations import (
     external_conflict_rule as _external_conflict_rule,
     hosting_obligation_rule as _hosting_obligation_rule,

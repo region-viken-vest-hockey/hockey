@@ -68,7 +68,7 @@ from tournament_scheduler.planning.contract import (
     score_candidate,
     verify_candidate,
 )
-from tournament_scheduler.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
+from tournament_scheduler.scoring.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
 from tournament_scheduler.team_schedule_quality import compare_changed_team_schedule_consequence
 
 INTRA_CLUB_DISTRIBUTION_FINDING_PREFIX = "intra_club_participation_distribution"

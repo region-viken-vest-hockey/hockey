@@ -1,6 +1,6 @@
 # Maintained architecture diagrams and Archify regeneration
 
-The [planning/decision/lifecycle diagrams](planning-model.md) are **manually maintained semantic architecture**. The [generated rule catalog](rule-catalog.md) is generated exclusively by `scripts/render-rule-catalog.py` from `tournament_scheduler/rule_catalog.py`. The [system overview](../system-architecture.md) links the semantic view; [application architecture](../application-architecture.md) remains the owner of import/dependency rules. These documents must not contradict one another.
+The [planning/decision/lifecycle diagrams](planning-model.md) are **manually maintained semantic architecture**. The [generated rule catalog](rule-catalog.md) is generated exclusively by `scripts/render-rule-catalog.py` from `tournament_scheduler/rules/catalog.py`. The [system overview](../system-architecture.md) links the semantic view; [application architecture](../application-architecture.md) remains the owner of import/dependency rules. These documents must not contradict one another.
 
 Read [ADR 0005](../adr/0005-reconciliation-is-not-planning.md) before changing booking/reconciliation verification or canonical projection. Its separation of factual reconciliation, planning, hard operational checks and publication authority is a required semantic boundary; reflect the implemented flow in the maintained diagrams when #504 lands.
 

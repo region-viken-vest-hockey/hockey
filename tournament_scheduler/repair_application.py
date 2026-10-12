@@ -34,9 +34,9 @@ from .option_evaluation import (
     _rejected_delta,
     _travel_metrics,
 )
-from .pareto import non_dominated_indices, representative_indices
+from tournament_scheduler.scoring.pareto import non_dominated_indices, representative_indices
 from .planning.contract import score_candidate
-from .quality_objectives import compare_quality_scores, with_unresolved_obligations_count
+from tournament_scheduler.scoring.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
 from .repair_options import _option_is_applicable
 from .search_coverage import (
     SEARCH_COVERAGE_BOUNDED_EXHAUSTED,
@@ -53,7 +53,7 @@ from .repair_options import _options_for_finding
 from .season.request_constraints import active_request_constraints
 from .season.request_constraints import compare_constraint_violations
 from .season.request_constraints import request_constraint_report
-from .rule_catalog import annotate_findings
+from tournament_scheduler.rules.catalog import annotate_findings
 from .application.canonical_season.store_facade import DEFAULT_SEASON_ROOT
 from .application.canonical_season.store_facade import apply_candidate
 from .application.canonical_season.store_facade import canonical_state_revision

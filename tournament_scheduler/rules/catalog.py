@@ -828,7 +828,7 @@ _SOFT: tuple[RuleEntry, ...] = (
             "within an age group, not the exact squad label, so a swap between sibling squads "
             "is not a new opponent. Exact squad-pair counts remain available as diagnostics."
         ),
-        canonical_owner="tournament_scheduler.quality_objectives",
+        canonical_owner="tournament_scheduler.scoring.quality_objectives",
         input_source="candidate generated games",
         verifier_owner="tournament_scheduler.planning.contract.score_candidate",
         evidence_projection=("score_candidate.opponent_diversity.*", "rules_model pairwise_matchups"),
@@ -869,7 +869,7 @@ _SOFT: tuple[RuleEntry, ...] = (
 
         classification=SOFT_OBJECTIVE,
         meaning="Tournaments should mix teams across clubs rather than concentrating same-club matchups.",
-        canonical_owner="tournament_scheduler.quality_objectives",
+        canonical_owner="tournament_scheduler.scoring.quality_objectives",
         input_source="candidate generated games",
         verifier_owner="tournament_scheduler.planning.contract.score_candidate",
         evidence_projection=("score_candidate.opponent_diversity.inter_club_diversity",),
@@ -1586,7 +1586,7 @@ def render_markdown() -> str:
     lines: list[str] = [
         "# Scheduling rule catalog",
         "",
-        "> **Generated** from `tournament_scheduler/rule_catalog.py` by",
+        "> **Generated** from `tournament_scheduler/rules/catalog.py` by",
         "> `python3 scripts/render-rule-catalog.py`. Do not edit by hand.",
         "",
         "This is the one compact, searchable answer to *what scheduling semantics exist, who",

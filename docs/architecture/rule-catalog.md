@@ -1,6 +1,6 @@
 # Scheduling rule catalog
 
-> **Generated** from `tournament_scheduler/rule_catalog.py` by
+> **Generated** from `tournament_scheduler/rules/catalog.py` by
 > `python3 scripts/render-rule-catalog.py`. Do not edit by hand.
 
 This is the one compact, searchable answer to *what scheduling semantics exist, who
@@ -146,9 +146,9 @@ candidate regresses a higher-priority operational obligation.
 | `participation_target` | The configured per-team/per-half tournament participation target is a desired optimization goal with evidenced relaxation, not an unconditional obligation or hard bound. Attainment is optimized within real season capacity; a capacity-constrained miss is not itself a planning failure. | `tournament_scheduler.participation.targets` | `tournament_scheduler.participation.targets.evaluate_participation` | `tests/test_participation_targets.py` |
 | `intra_club_participation_distribution` | Within a multi-team club and age group, participation is rotated evenly across the club's sibling team labels. An aggregate-complete but label-uneven pool is a distribution imbalance, not a missing participation opportunity. | `tournament_scheduler.participation.targets` | `tournament_scheduler.participation.targets` | `tests/test_participation_targets.py`, `tests/test_intra_club_distribution.py` |
 | `home_representation` | When a multi-team club hosts a tournament, the club's sibling teams take turns representing it. A spread of 0-1 is balanced; hosting coverage/balance is unchanged by which sibling shows up. | `tournament_scheduler.home_representation` | `tournament_scheduler.home_representation` | `tests/test_home_representation.py` |
-| `opponent_repetition` | Teams should meet diverse opponents; repeated pairings beyond the configured expectation are minimized. The primary opponent identity is the opposing club within an age group, not the exact squad label, so a swap between sibling squads is not a new opponent. Exact squad-pair counts remain available as diagnostics. | `tournament_scheduler.quality_objectives` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_quality_objectives.py` |
+| `opponent_repetition` | Teams should meet diverse opponents; repeated pairings beyond the configured expectation are minimized. The primary opponent identity is the opposing club within an age group, not the exact squad label, so a swap between sibling squads is not a new opponent. Exact squad-pair counts remain available as diagnostics. | `tournament_scheduler.scoring.quality_objectives` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_quality_objectives.py` |
 | `opponent_club_diversity` | Each individual squad should meet a variety of opposing clubs within its age group. Exposure to one club is normalized by that club's squad supply, so a large multi-squad club is not penalized merely for supplying more opponents, while genuinely concentrated exposure remains visible. | `tournament_scheduler.opponent_diversity` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_opponent_diversity.py` |
-| `inter_club_diversity` | Tournaments should mix teams across clubs rather than concentrating same-club matchups. | `tournament_scheduler.quality_objectives` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_quality_objectives.py` |
+| `inter_club_diversity` | Tournaments should mix teams across clubs rather than concentrating same-club matchups. | `tournament_scheduler.scoring.quality_objectives` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_quality_objectives.py` |
 | `temporal_spacing` | A team's tournaments should be spaced sensibly; very short turnaround gaps are minimized. | `tournament_scheduler.team_schedule_quality` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_team_schedule_quality.py`, `tests/test_fairness_temporal.py` |
 | `temporal_coverage` | A team's tournaments should cover the season rather than cluster in one stretch. | `tournament_scheduler.participation.temporal_coverage` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_temporal_coverage.py` |
 | `travel_distance` | Estimated team travel between home and away arenas should be kept reasonable. | `tournament_scheduler.clubs.distances` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_club_distances.py` |
@@ -835,7 +835,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Soft objective` · status `active` · operator-waivable: yes  
 **Meaning:** Teams should meet diverse opponents; repeated pairings beyond the configured expectation are minimized. The primary opponent identity is the opposing club within an age group, not the exact squad label, so a swap between sibling squads is not a new opponent. Exact squad-pair counts remain available as diagnostics.  
-**Canonical owner:** `tournament_scheduler.quality_objectives`  
+**Canonical owner:** `tournament_scheduler.scoring.quality_objectives`  
 **Input / fact source:** candidate generated games  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.score_candidate`  
 **Codes:** verifier — · finding — · score `opponent_diversity.unique_pairs`, `opponent_diversity.pairwise_novelty`, `opponent_diversity.max_pair_repeat`, `opponent_diversity.pairs_meeting_3_plus`, `opponent_diversity.max_club_pair_repeat`, `opponent_diversity.club_pairs_meeting_3_plus`  
@@ -861,7 +861,7 @@ candidate regresses a higher-priority operational obligation.
 
 `Soft objective` · status `active` · operator-waivable: yes  
 **Meaning:** Tournaments should mix teams across clubs rather than concentrating same-club matchups.  
-**Canonical owner:** `tournament_scheduler.quality_objectives`  
+**Canonical owner:** `tournament_scheduler.scoring.quality_objectives`  
 **Input / fact source:** candidate generated games  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.score_candidate`  
 **Codes:** verifier — · finding — · score `opponent_diversity.inter_club_diversity`, `opponent_diversity.same_club_pairing_count`, `opponent_diversity.max_same_club_teams_per_tournament`, `opponent_diversity.club_count_excess_over_2`, `opponent_diversity.tournaments_with_3plus_same_club`  

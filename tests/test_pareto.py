@@ -1,14 +1,14 @@
 """Unit tests for the shared Pareto/dominance arithmetic.
 
 Both Stage 3's multi-objective search and the promoted-season maintenance loop
-delegate to :mod:`tournament_scheduler.pareto`, so the relation and the bounded
+delegate to :mod:`tournament_scheduler.scoring.pareto`, so the relation and the bounded
 down-select are tested once here with synthetic vectors instead of only through
 either application surface.
 """
 
 from __future__ import annotations
 
-from tournament_scheduler.pareto import (
+from tournament_scheduler.scoring.pareto import (
     dominates,
     non_dominated_indices,
     representative_indices,

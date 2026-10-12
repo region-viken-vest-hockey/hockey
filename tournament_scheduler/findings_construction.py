@@ -18,7 +18,7 @@ from .placement_infeasibility import proof_is_current
 from .placement_infeasibility import proofs_by_obligation
 from .placement_infeasibility import stale_coverage_from_proof
 from .planning.contract import verify_candidate
-from .rule_catalog import annotate_findings
+from tournament_scheduler.rules.catalog import annotate_findings
 from .search_coverage import cheap_search_coverage
 from tournament_scheduler.repair.unplaced_placement import obligation_search_coverage
 from tournament_scheduler.repair.unplaced_placement import unplaced_placement_search_capability

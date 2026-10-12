@@ -13,7 +13,7 @@ import html as _html
 from typing import Any
 
 from ...rules.model import group_rules_by_type, rules_summary_counts
-from ...rule_catalog import active_catalog_references
+from tournament_scheduler.rules.catalog import active_catalog_references
 
 _TYPE_LABELS: dict[str, str] = {
     "hard": "Hard krav",
@@ -27,7 +27,7 @@ _TYPE_LABELS: dict[str, str] = {
 
 # Presentation-only Norwegian labels for the catalog's primary classification
 # vocabulary. The classifications themselves are owned by
-# ``rule_catalog.CLASSIFICATIONS``; this mapping is localization, not a second
+# ``rules.catalog.CLASSIFICATIONS``; this mapping is localization, not a second
 # semantic list.
 _CATALOG_CLASS_LABELS: dict[str, str] = {
     "hard_constraint": "Hardt krav",
@@ -148,7 +148,7 @@ def _render_catalog_identity(catalog_id: Any, catalog: dict[str, Any] | None) ->
     """Render the catalog-derived semantic identity for one run rule.
 
     The rule ID, classification and meaning come from
-    ``rule_catalog.rule_semantics``; the run-specific result stays in the
+    ``rules.catalog.rule_semantics``; the run-specific result stays in the
     surrounding row. This is what makes the Regler surface *render from* the
     catalog rather than restate its semantics locally.
     """
@@ -200,7 +200,7 @@ def _render_rule_row(rule: dict[str, Any]) -> str:
 def render_rules_catalog_reference_html() -> str:
     """Render the canonical catalog itself as the Regler reference section.
 
-    Every row is generated from ``rule_catalog.active_catalog_references()``;
+    Every row is generated from ``rules.catalog.active_catalog_references()``;
     there is no hand-maintained list of rule semantics in this renderer. The
     per-run tables above reference these rows by ID.
     """
@@ -247,7 +247,7 @@ def render_rules_catalog_reference_html() -> str:
         '<section class="rules-subsection rules-subsection--catalog">'
         "<h3>Regelkatalog (referanse)</h3>"
         '<p class="section-note">Generert fra den kanoniske regelkatalogen '
-        '(<code>tournament_scheduler/rule_catalog.py</code>). Radene over viser kjøringens '
+        '(<code>tournament_scheduler/rules/catalog.py</code>). Radene over viser kjøringens '
         "resultat; denne tabellen er den ene autoritative semantikken (klasse, betydning, eier, "
         "presedens) som kjøringen og agenten refererer til.</p>"
         f"{table}</section>"

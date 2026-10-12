@@ -345,7 +345,7 @@ def test_rules_table_row_links_to_catalog_reference():
 
 
 def test_render_rules_sections_renders_the_catalog_reference():
-    from tournament_scheduler.rule_catalog import RULE_CATALOG, STATUS_ACTIVE
+    from tournament_scheduler.rules.catalog import RULE_CATALOG, STATUS_ACTIVE
     from tournament_scheduler.html.renderers.rules_table import render_rules_sections_html
 
     rules = build_rules_model(_plan())

@@ -13,9 +13,9 @@ from .findings_construction import _unresolved_avoidability_count
 from .findings_construction import _unresolved_participation_deviation_count
 from .season.impact_analysis import _changed_tournament_ids
 from .planning.contract import score_candidate
-from .quality_objectives import QUALITY_OBJECTIVE_DIMENSIONS, compare_quality_scores
-from .quality_objectives import quality_objective_vector
-from .quality_objectives import with_unresolved_obligations_count
+from tournament_scheduler.scoring.quality_objectives import QUALITY_OBJECTIVE_DIMENSIONS, compare_quality_scores
+from tournament_scheduler.scoring.quality_objectives import quality_objective_vector
+from tournament_scheduler.scoring.quality_objectives import with_unresolved_obligations_count
 from typing import Any
 from typing import Dict
 from typing import Iterable
@@ -75,7 +75,7 @@ def _objective_vector(
     """Extract the uniformly "lower is better" maintenance objective vector.
 
     Combines the verifier-derived defect/change-cost dimensions owned here, the
-    shared Stage-3 soft-quality vector (``quality_objectives``) and travel, so a
+    shared Stage-3 soft-quality vector (``scoring.quality_objectives``) and travel, so a
     single uniform dominance check and one bounded Pareto front cover both the
     hard and the soft consequences of a repair.
     """

@@ -10,6 +10,7 @@ RULES_DIR = PACKAGE_ROOT / "rules"
 
 RULES_MODULES = {
     "capacity_rules",
+    "catalog",
     "model",
     "obligations",
     "operational_rules",

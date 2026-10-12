@@ -17,7 +17,7 @@ from typing import Any, Dict, Iterable, List, Optional
 import pytest
 
 from tournament_scheduler.participation.deviation_repair import _classification
-from tournament_scheduler.pareto import non_dominated_indices
+from tournament_scheduler.scoring.pareto import non_dominated_indices
 from tournament_scheduler.season.accepted_baseline import compare_findings_to_baseline
 from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
 from tournament_scheduler.season.maintenance import (
@@ -39,7 +39,7 @@ from tournament_scheduler.season.maintenance import (
     search,
     season_audit,
 )
-from tournament_scheduler.quality_objectives import QUALITY_OBJECTIVE_DIMENSIONS
+from tournament_scheduler.scoring.quality_objectives import QUALITY_OBJECTIVE_DIMENSIONS
 from tournament_scheduler.application.canonical_season.store_facade import (
     add_request_constraint,
     canonical_state_revision,

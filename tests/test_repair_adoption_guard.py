@@ -35,7 +35,7 @@ from tournament_scheduler.repair_adoption_guard import (
     season_wide_audit,
     select_blocking_regressions,
 )
-from tournament_scheduler.rule_catalog import CATALOG_BY_ID
+from tournament_scheduler.rules.catalog import CATALOG_BY_ID
 
 
 def _teams(clubs: Iterable[str]) -> List[Dict[str, str]]:

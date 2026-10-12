@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from typing import List, Sequence, Tuple
 
-from tournament_scheduler.game_metrics import (
+from tournament_scheduler.scoring.game_metrics import (
     arena_counts,
     diversity_score,
     month_balance_score,

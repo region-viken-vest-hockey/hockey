@@ -66,7 +66,7 @@ from tournament_scheduler.participation.targets import (
     evaluate_participation,
 )
 from tournament_scheduler.planning.contract import _parse_date, score_candidate, verify_candidate
-from tournament_scheduler.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
+from tournament_scheduler.scoring.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
 from tournament_scheduler.team_schedule_quality import compare_changed_team_schedule_consequence
 
 HOME_REPRESENTATION_FINDING_PREFIX = "home_representation"

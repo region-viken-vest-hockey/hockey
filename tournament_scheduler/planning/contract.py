@@ -81,7 +81,7 @@ from tournament_scheduler.planning.contract_distribution import (
     hosting_fairness as _hosting_fairness,
     month_and_half_distribution as _month_and_half_distribution,
 )
-from tournament_scheduler.rule_catalog import annotate_violations
+from tournament_scheduler.rules.catalog import annotate_violations
 
 PLANNING_PROBLEM_SCHEMA_VERSION = 1
 CANDIDATE_SCHEMA_VERSION = 1

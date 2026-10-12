@@ -6,7 +6,7 @@ from typing import Dict, List
 
 from tournament_scheduler.rules.capacity_rules import capacity_and_config_rule_entries
 from tournament_scheduler.rules.operational_rules import operational_rule_entries
-from tournament_scheduler.rule_catalog import active_catalog_references
+from tournament_scheduler.rules.catalog import active_catalog_references
 
 
 def rules_report(planner) -> List[Dict[str, str]]:
@@ -103,7 +103,7 @@ _MARKDOWN_SECTION_INTROS: dict[str, str] = {
 }
 
 _PRIMARY_SOURCE_FILES: tuple[str, ...] = (
-    "tournament_scheduler/rule_catalog.py",
+    "tournament_scheduler/rules/catalog.py",
     "tournament_scheduler/rules/report.py",
     "tournament_scheduler/rules/capacity_rules.py",
     "tournament_scheduler/rules/operational_rules.py",
@@ -143,13 +143,13 @@ def _render_catalog_reference(entries: list[Dict[str, object]]) -> list[str]:
     """Render the canonical catalog itself as the report's semantic reference.
 
     The planner-derived tables elsewhere in this document are this run's
-    results; this section is generated from ``rule_catalog`` so the report
+    results; this section is generated from ``rules.catalog`` so the report
     does not maintain a second, hand-written list of rule semantics.
     """
     lines = [
         "## Canonical rule catalog reference",
         "",
-        "Generated from `tournament_scheduler/rule_catalog.py`. The planner-derived tables "
+        "Generated from `tournament_scheduler/rules/catalog.py`. The planner-derived tables "
         "above are this run's results; this table is the canonical semantic identity "
         "(classification, meaning, canonical owner, precedence) that the planner, verifier, "
         "search, findings and reports all reference.",

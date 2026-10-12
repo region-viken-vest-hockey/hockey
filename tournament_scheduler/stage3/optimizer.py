@@ -58,10 +58,10 @@ from tournament_scheduler.season.baseline_overlay import (
 from tournament_scheduler.hosting.representation import clubs_represent_same_club as _clubs_represent_same_club
 from tournament_scheduler.hosting.representation import swap_breaks_host_representation as _swap_breaks_host_representation
 from tournament_scheduler.models import Team
-from tournament_scheduler.pareto import dominates as _dominates
-from tournament_scheduler.pareto import representative_indices as _representative_indices
-from tournament_scheduler.pareto import vectors_equal as _vectors_equal
-from tournament_scheduler.quality_objectives import (
+from tournament_scheduler.scoring.pareto import dominates as _dominates
+from tournament_scheduler.scoring.pareto import representative_indices as _representative_indices
+from tournament_scheduler.scoring.pareto import vectors_equal as _vectors_equal
+from tournament_scheduler.scoring.quality_objectives import (
     QUALITY_OBJECTIVE_DIMENSIONS,
     quality_objective_vector,
 )
@@ -1830,7 +1830,7 @@ def optimize_candidate(
 
 # Objective vector dimensions, all oriented "lower is better" so a single
 # uniform dominance check works across every dimension. The extraction is
-# shared with promoted-season maintenance via ``quality_objectives`` so both
+# shared with promoted-season maintenance via ``scoring.quality_objectives`` so both
 # surfaces cannot drift on which quality metrics matter or how they are
 # oriented.
 _PARETO_DIMENSIONS: Tuple[str, ...] = QUALITY_OBJECTIVE_DIMENSIONS
@@ -1858,7 +1858,7 @@ def _default_pareto_weight_vectors(base_weights: Dict[str, float]) -> List[Dict[
 
 def _downselect_archive(archive: List[Dict[str, Any]], max_size: int) -> List[Dict[str, Any]]:
     """Reduce *archive* to at most *max_size* entries via the canonical
-    per-dimension-extreme down-select (see ``pareto.representative_indices``),
+    per-dimension-extreme down-select (see ``scoring.pareto.representative_indices``),
     so "return a small representative set — extremes plus useful
     knee/balanced points" is one shared implementation. A no-op when already
     within budget."""

@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 
 from tournament_scheduler.season.baseline_overlay import change_cost
 from tournament_scheduler.planning.contract import score_candidate, verify_candidate
-from tournament_scheduler.quality_objectives import (
+from tournament_scheduler.scoring.quality_objectives import (
     compare_quality_scores as _compare_scores,
     with_unresolved_obligations_count as _with_unresolved_count,
 )

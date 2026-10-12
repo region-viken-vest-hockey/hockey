@@ -16,7 +16,7 @@ candidate repair against one canonical revision:
   findings, keyed by stable finding id, for the current state and for a pinned
   pass baseline;
 * the season-wide *quality* delta on the shared objective vector
-  (:mod:`tournament_scheduler.quality_objectives`) plus canonical travel;
+  (:mod:`tournament_scheduler.scoring.quality_objectives`) plus canonical travel;
 * an explicit list of material regression codes. Material regressions are never
   accepted by default: an operator must name the exact code and give a reason,
   mirroring the per-team ``team_schedule_quality`` acceptance contract;
@@ -33,7 +33,7 @@ uses, so it cannot drift into a second scoring rule.
 
 The module also owns the catalog-driven :func:`season_wide_audit` completion
 gate. It enumerates the applicable checks from
-:mod:`tournament_scheduler.rule_catalog` and the verification/finding/score
+:mod:`tournament_scheduler.rules.catalog` and the verification/finding/score
 evidence it is handed, reports every check's scope/result/status, and refuses a
 green completion when a mandatory check was skipped, a hard violation remains,
 reconciliation failed or the audited revision no longer matches current state.
@@ -49,8 +49,8 @@ from .finding_resolution import is_blocking_finding
 from .pipeline.fingerprints import stable_payload_sha256
 from .planning.verification import verify_canonical_candidate
 from .planning.contract import score_candidate
-from .quality_objectives import compare_quality_scores, with_unresolved_obligations_count
-from .rule_catalog import (
+from tournament_scheduler.scoring.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
+from tournament_scheduler.rules.catalog import (
     CATALOG_BY_ID,
     HARD_CONSTRAINT,
     OPERATIONAL_OBLIGATION,
@@ -236,7 +236,7 @@ _QUALITY_MATERIALITY: Dict[str, tuple[str, bool]] = {
 
 # ``score_candidate`` reports unresolved hosting obligations as a list; the
 # comparison works on the numeric count surfaced by
-# ``quality_objectives.with_unresolved_obligations_count``.
+# ``scoring.quality_objectives.with_unresolved_obligations_count``.
 
 
 # ---------------------------------------------------------------------------
@@ -1208,7 +1208,7 @@ def _score_paths(score: Optional[Mapping[str, Any]]) -> set[str]:
     """Return the resolved metric paths present in a ``score_candidate`` report."""
     if not score:
         return set()
-    from .quality_objectives import QUALITY_METRIC_PATHS, get_metric_path
+    from tournament_scheduler.scoring.quality_objectives import QUALITY_METRIC_PATHS, get_metric_path
 
     return {path for path, _direction in QUALITY_METRIC_PATHS if get_metric_path(dict(score), path) is not None}
 

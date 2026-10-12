@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
 
-from .rule_catalog import rule_id_for_score_path
+from tournament_scheduler.rules.catalog import rule_id_for_score_path
 
 # (report path, direction): "higher" means a bigger value is better, "lower"
 # means a smaller value is better. Mirrors the promotion criteria for the soft

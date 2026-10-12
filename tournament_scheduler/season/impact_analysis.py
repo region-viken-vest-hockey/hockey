@@ -12,7 +12,7 @@ from typing import List
 from typing import Mapping
 from typing import Optional
 
-from ..rule_catalog import (
+from tournament_scheduler.rules.catalog import (
     TIER_HARD,
     TIER_OPERATIONAL_OBLIGATION,
     TIER_STRONG_GOAL,

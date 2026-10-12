@@ -214,7 +214,7 @@ It is based on the planner code, not on the marketing/docs wording, so it calls 
 
 ## Canonical rule catalog reference
 
-Generated from `tournament_scheduler/rule_catalog.py`. The planner-derived tables above are this run's results; this table is the canonical semantic identity (classification, meaning, canonical owner, precedence) that the planner, verifier, search, findings and reports all reference.
+Generated from `tournament_scheduler/rules/catalog.py`. The planner-derived tables above are this run's results; this table is the canonical semantic identity (classification, meaning, canonical owner, precedence) that the planner, verifier, search, findings and reports all reference.
 
 | Rule ID | Classification | Meaning | Canonical owner | Precedence |
 |---|---|---|---|---|
@@ -260,9 +260,9 @@ Generated from `tournament_scheduler/rule_catalog.py`. The planner-derived table
 | `participation_target` | soft_objective | The configured per-team/per-half tournament participation target is a desired optimization goal with evidenced relaxation, not an unconditional obligation or hard bound. Attainment is optimized within real season capacity; a capacity-constrained miss is not itself a planning failure. | `tournament_scheduler.participation.targets` | — |
 | `intra_club_participation_distribution` | soft_objective | Within a multi-team club and age group, participation is rotated evenly across the club's sibling team labels. An aggregate-complete but label-uneven pool is a distribution imbalance, not a missing participation opportunity. | `tournament_scheduler.participation.targets` | — |
 | `home_representation` | soft_objective | When a multi-team club hosts a tournament, the club's sibling teams take turns representing it. A spread of 0-1 is balanced; hosting coverage/balance is unchanged by which sibling shows up. | `tournament_scheduler.home_representation` | — |
-| `opponent_repetition` | soft_objective | Teams should meet diverse opponents; repeated pairings beyond the configured expectation are minimized. The primary opponent identity is the opposing club within an age group, not the exact squad label, so a swap between sibling squads is not a new opponent. Exact squad-pair counts remain available as diagnostics. | `tournament_scheduler.quality_objectives` | — |
+| `opponent_repetition` | soft_objective | Teams should meet diverse opponents; repeated pairings beyond the configured expectation are minimized. The primary opponent identity is the opposing club within an age group, not the exact squad label, so a swap between sibling squads is not a new opponent. Exact squad-pair counts remain available as diagnostics. | `tournament_scheduler.scoring.quality_objectives` | — |
 | `opponent_club_diversity` | soft_objective | Each individual squad should meet a variety of opposing clubs within its age group. Exposure to one club is normalized by that club's squad supply, so a large multi-squad club is not penalized merely for supplying more opponents, while genuinely concentrated exposure remains visible. | `tournament_scheduler.opponent_diversity` | — |
-| `inter_club_diversity` | soft_objective | Tournaments should mix teams across clubs rather than concentrating same-club matchups. | `tournament_scheduler.quality_objectives` | — |
+| `inter_club_diversity` | soft_objective | Tournaments should mix teams across clubs rather than concentrating same-club matchups. | `tournament_scheduler.scoring.quality_objectives` | — |
 | `temporal_spacing` | soft_objective | A team's tournaments should be spaced sensibly; very short turnaround gaps are minimized. | `tournament_scheduler.team_schedule_quality` | — |
 | `temporal_coverage` | soft_objective | A team's tournaments should cover the season rather than cluster in one stretch. | `tournament_scheduler.participation.temporal_coverage` | — |
 | `travel_distance` | soft_objective | Estimated team travel between home and away arenas should be kept reasonable. | `tournament_scheduler.clubs.distances` | — |
@@ -296,7 +296,7 @@ This classification is evidence for the operator/publication decision; it does n
 
 ## Primary source files
 
-- `tournament_scheduler/rule_catalog.py`
+- `tournament_scheduler/rules/catalog.py`
 - `tournament_scheduler/rules/report.py`
 - `tournament_scheduler/rules/capacity_rules.py`
 - `tournament_scheduler/rules/operational_rules.py`

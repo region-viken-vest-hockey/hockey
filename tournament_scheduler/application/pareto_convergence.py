@@ -28,7 +28,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, Sequence
 
-from ..pareto import dominates, representative_indices, vectors_equal
+from tournament_scheduler.scoring.pareto import dominates, representative_indices, vectors_equal
 from ..search_capability import recorded_capability_fingerprint
 
 # Bounded frontier size and convergence safeguards. These are the "configured

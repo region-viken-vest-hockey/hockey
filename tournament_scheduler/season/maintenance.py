@@ -28,14 +28,14 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from .baseline_overlay import build_canonical_baseline
 from ..planning.contract import score_candidate, verify_candidate
-from ..quality_objectives import (
+from tournament_scheduler.scoring.quality_objectives import (
     with_unresolved_obligations_count,
 )
 from .request_constraints import (
     active_request_constraints,
 )
 from ..finding_resolution import annotate_resolutions
-from ..rule_catalog import annotate_findings
+from tournament_scheduler.rules.catalog import annotate_findings
 from ..application.canonical_season.store_facade import (
     DEFAULT_SEASON_ROOT,
     canonical_state_revision,

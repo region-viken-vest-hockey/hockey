@@ -18,7 +18,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from tournament_scheduler import rule_catalog as catalog
+from tournament_scheduler.rules import catalog
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -263,7 +263,7 @@ def test_no_finding_code_is_registered_by_two_rules() -> None:
 
 
 def test_every_quality_metric_path_has_an_objective_id() -> None:
-    from tournament_scheduler.quality_objectives import QUALITY_METRIC_PATHS
+    from tournament_scheduler.scoring.quality_objectives import QUALITY_METRIC_PATHS
 
     missing = [
         path for path, _direction in QUALITY_METRIC_PATHS if catalog.rule_id_for_score_path(path) is None
@@ -272,7 +272,7 @@ def test_every_quality_metric_path_has_an_objective_id() -> None:
 
 
 def test_compare_quality_scores_carries_objective_ids() -> None:
-    from tournament_scheduler.quality_objectives import compare_quality_scores
+    from tournament_scheduler.scoring.quality_objectives import compare_quality_scores
 
     report = {
         "participation": {"spread": 1},

@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from tournament_scheduler.rule_catalog import CLASSIFICATIONS  # noqa: E402
+from tournament_scheduler.rules.catalog import CLASSIFICATIONS  # noqa: E402
 
 DOC = ROOT / "docs/architecture/planning-model.md"
 README = ROOT / "docs/architecture/README.md"
@@ -36,14 +36,14 @@ DIAGRAM_NAMES = ("01-system-data-flow", "02-planning-decision", "03-season-lifec
 # Canonical owners whose deletion/renaming must require an architecture update.
 # Paths and classification vocabulary are checked, not replicated business logic.
 REQUIRED_OWNERS = (
-    "tournament_scheduler/rule_catalog.py",
+    "tournament_scheduler/rules/catalog.py",
     "tournament_scheduler/planning/contract.py",
     "tournament_scheduler/planning/verification.py",
     "tournament_scheduler/season_planner.py",
     "tournament_scheduler/stage3/optimizer.py",
     "tournament_scheduler/stage3/cpsat.py",
-    "tournament_scheduler/quality_objectives.py",
-    "tournament_scheduler/pareto.py",
+    "tournament_scheduler/scoring/quality_objectives.py",
+    "tournament_scheduler/scoring/pareto.py",
     "tournament_scheduler/application/pareto_convergence.py",
     "tournament_scheduler/application/convergence_refinement.py",
     "tournament_scheduler/application/stage3_session.py",

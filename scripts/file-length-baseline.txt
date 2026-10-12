@@ -191,7 +191,7 @@ tournament_scheduler/repair_adoption_guard.py	1248
 tournament_scheduler/repair_application.py	795
 tournament_scheduler/repair_options.py	411
 tournament_scheduler/season/request_constraints.py	847
-tournament_scheduler/rule_catalog.py	1740
+tournament_scheduler/rules/catalog.py	1740
 tournament_scheduler/rules/operational_rules.py	312
 tournament_scheduler/repair/search_neighborhood.py	563
 tournament_scheduler/season/accepted_baseline.py	341
