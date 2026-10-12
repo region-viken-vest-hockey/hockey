@@ -3,7 +3,7 @@
 Hosting coverage/balance already guarantees a multi-team club hosts its share
 of a club x age-group. It does not guarantee that the *same* sibling team is
 not representing the club at nearly every one of those home tournaments.
-:mod:`tournament_scheduler.home_representation` owns the accounting; this
+:mod:`tournament_scheduler.participation.home_representation` owns the accounting; this
 provider owns the smallest real repair for a skewed pool.
 
 Two deterministic, planner-neutral move families are enumerated:
@@ -43,7 +43,7 @@ from __future__ import annotations
 import copy
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from tournament_scheduler.home_representation import home_representation_rows
+from tournament_scheduler.participation.home_representation import home_representation_rows
 from tournament_scheduler.hosting.representation import clubs_represent_same_club
 from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
@@ -67,7 +67,7 @@ from tournament_scheduler.participation.targets import (
 )
 from tournament_scheduler.planning.contract import _parse_date, score_candidate, verify_candidate
 from tournament_scheduler.scoring.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
-from tournament_scheduler.team_schedule_quality import compare_changed_team_schedule_consequence
+from tournament_scheduler.participation.team_schedule_quality import compare_changed_team_schedule_consequence
 
 HOME_REPRESENTATION_FINDING_PREFIX = "home_representation"
 
@@ -1093,7 +1093,7 @@ def _club_pool_travel_regressions(
     club pool's total is the right object, so an offsetting redistribution is
     not a regression.
     """
-    from tournament_scheduler.team_schedule_quality import team_schedule_profile
+    from tournament_scheduler.participation.team_schedule_quality import team_schedule_profile
 
     out: List[Dict[str, Any]] = []
     for club, age_group in sorted(set(club_age_pairs)):

@@ -14,7 +14,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-from tournament_scheduler.date_policy import (
+from tournament_scheduler.planning.date_policy import (
     holiday_excluded_dates,
     problem_forbidden_dates,
 )

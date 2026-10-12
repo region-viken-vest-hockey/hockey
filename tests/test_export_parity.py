@@ -23,7 +23,7 @@ from tournament_scheduler.pipeline.export_parity import (
     verify_export_parity,
 )
 from tournament_scheduler.pipeline.export_parity.gate import publish_parity_gate
-from tournament_scheduler.season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 from tournament_scheduler.spond import SpondExporter
 
 REVISION = "rev-abc123"

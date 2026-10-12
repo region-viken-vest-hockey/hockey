@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Mapping
 
-from .application.decisions import DecisionAction, DecisionContext
+from tournament_scheduler.application.decisions import DecisionAction, DecisionContext
 
 SHARED_HOST_DECISION_ACTIONS: "tuple[str, ...]" = ("assign_shared_host", "request_operator")
 

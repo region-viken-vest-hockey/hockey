@@ -490,11 +490,11 @@ def _holiday_date_rule(plan: SeasonPlan) -> dict[str, Any]:
     """Hard rule: no tournament on a canonical holiday-excluded date.
 
     The active excluded dates are derived from the canonical
-    :mod:`tournament_scheduler.date_policy` and surfaced directly here, so the
+    :mod:`tournament_scheduler.planning.date_policy` and surfaced directly here, so the
     operator/audit can see the policy actually being enforced rather than only
     its violations.
     """
-    from tournament_scheduler.date_policy import holiday_exclusions
+    from tournament_scheduler.planning.date_policy import holiday_exclusions
 
     active = _active_tournaments(plan)
     excluded: dict[Any, str] = {}

@@ -11,7 +11,7 @@ from typing import Any, Mapping
 
 from tournament_scheduler.season.state import canonical_state_revision, schedule_fingerprint
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
-from tournament_scheduler.occupancy import ROUND_BUFFER_MINUTES
+from tournament_scheduler.shape.occupancy import ROUND_BUFFER_MINUTES
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.planning.contract import verify_candidate
 

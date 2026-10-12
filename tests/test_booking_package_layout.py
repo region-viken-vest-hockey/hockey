@@ -13,6 +13,7 @@ BOOKING_MODULES = {
     "arena_conflicts",
     "calendar_availability",
     "calendar_bookings",
+    "candidate_weekends",
     "sandefjord_allocation",
 }
 

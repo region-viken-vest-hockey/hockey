@@ -2,7 +2,7 @@
 
 A tournament the deterministic slot search could not place exists only as
 structured planning work in ``SeasonPlan.unresolved_tournament_placements``
-(see ``placement_findings``/``placement_normalization``): it has a responsible
+(see ``placement.findings``/``placement.normalization``): it has a responsible
 host, roster, source date and required shape, but no ``Tournament``. Earlier
 repair providers assumed the thing being repaired was already a scheduled
 tournament, so an unresolved obligation could carry candidate-weekend evidence
@@ -41,8 +41,8 @@ import copy
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 
 from tournament_scheduler.planning import half as planning_half
-from tournament_scheduler.candidate_weekends import season_weekend_dates
-from tournament_scheduler.date_policy import problem_forbidden_dates as _problem_forbidden_dates
+from tournament_scheduler.booking.candidate_weekends import season_weekend_dates
+from tournament_scheduler.planning.date_policy import problem_forbidden_dates as _problem_forbidden_dates
 from tournament_scheduler.hosting.representation import clubs_represent_same_club, constituent_clubs
 from tournament_scheduler.repair.host_team_missing import (
     GENERATED_START_TIMES,
@@ -65,7 +65,7 @@ from tournament_scheduler.planning.contract import (
     movable_calendar_opportunity,
     verify_candidate,
 )
-from tournament_scheduler.search_capability import (
+from tournament_scheduler.repair.capability import (
     COVERAGE_BOUNDED_EXHAUSTED,
     SearchCapability,
     capability_is_stale,
@@ -133,7 +133,7 @@ _MAX_START_TIMES_PER_DATE = 8
 # supported ladder, every configured cap and the generated start-time policy,
 # so widening any of them changes the fingerprint and makes prior
 # ``bounded_search_exhausted`` evidence stale/retryable (see
-# ``search_capability``). Bump ``UNPLACED_PLACEMENT_SEARCH_VERSION`` when the
+# ``repair.capability``). Bump ``UNPLACED_PLACEMENT_SEARCH_VERSION`` when the
 # *semantics* change without a parameter change.
 UNPLACED_PLACEMENT_SEARCH_VERSION = "4"
 UNPLACED_PLACEMENT_CAPABILITY = SearchCapability(

@@ -19,7 +19,7 @@ from tournament_scheduler.season.ice_time_overrides import (
 )
 from tournament_scheduler.season.state import canonical_state_revision
 from tournament_scheduler.booking.calendar_bookings import tournament_occupancy_interval_facts
-from tournament_scheduler.occupancy import effective_ice_time_minutes, tournament_end_time
+from tournament_scheduler.shape.occupancy import effective_ice_time_minutes, tournament_end_time
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.publication.mutation_history import replayed_occupancy_overrides
 from tournament_scheduler.serialization.season_plan import tournament_from_dict

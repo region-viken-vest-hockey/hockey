@@ -95,7 +95,7 @@ def _apply_arena_conflict_decision(
     the bug this replaces. The conflict provenance is kept in
     ``manual_arena_conflict_placements`` for review/audit.
     """
-    from ...placement_normalization import (
+    from tournament_scheduler.placement.normalization import (
         REASON_ARENA_CONFLICT,
         demote_tournament_to_unplaced,
     )

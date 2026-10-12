@@ -195,7 +195,7 @@ def _clean_season_plan(
     active. This is the positive control for the audit: all six catalog rules
     that used to report ``incomplete`` have live evidence.
     """
-    from tournament_scheduler.game_generation import generate_tournament_games
+    from tournament_scheduler.shape.game_generation import generate_tournament_games
     from tournament_scheduler.models import Team
 
     resolved_clubs = ["Alfa", "Bravo", "Charlie", "Delta"]
@@ -306,7 +306,7 @@ def _clean_season_plan(
     active. This is the positive control for the audit: all six catalog rules
     that used to report ``incomplete`` have live evidence.
     """
-    from tournament_scheduler.game_generation import generate_tournament_games
+    from tournament_scheduler.shape.game_generation import generate_tournament_games
     from tournament_scheduler.models import Team
 
     resolved_clubs = ["Alfa", "Bravo", "Charlie", "Delta"]
@@ -644,7 +644,7 @@ def test_apply_repair_rejects_a_malformed_regression_override_cleanly(tmp_path: 
 
 
 def test_applied_repair_records_a_compact_pass_ledger(tmp_path: Path) -> None:
-    from tournament_scheduler.repair_adoption_guard import RepairPassLedger
+    from tournament_scheduler.repair.adoption_guard import RepairPassLedger
 
     root, _plan, _problem_dict, revision = _two_club_season(tmp_path)
     dims = ("participants", "host", "date", "slot")
@@ -2092,7 +2092,7 @@ def _clean_season_plan(
     active. This is the positive control for the audit: all six catalog rules
     that used to report ``incomplete`` have live evidence.
     """
-    from tournament_scheduler.game_generation import generate_tournament_games
+    from tournament_scheduler.shape.game_generation import generate_tournament_games
     from tournament_scheduler.models import Team
 
     resolved_clubs = ["Alfa", "Bravo", "Charlie", "Delta"]

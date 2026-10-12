@@ -2,8 +2,8 @@
 
 The canonical LLM-directed decision path must not depend on the legacy
 `SeasonPlanner` baseline generator's heuristic policy modules
-(`participant_selection.py`, `host_assignment.py`) -- those modules keep
-serving `SeasonPlanner` as a baseline/fallback (`season_planner.py` is the
+(`planning.participant_selection.py`, `hosting.assignment.py`) -- those modules keep
+serving `SeasonPlanner` as a baseline/fallback (`planning.season_planner.py` is the
 one module allowed to import them), but their heuristic weights/rankings
 must never silently control the canonical search, decision, or interactive
 orchestration path. This is checked via each module's actual `ast` import

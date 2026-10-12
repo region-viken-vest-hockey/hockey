@@ -28,7 +28,7 @@ from tournament_scheduler.application.canonical_season.store_facade import (
     load_decisions,
     swap_participants,
 )
-from tournament_scheduler.team_schedule_quality import (
+from tournament_scheduler.participation.team_schedule_quality import (
     CANCEL_ACCEPTABLE_REGRESSION_CODES,
     PARTICIPATION_COUNT_CHANGED,
     RegressionAcceptanceError,
@@ -739,7 +739,7 @@ def test_reviewed_consequence_token_refused_when_nothing_to_accept(tmp_path: Pat
 
 
 def test_reviewed_consequence_token_is_deterministic_and_sensitive() -> None:
-    from tournament_scheduler.team_schedule_quality import reviewed_consequence_token
+    from tournament_scheduler.participation.team_schedule_quality import reviewed_consequence_token
 
     consequence = {"club": "C", "team": "C1", "age_group": "U10", "code": GAP_CODE}
     token = reviewed_consequence_token(

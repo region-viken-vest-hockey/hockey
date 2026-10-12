@@ -25,7 +25,7 @@ def test_pipeline_helper_imports_do_not_require_ortools():
         from tournament_scheduler.pipeline.registration_sync import sync_registered_teams_to_workbook
         from tournament_scheduler.pipeline.state import PipelineState
         from tournament_scheduler.pipeline import PipelineState as ExportedPipelineState
-        from tournament_scheduler import game_generation
+        from tournament_scheduler.shape import game_generation
 
         assert has_activity_table is not None
         assert sync_registered_teams_to_workbook is not None

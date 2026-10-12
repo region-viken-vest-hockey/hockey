@@ -1,7 +1,7 @@
 """Canonical eligibility/withdrawal reconciliation for promoted seasons.
 
 A mid-season team withdrawal is a durable fact about the *eligible pool* for an
-age group, not only a per-tournament roster edit. ``effective_tournament_shape``
+age group, not only a per-tournament roster edit. ``shape.effective_shape``
 derives the legal no-bye shape from the registered pool, so removing a
 participant without recording the pool change looks like an avoidable
 underfill and is correctly refused. This module owns the explicit,

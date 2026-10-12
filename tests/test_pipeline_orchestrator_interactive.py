@@ -1763,7 +1763,7 @@ class TestSharedHostInteractiveDecision:
     def test_no_judge_and_non_interactive_falls_back_without_pausing(self, state, tmp_path):
         """`_cmd_run` (never interactive) with no headless judge configured:
         matches every other decision point's no-judge legacy fallback --
-        empty decisions, host_assignment.py's deterministic order applies,
+        empty decisions, hosting.assignment.py's deterministic order applies,
         no pause (there is nothing to pause for in this entrypoint)."""
         from datetime import datetime
 

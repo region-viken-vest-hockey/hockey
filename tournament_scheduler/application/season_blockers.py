@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from tournament_scheduler.season.state import canonical_state_revision
-from tournament_scheduler.finding_resolution import is_blocking_finding
+from tournament_scheduler.season.finding_resolution import is_blocking_finding
 from tournament_scheduler.pipeline.export_parity.gate import (
     CanonicalFreshness,
     resolve_canonical_freshness,

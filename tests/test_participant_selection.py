@@ -1,4 +1,4 @@
-"""Tests for `tournament_scheduler.participant_selection` roster-size planning.
+"""Tests for `tournament_scheduler.planning.participant_selection` roster-size planning.
 
 issue #316: greedy full-packing of tournament slots (always filling to
 `tournament_capacity`) can strand a final slot below `MIN_TEAMS_PER_TOURNAMENT`
@@ -11,9 +11,9 @@ from typing import Dict
 
 import pytest
 
-from tournament_scheduler.participant_relocation import relocate_structurally_impossible_scheduled_slots
+from tournament_scheduler.placement.participant_relocation import relocate_structurally_impossible_scheduled_slots
 from tournament_scheduler.models import Roster, Team
-from tournament_scheduler.participant_selection import (
+from tournament_scheduler.planning.participant_selection import (
     MIN_TEAMS_PER_TOURNAMENT,
     pick_scored_participants,
     plan_roster_sizes,
@@ -614,7 +614,7 @@ class TestPickScoredParticipantsClubShareFairness:
         # 2nd Holmen team (under cap, no material deficit). `remaining=[]`
         # keeps `club_diversity_penalty` at 0 for both, isolating the
         # cap-penalty/club-share-deficit terms this change actually affects.
-        from tournament_scheduler.participant_selection import participant_selection_score
+        from tournament_scheduler.planning.participant_selection import participant_selection_score
 
         already_selected = [jar_teams[0], jar_teams[1], holmen[0], jutul[0], kongsberg[0]]
         jar_score = participant_selection_score(planner, already_selected, [], jar_teams[2], "U11")
@@ -637,7 +637,7 @@ class TestPickScoredParticipantsClubShareFairness:
         planner.set_actual("A-2", 1)
         planner.set_actual("B-1", 1)
 
-        from tournament_scheduler.participant_selection import participant_selection_score
+        from tournament_scheduler.planning.participant_selection import participant_selection_score
 
         # Both clubs already represented in `selected`; `remaining=[]` keeps
         # `club_diversity_penalty` at 0 for both, isolating the cap-penalty/
@@ -655,7 +655,7 @@ class TestClubDemandShares:
     worked example (Jar 8/20 = 40%, Holmen 2/20 = 10%, Jutul 2/20 = 10%)."""
 
     def test_matches_issue_worked_example_percentages(self):
-        from tournament_scheduler.participant_roster_sizing import club_demand_shares
+        from tournament_scheduler.planning.participant_roster_sizing import club_demand_shares
 
         jar = [Team(club="Jar", label=f"Jar-{i}", age_group="U11") for i in range(8)]
         holmen = [Team(club="Holmen", label=f"Holmen-{i}", age_group="U11") for i in range(2)]

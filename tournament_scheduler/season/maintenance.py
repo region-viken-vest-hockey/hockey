@@ -8,7 +8,7 @@ Stage 3 already uses, so a localized defect does not require re-running Stage
 
     canonical season
       -> fresh revision-bound findings (``list_findings``)
-      -> finding-directed repair options (``repair_options``)
+      -> finding-directed repair options (``repair.dispatch``)
       -> bounded finding-directed search (``search``)
       -> atomic, full-season-verified apply (``apply_repair``)
       -> fresh deterministic before/after metric delta
@@ -18,7 +18,7 @@ derived from. Findings come from a *fresh* :func:`verify_candidate` result --
 never a snapshot promoted with the season -- so stale derived evidence cannot
 masquerade as the current canonical truth. The module owns no scheduling rule
 and no persistence: it composes the existing provider boundary
-(``local_repair_options`` plus the hosting/participation providers) with the
+(``repair.local_options`` plus the hosting/participation providers) with the
 canonical atomically-verified mutation boundary (``application.canonical_season.store_facade.apply_candidate``).
 """
 
@@ -34,7 +34,7 @@ from tournament_scheduler.scoring.quality_objectives import (
 from .request_constraints import (
     active_request_constraints,
 )
-from ..finding_resolution import annotate_resolutions
+from tournament_scheduler.season.finding_resolution import annotate_resolutions
 from tournament_scheduler.rules.catalog import annotate_findings
 from ..application.canonical_season.store_facade import (
     DEFAULT_SEASON_ROOT,
@@ -42,17 +42,17 @@ from ..application.canonical_season.store_facade import (
     record_participation_acceptance,
     revoke_participation_acceptance,
 )
-from ..maintenance_context import (
+from tournament_scheduler.season.maintenance_context import (
     load_maintenance_context,
 )
-from ..findings_construction import (
+from tournament_scheduler.season.findings import (
     construct_findings,
     _require_finding,
 )
-from ..search_coverage import (
+from tournament_scheduler.repair.coverage import (
     cheap_search_coverage,
 )
-from ..repair_options import (
+from tournament_scheduler.repair.dispatch import (
     DEFAULT_DIMENSIONS,
     SEASON_MAINTENANCE_SCHEMA_VERSION,
 )
@@ -63,7 +63,7 @@ from .impact_analysis import (
 
 # Owners of the decomposed maintenance families; re-exported here so
 # callers keep the season.maintenance surface.
-from ..findings_construction import (
+from tournament_scheduler.season.findings import (
     BOOKING_FEASIBILITY,  # noqa: F401
     CLUB_DISTRIBUTION,  # noqa: F401
     HARD_VIOLATION,  # noqa: F401
@@ -98,17 +98,17 @@ from ..findings_construction import (
 from .impact_analysis import (
     plan_fingerprint,  # noqa: F401
 )
-from ..maintenance_context import (
+from tournament_scheduler.season.maintenance_context import (
     SeasonMaintenanceError,  # noqa: F401
     project_canonical_overlays,  # noqa: F401
 )
-from ..option_evaluation import (
+from tournament_scheduler.repair.evaluation import (
     MAINTENANCE_DEFECT_DIMENSIONS,  # noqa: F401
     PARETO_DIMENSIONS,  # noqa: F401
     TRAVEL_OBJECTIVE_DIMENSIONS,  # noqa: F401
     _travel_metrics,  # noqa: F401
 )
-from ..repair_application import (
+from tournament_scheduler.repair.apply import (
     MAX_PARETO_REPRESENTATIVES,  # noqa: F401
     _annotate_pareto,  # noqa: F401
     _effective_search_coverage,  # noqa: F401
@@ -118,7 +118,7 @@ from ..repair_application import (
     baseline_for_plan,  # noqa: F401
     list_findings,  # noqa: F401
 )
-from ..repair_options import (
+from tournament_scheduler.repair.dispatch import (
     DATE_MOVING_FINDING_CODES,  # noqa: F401
     SUPPORTED_DIMENSIONS_BY_CATEGORY,  # noqa: F401
     _collect,  # noqa: F401
@@ -283,7 +283,7 @@ def season_audit(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, A
     """
     from .baseline_overlay import verify_canonical_locks
     from ..planning.verification import verify_final_candidate
-    from ..repair_adoption_guard import season_wide_audit
+    from tournament_scheduler.repair.adoption_guard import season_wide_audit
     from ..application.canonical_season.store_facade import season_lifecycle_report
 
     schedule, decisions, plan, problem = load_context(season, root=root)

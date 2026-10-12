@@ -28,7 +28,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
 from ..models import SeasonPlan, Tournament
-from ..occupancy import tournament_end_time
+from tournament_scheduler.shape.occupancy import tournament_end_time
 
 SPOND_IMPORT_SHEET = "Spond import"
 SPOND_IMPORT_TABLE = "SpondImport"

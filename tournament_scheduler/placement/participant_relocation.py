@@ -1,6 +1,6 @@
 """Relocation of same-date parallel slots that a date cannot legally host.
 
-issue #318: split out of `participant_selection.py` (which keeps the
+issue #318: split out of `planning.participant_selection.py` (which keeps the
 legacy baseline/fallback selection heuristics) since this is a distinct,
 self-contained structural-feasibility repair step.
 """

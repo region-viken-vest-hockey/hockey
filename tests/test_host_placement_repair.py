@@ -9,7 +9,7 @@ from tournament_scheduler.repair.host_placement import (
     collect_candidate_weekend_evidence,
     enumerate_host_placement_repairs,
 )
-from tournament_scheduler.local_repair_options import (
+from tournament_scheduler.repair.local_options import (
     apply_local_repair_option,
     enumerate_local_repair_options,
 )

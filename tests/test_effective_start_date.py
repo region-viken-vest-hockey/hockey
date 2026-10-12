@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from tournament_scheduler.effective_start_date import compute_effective_start_date
+from tournament_scheduler.planning.start_date import compute_effective_start_date
 
 
 class TestComputeEffectiveStartDate:

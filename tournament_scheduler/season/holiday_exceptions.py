@@ -12,7 +12,7 @@ from datetime import date as _date
 from typing import Any, Mapping
 
 from tournament_scheduler.season.state import HOLIDAY_DATE_EXCEPTIONS_KEY
-from tournament_scheduler.date_policy import holiday_exclusions, problem_window
+from tournament_scheduler.planning.date_policy import holiday_exclusions, problem_window
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 ACTIVE = "active"

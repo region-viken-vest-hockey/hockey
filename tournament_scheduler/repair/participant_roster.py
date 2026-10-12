@@ -12,9 +12,9 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Iterable, Optional, Sequence
 
-from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape
+from tournament_scheduler.shape.effective_shape import compute_effective_tournament_shape
 from tournament_scheduler.models import SeasonPlan, Team, Tournament
-from tournament_scheduler.participant_selection import deficit_score
+from tournament_scheduler.planning.participant_selection import deficit_score
 from tournament_scheduler.planning.contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
 
 

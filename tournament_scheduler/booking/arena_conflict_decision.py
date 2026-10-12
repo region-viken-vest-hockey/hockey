@@ -8,7 +8,7 @@ downgrade-to-manual-placement choice is automatic), a same-arena collision
 between two of our own tournaments has two candidates either of which could
 legitimately keep the automatic slot -- deciding which one keeps it and
 which one is demoted to manual placement is a contextual judgement call,
-not a fixed Python heuristic (mirrors ``shared_host_decision.py``).
+not a fixed Python heuristic (mirrors ``hosting.shared_decision.py``).
 
 This module builds the narrow
 :class:`~.application.decisions.DecisionContext` for one collision pair.
@@ -126,7 +126,7 @@ def arena_conflict_decision_record(
 def build_arena_conflict_decision_prompt(context: DecisionContext) -> str:
     """Build the headless-judge prompt for one arena-conflict decision.
 
-    Mirrors ``shared_host_decision.build_shared_host_decision_prompt``: the
+    Mirrors ``hosting.shared_decision.build_shared_host_decision_prompt``: the
     only useful action (``resolve_arena_conflict``) is meaningless without
     its ``keep_tournament_id`` argument, so the prompt asks for it
     explicitly on its own line.
@@ -150,7 +150,7 @@ def build_arena_conflict_decision_prompt(context: DecisionContext) -> str:
 def parse_arena_conflict_verdict(context: DecisionContext, raw_verdict: str) -> DecisionAction:
     """Parse a headless judge reply into a :class:`DecisionAction`.
 
-    Mirrors ``shared_host_decision.parse_shared_host_verdict``: a verdict
+    Mirrors ``hosting.shared_decision.parse_shared_host_verdict``: a verdict
     that doesn't name one of the pair's own tournament ids degrades to
     ``request_operator`` rather than guessing.
     """

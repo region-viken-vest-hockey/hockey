@@ -24,7 +24,7 @@ layer that sequences them.
 ``CanonicalSeasonService`` is a stable facade. The use-case implementations
 live in the cohesive modules/packages under :mod:`tournament_scheduler.application.canonical_season`
 (``baseline``, ``calendars``, ``changes``, ``constraints``, ``placements``, ``normalization``,
-``roster``, ``replacement``, ``batch``, ``candidates``, ``guest_slots``,
+``roster``, ``replacement``, ``batch``, ``candidates``, ``shape.guest_slots``,
 ``approvals``), while the one shared load -> verify -> reconcile -> history ->
 revision -> atomic-write lifecycle is owned by
 :mod:`tournament_scheduler.application.canonical_season.lifecycle` and the

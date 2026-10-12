@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, Sequence
 
 from tournament_scheduler.scoring.pareto import dominates, representative_indices, vectors_equal
-from ..search_capability import recorded_capability_fingerprint
+from tournament_scheduler.repair.capability import recorded_capability_fingerprint
 
 # Bounded frontier size and convergence safeguards. These are the "configured
 # budgets" a terminal reason refers to; hitting one is bounded convergence, not
@@ -301,7 +301,7 @@ class FindingDirection:
     search_incomplete: bool = False
     bounded_exhausted: bool = False
     # Fingerprint of the search capability the freshly discovered finding
-    # describes (from its ``search_coverage``). A recorded exhaustion produced
+    # describes (from its ``repair.coverage``). A recorded exhaustion produced
     # by a different capability is stale, not current.
     search_capability: str = ""
     capability_stale: bool = False

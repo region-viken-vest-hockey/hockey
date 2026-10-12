@@ -11,7 +11,7 @@ from tournament_scheduler.scoring.game_metrics import (
     month_balance_score,
     pairwise_matchup_score,
 )
-from tournament_scheduler.limited_rounds import (
+from tournament_scheduler.shape.limited_rounds import (
     count_same_club_games,
     generate_limited_round_games,
     minimum_same_club_games_for_limited_rounds,

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import copy
 
-from tournament_scheduler.placement_normalization import (
+from tournament_scheduler.placement.normalization import (
     PLACED,
     PROVISIONAL,
     REASON_ARENA_CONFLICT,

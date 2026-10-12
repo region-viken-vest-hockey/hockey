@@ -14,7 +14,7 @@ kept deterministic and conservative:
 
 The subject is the individual squad, but the primary opponent identity is the
 *club within an age group* (see
-:mod:`tournament_scheduler.opponent_diversity`). Squad labels such as
+:mod:`tournament_scheduler.participation.opponent_diversity`). Squad labels such as
 "Frisk Asker 1"/"Frisk Asker 2" are administrative: a swap that changes which
 sibling squad an opponent meets must not be treated as adding a new opponent.
 Exact squad-pair repetition is still reported for diagnostics, but a rise in
@@ -34,7 +34,7 @@ from typing import Any, Mapping, Sequence
 
 from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.clubs.distances import arena_to_club, distance
-from tournament_scheduler.opponent_diversity import (
+from tournament_scheduler.participation.opponent_diversity import (
     MEASURE_CO_ATTENDANCE,
     compute_opponent_diversity,
 )
@@ -180,7 +180,7 @@ def team_schedule_profile(
     max_repeat = max(opponents.values(), default=0)
     repeat_excess_over_2 = sum(max(0, count - 2) for count in opponents.values())
 
-    # Club-level primary opponent identity (see opponent_diversity). The exact
+    # Club-level primary opponent identity (see participation.opponent_diversity). The exact
     # squad counts above are retained under `opponents` for diagnostics and
     # serialized-report compatibility; diversity/exposure decisions read the
     # club view below.

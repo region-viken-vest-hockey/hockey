@@ -7,7 +7,7 @@ higher-cost change and must only happen when no roster substitution verifies.
 
 from copy import deepcopy
 
-from tournament_scheduler.local_repair_options import (
+from tournament_scheduler.repair.local_options import (
     apply_local_repair_option,
     enumerate_local_repair_options,
 )

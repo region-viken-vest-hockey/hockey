@@ -14,7 +14,7 @@ intra-season-only gap check could miss that entirely.
 
 This module is intentionally planner/candidate-agnostic: it takes a season
 window and a team's tournament dates and returns the gap breakdown. Both
-``tournament_scheduler.warnings`` (SeasonPlanner-side reporting) and
+``tournament_scheduler.planning.planner_warnings`` (SeasonPlanner-side reporting) and
 ``tournament_scheduler.planning.contract.score_candidate`` (the generic
 candidate scorer used for plan selection/optimization) build on it, so the
 two callers can't drift into inconsistent definitions of "temporal

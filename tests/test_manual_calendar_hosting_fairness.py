@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 from tournament_scheduler.html.data_computation import canonical_rvv_club_name
 from tournament_scheduler.models import Roster, SeasonPlan, Team, Tournament
-from tournament_scheduler.warnings import hosting_fairness_breakdown
+from tournament_scheduler.planning.planner_warnings import hosting_fairness_breakdown
 
 
 def test_missing_calendar_club_keeps_proportional_hosting_obligation():

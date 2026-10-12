@@ -33,11 +33,11 @@ def compute_game_counts(planner, tournaments: Sequence[Tournament]) -> None:
 def holiday_heavy_weekend_dates(start_date: date, end_date: date) -> Set[date]:
     """Return weekend dates that sit in holiday weeks or just before holidays.
 
-    Delegates to the canonical :mod:`tournament_scheduler.date_policy` so this
+    Delegates to the canonical :mod:`tournament_scheduler.planning.date_policy` so this
     fairness diagnostic and the initial scheduler enforce the identical
     holiday policy.
     """
-    from tournament_scheduler.date_policy import holiday_excluded_dates
+    from tournament_scheduler.planning.date_policy import holiday_excluded_dates
 
     return {
         excluded
@@ -233,7 +233,7 @@ def scan_per_team_share_warnings(
 
 def scan_feasibility_warnings(planner, free_dates: Sequence[date]) -> None:
     """Check each age group's participation target against free-date capacity."""
-    from tournament_scheduler.participant_selection import MIN_TEAMS_PER_TOURNAMENT
+    from tournament_scheduler.planning.participant_selection import MIN_TEAMS_PER_TOURNAMENT
 
     planner._feasibility_warnings = []
 

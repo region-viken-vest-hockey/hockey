@@ -26,8 +26,8 @@ from tournament_scheduler.hosting.coverage import (
     proportional_integer_targets as _shared_proportional_integer_targets,
 )
 from tournament_scheduler.models import Game, Team, Tournament
-from tournament_scheduler.occupancy import required_ice_minutes
-from tournament_scheduler.warnings import holiday_heavy_weekend_dates
+from tournament_scheduler.shape.occupancy import required_ice_minutes
+from tournament_scheduler.planning.planner_warnings import holiday_heavy_weekend_dates
 
 
 def pick_spread_dates(
@@ -40,7 +40,7 @@ def pick_spread_dates(
     target_count: Optional[int] = None,
 ) -> List[date]:
     """Compatibility wrapper that delegates to participant selection."""
-    from tournament_scheduler.participant_selection import pick_spread_dates as _pick_spread_dates
+    from tournament_scheduler.planning.participant_selection import pick_spread_dates as _pick_spread_dates
 
     return _pick_spread_dates(
         planner,
@@ -116,7 +116,7 @@ def assign_hosts(planner, scheduled: Sequence[Tuple[date, str]]) -> List[str]:
         # competes normally for hosting duty here -- excluding it would
         # just shift its share onto other clubs (see scheduler.py's
         # find_arena_slot_for_date, which returns a provisional slot for
-        # such a club instead of a real one, and season_planner.py's
+        # such a club instead of a real one, and planning.season_planner.py's
         # manual_booking_reason flagging for the resulting tournament).
 
         actual_counts = actual_by_age.get(age_group, {})

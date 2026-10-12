@@ -16,7 +16,7 @@ from itertools import combinations
 from typing import Any, Dict, Iterable, Optional, Tuple
 
 from tournament_scheduler.planning import half as planning_half
-from tournament_scheduler.game_generation import generate_tournament_games
+from tournament_scheduler.shape.game_generation import generate_tournament_games
 from tournament_scheduler.models import Team
 from tournament_scheduler.planning.contract import _parse_date, _team_identity
 

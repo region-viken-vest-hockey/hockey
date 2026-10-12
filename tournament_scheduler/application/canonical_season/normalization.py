@@ -19,7 +19,7 @@ from tournament_scheduler.season.change_protections import (
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
+from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
 
@@ -51,7 +51,7 @@ def normalize_placements(
     the full verifier and the derived projections are recomputed before
     the result is accepted.
     """
-    from tournament_scheduler.placement_normalization import (
+    from tournament_scheduler.placement.normalization import (
         normalize_unplaced_placements,
     )
     from tournament_scheduler.publication.baseline import (

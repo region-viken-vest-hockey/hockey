@@ -39,7 +39,7 @@ REQUIRED_OWNERS = (
     "tournament_scheduler/rules/catalog.py",
     "tournament_scheduler/planning/contract.py",
     "tournament_scheduler/planning/verification.py",
-    "tournament_scheduler/season_planner.py",
+    "tournament_scheduler/planning/season_planner.py",
     "tournament_scheduler/stage3/optimizer.py",
     "tournament_scheduler/stage3/cpsat.py",
     "tournament_scheduler/scoring/quality_objectives.py",

@@ -21,7 +21,7 @@ from tournament_scheduler.pipeline.tournament_updater import (
     TournamentValidationError,
 )
 from tournament_scheduler.serialization.season_plan import season_plan_to_dict
-from tournament_scheduler.season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 
 
 # ---------------------------------------------------------------------------

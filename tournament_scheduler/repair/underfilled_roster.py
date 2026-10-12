@@ -32,7 +32,7 @@ from datetime import date
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from tournament_scheduler.application.decisions import DecisionContext
-from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape
+from tournament_scheduler.shape.effective_shape import compute_effective_tournament_shape
 from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
     _codes,

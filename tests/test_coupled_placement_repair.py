@@ -24,7 +24,7 @@ from tournament_scheduler.repair.coupled_placement import (
     resolve_swap_fields,
 )
 from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
-from tournament_scheduler.repair_adoption_guard import (
+from tournament_scheduler.repair.adoption_guard import (
     REGRESSION_TEMPORAL_OFFENDERS,
     REGRESSION_TRAVEL,
     REGRESSION_UNIQUE_OPPONENTS,

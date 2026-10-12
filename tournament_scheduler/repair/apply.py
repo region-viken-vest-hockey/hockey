@@ -7,27 +7,27 @@ mutability guarantees.
 
 from __future__ import annotations
 
-from .application.canonical_season.scoped_mutation import authorization_history_details
-from .application.canonical_season.scoped_mutation import authorize_bounded_repair
-from .season.baseline_overlay import build_canonical_baseline
-from .season.baseline_overlay import change_cost
-from .finding_resolution import annotate_resolutions
-from .finding_resolution import resolution_summary
-from .findings_construction import _findings_for_option
-from .findings_construction import _infer_finding_id
-from .findings_construction import _require_finding
-from .findings_construction import construct_findings
-from .findings_construction import findings_for_plan
+from tournament_scheduler.application.canonical_season.scoped_mutation import authorization_history_details
+from tournament_scheduler.application.canonical_season.scoped_mutation import authorize_bounded_repair
+from tournament_scheduler.season.baseline_overlay import build_canonical_baseline
+from tournament_scheduler.season.baseline_overlay import change_cost
+from tournament_scheduler.season.finding_resolution import annotate_resolutions
+from tournament_scheduler.season.finding_resolution import resolution_summary
+from tournament_scheduler.season.findings import _findings_for_option
+from tournament_scheduler.season.findings import _infer_finding_id
+from tournament_scheduler.season.findings import _require_finding
+from tournament_scheduler.season.findings import construct_findings
+from tournament_scheduler.season.findings import findings_for_plan
 from tournament_scheduler.repair.host_team_missing import candidate_fingerprint
-from .season.impact_analysis import _changed_team_ids
-from .season.impact_analysis import _changed_tournament_ids
-from .season.impact_analysis import _plan_fingerprint
-from .season.impact_analysis import _priority_improvement_tier
-from .local_repair_options import apply_local_repair_option
-from .maintenance_context import load_maintenance_context
-from .operational_acceptability import check_operational_acceptability
-from .operational_acceptability import required_opt_in_flags
-from .option_evaluation import (
+from tournament_scheduler.season.impact_analysis import _changed_team_ids
+from tournament_scheduler.season.impact_analysis import _changed_tournament_ids
+from tournament_scheduler.season.impact_analysis import _plan_fingerprint
+from tournament_scheduler.season.impact_analysis import _priority_improvement_tier
+from tournament_scheduler.repair.local_options import apply_local_repair_option
+from tournament_scheduler.season.maintenance_context import load_maintenance_context
+from tournament_scheduler.season.acceptability import check_operational_acceptability
+from tournament_scheduler.season.acceptability import required_opt_in_flags
+from tournament_scheduler.repair.evaluation import (
     PARETO_DIMENSIONS,
     _metric_delta,
     _objective_vector,
@@ -35,28 +35,28 @@ from .option_evaluation import (
     _travel_metrics,
 )
 from tournament_scheduler.scoring.pareto import non_dominated_indices, representative_indices
-from .planning.contract import score_candidate
+from tournament_scheduler.planning.contract import score_candidate
 from tournament_scheduler.scoring.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
-from .repair_options import _option_is_applicable
-from .search_coverage import (
+from tournament_scheduler.repair.dispatch import _option_is_applicable
+from tournament_scheduler.repair.coverage import (
     SEARCH_COVERAGE_BOUNDED_EXHAUSTED,
     SEARCH_COVERAGE_INCOMPLETE,
     SEARCH_COVERAGE_OPTION_AVAILABLE,
 )
-from .planning.contract import verify_candidate
-from .repair_adoption_guard import RepairPassLedger
-from .repair_adoption_guard import adoption_history_summary
-from .repair_adoption_guard import evaluate_adoption
-from .repair_options import DEFAULT_DIMENSIONS
-from .repair_options import SEASON_MAINTENANCE_SCHEMA_VERSION
-from .repair_options import _options_for_finding
-from .season.request_constraints import active_request_constraints
-from .season.request_constraints import compare_constraint_violations
-from .season.request_constraints import request_constraint_report
+from tournament_scheduler.planning.contract import verify_candidate
+from tournament_scheduler.repair.adoption_guard import RepairPassLedger
+from tournament_scheduler.repair.adoption_guard import adoption_history_summary
+from tournament_scheduler.repair.adoption_guard import evaluate_adoption
+from tournament_scheduler.repair.dispatch import DEFAULT_DIMENSIONS
+from tournament_scheduler.repair.dispatch import SEASON_MAINTENANCE_SCHEMA_VERSION
+from tournament_scheduler.repair.dispatch import _options_for_finding
+from tournament_scheduler.season.request_constraints import active_request_constraints
+from tournament_scheduler.season.request_constraints import compare_constraint_violations
+from tournament_scheduler.season.request_constraints import request_constraint_report
 from tournament_scheduler.rules.catalog import annotate_findings
-from .application.canonical_season.store_facade import DEFAULT_SEASON_ROOT
-from .application.canonical_season.store_facade import apply_candidate
-from .application.canonical_season.store_facade import canonical_state_revision
+from tournament_scheduler.application.canonical_season.store_facade import DEFAULT_SEASON_ROOT
+from tournament_scheduler.application.canonical_season.store_facade import apply_candidate
+from tournament_scheduler.application.canonical_season.store_facade import canonical_state_revision
 from typing import Any
 from typing import Dict
 from typing import Iterable
@@ -75,7 +75,7 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
     # floor is a durable follow-up finding at the audit boundary, not a
     # new-placement hard violation. Use the same revision-bound classification
     # the export/preflight path applies so findings/audit and export agree.
-    from .planning.verification import _reclassify_accepted_booking_floor
+    from tournament_scheduler.planning.verification import _reclassify_accepted_booking_floor
 
     accepted_floor_findings, remaining_violations = _reclassify_accepted_booking_floor(
         problem, plan, list(verification.get("violations") or [])
@@ -91,7 +91,7 @@ def list_findings(season: str, *, root: str = DEFAULT_SEASON_ROOT) -> Dict[str, 
     annotate_findings(findings)
     annotate_resolutions(findings)
     baseline = decisions.get("season_baseline") or None
-    from .season.accepted_baseline import compare_findings_to_baseline
+    from tournament_scheduler.season.accepted_baseline import compare_findings_to_baseline
 
     baseline_comparison = compare_findings_to_baseline(baseline, findings)
     # Hard verification is never baselineable: a hard failure must never let a
@@ -537,7 +537,7 @@ def _apply_option(
         "tournament_id": finding.get("tournament_id"),
     }
     if family == "hosting_balance":
-        from .hosting.balance_repair import apply_hosting_balance_repair_option
+        from tournament_scheduler.hosting.balance_repair import apply_hosting_balance_repair_option
 
         return apply_hosting_balance_repair_option(
             plan,

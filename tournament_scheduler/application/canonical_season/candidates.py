@@ -32,11 +32,11 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
     season_id_from_plan,
 )
-from tournament_scheduler.operational_acceptability import (
+from tournament_scheduler.season.acceptability import (
     check_operational_acceptability,
     required_opt_in_flags,
 )
-from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
+from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning.verification import verify_canonical_candidate
 from tournament_scheduler.planning.contract import extract_candidate, verify_candidate
 from tournament_scheduler.publication.baseline import (

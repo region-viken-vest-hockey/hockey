@@ -13,7 +13,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-from tournament_scheduler.home_representation import (
+from tournament_scheduler.participation.home_representation import (
     home_representation_facts,
     home_representation_rows,
     multi_team_pools,

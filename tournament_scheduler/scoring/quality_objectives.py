@@ -51,7 +51,7 @@ QUALITY_METRIC_PATHS: List[Tuple[str, str]] = [
     ("opponent_diversity.max_pair_repeat", "lower"),
     # Club-level primary opponent identity: the same repetition/diversity
     # question answered against the opposing club within an age group, not the
-    # exact squad label (see tournament_scheduler.opponent_diversity).
+    # exact squad label (see tournament_scheduler.participation.opponent_diversity).
     ("opponent_diversity.max_club_pair_repeat", "lower"),
     ("opponent_diversity.club_pairs_meeting_3_plus", "lower"),
     ("opponent_diversity.min_distinct_opponent_clubs", "higher"),

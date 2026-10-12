@@ -1,7 +1,7 @@
 """Per-date roster-size rebalancing across an entire `scheduled` list.
 
 issue #318: split out of `SeasonPlanner` -- this fans
-`participant_selection.rebalance_roster_sizes_across_dates` out across every
+`planning.participant_selection.rebalance_roster_sizes_across_dates` out across every
 (age_group, period) group in a full season's `scheduled` list and folds the
 per-group evidence into one list, deduplicating against relocation evidence
 already produced for the same date.
@@ -13,7 +13,7 @@ from datetime import date
 from itertools import groupby
 from typing import Callable, Dict, List, Optional, Tuple
 
-from tournament_scheduler.participant_selection import (
+from tournament_scheduler.planning.participant_selection import (
     max_teams_for,
     plan_roster_sizes_for_age_group,
     rebalance_roster_sizes_across_dates,
@@ -34,7 +34,7 @@ def compute_rebalanced_roster_sizes(
     materializable tournament.
 
     issue #318: `scheduled` here already reflects any relocation performed
-    upstream (`participant_relocation.relocate_structurally_impossible_scheduled_slots`),
+    upstream (`placement.participant_relocation.relocate_structurally_impossible_scheduled_slots`),
     so `same_date_uniqueness_limit` entries this produces can only recur for
     slots relocation genuinely could not place anywhere else -- those are
     superseded by the richer `same_date_relocation_evidence` entries (which

@@ -23,7 +23,7 @@ from tournament_scheduler.pipeline.cancellation_workflow import (
 )
 from tournament_scheduler.serialization.season_plan import season_plan_to_dict
 from tournament_scheduler.serialization.season_plan import tournament_from_dict
-from tournament_scheduler.season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 
 
 # ---------------------------------------------------------------------------

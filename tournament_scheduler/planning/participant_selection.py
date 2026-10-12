@@ -18,8 +18,8 @@ from typing import Dict, List, Optional, Sequence, Set
 from tournament_scheduler.hosting.representation import clubs_represent_same_club
 from tournament_scheduler.models import Team, overlapping_age_groups
 from tournament_scheduler.planning.contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
-from tournament_scheduler.participant_relocation import MIN_TEAMS_PER_TOURNAMENT as MIN_TEAMS_PER_TOURNAMENT, relocate_structurally_impossible_slots as relocate_structurally_impossible_slots
-from tournament_scheduler.participant_roster_sizing import (
+from tournament_scheduler.placement.participant_relocation import MIN_TEAMS_PER_TOURNAMENT as MIN_TEAMS_PER_TOURNAMENT, relocate_structurally_impossible_slots as relocate_structurally_impossible_slots
+from tournament_scheduler.planning.participant_roster_sizing import (
     _participation_demand as _participation_demand,
     club_demand_shares as club_demand_shares,
     club_share_deficit as club_share_deficit,

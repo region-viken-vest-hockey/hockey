@@ -52,7 +52,7 @@ from tournament_scheduler.participation.withdrawals import (
     record_tournament_ids,
     team_identity as _team_identity,
 )
-from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
+from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.season.request_constraints import compare_request_constraint_violations
 
@@ -729,7 +729,7 @@ def remove_participant(
     candidate_revision = schedule_fingerprint(plan)
     cost = change_cost(baseline, plan)
 
-    from tournament_scheduler.team_schedule_quality import (
+    from tournament_scheduler.participation.team_schedule_quality import (
         RegressionAcceptanceError,
         evaluate_regression_acceptances,
         parse_regression_acceptances,

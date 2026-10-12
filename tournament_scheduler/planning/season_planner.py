@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.participation.fairness_model import SeasonFairnessModel
-from tournament_scheduler.game_generation import (
+from tournament_scheduler.shape.game_generation import (
     arena_counts as _arena_counts,
     best_round_subset as _best_round_subset,
     diversity_score as _diversity_score,
@@ -27,7 +27,7 @@ from tournament_scheduler.game_generation import (
     rebalance_rounds as _rebalance_rounds,
 )
 from tournament_scheduler.participation.fairness_scoring import DEFAULT_FAIRNESS_THRESHOLDS, build_fairness_gate as _build_fairness_gate
-from tournament_scheduler.host_assignment import (
+from tournament_scheduler.hosting.assignment import (
     assign_hosts as _assign_hosts,
     default_target_count as _default_target_count,
     find_slot_for_tournament as _find_slot_for_tournament,
@@ -35,7 +35,7 @@ from tournament_scheduler.host_assignment import (
     proportional_integer_targets as _proportional_integer_targets,
     slot_search_host_order as _slot_search_host_order,
 )
-from tournament_scheduler.placement_findings import (
+from tournament_scheduler.placement.findings import (
     UNPLACED_PLACEMENT_CATEGORY,
     unplaced_placement_finding_id,
 )
@@ -51,7 +51,7 @@ from tournament_scheduler.models import (
     team_key,
 )
 from tournament_scheduler.booking.arena_conflicts import find_arena_interval_collisions, tournament_interval
-from tournament_scheduler.host_candidate_selection import participant_derived_host_candidates as _participant_derived_host_candidates
+from tournament_scheduler.hosting.candidate_selection import participant_derived_host_candidates as _participant_derived_host_candidates
 from tournament_scheduler.hosting.representation import constituent_clubs as _constituent_clubs
 from tournament_scheduler.hosting.coverage import hosting_coverage_matrix as _hosting_coverage_matrix
 from tournament_scheduler.repair.responsibility_preserving import (
@@ -68,11 +68,11 @@ from tournament_scheduler.hosting.same_age_repair import (
 from tournament_scheduler.hosting.same_age_repair_apply import attempt_same_age_repairs as _attempt_same_age_repairs
 from tournament_scheduler.booking.calendar_availability import host_confirmation_from_evidence
 from tournament_scheduler.planning.contract import external_calendar_conflict
-from tournament_scheduler.tournament_identity import allocate_tournament_id
-from tournament_scheduler.participant_roster_sizing import (
+from tournament_scheduler.shape.identity import allocate_tournament_id
+from tournament_scheduler.planning.participant_roster_sizing import (
     club_demand_shares as _club_demand_shares,
 )
-from tournament_scheduler.participant_selection import (
+from tournament_scheduler.planning.participant_selection import (
     cap_per_club_deficit_aware as _cap_per_club_deficit_aware,
     club_count_excess_over_2 as _club_count_excess_over_2,
     deficit_score as _deficit_score,
@@ -90,19 +90,19 @@ from tournament_scheduler.participant_selection import (
     select_participants as _select_participants,
     target_tournaments_for_age_group as _target_tournaments_for_age_group,
 )
-from tournament_scheduler.participant_relocation import (
+from tournament_scheduler.placement.participant_relocation import (
     relocate_structurally_impossible_scheduled_slots as _relocate_structurally_impossible_scheduled_slots,
 )
 from tournament_scheduler.repair.participant_roster import (
     attempt_underfilled_roster_repairs as _attempt_underfilled_roster_repairs,
 )
-from tournament_scheduler.roster_size_planning import (
+from tournament_scheduler.planning.roster_size import (
     compute_rebalanced_roster_sizes as _compute_rebalanced_roster_sizes,
 )
 from tournament_scheduler.rules.report import rules_report as _rules_report
 from tournament_scheduler.scheduler import TournamentScheduler
-from tournament_scheduler.occupancy import occupancy_components, round_count_for_games, tournament_required_ice_minutes
-from tournament_scheduler.warnings import (
+from tournament_scheduler.shape.occupancy import occupancy_components, round_count_for_games, tournament_required_ice_minutes
+from tournament_scheduler.planning.planner_warnings import (
     _club_calendar_available,
     compute_game_counts as _compute_game_counts,
     hosting_fairness_breakdown as _hosting_fairness_breakdown,
@@ -269,7 +269,7 @@ class SeasonPlanner:
         # "Kongsberg/Tønsberg") carries a specific (registration, age_group)
         # hosting obligation. Keyed by (registration, age_group) -> chosen
         # constituent club. Consulted by
-        # `host_assignment.find_slot_for_tournament` so calendar convenience
+        # `hosting.assignment.find_slot_for_tournament` so calendar convenience
         # never picks the winner once a decision has been made.
         self.shared_host_decisions: Dict[Tuple[str, str], str] = dict(shared_host_decisions or {})
         # Real external busy intervals per club (issue #264 shape), reused
@@ -681,7 +681,7 @@ class SeasonPlanner:
         # planned size instead of always greedily filling to tournament
         # capacity -- greedy filling can strand a later required slot below
         # `MIN_TEAMS_PER_TOURNAMENT` even when the total demand is perfectly
-        # packable (see `participant_selection.plan_roster_sizes`).
+        # packable (see `planning.participant_selection.plan_roster_sizes`).
         #
         # issue #318: the half-wide balanced list above has no notion of
         # *which* dates its slots land on. When several parallel slots for
@@ -2312,7 +2312,7 @@ class SeasonPlanner:
         capacity` -- not by splitting one combined season-wide total using
         the before/after values as a ratio. `_target_tournaments_for_age_group`
         already does exactly that per-half derivation (see
-        `participant_selection.target_tournaments_for_age_group`), so this
+        `planning.participant_selection.target_tournaments_for_age_group`), so this
         just calls it once per half instead of computing and re-splitting a
         combined total. `free_dates`/`split_date` are accepted for call-site
         symmetry with the date-schedule builders that call this but are not

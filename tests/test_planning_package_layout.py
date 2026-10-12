@@ -11,15 +11,31 @@ PLANNING_DIR = PACKAGE_ROOT / "planning"
 PLANNING_MODULES = {
     "contract",
     "contract_distribution",
+    "date_policy",
+    "derived_state",
     "half",
+    "participant_roster_sizing",
+    "participant_selection",
+    "planner_warnings",
+    "roster_size",
+    "season_planner",
+    "start_date",
     "verification",
 }
 
 FLAT_PLANNING_MODULES = {
+    "date_policy",
+    "effective_start_date",
+    "final_verification",
+    "participant_roster_sizing",
+    "participant_selection",
+    "plan_derived_state",
     "planning_contract",
     "planning_contract_distribution",
     "planning_half",
-    "final_verification",
+    "roster_size_planning",
+    "season_planner",
+    "warnings",
 }
 
 

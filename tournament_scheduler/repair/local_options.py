@@ -30,7 +30,7 @@ from tournament_scheduler.repair.home_representation import (
     apply_home_representation_repair_option,
     enumerate_home_representation_repairs,
 )
-from .hosting.balance_repair import (
+from tournament_scheduler.hosting.balance_repair import (
     apply_hosting_balance_repair_option,
     enumerate_hosting_balance_repairs,
 )

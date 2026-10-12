@@ -1,6 +1,6 @@
 """Stage 3 — deterministic season planning.
 
-Calls :class:`~tournament_scheduler.season_planner.SeasonPlanner` to produce a
+Calls :class:`~tournament_scheduler.planning.season_planner.SeasonPlanner` to produce a
 :class:`~tournament_scheduler.models.SeasonPlan` with built-in deterministic
 quality scores (diversity, balance, pairwise-matchup).
 
@@ -43,10 +43,10 @@ from datetime import date, datetime
 from typing import Any
 import threading
 
-from ..effective_start_date import compute_effective_start_date
+from tournament_scheduler.planning.start_date import compute_effective_start_date
 from tournament_scheduler.participation.fairness_scoring import build_fairness_gate as _build_fairness_gate
 from ..models import SeasonPlan
-from ..season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 from .fingerprints import stable_payload_sha256
 from .not_started import NOT_STARTED_MESSAGE
 from .state import PipelineState, StageName, StageStatus
@@ -417,7 +417,7 @@ def run(
         When ``1`` (default), behaviour is identical to the original
         deterministic single-pass run (seed=None).
     today:
-        Override for "today" (issue #272 `effective_start_date` derivation).
+        Override for "today" (issue #272 `planning.start_date` derivation).
         Defaults to the real `Europe/Oslo` date. Tests that model a fixed
         historical season window should pass this explicitly instead of
         relying on the real wall clock.

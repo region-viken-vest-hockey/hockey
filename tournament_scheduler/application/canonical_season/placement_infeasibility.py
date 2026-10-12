@@ -5,7 +5,7 @@ evidence that one unplaced placement obligation cannot be satisfied with the
 current authoritative capacity. It runs the repository-owned bounded search for
 the selected obligations, and only persists a proof when the search walked its
 whole declared scope and produced zero legal candidates
-(:mod:`tournament_scheduler.placement_infeasibility`). The raw obligation is
+(:mod:`tournament_scheduler.placement.infeasibility`). The raw obligation is
 never removed and the search never mutates the schedule: this is a
 decision-only, revision-bound write, exactly like an ice-time override or an
 operator acceptance.
@@ -24,7 +24,7 @@ from typing import Any, Iterable, Mapping
 
 from tournament_scheduler.season.state import canonical_state_revision
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
-from tournament_scheduler.placement_infeasibility import (
+from tournament_scheduler.placement.infeasibility import (
     ACTIVE,
     build_infeasibility_proof,
     clear_obligation_proofs,

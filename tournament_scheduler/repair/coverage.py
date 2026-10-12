@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, Mapping, Optional
 
-from .search_capability import SearchCapability
+from tournament_scheduler.repair.capability import SearchCapability
 
 
 # Search coverage status constants
@@ -28,7 +28,7 @@ def maintenance_search_capability(finding: Mapping[str, Any]) -> SearchCapabilit
     provider; this covers the remaining generic providers so every coverage
     record still names the search that produced it.
     """
-    from .repair_options import supported_dimensions_for_finding
+    from tournament_scheduler.repair.dispatch import supported_dimensions_for_finding
 
     supported = supported_dimensions_for_finding(finding)
     category = str(finding.get("category") or "generic")
@@ -46,7 +46,7 @@ def cheap_search_coverage(finding: Mapping[str, Any]) -> Dict[str, Any]:
     dimension is still untried: ``search_incomplete``, never a false
     ``bounded_search_exhausted``.
     """
-    from .repair_options import supported_dimensions_for_finding
+    from tournament_scheduler.repair.dispatch import supported_dimensions_for_finding
 
     supported = list(supported_dimensions_for_finding(finding))
     return {

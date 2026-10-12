@@ -7,13 +7,13 @@ onto the promoted planning problem.
 
 from __future__ import annotations
 
-from .season.baseline_overlay import build_canonical_baseline
+from tournament_scheduler.season.baseline_overlay import build_canonical_baseline
 from tournament_scheduler.participation.targets import search_evidence_from_acceptances
-from .season.request_constraints import host_sibling_preference_evidence
-from .application.canonical_season.store_facade import DEFAULT_SEASON_ROOT
-from .application.canonical_season.store_facade import load_decisions
-from .application.canonical_season.store_facade import load_participation_acceptances
-from .application.canonical_season.store_facade import load_schedule
+from tournament_scheduler.season.request_constraints import host_sibling_preference_evidence
+from tournament_scheduler.application.canonical_season.store_facade import DEFAULT_SEASON_ROOT
+from tournament_scheduler.application.canonical_season.store_facade import load_decisions
+from tournament_scheduler.application.canonical_season.store_facade import load_participation_acceptances
+from tournament_scheduler.application.canonical_season.store_facade import load_schedule
 from typing import Any
 from typing import Dict
 from typing import Mapping
@@ -100,9 +100,9 @@ def project_canonical_overlays(
         project_associations_into_problem,
         project_manual_assertions_into_problem,
     )
-    from .season.banned_dates import project_banned_dates_into_problem
-    from .season.holiday_exceptions import project_exceptions_into_problem
-    from .season.ice_time_overrides import project_overrides_into_problem
+    from tournament_scheduler.season.banned_dates import project_banned_dates_into_problem
+    from tournament_scheduler.season.holiday_exceptions import project_exceptions_into_problem
+    from tournament_scheduler.season.ice_time_overrides import project_overrides_into_problem
     from tournament_scheduler.participation.withdrawals import project_into_problem
 
     projected: Dict[str, Any] = dict(problem)

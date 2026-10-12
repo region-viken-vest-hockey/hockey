@@ -34,7 +34,7 @@ from tournament_scheduler.booking.calendar_availability import (
     CLASSIFICATION_SOURCE_INFERRED,
     classify_club_event_detailed,
 )
-from .planning.contract import (
+from tournament_scheduler.planning.contract import (
     _parse_date,
     external_calendar_conflict,
     movable_calendar_opportunity,

@@ -257,7 +257,7 @@ def run(
     # are never demoted.
     normalization_report: dict[str, Any] = {}
     if allow_placement_normalization and isinstance(plan_dict, dict) and plan_dict.get("tournaments"):
-        from ..placement_normalization import normalize_unplaced_placements
+        from tournament_scheduler.placement.normalization import normalize_unplaced_placements
 
         plan_dict = copy.deepcopy(plan_dict)
         plan_checkpoint = {**plan_checkpoint, "plan": plan_dict}
@@ -302,7 +302,7 @@ def run(
     canonical_state = plan_checkpoint.get("canonical_state")
     is_canonical_export = isinstance(canonical_state, dict) and bool(canonical_state.get("season"))
     if normalization_report.get("changed") or is_canonical_export:
-        from ..plan_derived_state import reconcile_plan_derived_state
+        from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
 
         reconcile_plan_derived_state(plan_dict, export_verify_result, problem=export_problem)
     export_fingerprint = stable_payload_sha256(export_candidate.get("tournaments", []))
@@ -667,7 +667,7 @@ def run(
         if not entry.get("interval"):
             entry["interval"] = placement_tournament.start_time or placement_tournament.date.isoformat()
     # Render the canonical conflict-aware candidate weekends
-    # (``candidate_weekends``) for each unresolved placement. This consumes
+    # (``booking.candidate_weekends``) for each unresolved placement. This consumes
     # the same evidence-only provider the Stage 3 decision context exposes; it
     # never generates a placement or changes schedule state.
     candidate_weekends_by_tournament: dict[str, dict] = {}

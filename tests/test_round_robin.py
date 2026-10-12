@@ -2,7 +2,7 @@
 
 
 from tournament_scheduler.models import Team
-from tournament_scheduler.season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 
 
 def _make_teams(n, age_group='U10'):

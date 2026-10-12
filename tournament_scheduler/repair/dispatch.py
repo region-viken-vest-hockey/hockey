@@ -7,19 +7,19 @@ rejection tracking, and provider family coordination.
 
 from __future__ import annotations
 
-from .findings_construction import BOOKING_FEASIBILITY
-from .findings_construction import CLUB_DISTRIBUTION
-from .findings_construction import HARD_VIOLATION
-from .findings_construction import HOME_REPRESENTATION
-from .findings_construction import HOSTING
-from .findings_construction import MANUAL_PLACEMENT
-from .findings_construction import MOVABLE_CAPACITY
-from .findings_construction import PARTICIPATION
-from .findings_construction import ROSTER_SHAPE
-from .findings_construction import TEMPORAL_CLUSTERING
-from .local_repair_options import enumerate_local_repair_options
-from .search_coverage import derive_search_coverage
-from .search_coverage import maintenance_search_capability
+from tournament_scheduler.season.findings import BOOKING_FEASIBILITY
+from tournament_scheduler.season.findings import CLUB_DISTRIBUTION
+from tournament_scheduler.season.findings import HARD_VIOLATION
+from tournament_scheduler.season.findings import HOME_REPRESENTATION
+from tournament_scheduler.season.findings import HOSTING
+from tournament_scheduler.season.findings import MANUAL_PLACEMENT
+from tournament_scheduler.season.findings import MOVABLE_CAPACITY
+from tournament_scheduler.season.findings import PARTICIPATION
+from tournament_scheduler.season.findings import ROSTER_SHAPE
+from tournament_scheduler.season.findings import TEMPORAL_CLUSTERING
+from tournament_scheduler.repair.local_options import enumerate_local_repair_options
+from tournament_scheduler.repair.coverage import derive_search_coverage
+from tournament_scheduler.repair.coverage import maintenance_search_capability
 from typing import Any
 from typing import Dict
 from typing import Iterable
@@ -128,7 +128,7 @@ def _hosting_options(
     allow_search: bool,
     dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
-    from .hosting.balance_repair import enumerate_hosting_balance_repairs
+    from tournament_scheduler.hosting.balance_repair import enumerate_hosting_balance_repairs
 
     repair_set = enumerate_hosting_balance_repairs(
         plan,

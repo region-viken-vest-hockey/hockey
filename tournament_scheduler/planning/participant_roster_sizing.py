@@ -1,6 +1,6 @@
 """Tournament roster-size planning helpers for `SeasonPlanner`.
 
-Split out of `participant_selection.py` (which re-exports all of these names
+Split out of `planning.participant_selection.py` (which re-exports all of these names
 for backward compatibility) to keep that module under the file-length
 guideline -- these functions answer "how many slots/how big" a given age
 group's participation demand needs, a distinct concern from *which* teams
@@ -13,8 +13,8 @@ import math
 from datetime import date
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape
-from tournament_scheduler.participant_relocation import MIN_TEAMS_PER_TOURNAMENT
+from tournament_scheduler.shape.effective_shape import compute_effective_tournament_shape
+from tournament_scheduler.placement.participant_relocation import MIN_TEAMS_PER_TOURNAMENT
 
 
 def club_demand_shares(planner, age_group: str, period: Optional[str] = None) -> Dict[str, float]:
@@ -85,7 +85,7 @@ def _participation_demand(planner, age_group: str, period: Optional[str] = None)
     should be packed into those slots) so the two never derive the demand
     differently.
     """
-    from tournament_scheduler.participant_selection import max_teams_for
+    from tournament_scheduler.planning.participant_selection import max_teams_for
 
     teams = planner.roster.by_age_group(age_group)
     if len(teams) < MIN_TEAMS_PER_TOURNAMENT:

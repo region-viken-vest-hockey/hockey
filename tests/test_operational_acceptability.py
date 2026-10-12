@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from tournament_scheduler.operational_acceptability import (
+from tournament_scheduler.season.acceptability import (
     CATEGORY_FIXED_BUSY_PLACEMENT,
     CATEGORY_HOST_CONFIRMATION_DEPENDENCY,
     CATEGORY_UNRESOLVED_PLACEMENT_OBLIGATION,

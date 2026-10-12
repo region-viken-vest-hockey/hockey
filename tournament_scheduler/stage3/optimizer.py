@@ -29,7 +29,7 @@ clustering than the baseline planner):
   optimizer version unchanged when not explicitly requested.
 - After the search settles, games for any changed tournament are
   regenerated with the existing generic round-robin generator
-  (:func:`tournament_scheduler.game_generation.generate_round_robin_games`),
+  (:func:`tournament_scheduler.shape.game_generation.generate_round_robin_games`),
   keeping the same host-club-plays-at-home convention Stage 3 already uses.
 
 Exposed as an explicit CLI command (``rvv-miniputt plan optimize``, see
@@ -49,8 +49,8 @@ from datetime import date, timedelta
 from itertools import combinations
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
-from tournament_scheduler.game_generation import generate_tournament_games
-from tournament_scheduler.date_policy import problem_forbidden_dates as _problem_forbidden_dates
+from tournament_scheduler.shape.game_generation import generate_tournament_games
+from tournament_scheduler.planning.date_policy import problem_forbidden_dates as _problem_forbidden_dates
 from tournament_scheduler.season.baseline_overlay import (
     DEFAULT_CHANGE_COST_SCALE,
     DEFAULT_CHANGE_WEIGHTS,
@@ -73,7 +73,7 @@ from tournament_scheduler.planning.contract import (
     _team_identity,
     external_calendar_conflict,
 )
-from tournament_scheduler.occupancy import required_ice_minutes
+from tournament_scheduler.shape.occupancy import required_ice_minutes
 from tournament_scheduler.utils.slot_finder import parse_time
 
 # Fixed candidate start times for the move_slots search (issue #262 P1).
@@ -226,7 +226,7 @@ def _subject_club_exposure(slots: List[_Slot]) -> Dict[ExposureKey, int]:
 
     The subject is the individual squad and the opponent identity is the
     opposing club within an age group (see
-    :mod:`tournament_scheduler.opponent_diversity`): a change in which
+    :mod:`tournament_scheduler.participation.opponent_diversity`): a change in which
     sibling squad an opponent meets is not a new opponent, but concentrating
     one squad's own schedule on one club is visible. Keying on the subject
     (rather than an aggregate club pair) is what makes those two schedules

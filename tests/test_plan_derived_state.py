@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from tournament_scheduler.plan_derived_state import (
+from tournament_scheduler.planning.derived_state import (
     publication_readiness_with_plan_placements,
     reconcile_plan_derived_state,
 )

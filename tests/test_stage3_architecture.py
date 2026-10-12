@@ -27,9 +27,9 @@ LIFECYCLE_MODULES = (
 FORBIDDEN_LIFECYCLE_IMPORTS = (
     "tournament_scheduler.cli",
     "rich",
-    "tournament_scheduler.season_planner",
+    "tournament_scheduler.planning.season_planner",
     "tournament_scheduler.stage3.optimizer",
-    "tournament_scheduler.local_repair_options",
+    "tournament_scheduler.repair.local_options",
     "tournament_scheduler.repair.host_team_missing",
     "tournament_scheduler.repair.search_neighborhood",
     "tournament_scheduler.repair.underfilled_roster",
@@ -133,9 +133,9 @@ CLI_TRANSPORT_MODULE = SOURCE_ROOT / "cli" / "pipeline_orchestrator" / "run_comm
 STAGE3_CAPABILITIES_MODULE = SOURCE_ROOT / "cli" / "pipeline_orchestrator" / "stage3_capabilities.py"
 
 CLI_FORBIDDEN_DOMAIN_IMPORTS = (
-    "tournament_scheduler.local_repair_options",
+    "tournament_scheduler.repair.local_options",
     "tournament_scheduler.booking.arena_conflict_decision",
-    "tournament_scheduler.shared_host_decision",
+    "tournament_scheduler.hosting.shared_decision",
     "tournament_scheduler.stage3.decision",
     "tournament_scheduler.planner",
 )

@@ -10,7 +10,7 @@ placement provably collides with a trusted/fixed external calendar booking
 with no accepted alternative -- is *unplaced*: it must be removed from
 ``plan.tournaments`` and retained only as structured planning work in
 ``unresolved_tournament_placements`` with a stable finding identity
-(:mod:`tournament_scheduler.placement_findings`). That keeps every normal
+(:mod:`tournament_scheduler.placement.findings`). That keeps every normal
 season-plan consumer (participation, hosting, opponent/game counts, CSV/XLSX/
 Spond/ICS/club exports) from mistaking an unplaced obligation for scheduled
 hockey, while the obligation stays visible in the manual/findings surfaces.
@@ -25,11 +25,11 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Optional
 
-from .placement_findings import (
+from tournament_scheduler.placement.findings import (
     UNPLACED_PLACEMENT_CATEGORY,
     unplaced_placement_finding_id,
 )
-from .planning.contract import (
+from tournament_scheduler.planning.contract import (
     apply_calendar_interpretations,
     external_calendar_conflict,
 )
@@ -84,7 +84,7 @@ def _normalized_approvals(approvals: Any) -> dict[str, Mapping[str, Any]]:
 
 def _interval_for(tournament: Mapping[str, Any], ice_time_for_age_group: Mapping[str, int]):
     from tournament_scheduler.booking.arena_conflicts import tournament_interval
-    from .serialization.season_plan import tournament_from_dict
+    from tournament_scheduler.serialization.season_plan import tournament_from_dict
 
     if not tournament.get("start_time"):
         return None
@@ -227,8 +227,8 @@ def _obligation_from_tournament(
     ice_time_for_age_group: Mapping[str, int],
 ) -> dict[str, Any]:
     """Build a durable unplaced-placement obligation from a tournament."""
-    from .occupancy import occupancy_components, round_count_for_games
-    from .serialization.season_plan import tournament_from_dict
+    from tournament_scheduler.shape.occupancy import occupancy_components, round_count_for_games
+    from tournament_scheduler.serialization.season_plan import tournament_from_dict
 
     teams = _clean_teams(tournament)
     participant_clubs = sorted({team["club"] for team in teams if team["club"]})

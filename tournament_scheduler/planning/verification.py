@@ -13,9 +13,9 @@ from itertools import combinations
 from typing import Any
 
 from tournament_scheduler.hosting.representation import constituent_clubs
-from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape
-from tournament_scheduler.guest_slots import capacity_places, has_open_guest_slots
-from tournament_scheduler.limited_rounds import minimum_same_club_games_for_limited_rounds
+from tournament_scheduler.shape.effective_shape import compute_effective_tournament_shape
+from tournament_scheduler.shape.guest_slots import capacity_places, has_open_guest_slots
+from tournament_scheduler.shape.limited_rounds import minimum_same_club_games_for_limited_rounds
 from tournament_scheduler.models import Team
 from tournament_scheduler.participation.targets import INTRA_CLUB_DISTRIBUTION
 from tournament_scheduler.participation.withdrawals import withdrawn_team_count_for_tournament

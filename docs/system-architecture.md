@@ -145,30 +145,26 @@ moved one domain slice at a time.
 
 | Package | Owns | Status |
 |---|---|---|
-| `hosting/` | hosting coverage, responsibility, representation and hosting repair providers | moved |
-| `participation/` | participation targets, withdrawals and deviation repair, fairness model/scoring, temporal coverage | moved |
-| `booking/` | calendar availability and bookings, arena conflict detection and the arena-conflict decision record, fixed club ice allocations (Sandefjord) | moved |
+| `planning/` | planning contract (candidate extraction, planning problem, independent hard verifier and scorer) and its distribution blocks, the before/after-Christmas split, final export verification, the Stage 1/2 `season_planner`, participant selection and roster sizing, planner warnings, start date, derived plan state and the canonical date-admissibility policy | moved |
+| `shape/` | tournament shape: hall occupancy contract, roster-shape feasibility, guest slots, round-robin and limited-round game generation, tournament identity | moved |
+| `placement/` | placed/provisional/unplaced normalization, unresolved placement findings and their identity, durable placement infeasibility proofs, same-date participant relocation | moved |
+| `hosting/` | hosting coverage, responsibility, representation, host assignment and candidate ranking, shared/joint-club hosting decisions, hosting repair providers | moved |
+| `participation/` | participation targets, withdrawals and deviation repair, fairness model/scoring, temporal coverage, home representation, club opponent diversity, per-team schedule quality | moved |
+| `booking/` | calendar availability and bookings, arena conflict detection and the arena-conflict decision record, candidate weekends, fixed club ice allocations (Sandefjord) | moved |
 | `clubs/` | RVV club reference data: the club registry (home arenas, calendar sources) and approximate driving distances | moved |
 | `intake/` | season input intake: SharePoint registration import and roster configuration loading | moved |
 | `stage3/` | Stage 3 search: local optimizer, CP-SAT engine and its slot/club-cap/diagnostic helpers, engine dispatch, A/B and shadow comparison, decision context | moved |
-| `planning/` | planning contract (candidate extraction, planning problem, independent hard verifier and scorer), its distribution scoring blocks, the before/after-Christmas split and final export verification | moved |
-| `rules/` | the canonical rule catalog (`catalog`), the rules model, operational obligations and the rules report with its capacity and operational entries | moved |
-| `scoring/` | shared quality objective vector (`quality_objectives`), the single Pareto dominance relation and bounded down-select (`pareto`), and plan metric helpers (`game_metrics`) | moved |
-| `season/` | canonical season state and lifecycle records, promoted-season maintenance and its accepted baseline, approvals, requests, protections and waivers | moved |
-| `season_planner.py`, `application/` | Stage 1/2 season planner (planning domain) and canonical use-case orchestration (application layer) | not yet moved |
+| `season/` | canonical season state and lifecycle records, promoted-season maintenance with its accepted baseline and context, maintenance findings and their resolution, operational acceptability, approvals, requests, protections and waivers | moved |
+| `repair/` | repair providers (bounded, verified options per finding family) and the dispatch, evaluation, adoption and capability boundary that applies them | moved |
+| `rules/` | the canonical rule catalog (`catalog`), the rules model, operational obligations and the rules report | moved |
+| `scoring/` | shared quality objective vector (`quality_objectives`), the single Pareto dominance relation and bounded down-select (`pareto`), plan metric helpers (`game_metrics`) | moved |
 | `publication/` | sealed-season publication identity and published baseline, reconciliation with canonical mutations, export projection guard, tournament-scoped republish eligibility, publication evidence and export lifecycle manifests | moved |
-| `repair/` | repair providers: bounded, verified repair options per finding family (placement, host representation, roster fill, spread, movable ice, unplaced obligations, date relocation, neighborhood search); the dispatch and adoption boundary stays in `repair_options`/`local_repair_options`/`repair_application` | moved |
-| `cli/`, `pipeline/`, `html/`, `excel/`, `csv/`, `ical/` | CLI transport, use-case orchestration and rendering/export adapters | layer adapters |
+| `models.py`, `interfaces.py`, `scheduler.py` | shared tournament data model, abstract component interfaces and the scheduler orchestrator | kept at root deliberately (shared kernel and orchestration) |
+| `application/` | canonical use-case orchestration and typed capabilities | layer (application) |
+| `cli/`, `pipeline/`, `html/`, `excel/`, `csv/`, `ical/`, `data_sources/`, `infrastructure/` | CLI transport, pipeline orchestration, rendering/export adapters, calendar scraping, persistence | layer adapters |
 
-Layer rules for domain packages (`hosting/`, `participation/`): they must not import
-from `tournament_scheduler.cli` or `tournament_scheduler.infrastructure`. The locality
-guards in `tests/test_hosting_package_layout.py`,
-`tests/test_participation_package_layout.py`, `tests/test_planning_package_layout.py`,
-`tests/test_season_package_layout.py`, `tests/test_clubs_package_layout.py`,
-`tests/test_intake_package_layout.py`, `tests/test_rules_package_layout.py` and
-`tests/test_publication_package_layout.py`, `tests/test_repair_package_layout.py` and
-`tests/test_scoring_package_layout.py`
-enforce the placement and the import rule.
+Layer rules for domain packages: they must not import from `tournament_scheduler.cli` or `tournament_scheduler.infrastructure`. Each domain package has a locality guard `tests/test_<package>_package_layout.py` that pins its module set, keeps the flat modules from reappearing at the package root, and blocks imports of the CLI and infrastructure layers.
+
 
 Recorded exceptions: `publication/` still reaches outward for a few existing dependencies, tracked for follow-up rather than enforced by the locality guard: `pipeline/fingerprints` (stable payload hashing), `html` (the cancelled-tournaments filename constant), `hosting` and `season` helpers, and, lazily, `application/canonical_season/store_facade` (booking status and decision loads in `scope`). The publication-lifecycle orchestration that imports the canonical season store stays in `pipeline/publication_lifecycle`.
 

@@ -1,4 +1,4 @@
-from tournament_scheduler.occupancy import (
+from tournament_scheduler.shape.occupancy import (
     governing_minimum_ice_time_minutes,
     minimum_playing_requirement_minutes,
     required_ice_minutes,

@@ -1,13 +1,13 @@
 """Deterministic host-representation repair for `SeasonPlanner` (issue #322).
 
-Split out of `season_planner.py` to keep that file within the repository's
+Split out of `planning.season_planner.py` to keep that file within the repository's
 file-length guideline; this module still operates directly on planner
 internals (participation/game-count counters, roster, fairness deficit
 scoring), so -- unlike `hosting/coverage.py`/`hosting/representation.py` -- it
 is not a pure, planner-independent module.
 
 issue #323 P0: as of the participant-derived host/arena search in
-`season_planner.py`, this module is no longer called from the baseline
+`planning.season_planner.py`, this module is no longer called from the baseline
 build loop -- a tournament's host is now always chosen from clubs already
 represented by its selected participants, so there is nothing left to
 repair in the normal path. It is retained as a tested, available
@@ -25,7 +25,7 @@ from tournament_scheduler.hosting.representation import (
     host_represented_in,
 )
 from tournament_scheduler.models import Team
-from tournament_scheduler.participant_selection import deficit_score
+from tournament_scheduler.planning.participant_selection import deficit_score
 
 
 def repair_host_representation(
@@ -41,7 +41,7 @@ def repair_host_representation(
     eligible registered team in *age_group* (issue #322's hard
     host-representation invariant).
 
-    issue #323 P0: no longer called from `season_planner.py`'s baseline
+    issue #323 P0: no longer called from `planning.season_planner.py`'s baseline
     build loop -- retained as a tested, available primitive only (see
     module docstring). Repairs the participant set deterministically
     without changing its size -- replacing the current participant least in

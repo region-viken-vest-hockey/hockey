@@ -12,10 +12,10 @@ from typing import Any, Dict, Iterable, List
 
 import pytest
 
-from tournament_scheduler import repair_adoption_guard
-from tournament_scheduler.finding_resolution import annotate_resolutions
+from tournament_scheduler.repair import adoption_guard as repair_adoption_guard
+from tournament_scheduler.season.finding_resolution import annotate_resolutions
 from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
-from tournament_scheduler.repair_adoption_guard import (
+from tournament_scheduler.repair.adoption_guard import (
     REGRESSION_CYCLE,
     REGRESSION_HARD_VERIFICATION,
     REGRESSION_MORE_GAPS_UNDER_14,

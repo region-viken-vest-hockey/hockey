@@ -35,7 +35,7 @@ _CODE_DICT_EMITTERS = ("tournament_scheduler/season/baseline_overlay.py",)
 # The season findings projector emits the actionable finding codes a
 # controller/user sees. A finding that re-surfaces a raw verifier violation
 # carries that verifier code instead, so both vocabularies are accepted.
-_SEASON_FINDING_EMITTER = "tournament_scheduler/findings_construction.py"
+_SEASON_FINDING_EMITTER = "tournament_scheduler/season/findings.py"
 
 
 def _scanned_verifier_codes() -> set[str]:
@@ -373,7 +373,7 @@ def test_request_constraint_codes_match_owner() -> None:
 
 
 def test_search_coverage_finding_codes_match_owner() -> None:
-    from tournament_scheduler import search_capability
+    from tournament_scheduler.repair import capability as search_capability
 
     entry = catalog.CATALOG_BY_ID["search_coverage_evidence"]
     for code in (
@@ -411,7 +411,7 @@ def test_ownership_table_lists_every_active_rule() -> None:
 
 
 def test_guest_integrity_verifier_code_matches_owner() -> None:
-    from tournament_scheduler.guest_slots import GUEST_RESERVATION_INTEGRITY
+    from tournament_scheduler.shape.guest_slots import GUEST_RESERVATION_INTEGRITY
 
     entry = catalog.CATALOG_BY_ID["guest_reservation_integrity"]
     assert GUEST_RESERVATION_INTEGRITY in entry.verifier_codes
@@ -438,7 +438,7 @@ _KNOWN_PATH_RULE_DIVERGENCES = {
 
 
 def _adoption_regression_codes() -> set[str]:
-    from tournament_scheduler import repair_adoption_guard as guard
+    from tournament_scheduler.repair import adoption_guard as guard
 
     return {
         value
@@ -459,7 +459,7 @@ def test_every_adoption_regression_code_is_catalogued_or_explicitly_uncatalogued
 
 
 def test_quality_materiality_codes_resolve_through_the_catalog() -> None:
-    from tournament_scheduler.repair_adoption_guard import _QUALITY_MATERIALITY
+    from tournament_scheduler.repair.adoption_guard import _QUALITY_MATERIALITY
 
     missing = sorted(
         code
@@ -473,8 +473,8 @@ def test_every_quality_materiality_code_keeps_its_adoption_tier() -> None:
     # Characterization over the whole materiality table, including diagnostic
     # codes that were never tiered. Any change here changes which regression an
     # adoption may auto-waive, so it must be deliberate.
-    from tournament_scheduler import repair_adoption_guard as guard
-    from tournament_scheduler.repair_adoption_guard import _QUALITY_MATERIALITY
+    from tournament_scheduler.repair import adoption_guard as guard
+    from tournament_scheduler.repair.adoption_guard import _QUALITY_MATERIALITY
 
     expected = {
         "more_gaps_under_7_days": catalog.TIER_SOFT,
@@ -503,7 +503,7 @@ def test_every_quality_materiality_code_keeps_its_adoption_tier() -> None:
 
 
 def test_quality_materiality_path_and_code_share_one_owning_rule() -> None:
-    from tournament_scheduler.repair_adoption_guard import _QUALITY_MATERIALITY
+    from tournament_scheduler.repair.adoption_guard import _QUALITY_MATERIALITY
 
     mismatches = []
     for path, (code, _material) in _QUALITY_MATERIALITY.items():
@@ -522,7 +522,7 @@ def test_regression_tiers_match_the_adoption_precedence() -> None:
     # Characterization of the tier model adoption comparison has always used.
     # Moving ownership into the catalog must not change which regression is
     # auto-waivable.
-    from tournament_scheduler import repair_adoption_guard as guard
+    from tournament_scheduler.repair import adoption_guard as guard
 
     expected = {
         guard.REGRESSION_HARD_VERIFICATION: catalog.TIER_HARD,
@@ -549,7 +549,7 @@ def test_regression_tiers_match_the_adoption_precedence() -> None:
 
 
 def test_impact_priority_tiers_agree_with_regression_tiers() -> None:
-    from tournament_scheduler import repair_adoption_guard as guard
+    from tournament_scheduler.repair import adoption_guard as guard
     from tournament_scheduler.season.impact_analysis import _priority_improvement_tier
 
     def improved(prefix: str) -> dict[str, int]:

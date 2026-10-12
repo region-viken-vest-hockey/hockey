@@ -22,7 +22,7 @@ from tournament_scheduler.season.request_constraints import (
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
+from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning.verification import verify_canonical_candidate
 
 from .shared import (
@@ -448,7 +448,7 @@ def replace_participant(
     candidate_revision = schedule_fingerprint(plan)
     cost = change_cost(baseline, plan)
 
-    from tournament_scheduler.team_schedule_quality import (
+    from tournament_scheduler.participation.team_schedule_quality import (
         compare_team_schedule_consequence,
     )
 

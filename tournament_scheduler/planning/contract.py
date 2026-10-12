@@ -1,7 +1,7 @@
 """Harness-neutral Stage 3 planning contracts (issue #257).
 
 Defines two stable, machine-readable JSON shapes so multiple planners
-(the existing :class:`~tournament_scheduler.season_planner.SeasonPlanner`,
+(the existing :class:`~tournament_scheduler.planning.season_planner.SeasonPlanner`,
 a future generic optimizer, or an LLM/harness-driven planner) can be
 verified and scored the same way, independent of any single planner's
 internals:
@@ -49,25 +49,25 @@ from tournament_scheduler.season.baseline_overlay import (
     pinned_tournament_ids as _canonical_pinned_tournament_ids,
     verify_canonical_locks as _verify_canonical_locks,
 )
-from tournament_scheduler.date_policy import (
+from tournament_scheduler.planning.date_policy import (
     HOLIDAY_POLICY_SOURCE,
     holiday_exclusions as _holiday_exclusions,
     problem_date_exclusions as _problem_date_exclusions,
 )
 from tournament_scheduler.hosting.representation import host_eligible_teams as _host_eligible_teams, host_represented_in as _host_represented_in
-from tournament_scheduler.guest_slots import (
+from tournament_scheduler.shape.guest_slots import (
     capacity_places as _capacity_places,
     guest_reservation_integrity_violations as _guest_reservation_integrity_violations,
     has_open_guest_slots as _has_open_guest_slots,
     is_guest_team as _is_guest_team,
     rvv_teams as _rvv_teams,
 )
-from tournament_scheduler.effective_tournament_shape import (
+from tournament_scheduler.shape.effective_shape import (
     NO_BYE_EXACT_TEAM_COUNT_BY_AGE_GROUP,
     compute_effective_tournament_shape,
     shape_violation,
 )
-from tournament_scheduler.occupancy import governing_minimum_ice_time_minutes, minimum_playing_requirement_minutes
+from tournament_scheduler.shape.occupancy import governing_minimum_ice_time_minutes, minimum_playing_requirement_minutes
 from tournament_scheduler.season.waivers import find_participation_waiver
 from tournament_scheduler.participation.targets import SEASON_SCOPE, evaluate_participation
 from tournament_scheduler.participation.withdrawals import (
@@ -75,7 +75,7 @@ from tournament_scheduler.participation.withdrawals import (
     withdrawn_team_count_for_tournament as _withdrawn_team_count_for_tournament,
     withdrawn_team_identities_for_tournament as _withdrawn_team_identities_for_tournament,
 )
-from tournament_scheduler.tournament_identity import validate_tournament_identity
+from tournament_scheduler.shape.identity import validate_tournament_identity
 from tournament_scheduler.planning.contract_distribution import (
     home_representation as _home_representation,
     hosting_fairness as _hosting_fairness,
@@ -760,7 +760,7 @@ def verify_candidate(
     # trustworthy calendar evidence this run -- surfaced for manual
     # placement (see hosting/coverage.py's unresolved_hosting_obligations
     # for the equivalent pattern) rather than hard-blocking the candidate,
-    # since scheduler.py/host_assignment.py already let such a club host
+    # since scheduler.py/hosting.assignment.py already let such a club host
     # its fair share with a provisional slot.
     manual_calendar_placements: List[Dict[str, str]] = []
     # Non-blocking record of tournaments whose host has a real external
@@ -1329,7 +1329,7 @@ def verify_candidate(
         # (blocked/skipped/missing scrape) is never silently treated as
         # verified-free, but it is also not hard-blocked -- it hosts its
         # fair share with a provisional slot (scheduler.py/
-        # host_assignment.py) and is surfaced here for manual placement
+        # hosting.assignment.py) and is surfaced here for manual placement
         # instead, mirroring unresolved_hosting_obligations below. Only
         # enforced when the problem actually carries a (non-empty)
         # calendar-status map -- older/hand-built problem dicts without it
@@ -1688,7 +1688,7 @@ def score_candidate(
                 inter_club_universe.add((a, b))
     inter_club_diversity = (len(inter_club_pairs) / len(inter_club_universe)) if inter_club_universe else 0.0
 
-    # Club-level opponent identity (see opponent_diversity): repeat claims and
+    # Club-level opponent identity (see participation.opponent_diversity): repeat claims and
     # diversity are aggregated to (club, age_group) pairs, so a change in which
     # sibling squad an opponent meets does not read as a new opponent. Squad
     # supply is the opportunity baseline, so a large club that supplies more

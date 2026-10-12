@@ -37,7 +37,7 @@ def club_hosting_evidence(
     Each row: ``{"club", "age_group", "registered_team_count",
     "hosting_target", "actual_hosting_count", "coverage_satisfied",
     "surplus_hosting_count"}``. ``hosting_target`` is computed the same way
-    `host_assignment.hosting_targets_for_age_group` computes it during
+    `hosting.assignment.hosting_targets_for_age_group` computes it during
     baseline building -- `hosting_coverage.hosting_targets_with_coverage_floor`
     over this age group's own club-weight map and this age group's own total
     hosted-tournament count -- but here it is measured against the *final*

@@ -129,7 +129,7 @@ class RuleEntry:
     precedes: tuple[str, ...] = ()
     depends_on: tuple[str, ...] = ()
     waivable: bool = True
-    # Material adoption-regression codes (``repair_adoption_guard``) this rule
+    # Material adoption-regression codes (``repair.adoption_guard``) this rule
     # owns. A regression code resolves to exactly one rule, whose tier governs it.
     # Diagnostic-only codes are deliberately not registered: they are never
     # material and keep the default soft tier.
@@ -150,7 +150,7 @@ _HARD: tuple[RuleEntry, ...] = (
         canonical_owner="tournament_scheduler.planning.contract",
         input_source="planning_problem.teams[].age_group + candidate tournament age_group",
         verifier_owner="tournament_scheduler.planning.contract.verify_candidate",
-        mutation_providers=("tournament_scheduler.participant_selection",),
+        mutation_providers=("tournament_scheduler.planning.participant_selection",),
         search_providers=("tournament_scheduler.repair.search_neighborhood",),
         evidence_projection=("verify_candidate.violations", "rules_model age_group_exact_match"),
         tests=("tests/test_planning_contract.py",),
@@ -163,7 +163,7 @@ _HARD: tuple[RuleEntry, ...] = (
         canonical_owner="tournament_scheduler.planning.contract",
         input_source="candidate tournament roster",
         verifier_owner="tournament_scheduler.planning.contract.verify_candidate",
-        mutation_providers=("tournament_scheduler.participant_selection",),
+        mutation_providers=("tournament_scheduler.planning.participant_selection",),
         search_providers=("tournament_scheduler.repair.search_neighborhood",),
         evidence_projection=("verify_candidate.violations",),
         tests=("tests/test_planning_contract.py",),
@@ -176,7 +176,7 @@ _HARD: tuple[RuleEntry, ...] = (
         canonical_owner="tournament_scheduler.planning.contract",
         input_source="candidate tournament dates + roster",
         verifier_owner="tournament_scheduler.planning.contract.verify_candidate",
-        mutation_providers=("tournament_scheduler.participant_selection",),
+        mutation_providers=("tournament_scheduler.planning.participant_selection",),
         search_providers=("tournament_scheduler.repair.search_neighborhood",),
         evidence_projection=("verify_candidate.violations", "rules_model no_same_date_double_participation"),
         tests=("tests/test_planning_contract.py",),
@@ -192,7 +192,7 @@ _HARD: tuple[RuleEntry, ...] = (
             "An active season/age-group participation withdrawal also makes the team ineligible "
             "for the whole age group until it is explicitly released."
         ),
-        canonical_owner="tournament_scheduler.effective_tournament_shape",
+        canonical_owner="tournament_scheduler.shape.effective_shape",
         input_source=(
             "planning_problem registered pool + rounds_per_tournament, reduced for the age group "
             "by durable, revision-bound participation_withdrawals records "
@@ -201,7 +201,7 @@ _HARD: tuple[RuleEntry, ...] = (
         ),
         verifier_owner="tournament_scheduler.planning.contract.verify_candidate",
         mutation_providers=(
-            "tournament_scheduler.participant_roster_sizing",
+            "tournament_scheduler.planning.participant_roster_sizing",
             "tournament_scheduler.application.canonical_season.withdrawal",
         ),
         search_providers=("tournament_scheduler.repair.participant_roster",),
@@ -221,7 +221,7 @@ _HARD: tuple[RuleEntry, ...] = (
         canonical_owner="tournament_scheduler.planning.contract",
         input_source="candidate tournament roster club labels",
         verifier_owner="tournament_scheduler.planning.contract.verify_candidate",
-        mutation_providers=("tournament_scheduler.participant_selection",),
+        mutation_providers=("tournament_scheduler.planning.participant_selection",),
         search_providers=("tournament_scheduler.repair.search_neighborhood", "tournament_scheduler.stage3.cpsat_club_cap"),
         evidence_projection=("verify_candidate.violations",),
         tests=("tests/test_planning_contract.py",),
@@ -241,7 +241,7 @@ _HARD: tuple[RuleEntry, ...] = (
             "The accepted interval stays factual even when its format is operationally "
             "unusable; that concern remains a separate durable finding/action."
         ),
-        canonical_owner="tournament_scheduler.occupancy",
+        canonical_owner="tournament_scheduler.shape.occupancy",
         input_source="planning_problem ice_time_minutes + round_length_minutes + generated round count",
         verifier_owner="tournament_scheduler.planning.contract.verify_candidate",
         evidence_projection=("verify_candidate.violations", "verify_final_candidate.booking_feasibility_warnings", "calendar_bookings governing_floor_finding"),
@@ -273,7 +273,7 @@ _HARD: tuple[RuleEntry, ...] = (
         canonical_owner="tournament_scheduler.planning.contract",
         input_source="planning_problem tournament sizing config",
         verifier_owner="tournament_scheduler.planning.contract.verify_candidate",
-        mutation_providers=("tournament_scheduler.participant_roster_sizing",),
+        mutation_providers=("tournament_scheduler.planning.participant_roster_sizing",),
         evidence_projection=("verify_candidate.violations", "rules_model tournament_capacity"),
         tests=("tests/test_planning_contract.py",),
         verifier_codes=("tournament_over_capacity",),
@@ -297,7 +297,7 @@ _HARD: tuple[RuleEntry, ...] = (
         canonical_owner="tournament_scheduler.planning.verification",
         input_source="planning_problem parallel_games + generated games",
         verifier_owner="tournament_scheduler.planning.verification.verify_final_candidate",
-        mutation_providers=("tournament_scheduler.game_generation",),
+        mutation_providers=("tournament_scheduler.shape.game_generation",),
         evidence_projection=("verify_final_candidate.violations",),
         tests=("tests/test_final_verification.py",),
         verifier_codes=("parallel_capacity_exceeded",),
@@ -309,7 +309,7 @@ _HARD: tuple[RuleEntry, ...] = (
         canonical_owner="tournament_scheduler.planning.contract",
         input_source="planning_problem.teams",
         verifier_owner="tournament_scheduler.planning.contract.verify_candidate",
-        mutation_providers=("tournament_scheduler.participant_selection",),
+        mutation_providers=("tournament_scheduler.planning.participant_selection",),
         evidence_projection=("verify_candidate.violations", "rules_model registered_teams_only"),
         tests=("tests/test_planning_contract.py",),
         verifier_codes=("unregistered_team",),
@@ -342,7 +342,7 @@ _HARD: tuple[RuleEntry, ...] = (
         id="holiday_date_admissible",
         classification=HARD_CONSTRAINT,
         meaning="Tournaments must not be scheduled on canonically excluded holiday dates for the planning window.",
-        canonical_owner="tournament_scheduler.date_policy",
+        canonical_owner="tournament_scheduler.planning.date_policy",
         input_source="planning_problem window -> derived date exclusions",
         verifier_owner="tournament_scheduler.planning.contract.verify_candidate",
         mutation_providers=("date_policy_relocation",),
@@ -521,7 +521,7 @@ _HARD: tuple[RuleEntry, ...] = (
         canonical_owner="tournament_scheduler.planning.verification",
         input_source="candidate tournament roster + games",
         verifier_owner="tournament_scheduler.planning.verification.verify_final_candidate",
-        mutation_providers=("tournament_scheduler.game_generation",),
+        mutation_providers=("tournament_scheduler.shape.game_generation",),
         evidence_projection=("verify_final_candidate.violations",),
         tests=("tests/test_final_verification.py",),
         verifier_codes=("round_robin_missing_pair", "round_robin_duplicate_pair"),
@@ -533,7 +533,7 @@ _HARD: tuple[RuleEntry, ...] = (
         canonical_owner="tournament_scheduler.planning.verification",
         input_source="candidate tournament games",
         verifier_owner="tournament_scheduler.planning.verification.verify_final_candidate",
-        mutation_providers=("tournament_scheduler.game_generation",),
+        mutation_providers=("tournament_scheduler.shape.game_generation",),
         evidence_projection=("verify_final_candidate.violations",),
         tests=("tests/test_final_verification.py",),
         verifier_codes=("team_double_booked_in_round",),
@@ -545,7 +545,7 @@ _HARD: tuple[RuleEntry, ...] = (
         canonical_owner="tournament_scheduler.planning.verification",
         input_source="planning_problem rounds_per_tournament + effective shape",
         verifier_owner="tournament_scheduler.planning.verification.verify_final_candidate",
-        mutation_providers=("tournament_scheduler.game_generation",),
+        mutation_providers=("tournament_scheduler.shape.game_generation",),
         evidence_projection=("verify_final_candidate.violations",),
         tests=("tests/test_final_verification.py",),
         verifier_codes=("configured_round_count_mismatch",),
@@ -557,7 +557,7 @@ _HARD: tuple[RuleEntry, ...] = (
         canonical_owner="tournament_scheduler.planning.verification",
         input_source="planning_problem parallel_games + roster club labels",
         verifier_owner="tournament_scheduler.planning.verification.verify_final_candidate",
-        mutation_providers=("tournament_scheduler.game_generation",),
+        mutation_providers=("tournament_scheduler.shape.game_generation",),
         evidence_projection=("verify_final_candidate.violations",),
         tests=("tests/test_final_verification.py",),
         verifier_codes=("avoidable_same_club_matchup",),
@@ -676,7 +676,7 @@ _OBLIGATIONS: tuple[RuleEntry, ...] = (
             "trustworthy slot exists for the responsible host, the obligation stays unresolved "
             "for manual placement instead of being given to an unrelated club."
         ),
-        canonical_owner="tournament_scheduler.placement_normalization",
+        canonical_owner="tournament_scheduler.placement.normalization",
         input_source="candidate placements + host calendar availability",
         verifier_owner="tournament_scheduler.planning.contract.verify_candidate",
         mutation_providers=("unplaced_placement_repair", "host_placement_repair"),
@@ -692,7 +692,7 @@ _OBLIGATIONS: tuple[RuleEntry, ...] = (
             "capacity/ice-time shape but never toward RVV participation, hosting, fairness or "
             "travel; participant optimization/repair cannot consume it."
         ),
-        canonical_owner="tournament_scheduler.guest_slots",
+        canonical_owner="tournament_scheduler.shape.guest_slots",
         input_source="canonical tournament guest_slot records",
         verifier_owner="tournament_scheduler.planning.contract.verify_candidate",
         mutation_providers=("guest-fill", "guest-release"),
@@ -805,9 +805,9 @@ _SOFT: tuple[RuleEntry, ...] = (
             "representing it. A spread of 0-1 is balanced; hosting coverage/balance is unchanged "
             "by which sibling shows up."
         ),
-        canonical_owner="tournament_scheduler.home_representation",
+        canonical_owner="tournament_scheduler.participation.home_representation",
         input_source="candidate host club + tournament roster",
-        verifier_owner="tournament_scheduler.home_representation",
+        verifier_owner="tournament_scheduler.participation.home_representation",
         mutation_providers=("home_representation_repair",),
         evidence_projection=("score_candidate.home_representation.*", "rules_model"),
         tests=("tests/test_home_representation.py",),
@@ -853,7 +853,7 @@ _SOFT: tuple[RuleEntry, ...] = (
             "large multi-squad club is not penalized merely for supplying more opponents, "
             "while genuinely concentrated exposure remains visible."
         ),
-        canonical_owner="tournament_scheduler.opponent_diversity",
+        canonical_owner="tournament_scheduler.participation.opponent_diversity",
         input_source="candidate participants and generated games",
         verifier_owner="tournament_scheduler.planning.contract.score_candidate",
         evidence_projection=("score_candidate.opponent_diversity.*",),
@@ -888,7 +888,7 @@ _SOFT: tuple[RuleEntry, ...] = (
 
         classification=SOFT_OBJECTIVE,
         meaning="A team's tournaments should be spaced sensibly; very short turnaround gaps are minimized.",
-        canonical_owner="tournament_scheduler.team_schedule_quality",
+        canonical_owner="tournament_scheduler.participation.team_schedule_quality",
         input_source="candidate tournament dates per team",
         verifier_owner="tournament_scheduler.planning.contract.score_candidate",
         evidence_projection=("score_candidate.turnaround.*", "rules_model"),
@@ -943,7 +943,7 @@ _DECISIONS: tuple[RuleEntry, ...] = (
             "responsibility. This is the limited case where agent/operator judgment over "
             "deterministic registration facts is legitimate."
         ),
-        canonical_owner="tournament_scheduler.shared_host_decision",
+        canonical_owner="tournament_scheduler.hosting.shared_decision",
         input_source="joint-registration club labels + hosting_responsibility facts",
         verifier_owner="tournament_scheduler.hosting.coverage.shared_registration_facts",
         mutation_providers=("shared host decision action",),
@@ -989,9 +989,9 @@ _DECISIONS: tuple[RuleEntry, ...] = (
             "placement or host-confirmation dependency. A deliberate provisional placement "
             "requires the exact explicit opt-in and is audited."
         ),
-        canonical_owner="tournament_scheduler.operational_acceptability",
+        canonical_owner="tournament_scheduler.season.acceptability",
         input_source="current canonical baseline + candidate placements",
-        verifier_owner="tournament_scheduler.operational_acceptability",
+        verifier_owner="tournament_scheduler.season.acceptability",
         evidence_projection=("operational_acceptable / requires_operational_opt_in", "decisions.json audit"),
         tests=("tests/test_operational_acceptability.py",),
         finding_codes=("manual_placement",),
@@ -1000,7 +1000,7 @@ _DECISIONS: tuple[RuleEntry, ...] = (
         id="guest_slot_reservation",
         classification=OPERATOR_DECISION,
         meaning="The operator reserves guest places as intent; the selection among legal alternatives is recorded as a decision.",
-        canonical_owner="tournament_scheduler.guest_slots",
+        canonical_owner="tournament_scheduler.shape.guest_slots",
         input_source="operator guest intent + season guest-candidates",
         verifier_owner="tournament_scheduler.planning.contract.verify_candidate",
         mutation_providers=("guest-reserve", "guest-fill", "guest-release"),
@@ -1138,7 +1138,7 @@ _EVIDENCE: tuple[RuleEntry, ...] = (
             "bound to a search capability/version. Zero options means only that this search "
             "found none, never proof of global infeasibility."
         ),
-        canonical_owner="tournament_scheduler.search_capability",
+        canonical_owner="tournament_scheduler.repair.capability",
         input_source="repair/search provider run results",
         evidence_projection=("season findings search_coverage", "stage3 converge coverage"),
         tests=("tests/test_search_neighborhood_repair.py",),

@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from typing import Iterable, Mapping, Sequence
 
 from tournament_scheduler.models import Tournament
-from tournament_scheduler.occupancy import tournament_required_ice_minutes
+from tournament_scheduler.shape.occupancy import tournament_required_ice_minutes
 
 
 @dataclass(frozen=True)

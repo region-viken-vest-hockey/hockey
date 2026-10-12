@@ -7,7 +7,7 @@ from tournament_scheduler.cli.rvv_cli import main as rvv_main
 from tournament_scheduler.pipeline.manual_adjustment_workflow import ManualAdjustmentWorkflow
 from tournament_scheduler.serialization.season_plan import season_plan_to_dict
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 
 
 def _make_plan() -> SeasonPlan:

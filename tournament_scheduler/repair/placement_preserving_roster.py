@@ -16,7 +16,7 @@ provider owns exactly that one substitution family:
   it reaches the controller, and games are regenerated for the mutated
   tournament.
 
-It is a planner-neutral provider on the common ``local_repair_options``
+It is a planner-neutral provider on the common ``repair.local_options``
 boundary, so Stage 3 and promoted-season maintenance reach the same options.
 This ordering matters: a valid placement must not be discarded by a broader
 date/host/search provider merely because the initial roster conflicts, when a

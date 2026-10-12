@@ -1,6 +1,6 @@
 """Deterministic batch relocation of tournaments off canonical excluded dates.
 
-Date admissibility is a canonical hard rule (see :mod:`tournament_scheduler.date_policy`).
+Date admissibility is a canonical hard rule (see :mod:`tournament_scheduler.planning.date_policy`).
 A promoted season can carry several tournaments on excluded dates at once --
 for example after the policy was strengthened or a candidate was produced by a
 path that predated the rule. Because every ordinary repair provider commits
@@ -24,8 +24,8 @@ from datetime import date
 from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 
 from tournament_scheduler.planning import half as planning_half
-from tournament_scheduler.candidate_weekends import season_weekend_dates
-from tournament_scheduler.date_policy import problem_date_exclusions
+from tournament_scheduler.booking.candidate_weekends import season_weekend_dates
+from tournament_scheduler.planning.date_policy import problem_date_exclusions
 from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
     _candidate_start_times,
@@ -132,7 +132,7 @@ def relocate_excluded_date_tournaments(
     verification = verify_candidate(working, dict(problem))
     demotions: List[Dict[str, Any]] = []
     if demote_unresolved and unresolved:
-        from tournament_scheduler.placement_normalization import REASON_EXCLUDED_DATE, demote_tournament_to_unplaced
+        from tournament_scheduler.placement.normalization import REASON_EXCLUDED_DATE, demote_tournament_to_unplaced
 
         for entry in unresolved:
             obligation = demote_tournament_to_unplaced(

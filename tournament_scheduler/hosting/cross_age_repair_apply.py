@@ -31,8 +31,8 @@ from tournament_scheduler.hosting.cross_age_repair_ops import (
 )
 from tournament_scheduler.models import Tournament
 
-# Mirrors `season_planner.MIN_TEAMS_PER_TOURNAMENT` -- not imported directly
-# to avoid a circular import (season_planner.py calls into this module).
+# Mirrors `planning.season_planner.MIN_TEAMS_PER_TOURNAMENT` -- not imported directly
+# to avoid a circular import (planning.season_planner.py calls into this module).
 _MIN_TEAMS_PER_TOURNAMENT = 3
 
 

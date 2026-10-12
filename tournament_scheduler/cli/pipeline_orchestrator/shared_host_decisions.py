@@ -56,7 +56,7 @@ def _resolve_shared_host_decisions(
         SharedHostFactsDiscoveryError,
         compute_shared_registration_facts,
     )
-    from ...shared_host_decision import (
+    from tournament_scheduler.hosting.shared_decision import (
         build_shared_host_decision_context,
         build_shared_host_decision_prompt,
         parse_shared_host_verdict,

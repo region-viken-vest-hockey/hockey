@@ -9,13 +9,20 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "tournament_scheduler"
 REPAIR_DIR = PACKAGE_ROOT / "repair"
 
 REPAIR_MODULES = {
+    "adoption_guard",
+    "apply",
+    "capability",
     "coupled_placement",
+    "coverage",
     "date_policy_relocation",
+    "dispatch",
+    "evaluation",
     "home_representation",
     "host_placement",
     "host_representation",
     "host_team_missing",
     "intra_club_distribution",
+    "local_options",
     "movable_capacity",
     "participant_roster",
     "placement_preserving_roster",

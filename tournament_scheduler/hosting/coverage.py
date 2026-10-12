@@ -4,7 +4,7 @@ Pure functions over the shared ``planning_problem``/``candidate`` contracts
 (``planning/contract.py``) -- no ``SeasonPlanner`` dependency, so this module
 is safe for the canonical LLM-directed decision path to import (see
 ``tests/test_architecture_boundaries.py``, which forbids that path from
-depending on ``host_assignment.py``'s heuristic ranking).
+depending on ``hosting.assignment.py``'s heuristic ranking).
 
 Two distinct concerns, kept separate per issue #266:
 
@@ -76,7 +76,7 @@ def hosting_coverage_matrix(
     for club, age_group in required_club_age_group_pairs(teams):
         # A joint registration (e.g. "Kongsberg/Tønsberg") is always
         # resolved to a single physical host club by the time a real
-        # tournament exists (season_planner.py never leaves "A/B" as a
+        # tournament exists (planning.season_planner.py never leaves "A/B" as a
         # literal host_club) -- so a joint row's obligation is satisfied by
         # *any* of its constituents hosting that age group, not by an exact
         # string match on the joint label itself (issue #274).
@@ -278,7 +278,7 @@ def shared_registration_facts(
     legitimate physical host; *which* constituent should carry a given
     ``(registration, age_group)`` obligation is a contextual fairness
     judgement this module deliberately does not make (see
-    ``shared_host_decision.py`` -- Python's job here stops at exposing the
+    ``hosting.shared_decision.py`` -- Python's job here stops at exposing the
     facts an LLM/controller needs to make that call).
 
     Returns one entry per joint-club ``(club, age_group)`` row with a
@@ -388,10 +388,10 @@ def proportional_integer_targets(weights: Dict[str, int], total: int) -> Dict[st
     """Round weighted quotas to integers that sum to *total*.
 
     Largest-remainder rounding. Lives here (rather than the legacy
-    ``host_assignment.py``) so the canonical path can reuse the same
+    ``hosting.assignment.py``) so the canonical path can reuse the same
     proportional-burden math issue #266 asks for without importing a module
     ``tests/test_architecture_boundaries.py`` forbids it from depending on.
-    ``host_assignment.py`` delegates to this implementation.
+    ``hosting.assignment.py`` delegates to this implementation.
     """
     if total <= 0 or not weights:
         return {club: 0 for club in weights}

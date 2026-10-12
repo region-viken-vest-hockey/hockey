@@ -57,7 +57,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from tournament_scheduler.guest_slots import is_guest_team
+from tournament_scheduler.shape.guest_slots import is_guest_team
 
 SquadIdentity = Tuple[str, str, str]  # (club, label, age_group)
 ClubIdentity = Tuple[str, str]  # (club, age_group)

@@ -12,7 +12,7 @@ from tournament_scheduler.booking.calendar_availability import (
 )
 from ..clubs.registry import CLUB_REGISTRY, canonicalize_club_name
 from ..models import CalendarEvent, Roster, Team
-from ..season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 from ..serialization.season_plan import resolve_plan_dict
 
 logger = logging.getLogger(__name__)

@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from tournament_scheduler import participant_selection
+from tournament_scheduler.planning import participant_selection
 from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.participation.fairness_scoring import DEFAULT_FAIRNESS_THRESHOLDS
 from tournament_scheduler.models import (
@@ -23,16 +23,16 @@ from tournament_scheduler.models import (
     overlapping_age_groups,
     team_key,
 )
-from tournament_scheduler.season_planner import (
+from tournament_scheduler.planning.season_planner import (
     SeasonPlanner,
     DEFAULT_TOURNAMENT_START_TIME,
     MIN_TEAMS_PER_TOURNAMENT,
     _club_share_explains_shortfall,
 )
-from tournament_scheduler.host_assignment import find_slot_for_tournament
+from tournament_scheduler.hosting.assignment import find_slot_for_tournament
 from tournament_scheduler.repair.host_representation import repair_host_representation
 from tournament_scheduler.testing.canonical_input import OfflineScheduler, all_weekend_dates
-from tournament_scheduler.warnings import holiday_heavy_weekend_dates
+from tournament_scheduler.planning.planner_warnings import holiday_heavy_weekend_dates
 
 
 
@@ -763,7 +763,7 @@ class TestSeasonPlanner:
         # scheduled tournaments as clubs to guarantee every club a floor
         # target, not met by this minimal single-tournament fixture).
         with patch(
-            "tournament_scheduler.season_planner._hosting_targets_for_age_group",
+            "tournament_scheduler.planning.season_planner._hosting_targets_for_age_group",
             return_value={"Jar": 0, "Holmen": 0, "Kongsberg": 1},
         ):
             # Force the *default* participant selection (the loop's own
@@ -832,7 +832,7 @@ class TestSeasonPlanner:
             events_by_club={"Jar": [fixed_busy], "Holmen": [fixed_busy], "Kongsberg": [open_ice]},
         )
         with patch(
-            "tournament_scheduler.season_planner._hosting_targets_for_age_group",
+            "tournament_scheduler.planning.season_planner._hosting_targets_for_age_group",
             return_value={"Jar": 0, "Holmen": 0, "Kongsberg": 1},
         ):
             forced = {"done": False}
@@ -889,7 +889,7 @@ class TestSeasonPlanner:
             events_by_club={"Jar": [busy], "Holmen": [busy], "Kongsberg": [busy]},
         )
         with patch(
-            "tournament_scheduler.season_planner._hosting_targets_for_age_group",
+            "tournament_scheduler.planning.season_planner._hosting_targets_for_age_group",
             return_value={"Jar": 0, "Holmen": 0, "Kongsberg": 1},
         ):
             forced = {"done": False}
@@ -3120,7 +3120,7 @@ class TestProportionalHosting:
                     age_group="U10",
                     teams=[joint, opponent],
                     games=[Game(home=joint, away=opponent, parallel_slot=0, round_number=1)],
-                    # host_assignment resolves "Jar/Jutul" down to the
+                    # hosting.assignment resolves "Jar/Jutul" down to the
                     # constituent that actually had a free slot.
                     host_club="Jar",
                 )
@@ -3555,12 +3555,10 @@ class TestRulesReport:
 
     def test_extracted_helper_modules_import_cleanly_with_facade(self):
         """Importing the extracted helper modules first should not break the facade."""
-        from tournament_scheduler import (
-            game_generation,
-            host_assignment,
-            participant_selection,
-            warnings as warnings_module,
-        )
+        from tournament_scheduler.hosting import assignment as host_assignment
+        from tournament_scheduler.planning import participant_selection
+        from tournament_scheduler.planning import planner_warnings as warnings_module
+        from tournament_scheduler.shape import game_generation
         from tournament_scheduler.rules import report as rules_report_module
         from tournament_scheduler.participation import fairness_scoring
 

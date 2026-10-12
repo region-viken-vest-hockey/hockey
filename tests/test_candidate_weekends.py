@@ -2,7 +2,7 @@
 
 from datetime import date, timedelta
 
-from tournament_scheduler.candidate_weekends import (
+from tournament_scheduler.booking.candidate_weekends import (
     AVAILABILITY_FREE,
     AVAILABILITY_MOVABLE,
     AVAILABILITY_UNKNOWN,

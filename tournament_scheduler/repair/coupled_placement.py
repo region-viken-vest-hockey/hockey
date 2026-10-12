@@ -50,7 +50,7 @@ from tournament_scheduler.hosting.responsibility import (
     unexplained_responsibility_transfers,
 )
 from tournament_scheduler.repair.movable_capacity import _replacement_rank, _roster_variants
-from tournament_scheduler.operational_acceptability import (
+from tournament_scheduler.season.acceptability import (
     check_operational_acceptability,
     required_opt_in_flags,
 )
@@ -61,7 +61,7 @@ from tournament_scheduler.participation.targets import (
 )
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.planning.contract import verify_candidate
-from tournament_scheduler.team_schedule_quality import (
+from tournament_scheduler.participation.team_schedule_quality import (
     TeamIdentity,
     compare_changed_team_schedule_consequence,
 )

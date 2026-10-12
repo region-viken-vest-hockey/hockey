@@ -14,13 +14,13 @@ from pathlib import Path
 import pytest
 
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
-from tournament_scheduler.guest_slots import (
+from tournament_scheduler.shape.guest_slots import (
     active_guest_slot_count,
     guest_slot_summary,
     open_guest_slot_count,
     rvv_team_count,
 )
-from tournament_scheduler.game_generation import generate_tournament_games
+from tournament_scheduler.shape.game_generation import generate_tournament_games
 from tournament_scheduler.html.html_exporter import HtmlExporter
 from tournament_scheduler.models import Team, Tournament
 from tournament_scheduler.participation.targets import evaluate_participation
@@ -569,7 +569,7 @@ def test_review_packet_workbook_shows_guest_places(tmp_path: Path) -> None:
 
 
 def _codes(tournaments) -> set[str]:
-    from tournament_scheduler.guest_slots import guest_reservation_integrity_violations
+    from tournament_scheduler.shape.guest_slots import guest_reservation_integrity_violations
 
     return {
         violation["code"]
@@ -584,7 +584,7 @@ def test_guest_reservation_integrity_requires_filled_records_to_match_guests() -
     reservation or dropping a malformed record consumed/introduced a place
     outside the reserve/fill/release lifecycle and must fail the verifier.
     """
-    from tournament_scheduler.guest_slots import guest_reservation_integrity_violations
+    from tournament_scheduler.shape.guest_slots import guest_reservation_integrity_violations
 
     filled_slot = {
         "id": "guest:1",
@@ -654,7 +654,7 @@ def test_guest_reservation_integrity_requires_filled_records_to_match_guests() -
 
 
 def test_guest_reservation_integrity_rejects_malformed_explicit_records() -> None:
-    from tournament_scheduler.guest_slots import guest_reservation_integrity_violations
+    from tournament_scheduler.shape.guest_slots import guest_reservation_integrity_violations
 
     malformed = _candidate(["A1", "B1", "C1"])
     malformed["tournaments"][0]["guest_slots"] = [
@@ -669,7 +669,7 @@ def test_guest_reservation_integrity_rejects_malformed_explicit_records() -> Non
     }
 
     # A present-but-non-list value must not be reinterpreted as the legacy
-    # integer-only payload; absent guest_slots stays compatible.
+    # integer-only payload; absent shape.guest_slots stays compatible.
     for bad_value in ({"id": "g1", "status": "filled"}, "corrupt", None):
         wrong_type = _candidate(["A1", "B1", "C1"])
         wrong_type["tournaments"][0]["guest_slots"] = bad_value

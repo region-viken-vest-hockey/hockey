@@ -15,7 +15,7 @@ from typing import Any, Optional
 from tournament_scheduler.hosting.coverage import hosting_coverage_matrix
 from tournament_scheduler.hosting.cross_age_repair import club_hosting_evidence, unresolved_with_evidence
 from ..models import SeasonPlan, Tournament
-from ..warnings import (
+from tournament_scheduler.planning.planner_warnings import (
     scan_arena_day_collision_warnings,
     scan_game_count_warnings,
     scan_hosting_warnings,

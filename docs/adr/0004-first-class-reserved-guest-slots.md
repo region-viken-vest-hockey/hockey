@@ -28,7 +28,7 @@ auditable open → filled/released lifecycle that survives replanning.
 ## Decision
 
 A reservation is a per-tournament `guest_slot` record list on canonical
-tournament state (`tournament_scheduler/guest_slots.py`). Each record is one
+tournament state (`tournament_scheduler/shape/guest_slots.py`). Each record is one
 place with a lifecycle status:
 
 - `open` — reserved, no external team accepted yet;

@@ -14,7 +14,7 @@ from pathlib import Path
 import re
 from typing import Any, Mapping
 
-from tournament_scheduler.guest_slots import (
+from tournament_scheduler.shape.guest_slots import (
     guest_slot_records,
 )
 from tournament_scheduler.html import CANCELLED_TOURNAMENTS_FILENAME

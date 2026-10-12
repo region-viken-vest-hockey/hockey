@@ -132,7 +132,7 @@ class TournamentScheduler:
         time. If the host club has no trustworthy calendar evidence for this
         run, this returns a *provisional* slot at ``preferred_start`` instead
         of searching real (nonexistent) event data -- the club still gets to
-        host, but the caller (``season_planner.py``) flags the tournament's
+        host, but the caller (``planning.season_planner.py``) flags the tournament's
         ``manual_booking_reason`` so the istid gets booked/verified by hand,
         rather than this helper silently forcing a host substitution.
 

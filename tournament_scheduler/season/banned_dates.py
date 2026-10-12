@@ -3,7 +3,7 @@
 A **banned date** is a global planning restriction: no tournament may be
 scheduled on it, regardless of host or participants. It is distinct from a
 typed request constraint (one club/team cannot participate) and from the
-holiday-policy exclusions owned by :mod:`tournament_scheduler.date_policy`.
+holiday-policy exclusions owned by :mod:`tournament_scheduler.planning.date_policy`.
 
 This module owns the durable record, its deterministic identity/validation, the
 derived report over a canonical plan, and the projection into the *existing*

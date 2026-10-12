@@ -18,7 +18,7 @@ from __future__ import annotations
 from datetime import date, datetime
 
 from tournament_scheduler.models import Game, Roster, SeasonPlan, Team, Tournament
-from tournament_scheduler.season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 from tournament_scheduler.testing.canonical_input import OfflineScheduler
 
 

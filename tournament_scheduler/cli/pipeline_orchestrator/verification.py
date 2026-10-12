@@ -10,7 +10,7 @@ from .hard_verification_gate import (
     _assert_hard_verification_before_export,
     _baseline_hard_violations_for_plan,
 )
-from ...plan_derived_state import reconcile_plan_derived_state
+from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
 
 __all__ = [
     "_assert_hard_verification_before_export",

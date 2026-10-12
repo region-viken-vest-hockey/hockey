@@ -818,7 +818,7 @@ def governing_floor_finding(
     arena overlaps are checked separately and remain hard.
     """
 
-    from tournament_scheduler.occupancy import governing_minimum_ice_time_minutes
+    from tournament_scheduler.shape.occupancy import governing_minimum_ice_time_minutes
 
     try:
         minutes = int(accepted_minutes)

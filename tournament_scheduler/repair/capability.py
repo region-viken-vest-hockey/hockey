@@ -98,7 +98,7 @@ def recorded_capability_fingerprint(coverage: Mapping[str, Any] | None) -> str:
     capability = coverage.get("capability")
     if isinstance(capability, Mapping):
         return str(capability.get("fingerprint") or "")
-    # Accept a bare ``search_capability`` fingerprint/marker for legacy or
+    # Accept a bare ``repair.capability`` fingerprint/marker for legacy or
     # simplified callers.
     marker = coverage.get("search_capability")
     if isinstance(marker, Mapping):

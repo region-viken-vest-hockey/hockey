@@ -9,7 +9,7 @@ let the ratio exceed 1.0 -- a coverage score above 100% is meaningless.
 
 from __future__ import annotations
 
-from tournament_scheduler.game_generation import diversity_score
+from tournament_scheduler.shape.game_generation import diversity_score
 from tournament_scheduler.models import Team
 
 

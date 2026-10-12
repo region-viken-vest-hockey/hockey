@@ -26,8 +26,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from .planning.verification import publication_readiness
-from .season.waivers import waiver_audit_rows
+from tournament_scheduler.planning.verification import publication_readiness
+from tournament_scheduler.season.waivers import waiver_audit_rows
 
 _GENERIC_HOSTING_REASON = "required hosting obligation has no verified feasible automatic slot"
 

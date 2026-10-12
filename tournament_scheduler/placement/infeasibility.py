@@ -1,13 +1,13 @@
 """Durable, revision-bound proof that a placement obligation is infeasible.
 
 A deterministic bounded search that finds no legal placement proves only that
-*that* search, with *those* caps, found nothing (see :mod:`search_capability`).
+*that* search, with *those* caps, found nothing (see :mod:`repair.capability`).
 For an obligation whose full supported scope was actually walked, the search
 result can be retained as a typed **infeasibility proof**: it names the
 obligation, the authoritative capacity/calendar facts the search consumed, the
 capability and scope that were exercised, the candidate/feasibility counts, and
 the deterministic rejection reasons. The shared finding-resolution classifier
-(:mod:`finding_resolution`) may then treat the obligation as
+(:mod:`season.finding_resolution`) may then treat the obligation as
 ``proven_infeasible_with_current_capacity`` while the raw obligation stays
 visible.
 
@@ -24,8 +24,8 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping, Sequence
 
-from .search_capability import SearchCapability, capability_is_stale
-from .pipeline.fingerprints import stable_payload_sha256
+from tournament_scheduler.repair.capability import SearchCapability, capability_is_stale
+from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 PROOF_KEY = "placement_infeasibility_proofs"
 PROOF_SCHEMA_VERSION = 1
@@ -276,7 +276,7 @@ def proof_is_current(
 
 
 def coverage_from_proof(proof: Mapping[str, Any]) -> dict[str, Any]:
-    """Return the finding ``search_coverage`` payload a current proof implies."""
+    """Return the finding ``repair.coverage`` payload a current proof implies."""
 
     scope = proof.get("search_scope") or {}
     return {

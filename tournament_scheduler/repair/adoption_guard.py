@@ -19,7 +19,7 @@ candidate repair against one canonical revision:
   (:mod:`tournament_scheduler.scoring.quality_objectives`) plus canonical travel;
 * an explicit list of material regression codes. Material regressions are never
   accepted by default: an operator must name the exact code and give a reason,
-  mirroring the per-team ``team_schedule_quality`` acceptance contract;
+  mirroring the per-team ``participation.team_schedule_quality`` acceptance contract;
 * cycle detection over a deterministic normalized-assignment fingerprint. The
   bounded :class:`RepairPassLedger` records the adopted state fingerprints plus
   a compact decision lineage so revisiting an already-seen assignment is
@@ -45,10 +45,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
-from .finding_resolution import is_blocking_finding
-from .pipeline.fingerprints import stable_payload_sha256
-from .planning.verification import verify_canonical_candidate
-from .planning.contract import score_candidate
+from tournament_scheduler.season.finding_resolution import is_blocking_finding
+from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
+from tournament_scheduler.planning.verification import verify_canonical_candidate
+from tournament_scheduler.planning.contract import score_candidate
 from tournament_scheduler.scoring.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
 from tournament_scheduler.rules.catalog import (
     CATALOG_BY_ID,
@@ -61,12 +61,12 @@ from tournament_scheduler.rules.catalog import (
     TIER_STRONG_GOAL,
     priority_tier_for_regression,
 )
-from .season.accepted_baseline import (
+from tournament_scheduler.season.accepted_baseline import (
     compare_findings_to_baseline,
     finding_identity_record,
     finding_severity_score,
 )
-from .team_schedule_quality import (
+from tournament_scheduler.participation.team_schedule_quality import (
     DEFAULT_TEMPORAL_COVERAGE_THRESHOLD_DAYS,
     MATERIAL_CLUB_EXPOSURE_INDEX_DELTA,
     MATERIAL_TEMPORAL_GAP_DELTA_DAYS,
@@ -648,8 +648,8 @@ def classify_travel_regression(
 def compute_travel(plan: Mapping[str, Any]) -> Dict[str, Any]:
     """Return canonical season travel totals for a plan, or a zero fallback."""
     try:
-        from .clubs.distances import compute_team_travel_distances
-        from .serialization.season_plan import season_plan_from_dict
+        from tournament_scheduler.clubs.distances import compute_team_travel_distances
+        from tournament_scheduler.serialization.season_plan import season_plan_from_dict
 
         season_plan = season_plan_from_dict(dict(plan))
         team_travel = compute_team_travel_distances(season_plan)
@@ -671,7 +671,7 @@ def parse_adoption_overrides(
 
     Each item is a regression code or a mapping with ``code``/``reason``. A
     non-empty reason is mandatory, and a hard-verification regression can never
-    be accepted. Mirrors ``team_schedule_quality.parse_regression_acceptances``
+    be accepted. Mirrors ``participation.team_schedule_quality.parse_regression_acceptances``
     so the guard's override contract is the same kind of explicit, auditable
     decision.
     """

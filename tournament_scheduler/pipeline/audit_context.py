@@ -18,8 +18,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from ..effective_tournament_shape import compute_effective_tournament_shape, shape_violation
-from ..guest_slots import (
+from tournament_scheduler.shape.effective_shape import compute_effective_tournament_shape, shape_violation
+from tournament_scheduler.shape.guest_slots import (
     active_guest_slot_count,
     guest_slot_records,
     has_open_guest_slots,
@@ -28,7 +28,7 @@ from ..guest_slots import (
     rvv_team_count,
 )
 from tournament_scheduler.hosting.representation import clubs_represent_same_club
-from ..plan_derived_state import (
+from tournament_scheduler.planning.derived_state import (
     publication_readiness_with_plan_placements,
     reconcile_plan_derived_state,
 )
@@ -521,7 +521,7 @@ def _collect_plan_audit_facts(
     # issue #408: intra-club home representation. The registered roster is
     # required to know the sibling pool, so this degrades gracefully to an
     # empty list when the config checkpoint carries no teams.
-    from tournament_scheduler.home_representation import home_representation_rows
+    from tournament_scheduler.participation.home_representation import home_representation_rows
 
     home_representation = home_representation_rows(registered_teams, tournaments)
 

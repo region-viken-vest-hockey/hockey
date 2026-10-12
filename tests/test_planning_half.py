@@ -223,7 +223,7 @@ class TestHalfSnapshotIsolation:
         from datetime import datetime
 
         from tournament_scheduler.models import Roster, Team
-        from tournament_scheduler.season_planner import SeasonPlanner
+        from tournament_scheduler.planning.season_planner import SeasonPlanner
         from tournament_scheduler.testing.canonical_input import OfflineScheduler, all_weekend_dates
 
         start, end = datetime(2026, 10, 1), datetime(2027, 4, 30)

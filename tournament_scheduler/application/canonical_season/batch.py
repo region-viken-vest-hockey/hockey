@@ -20,16 +20,16 @@ from tournament_scheduler.season.change_protections import (
 from tournament_scheduler.season.request_constraints import (
     compare_request_constraint_violations,
 )
-from tournament_scheduler.guest_slots import (
+from tournament_scheduler.shape.guest_slots import (
     release_guest_slots_for_cancellation,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.operational_acceptability import (
+from tournament_scheduler.season.acceptability import (
     check_operational_acceptability,
 )
-from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
+from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning.verification import verify_canonical_candidate
 from tournament_scheduler.participation.withdrawals import (
     append_withdrawal_records,
@@ -262,7 +262,7 @@ def _participation_acceptance_scope(
     waived by a single cancellation acceptance.
     """
 
-    from tournament_scheduler.team_schedule_quality import (
+    from tournament_scheduler.participation.team_schedule_quality import (
         PARTICIPATION_COUNT_CHANGED,
         consequence_team_identity,
     )
@@ -339,7 +339,7 @@ def batch_maintenance(
     cancel_requested = any(
         operation.get("op") == "cancel" for operation in normalized_operations
     )
-    from tournament_scheduler.team_schedule_quality import (
+    from tournament_scheduler.participation.team_schedule_quality import (
         ACCEPTABLE_REGRESSION_CODES,
         CANCEL_ACCEPTABLE_REGRESSION_CODES,
         PARTICIPATION_COUNT_CHANGED,
@@ -694,7 +694,7 @@ def batch_maintenance(
 
     team_consequences: dict[str, Any] = {}
     if applied_swaps:
-        from tournament_scheduler.team_schedule_quality import (
+        from tournament_scheduler.participation.team_schedule_quality import (
             compare_team_schedule_consequence,
         )
 

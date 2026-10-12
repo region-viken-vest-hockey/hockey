@@ -17,7 +17,7 @@ reservations are never consumed or released.
 
 Away tournaments (the club is not the host) are enumerated before home
 tournaments, because changing which sibling shows up at a home tournament can
-only ever move the already-repaired ``home_representation`` objective. A home
+only ever move the already-repaired ``participation.home_representation`` objective. A home
 substitution is returned only when it does not worsen the affected pool's home
 representation.
 
@@ -41,8 +41,8 @@ from __future__ import annotations
 import copy
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from tournament_scheduler.guest_slots import guest_slot_summary
-from tournament_scheduler.home_representation import home_representation_rows
+from tournament_scheduler.shape.guest_slots import guest_slot_summary
+from tournament_scheduler.participation.home_representation import home_representation_rows
 from tournament_scheduler.hosting.representation import clubs_represent_same_club
 from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
@@ -69,7 +69,7 @@ from tournament_scheduler.planning.contract import (
     verify_candidate,
 )
 from tournament_scheduler.scoring.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
-from tournament_scheduler.team_schedule_quality import compare_changed_team_schedule_consequence
+from tournament_scheduler.participation.team_schedule_quality import compare_changed_team_schedule_consequence
 
 INTRA_CLUB_DISTRIBUTION_FINDING_PREFIX = "intra_club_participation_distribution"
 
@@ -1022,7 +1022,7 @@ def _option_rank(option: RepairOption) -> Tuple[int, int, int, int, int, str]:
     effects = option.effects or {}
     rejected = 0 if effects.get("consequence_acceptable", True) else 1
     # Away substitutions are preferred so the already-repaired
-    # ``home_representation`` objective is naturally preserved.
+    # ``participation.home_representation`` objective is naturally preserved.
     moves_home = 1 if effects.get("moves_home_representation") else 0
     quality = int(effects.get("quality_regression_count", 0) or 0)
     improvement = int(effects.get("spread_before", 0) or 0) - int(

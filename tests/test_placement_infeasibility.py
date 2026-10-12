@@ -30,7 +30,7 @@ from tests.test_unplaced_placement_repair import (
     _tournament,
     _write_season,
 )
-from tournament_scheduler.placement_infeasibility import (
+from tournament_scheduler.placement.infeasibility import (
     build_infeasibility_proof,
     coverage_from_proof,
     proof_is_current,
@@ -43,7 +43,7 @@ from tournament_scheduler.application.canonical_season.store_facade import (
     record_placement_infeasibility_proofs,
     release_placement_infeasibility_proofs,
 )
-from tournament_scheduler.search_capability import SearchCapability
+from tournament_scheduler.repair.capability import SearchCapability
 from tournament_scheduler.repair.unplaced_placement import (
     SEARCH_BOUNDED_EXHAUSTED,
     SEARCH_INCOMPLETE,

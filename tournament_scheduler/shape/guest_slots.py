@@ -9,7 +9,7 @@ distort participation, hosting, travel or fairness metrics.
 
 Two distinct things are represented here:
 
-``guest_slots``
+``shape.guest_slots``
     A list of reservation records on a tournament. Each record is one place
     with a lifecycle status:
 
@@ -382,7 +382,7 @@ def guest_reservation_integrity_violations(
     checks cannot distinguish from an intentional place that was consumed by
     participant optimization.
 
-    Explicit ``guest_slots`` entries are validated before normalizing: a
+    Explicit ``shape.guest_slots`` entries are validated before normalizing: a
     non-object entry or a record missing its persisted id/status is rejected
     rather than silently repaired, while the legacy integer-only payload stays
     supported.

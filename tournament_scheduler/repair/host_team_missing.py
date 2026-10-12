@@ -29,8 +29,8 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.application.decisions import DecisionContext
-from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape
-from tournament_scheduler.game_generation import generate_tournament_games
+from tournament_scheduler.shape.effective_shape import compute_effective_tournament_shape
+from tournament_scheduler.shape.game_generation import generate_tournament_games
 from tournament_scheduler.hosting.representation import clubs_represent_same_club, constituent_clubs, host_eligible_teams
 from tournament_scheduler.models import Team
 from tournament_scheduler.season.waivers import find_participation_waiver

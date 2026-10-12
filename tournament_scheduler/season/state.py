@@ -31,7 +31,7 @@ from tournament_scheduler.booking.calendar_bookings import (
     MANUAL_BOOKING_ASSERTIONS_KEY,
 )
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
-from tournament_scheduler.placement_infeasibility import PROOF_KEY as PLACEMENT_INFEASIBILITY_PROOFS_KEY
+from tournament_scheduler.placement.infeasibility import PROOF_KEY as PLACEMENT_INFEASIBILITY_PROOFS_KEY
 from tournament_scheduler.publication.baseline import SEASON_LIFECYCLE_KEY
 
 CANONICAL_STATE_REVISION_KEY = "canonical_state_revision"

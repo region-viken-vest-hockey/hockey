@@ -28,7 +28,7 @@ from tournament_scheduler.season.ice_time_overrides import (
 )
 from tournament_scheduler.season.state import canonical_state_revision
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
-from tournament_scheduler.occupancy import (
+from tournament_scheduler.shape.occupancy import (
     governing_minimum_ice_time_minutes,
     minimum_playing_requirement_minutes,
 )

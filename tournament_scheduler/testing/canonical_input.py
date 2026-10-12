@@ -9,7 +9,7 @@ from typing import Any
 from tournament_scheduler.models import CalendarEvent, Roster, SchedulingResult, SeasonPlan, Team, team_key
 from tournament_scheduler.pipeline.input_workbook import load_workbook_config
 from tournament_scheduler.scheduler import TournamentScheduler
-from tournament_scheduler.season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 
 
 def canonical_input_path(path: str | Path | None = None) -> Path:

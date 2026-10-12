@@ -14,7 +14,7 @@ from tests.test_stage3_planning import _make_config
 from tournament_scheduler.pipeline.state import PipelineState
 from tournament_scheduler.pipeline.stage3_planning import run
 
-# Pinned "today" (issue #272 effective_start_date) so this fixed 2025 season
+# Pinned "today" (issue #272 planning.start_date) so this fixed 2025 season
 # window stays valid regardless of the real wall clock.
 _TODAY = date(2025, 8, 25)
 

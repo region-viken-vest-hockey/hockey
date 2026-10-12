@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
-from tournament_scheduler.repair_adoption_guard import REGRESSION_HOSTING_BALANCE
+from tournament_scheduler.repair.adoption_guard import REGRESSION_HOSTING_BALANCE
 from tournament_scheduler.season.maintenance import (
     apply_repair,
     list_findings,
@@ -953,7 +953,7 @@ def test_bounded_exhaustion_marker_from_superseded_search_is_retryable(tmp_path:
     repository widens the neighborhood, canonical maintenance must re-open the
     obligation instead of inheriting the superseded result.
     """
-    from tournament_scheduler.search_capability import SearchCapability
+    from tournament_scheduler.repair.capability import SearchCapability
     from tournament_scheduler.repair.unplaced_placement import (
         unplaced_placement_search_capability,
     )

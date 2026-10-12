@@ -10,7 +10,7 @@ from tournament_scheduler.season.state import (
     canonical_state_revision,
     schedule_fingerprint,
 )
-from tournament_scheduler.guest_slots import (
+from tournament_scheduler.shape.guest_slots import (
     DEFAULT_GUEST_AGE_GROUPS,
     GUEST_SLOT_FILLED,
     GUEST_SLOT_OPEN,
@@ -26,7 +26,7 @@ from tournament_scheduler.guest_slots import (
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
+from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning.verification import verify_canonical_candidate
 
 from .shared import (

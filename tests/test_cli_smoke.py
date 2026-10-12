@@ -23,7 +23,7 @@ pytestmark = pytest.mark.integration
 
 
 def _write_minimal_workbook(path: Path) -> None:
-    # issue #272: Stage 3 now clamps planning to a future effective_start_date,
+    # issue #272: Stage 3 now clamps planning to a future planning.start_date,
     # so this fixture's season window must stay ahead of the real wall clock
     # rather than a fixed past date, or the clamp would leave nothing to plan.
     start = date.today() + timedelta(days=30)

@@ -1,6 +1,6 @@
 """Participant-derived host-candidate ranking for `SeasonPlanner`.
 
-Split out of `season_planner.py` to keep that module under the file-length
+Split out of `planning.season_planner.py` to keep that module under the file-length
 guideline -- this is a single, self-contained ranking helper with no other
 coupling to the rest of the build-plan loop.
 """

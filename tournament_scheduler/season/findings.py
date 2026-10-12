@@ -7,19 +7,19 @@ planning problems, including the classification of different finding types
 
 from __future__ import annotations
 
-from .finding_resolution import annotate_resolutions
-from .hosting.balance_repair import hosting_finding_id
-from .maintenance_context import SeasonMaintenanceError
+from tournament_scheduler.season.finding_resolution import annotate_resolutions
+from tournament_scheduler.hosting.balance_repair import hosting_finding_id
+from tournament_scheduler.season.maintenance_context import SeasonMaintenanceError
 from tournament_scheduler.participation.deviation_repair import legacy_participation_finding_id
 from tournament_scheduler.participation.deviation_repair import participation_finding_id
 from tournament_scheduler.participation.targets import INTRA_CLUB_DISTRIBUTION
-from .placement_infeasibility import coverage_from_proof
-from .placement_infeasibility import proof_is_current
-from .placement_infeasibility import proofs_by_obligation
-from .placement_infeasibility import stale_coverage_from_proof
-from .planning.contract import verify_candidate
+from tournament_scheduler.placement.infeasibility import coverage_from_proof
+from tournament_scheduler.placement.infeasibility import proof_is_current
+from tournament_scheduler.placement.infeasibility import proofs_by_obligation
+from tournament_scheduler.placement.infeasibility import stale_coverage_from_proof
+from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.rules.catalog import annotate_findings
-from .search_coverage import cheap_search_coverage
+from tournament_scheduler.repair.coverage import cheap_search_coverage
 from tournament_scheduler.repair.unplaced_placement import obligation_search_coverage
 from tournament_scheduler.repair.unplaced_placement import unplaced_placement_search_capability
 from typing import Any
@@ -282,7 +282,7 @@ def _hard_findings(plan: Mapping[str, Any], verification: Mapping[str, Any]) -> 
 
 
 def _hosting_findings(problem: Mapping[str, Any], plan: Mapping[str, Any]) -> List[Dict[str, Any]]:
-    from .hosting.balance_repair import hosting_deficit_rows
+    from tournament_scheduler.hosting.balance_repair import hosting_deficit_rows
 
     out: List[Dict[str, Any]] = []
     for row in hosting_deficit_rows(problem, plan):
@@ -436,7 +436,7 @@ def _unplaced_findings(
     A tournament the deterministic slot search could not place is not a
     scheduled tournament with a marker; it only exists as structured planning
     work in ``unresolved_tournament_placements``. Own the stable finding id the
-    planner assigned it (``placement_findings``), never a synthetic tournament
+    planner assigned it (``placement.findings``), never a synthetic tournament
     id, so the obligation stays visible/actionable without a fake placement.
     """
     out: List[Dict[str, Any]] = []
@@ -595,7 +595,7 @@ def _spacing_findings(
     structurally unavoidable because same-age moves failed.
     """
 
-    from .team_schedule_quality import (
+    from tournament_scheduler.participation.team_schedule_quality import (
         CLOSE_GAP_DAYS,
         PREFERRED_GAP_DAYS,
         team_schedule_profile,
@@ -732,7 +732,7 @@ def _home_representation_findings(
     balancing move, and the repair provider is the only thing allowed to
     mutate the schedule.
     """
-    from .home_representation import home_representation_rows
+    from tournament_scheduler.participation.home_representation import home_representation_rows
     from tournament_scheduler.repair.home_representation import home_representation_finding_id
 
     rows = home_representation_rows(

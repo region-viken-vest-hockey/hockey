@@ -1,4 +1,4 @@
-from tournament_scheduler.team_schedule_quality import (
+from tournament_scheduler.participation.team_schedule_quality import (
     compare_team_schedule_consequence,
 )
 

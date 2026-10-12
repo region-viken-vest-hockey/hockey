@@ -24,7 +24,7 @@ a copy, regenerates the tournament's placement and reruns the full independent
 verifier; the candidate is committed only when verification passes.
 
 It also produces read-only, conflict-aware candidate-weekend evidence for each
-unresolved obligation (owned by ``candidate_weekends``): the bounded same-host
+unresolved obligation (owned by ``booking.candidate_weekends``): the bounded same-host
 weekend set with its availability classification, current-roster team/date
 collisions and deterministic rejection reasons. That evidence never commits a
 placement -- it only tells the operator which weekends could work and why the
@@ -44,9 +44,9 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.application.decisions import DecisionContext
-from tournament_scheduler.candidate_weekends import enumerate_candidate_weekends, season_weekend_dates
-from tournament_scheduler.date_policy import problem_date_exclusions as _problem_date_exclusions
-from tournament_scheduler.date_policy import problem_forbidden_dates as _problem_forbidden_dates
+from tournament_scheduler.booking.candidate_weekends import enumerate_candidate_weekends, season_weekend_dates
+from tournament_scheduler.planning.date_policy import problem_date_exclusions as _problem_date_exclusions
+from tournament_scheduler.planning.date_policy import problem_forbidden_dates as _problem_forbidden_dates
 from tournament_scheduler.hosting.representation import constituent_clubs
 from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
@@ -67,7 +67,7 @@ from tournament_scheduler.planning.contract import (
 )
 
 # The canonical marker SeasonPlanner writes when no verified slot was found for
-# the responsible host (see season_planner.py and the manual-schedule export).
+# the responsible host (see planning.season_planner.py and the manual-schedule export).
 # It deliberately excludes the calendar-untrusted reason: an unverified
 # calendar cannot be repaired by slot search, only booked by hand.
 MANUAL_SLOT_FAILURE_MARKER = "må plasseres manuelt"
