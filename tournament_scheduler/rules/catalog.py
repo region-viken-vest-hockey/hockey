@@ -1151,6 +1151,7 @@ _EVIDENCE: tuple[RuleEntry, ...] = (
             "external_calendar_conflicts",
             "movable_host_confirmation_required",
             "movable_capacity_opportunity",
+            "duplicate_calendar_booking_association",
             "stale_calendar_booking_association",
         ),
     ),
