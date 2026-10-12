@@ -8,14 +8,12 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, Mapping, Optional
 
-from tournament_scheduler.repair.capability import SearchCapability
-
-
-# Search coverage status constants
-SEARCH_COVERAGE_OPTION_AVAILABLE = "option_available"
-SEARCH_COVERAGE_INCOMPLETE = "search_incomplete"
-SEARCH_COVERAGE_BOUNDED_EXHAUSTED = "bounded_search_exhausted"
-SEARCH_COVERAGE_PROVEN_INFEASIBLE = "proven_infeasible"
+from tournament_scheduler.repair.capability import (
+    COVERAGE_BOUNDED_EXHAUSTED,
+    COVERAGE_OPTION_AVAILABLE,
+    COVERAGE_SEARCH_INCOMPLETE,
+    SearchCapability,
+)
 
 # Maintenance search version - increment when the search algorithm changes
 MAINTENANCE_SEARCH_VERSION = "3"
@@ -50,7 +48,7 @@ def cheap_search_coverage(finding: Mapping[str, Any]) -> Dict[str, Any]:
 
     supported = list(supported_dimensions_for_finding(finding))
     return {
-        "status": SEARCH_COVERAGE_INCOMPLETE,
+        "status": COVERAGE_SEARCH_INCOMPLETE,
         "supported": supported,
         "untried": list(supported),
         "attempted": [],
@@ -78,11 +76,11 @@ def derive_search_coverage(
     """
     supported_list = [str(item) for item in supported]
     if option_count > 0:
-        status = SEARCH_COVERAGE_OPTION_AVAILABLE
+        status = COVERAGE_OPTION_AVAILABLE
     elif allow_search:
-        status = SEARCH_COVERAGE_BOUNDED_EXHAUSTED
+        status = COVERAGE_BOUNDED_EXHAUSTED
     else:
-        status = SEARCH_COVERAGE_INCOMPLETE
+        status = COVERAGE_SEARCH_INCOMPLETE
     payload: Dict[str, Any] = {
         "status": status,
         "supported": supported_list,

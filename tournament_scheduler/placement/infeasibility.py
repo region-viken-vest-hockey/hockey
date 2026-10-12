@@ -24,7 +24,10 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping, Sequence
 
-from tournament_scheduler.repair.capability import SearchCapability, capability_is_stale
+from tournament_scheduler.repair.capability import (
+    COVERAGE_BOUNDED_EXHAUSTED, COVERAGE_PROVEN_INFEASIBLE, COVERAGE_SEARCH_INCOMPLETE,
+    SearchCapability, capability_is_stale,
+)
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 PROOF_KEY = "placement_infeasibility_proofs"
@@ -33,10 +36,6 @@ PROOF_SCHEMA_VERSION = 1
 ACTIVE = "active"
 SUPERSEDED = "superseded"
 
-#: The one coverage status that establishes infeasibility once a proof exists.
-COVERAGE_PROVEN_INFEASIBLE = "proven_infeasible"
-COVERAGE_BOUNDED_EXHAUSTED = "bounded_search_exhausted"
-COVERAGE_SEARCH_INCOMPLETE = "search_incomplete"
 
 STALE_CAPACITY_CHANGED = "authoritative_capacity_changed"
 STALE_CAPABILITY_CHANGED = "search_capability_changed"

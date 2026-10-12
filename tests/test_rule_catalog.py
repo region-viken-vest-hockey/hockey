@@ -790,3 +790,67 @@ def test_sanctioned_code_tables_are_not_stale() -> None:
 
 def test_render_check_uses_the_repository_root_by_default() -> None:
     assert catalog_doc.main(["--check"]) == 0
+
+
+_COVERAGE_STATUS_VALUES = frozenset(
+    {"option_available", "search_incomplete", "bounded_search_exhausted", "proven_infeasible"}
+)
+
+
+def _executable_status_literals(tree: ast.AST) -> list[ast.Constant]:
+    """Coverage-status strings used as values, comparisons or arguments.
+
+    Docstrings, dict keys, subscript keys, ``.get(...)`` field lookups and
+    field-name tuples iterated by a comprehension are payload field names, not
+    status semantics, so they are not reported.
+    """
+    parents = {child: node for node in ast.walk(tree) for child in ast.iter_child_nodes(node)}
+    found: list[ast.Constant] = []
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Constant) and node.value in _COVERAGE_STATUS_VALUES):
+            continue
+        parent = parents.get(node)
+        if isinstance(parent, ast.Expr):
+            continue
+        if (
+            isinstance(parent, ast.Tuple)
+            and isinstance(parents.get(parent), ast.comprehension)
+            and parents[parent].iter is parent
+        ):
+            continue
+        if isinstance(parent, ast.Dict) and any(key is node for key in parent.keys):
+            continue
+        if isinstance(parent, ast.Subscript) and parent.slice is node:
+            continue
+        if (
+            isinstance(parent, ast.Call)
+            and isinstance(parent.func, ast.Attribute)
+            and parent.func.attr == "get"
+            and parent.args
+            and parent.args[0] is node
+        ):
+            continue
+        found.append(node)
+    return found
+
+
+def test_search_coverage_vocabulary_has_one_owner() -> None:
+    """Executable coverage-status uses resolve through ``repair.capability``.
+
+    A second comparison, assignment or argument spelled as a literal is the
+    drift path the owner exists to close. ``rules/catalog.py`` is the sanctioned
+    registry that lists these codes as finding codes; its consistency with the
+    owner is checked by ``test_search_coverage_finding_codes_match_owner``.
+    """
+    exempt = {
+        REPO_ROOT / "tournament_scheduler/repair/capability.py",
+        REPO_ROOT / "tournament_scheduler/rules/catalog.py",
+    }
+    offenders = []
+    for path in sorted((REPO_ROOT / "tournament_scheduler").rglob("*.py")):
+        if path in exempt:
+            continue
+        tree = ast.parse(path.read_text())
+        for node in _executable_status_literals(tree):
+            offenders.append(f"{path.relative_to(REPO_ROOT)}:{node.lineno}: {node.value!r}")
+    assert offenders == [], "coverage status literal outside repair.capability: " + ", ".join(offenders)

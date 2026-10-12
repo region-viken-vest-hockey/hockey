@@ -22,6 +22,7 @@ import json
 from typing import Any
 
 from tournament_scheduler.hosting.representation import clubs_represent_same_club
+from tournament_scheduler.repair.capability import COVERAGE_BOUNDED_EXHAUSTED
 from tournament_scheduler.rules.evidence_categories import EVIDENCE_CATEGORIES, EVIDENCE_CATEGORY_BY_NAME
 
 # Explicit, tested upper bound for the *default* audit context payload. The
@@ -204,11 +205,11 @@ def _extract_records(raw: dict[str, Any]) -> list[dict[str, Any]]:
         records.append(
             _record(
                 category="participation_target_deviations",
-                finding_type=str(row.get("avoidability") or "bounded_search_exhausted"),
+                finding_type=str(row.get("avoidability") or COVERAGE_BOUNDED_EXHAUSTED),
                 summary=(
                     f"{row.get('team') or row.get('label') or '?'} ({row.get('age_group') or '?'}, "
                     f"{row.get('scope') or 'season'}): {row.get('actual')}/{row.get('target')} "
-                    f"{row.get('direction') or ''} — {row.get('avoidability') or 'bounded_search_exhausted'}"
+                    f"{row.get('direction') or ''} — {row.get('avoidability') or COVERAGE_BOUNDED_EXHAUSTED}"
                 ),
                 detail=row,
                 club=row.get("club"),

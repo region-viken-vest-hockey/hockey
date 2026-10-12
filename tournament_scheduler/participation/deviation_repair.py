@@ -19,6 +19,7 @@ never decides on its own.
 
 from __future__ import annotations
 
+from tournament_scheduler.repair.capability import COVERAGE_BOUNDED_EXHAUSTED, COVERAGE_PROVEN_INFEASIBLE
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
 from tournament_scheduler.repair.host_team_missing import RepairOption, candidate_fingerprint, search_dimension_tag
@@ -258,12 +259,11 @@ def _classification(deviation: Mapping[str, Any]) -> Dict[str, Any]:
     avoidability = str(deviation.get("avoidability") or "")
     payload: Dict[str, Any] = {
         "avoidability": avoidability,
-        "proven_infeasible": avoidability == "proven_infeasible",
+        "proven_infeasible": avoidability == COVERAGE_PROVEN_INFEASIBLE,
     }
-    if avoidability == "bounded_search_exhausted":
+    if avoidability == COVERAGE_BOUNDED_EXHAUSTED:
         payload["note"] = (
-            "bounded_search_exhausted is not proof of infeasibility; another "
-            "targeted search may be requested"
+            "bounded_search_exhausted is not proof of infeasibility; another targeted search may be requested"
         )
     return payload
 

@@ -8,6 +8,7 @@ reality deterministically resolved it as diagnostic planning debt?
 
 from __future__ import annotations
 
+from tournament_scheduler.repair.capability import COVERAGE_PROVEN_INFEASIBLE
 from collections import Counter
 from typing import Any, Iterable, Mapping, MutableMapping
 
@@ -57,7 +58,7 @@ def classify_finding_resolution(finding: Mapping[str, Any]) -> dict[str, Any]:
             coverage_status = str(coverage.get("status") or "")
             stale = bool(coverage.get("capability_stale") or finding.get("bounded_repair_exhausted_stale"))
             if not stale and (
-                coverage_status == "proven_infeasible" or coverage.get("proven_infeasible") is True
+                coverage_status == COVERAGE_PROVEN_INFEASIBLE or coverage.get("proven_infeasible") is True
             ):
                 status = PROVEN_INFEASIBLE_WITH_CURRENT_CAPACITY
                 reason = "bounded_search_zero_feasible_candidates"

@@ -32,18 +32,18 @@ from datetime import date
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from tournament_scheduler.planning import half as planning_half
+from tournament_scheduler.repair.capability import COVERAGE_BOUNDED_EXHAUSTED, COVERAGE_PROVEN_INFEASIBLE
 
 TeamIdentity = Tuple[str, str, str]
 
 HALVES: Tuple[str, ...] = ("before_christmas", "after_christmas")
 SEASON_SCOPE = "season"
 
-# Avoidability classifications for a remaining material participation
-# deviation. A caller must never present ``BOUNDED_SEARCH_EXHAUSTED`` as proof
-# of unavoidability.
+# Avoidability classifications for a remaining material participation deviation.
+# A caller must never present ``BOUNDED_SEARCH_EXHAUSTED`` as proof of unavoidability.
 AVOIDABLE = "avoidable"
-PROVEN_INFEASIBLE = "proven_infeasible"
-BOUNDED_SEARCH_EXHAUSTED = "bounded_search_exhausted"
+PROVEN_INFEASIBLE = COVERAGE_PROVEN_INFEASIBLE
+BOUNDED_SEARCH_EXHAUSTED = COVERAGE_BOUNDED_EXHAUSTED
 OPERATOR_ACCEPTED = "operator_accepted"
 
 AVOIDABILITY_STATUSES: Tuple[str, ...] = (

@@ -26,6 +26,7 @@ a repair, a verifier or a metric.
 
 from __future__ import annotations
 
+from tournament_scheduler.repair.capability import COVERAGE_BOUNDED_EXHAUSTED
 import hashlib
 from typing import Any, Callable, Iterable, Mapping, Optional
 
@@ -100,7 +101,7 @@ def _exhausted_coverage(
     so the loop does not repeat the same stale apply forever.
     """
     return {
-        "status": "bounded_search_exhausted",
+        "status": COVERAGE_BOUNDED_EXHAUSTED,
         "supported": [],
         "untried": [],
         "attempted": [],
@@ -1284,9 +1285,7 @@ def _resolve_review_selection(
     recommended_ref = str(ranked[0]["candidate_ref"]) if ranked else ""
     session = Stage3SessionStore(work_dir).load(expected_run_id=run_id or None)
     current_fp = session.finalized_fingerprint or session.candidate_fingerprint
-    current_entry = next(
-        (entry for entry in archive.entries if entry.candidate_fingerprint == current_fp), None
-    )
+    current_entry = next((entry for entry in archive.entries if entry.candidate_fingerprint == current_fp), None)
     current_ref = current_entry.candidate_ref if current_entry is not None else ""
     if requested_ref and not dry_run:
         if requested_ref == current_ref:
