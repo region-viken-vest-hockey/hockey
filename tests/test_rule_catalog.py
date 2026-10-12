@@ -140,7 +140,6 @@ _NON_SCHEDULING_DIAGNOSTIC_PREFIXES = (
 # being emitted must be removed here.
 _GRANDFATHERED_UNREGISTERED_CODES = frozenset(
     {
-        "booking_feasibility_warnings",
         "change_protection_violation",
         "duplicate_calendar_booking_association",
         "duplicate_tournament_id",
@@ -231,6 +230,17 @@ def test_grandfathered_unregistered_codes_are_still_open_items() -> None:
         "grandfathered codes that are now registered or no longer emitted; remove them: "
         + ", ".join(stale)
     )
+
+
+def test_booking_feasibility_warnings_has_one_booking_floor_owner() -> None:
+    # The planning verifier (calendar-booking path) emits this code as an
+    # informational reason; it must resolve to the single booking-floor rule.
+    code = "booking_feasibility_warnings"
+    owner = "tournament_ice_booking_duration"
+    assert "tournament_scheduler/planning/verification.py" in _all_emitted_codes_by_module()[code]
+    assert {entry.id for entry in catalog.RULE_CATALOG if code in entry.finding_codes} == {owner}
+    assert catalog.rule_id_for_finding_code(code) == owner
+    assert code not in _GRANDFATHERED_UNREGISTERED_CODES
 
 
 def test_annotate_violations_attaches_rule_ids() -> None:

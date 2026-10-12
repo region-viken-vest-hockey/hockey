@@ -260,6 +260,7 @@ _HARD: tuple[RuleEntry, ...] = (
         evidence_projection=("verify_candidate.violations", "verify_final_candidate.booking_feasibility_warnings", "calendar_bookings governing_floor_finding"),
         tests=("tests/test_occupancy.py", "tests/test_planning_contract.py", "tests/test_stage1_config.py"),
         verifier_codes=("ice_time_playing_minimum", "ice_time_governing_minimum"),
+        finding_codes=("booking_feasibility_warnings",),
         waivable=False,
     ),
     RuleEntry(

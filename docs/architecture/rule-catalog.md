@@ -229,6 +229,7 @@ candidate regresses a higher-priority operational obligation.
 | `stale_approval` (verifier) | `approval_lifecycle` |
 | `orphaned_approval` (verifier) | `approval_lifecycle` |
 | `input_constrained_shape` (finding) | `tournament_roster_shape` |
+| `booking_feasibility_warnings` (finding) | `tournament_ice_booking_duration` |
 | `unresolved_hosting_obligations` (finding) | `hosting_age_group_coverage` |
 | `unresolved_hosting` (finding) | `hosting_age_group_coverage` |
 | `unresolved_hosting_obligation` (finding) | `hosting_age_group_coverage` |
@@ -368,7 +369,7 @@ candidate regresses a higher-priority operational obligation.
 **Canonical owner:** `tournament_scheduler.shape.occupancy`  
 **Input / fact source:** planning_problem ice_time_minutes + round_length_minutes + generated round count  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.verify_candidate`  
-**Codes:** verifier `ice_time_playing_minimum`, `ice_time_governing_minimum` · finding — · score —  
+**Codes:** verifier `ice_time_playing_minimum`, `ice_time_governing_minimum` · finding `booking_feasibility_warnings` · score —  
 **Providers:** mutation — · search —  
 **Evidence / report:** `verify_candidate.violations`, `verify_final_candidate.booking_feasibility_warnings`, `calendar_bookings governing_floor_finding`  
 **Tests:** `tests/test_occupancy.py`, `tests/test_planning_contract.py`, `tests/test_stage1_config.py`  
