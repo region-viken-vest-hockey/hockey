@@ -213,7 +213,7 @@ def _resolve_publication_scope(
     import os
     from pathlib import Path
 
-    from .publication_scope import resolve_publication_scope
+    from tournament_scheduler.publication.scope import resolve_publication_scope
     from .verification_context import resolve_publish_verification_context
 
     try:
@@ -246,7 +246,7 @@ def _blocked_for_publication_scope(
     caller applies the existing semantic-audit gate instead.
     """
     from .capability_result import CapabilityResult
-    from .publication_scope import (
+    from tournament_scheduler.publication.scope import (
         STATUS_BLOCKED,
         STATUS_ELIGIBLE,
         STATUS_HELD,
@@ -341,7 +341,7 @@ def _blocked_for_proposed_presentation(
 
     from .capability_result import CapabilityResult
     from .export_parity.presentation import STATUS_PASS, verify_proposed_presentation
-    from .publication_scope import STATUS_ELIGIBLE
+    from tournament_scheduler.publication.scope import STATUS_ELIGIBLE
 
     if scope.get("status") != STATUS_ELIGIBLE:
         return None
@@ -419,7 +419,7 @@ def apply_publish_audit_gate(
     """
     from .audit_result import audit_is_fresh, is_blocking_status
     from .capability_result import CapabilityResult
-    from .publication_scope import STATUS_ELIGIBLE
+    from tournament_scheduler.publication.scope import STATUS_ELIGIBLE
     from .publish_hard_verification import (
         current_hard_verification,
         hard_verification_evidence,

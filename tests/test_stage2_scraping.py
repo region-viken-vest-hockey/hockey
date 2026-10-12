@@ -16,7 +16,7 @@ from tournament_scheduler.pipeline.stage2_scraping import (
     run,
 )
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.club_registry import club_for_source_name
+from tournament_scheduler.clubs.registry import club_for_source_name
 from tournament_scheduler.models import CalendarEvent
 from tournament_scheduler.utils.calendar_cache import CalendarCache
 

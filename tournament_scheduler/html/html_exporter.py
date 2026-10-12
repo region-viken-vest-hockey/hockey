@@ -19,10 +19,10 @@ from html import escape as _html_escape
 from pathlib import Path
 from typing import Any
 
-from tournament_scheduler.club_distances import furthest_traveling_team
-from ..guest_slots import guest_slot_summary
+from tournament_scheduler.clubs.distances import furthest_traveling_team
+from tournament_scheduler.shape.guest_slots import guest_slot_summary
 from ..models import SeasonPlan, chronological_tournaments
-from ..occupancy import tournament_end_time
+from tournament_scheduler.shape.occupancy import tournament_end_time
 
 from . import CANCELLED_TOURNAMENTS_FILENAME, SEASON_CHANGES_FILENAME
 
@@ -47,7 +47,7 @@ from .data_computation import (
 )
 from .renderers.heatmap import build_club_color_maps
 from .renderers.rules_table import render_rules_sections_html
-from ..rules_model import build_rules_model
+from ..rules.model import build_rules_model
 
 # ---------------------------------------------------------------------------
 # Load template fragments

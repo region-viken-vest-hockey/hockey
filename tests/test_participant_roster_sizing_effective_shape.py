@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from tournament_scheduler.models import Roster, Team
 from datetime import date
 
-from tournament_scheduler.participant_roster_sizing import (
+from tournament_scheduler.planning.participant_roster_sizing import (
     fixed_cohort_participants,
     fixed_cohort_shape_for,
     plan_roster_sizes_for_age_group,

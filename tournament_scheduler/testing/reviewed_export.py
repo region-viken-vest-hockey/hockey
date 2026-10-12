@@ -15,7 +15,7 @@ from typing import Any
 from ..pipeline.fingerprints import stable_payload_sha256
 from ..pipeline.state import PipelineState, StageName, StageStatus
 from ..pipeline.verification_context import build_verification_context
-from ..planning_contract import build_planning_problem, extract_candidate, verify_candidate
+from ..planning.contract import build_planning_problem, extract_candidate, verify_candidate
 
 
 def build_problem_from_candidate(candidate: dict[str, Any]) -> dict[str, Any]:

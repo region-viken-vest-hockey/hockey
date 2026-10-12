@@ -29,7 +29,7 @@ from tournament_scheduler.application.pareto_convergence import (
     recommended_review_candidate_ref,
     recorded_exhaustion_is_stale,
 )
-from tournament_scheduler.search_capability import SearchCapability, capability_is_stale
+from tournament_scheduler.repair.capability import SearchCapability, capability_is_stale
 
 
 def _entry(ref: str, vector: dict[str, float], fingerprint: str = "") -> ArchiveEntry:

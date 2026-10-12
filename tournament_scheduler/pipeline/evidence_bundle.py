@@ -7,8 +7,8 @@ artifacts alone. This module assembles that evidence from data the pipeline
 already produces -- the run manifest's decision log (issue #264 P0's
 run-scoping fix makes this trustworthy per-run), the Stage 3 controller's
 per-attempt log, Stage 2's calendar-evidence summary, and a fresh
-independent :func:`~tournament_scheduler.planning_contract.verify_candidate`
-/ :func:`~tournament_scheduler.planning_contract.score_candidate` run over
+independent :func:`~tournament_scheduler.planning.contract.verify_candidate`
+/ :func:`~tournament_scheduler.planning.contract.score_candidate` run over
 the final selected candidate -- into one JSON file written alongside the
 Stage 4 export.
 
@@ -88,10 +88,10 @@ def build_stage3_attempt_entry(
 
     Independently re-verifies/re-scores *candidate* here (rather than
     trusting whatever summary a caller already computed) so the attempt log
-    is authoritative on its own, matching ``planning_contract``'s "no
+    is authoritative on its own, matching ``planning.contract``'s "no
     planner-trusted shortcuts" philosophy.
     """
-    from ..planning_contract import score_candidate, verify_candidate
+    from ..planning.contract import score_candidate, verify_candidate
     from .fingerprints import stable_payload_sha256
 
     return {

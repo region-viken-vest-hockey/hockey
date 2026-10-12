@@ -1,7 +1,7 @@
 """``rvv-miniputt waiver`` — explicit operator authorization of hard-rule exceptions.
 
 This is the canonical, harness-neutral operator surface for creating, listing
-and revoking narrowly scoped waivers (see :mod:`tournament_scheduler.operator_waivers`).
+and revoking narrowly scoped waivers (see :mod:`tournament_scheduler.season.waivers`).
 
 It is deliberately *not* a decision action the planner/optimizer/agent may
 invoke: only an explicit operator action can authorize an exception to a hard
@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Tuple
 
 from rich.console import Console
 
-from ..operator_waivers import (
+from ..season.waivers import (
     WAIVABLE_RULE_IDS,
     WaiverError,
     create_waiver,
@@ -26,8 +26,8 @@ from ..operator_waivers import (
     load_waivers,
     revoke_waiver,
 )
-from .. import planning_half
-from ..planning_contract import _parse_date, build_planning_problem, extract_candidate
+from ..planning import half as planning_half
+from ..planning.contract import _parse_date, build_planning_problem, extract_candidate
 from ..pipeline.state import PipelineState, StageName
 
 _console = Console()
@@ -92,7 +92,7 @@ def _applied_waiver_ids(work_dir: str) -> "set[str] | None":
         problem = _build_problem(state, config, planning_checkpoint)
         if problem is None:
             return None
-        from ..planning_contract import verify_candidate
+        from ..planning.contract import verify_candidate
 
         result = verify_candidate(candidate, problem)
         return {

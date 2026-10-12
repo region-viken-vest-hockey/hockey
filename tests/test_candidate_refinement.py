@@ -36,7 +36,7 @@ from tournament_scheduler.application.stage3_session_store import (
     Stage3SessionStore,
     finalize_stage3_plan,
 )
-from tournament_scheduler.pipeline.export_lifecycle import (
+from tournament_scheduler.publication.export_lifecycle import (
     PUBLISHED_STATUS,
     SUPERSEDED_STATUS,
     read_export_manifest,
@@ -44,7 +44,7 @@ from tournament_scheduler.pipeline.export_lifecycle import (
 )
 from tournament_scheduler.pipeline.run_manifest import RunManifest
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.planning_contract import build_planning_problem
+from tournament_scheduler.planning.contract import build_planning_problem
 
 FINDING = "unplaced_placement:U10:2026-10-10:1"
 
@@ -489,7 +489,7 @@ def test_refine_refuses_to_supersede_a_published_export(tmp_path: Path, monkeypa
 
 
 def test_superseded_exports_are_protected_from_draft_retention(tmp_path: Path) -> None:
-    from tournament_scheduler.pipeline.export_lifecycle import prune_draft_exports
+    from tournament_scheduler.publication.export_lifecycle import prune_draft_exports
 
     root = tmp_path / "export"
     superseded = root / "2026-09-30T1200"

@@ -30,7 +30,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from ..club_registry import club_for_source_name, CLUB_REGISTRY
+from ..clubs.registry import club_for_source_name, CLUB_REGISTRY
 from ..models import CalendarEvent
 from .cache_manager import ScrapedDataCache
 from ..utils.calendar_cache import CalendarCache

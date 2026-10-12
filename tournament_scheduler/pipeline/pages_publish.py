@@ -766,7 +766,7 @@ def list_publication_history(*, repo_dir: str = ".", branch: str = "gh-pages") -
 
     source_exports: dict[str, dict[str, str]] = {}
     try:
-        from .export_lifecycle import find_export_manifests
+        from tournament_scheduler.publication.export_lifecycle import find_export_manifests
 
         for record in find_export_manifests(Path(repo_root) / "export"):
             pages_run_id = str(record.get("pages_run_id") or "")

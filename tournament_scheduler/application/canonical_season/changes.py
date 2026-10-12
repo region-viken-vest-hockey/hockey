@@ -6,8 +6,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_state import canonical_state_revision
-from tournament_scheduler.request_constraints import ACTIVE as REQUEST_CONSTRAINT_ACTIVE
+from tournament_scheduler.season.state import canonical_state_revision
+from tournament_scheduler.season.request_constraints import ACTIVE as REQUEST_CONSTRAINT_ACTIVE
 
 
 SCHEMA_VERSION = 1

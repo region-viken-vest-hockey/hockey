@@ -1,7 +1,7 @@
 """issue #305: wording/unit fixes for specific `build_fairness_gate` metrics.
 
 These are unit tests over the metrics returned by `fairness_scoring.build_fairness_gate`
-(consumed by `rules_model.build_rules_model` for the Regler page):
+(consumed by `rules.model.build_rules_model` for the Regler page):
 
 - `arena_day_collisions` must describe interval-overlap semantics, not a
   same-arena/same-day ban (same arena + same day is fine as long as the
@@ -18,7 +18,7 @@ from __future__ import annotations
 from datetime import date, datetime
 
 from tournament_scheduler.models import Game, Roster, SeasonPlan, Team, Tournament
-from tournament_scheduler.season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 from tournament_scheduler.testing.canonical_input import OfflineScheduler
 
 

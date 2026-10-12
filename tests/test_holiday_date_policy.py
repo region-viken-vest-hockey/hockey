@@ -14,29 +14,29 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-from tournament_scheduler.date_policy import (
+from tournament_scheduler.planning.date_policy import (
     holiday_excluded_dates,
     problem_forbidden_dates,
 )
-from tournament_scheduler.date_policy_relocation import (
+from tournament_scheduler.repair.date_policy_relocation import (
     apply_date_policy_relocation_option,
     enumerate_date_policy_relocations,
     relocate_excluded_date_tournaments,
 )
-from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
-from tournament_scheduler.search_neighborhood_repair import (
+from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
+from tournament_scheduler.repair.search_neighborhood import (
     DATE_MOVE_VIOLATION_CODES,
     enumerate_search_neighborhood_repairs,
     findings_are_locally_searchable,
 )
-from tournament_scheduler.season_maintenance import (
+from tournament_scheduler.season.maintenance import (
     apply_repair,
     list_findings,
     load_context,
     search,
     supported_dimensions_for_finding,
 )
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     add_banned_date,
     allow_holiday_date,
     holiday_date_exception_report,

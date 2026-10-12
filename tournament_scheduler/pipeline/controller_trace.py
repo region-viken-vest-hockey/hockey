@@ -217,7 +217,7 @@ def read_controller_trace(
 def metric_pairs(delta: Mapping[str, Any] | None) -> tuple[dict[str, Any], dict[str, Any]]:
     """Split a season-maintenance metric delta into before/after mappings.
 
-    ``season_maintenance._metric_delta`` records each metric as
+    ``season.maintenance._metric_delta`` records each metric as
     ``<name>_before`` / ``<name>_after``; this projects those into two flat
     dictionaries so a trace consumer does not have to re-derive the pairing.
     """

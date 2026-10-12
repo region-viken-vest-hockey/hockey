@@ -1,13 +1,13 @@
-"""Canonical club-level opponent diversity and exposure (see opponent_diversity)."""
+"""Canonical club-level opponent diversity and exposure (see participation.opponent_diversity)."""
 
 from __future__ import annotations
 
-from tournament_scheduler.opponent_diversity import (
+from tournament_scheduler.participation.opponent_diversity import (
     MEASURE_CO_ATTENDANCE,
     MEASURE_GAMES,
     compute_opponent_diversity,
 )
-from tournament_scheduler.team_schedule_quality import (
+from tournament_scheduler.participation.team_schedule_quality import (
     compare_team_schedule_consequence,
 )
 

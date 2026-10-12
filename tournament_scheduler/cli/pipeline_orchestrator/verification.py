@@ -10,7 +10,7 @@ from .hard_verification_gate import (
     _assert_hard_verification_before_export,
     _baseline_hard_violations_for_plan,
 )
-from ...plan_derived_state import reconcile_plan_derived_state
+from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
 
 __all__ = [
     "_assert_hard_verification_before_export",
@@ -29,7 +29,7 @@ def _mid_planning_decision_problem(
     Returns ``None`` (rather than raising) when it can't be built from *cfg*/
     *scraping* — the A/B report and decision prompt both degrade gracefully
     to self-consistency-only verification in that case
-    (``planning_contract.verify_candidate``), matching how ``plan ab``
+    (``planning.contract.verify_candidate``), matching how ``plan ab``
     already treats a missing ``--problem``.
 
     *work_dir*, when given, folds this run's active operator waivers into the
@@ -37,9 +37,9 @@ def _mid_planning_decision_problem(
     visible to every mid-planning verification/repair decision.
     """
     try:
-        from ...canonical_baseline import resolve_canonical_baseline
-        from ...operator_waivers import load_active_waivers
-        from ...planning_contract import build_planning_problem
+        from ...season.baseline_overlay import resolve_canonical_baseline
+        from ...season.waivers import load_active_waivers
+        from ...planning.contract import build_planning_problem
 
         waivers = load_active_waivers(work_dir) if work_dir else None
         # Baseline-aware planning (issue #355): a promoted canonical season's
@@ -79,8 +79,8 @@ def _reconcile_verified_manual_state(
     if not isinstance(plan, dict) or not isinstance(plan.get("plan"), dict):
         return
     try:
-        from ...final_verification import verify_final_candidate
-        from ...planning_contract import extract_candidate
+        from ...planning.verification import verify_final_candidate
+        from ...planning.contract import extract_candidate
 
         candidate = extract_candidate(plan)
         result = verify_final_candidate(candidate, problem)
@@ -122,7 +122,7 @@ def _write_run_evidence_bundle(
     (same posture as ``_manifest_record``/``_manifest_finalize``).
     """
     try:
-        from ...final_verification import verify_final_candidate
+        from ...planning.verification import verify_final_candidate
         from ...pipeline.evidence_bundle import (
             build_final_operator_evidence,
             build_run_evidence_bundle,
@@ -131,7 +131,7 @@ def _write_run_evidence_bundle(
         from ...pipeline.controller_trace import controller_trace_reference
         from ...pipeline.run_manifest import RunManifest
         from ...pipeline.state import StageName
-        from ...planning_contract import extract_candidate, score_candidate
+        from ...planning.contract import extract_candidate, score_candidate
 
         manifest = RunManifest(state.work_dir).read()
         export_checkpoint = state.read_stage(StageName.EXPORT) or {}

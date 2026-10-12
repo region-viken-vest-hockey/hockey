@@ -1,7 +1,7 @@
 """Regression coverage for the shared accepted-exception admissibility policy.
 
 These tests pin the contract of
-:mod:`tournament_scheduler.canonical_exception_policy` at its canonical owner:
+:mod:`tournament_scheduler.season.exception_policy` at its canonical owner:
 an exact, source-confirmed accepted interval is a visible follow-up finding and
 never blocks an unrelated mutation, while a changed/worsened/unverified interval
 stays hard. The baseline-vs-candidate classification is also covered here so
@@ -10,7 +10,7 @@ every canonical writer can rely on one structured comparison.
 
 from __future__ import annotations
 
-from tournament_scheduler.canonical_exception_policy import (
+from tournament_scheduler.season.exception_policy import (
     IMPROVED,
     INTRODUCED,
     MATERIALLY_MODIFIED,
@@ -21,7 +21,7 @@ from tournament_scheduler.canonical_exception_policy import (
     reclassify_accepted_exceptions,
     reclassify_accepted_source_interval,
 )
-from tournament_scheduler.final_verification import verify_canonical_candidate
+from tournament_scheduler.planning.verification import verify_canonical_candidate
 
 
 def _team(label: str) -> dict:

@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
-from ...host_team_missing_repair import candidate_fingerprint
+from tournament_scheduler.repair.host_team_missing import candidate_fingerprint
 
 from .interactive_state_io import (
     _clear_arena_conflict_state,
@@ -19,7 +19,7 @@ from .interactive_state_io import (
 def _candidate_dict(plan: "dict[str, Any]") -> "dict[str, Any] | None":
     """Return the mutable candidate dict (``{"tournaments": [...], ...}``)
     inside *plan*, whatever checkpoint shape it was loaded in (mirrors
-    ``planning_contract.extract_candidate`` but returns the *original*
+    ``planning.contract.extract_candidate`` but returns the *original*
     nested dict, not a copy, so mutations are visible to the caller)."""
     if not isinstance(plan, dict):
         return None
@@ -95,7 +95,7 @@ def _apply_arena_conflict_decision(
     the bug this replaces. The conflict provenance is kept in
     ``manual_arena_conflict_placements`` for review/audit.
     """
-    from ...placement_normalization import (
+    from tournament_scheduler.placement.normalization import (
         REASON_ARENA_CONFLICT,
         demote_tournament_to_unplaced,
     )

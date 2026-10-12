@@ -1,7 +1,7 @@
 """``rvv-miniputt plan`` — harness-neutral candidate verification/scoring (issue #257).
 
 These commands operate only on the stable ``planning_problem``/``candidate``
-contracts in :mod:`tournament_scheduler.planning_contract`. They do not call
+contracts in :mod:`tournament_scheduler.planning.contract`. They do not call
 into ``SeasonPlanner`` and do not require an LLM, so any planner
 implementation's output can be checked the same way.
 
@@ -138,7 +138,7 @@ def _cmd_plan(args: argparse.Namespace) -> int:
 
 
 def _cmd_plan_verify(args: argparse.Namespace) -> int:
-    from ..planning_contract import extract_candidate, verify_candidate
+    from ..planning.contract import extract_candidate, verify_candidate
 
     try:
         candidate = extract_candidate(_load_json_file(args.candidate))
@@ -174,7 +174,7 @@ def _cmd_plan_verify(args: argparse.Namespace) -> int:
 
 
 def _cmd_plan_score(args: argparse.Namespace) -> int:
-    from ..planning_contract import extract_candidate, score_candidate
+    from ..planning.contract import extract_candidate, score_candidate
 
     try:
         candidate = extract_candidate(_load_json_file(args.candidate))
@@ -238,7 +238,7 @@ def _cmd_plan_optimize(args: argparse.Namespace) -> int:
     it stays behind the "feature flag or explicit command" the issue asks
     for while it's being A/B tested against ``SeasonPlanner``.
     """
-    from ..planning_contract import extract_candidate, verify_candidate
+    from ..planning.contract import extract_candidate, verify_candidate
 
     try:
         candidate = extract_candidate(_load_json_file(args.candidate))
@@ -314,8 +314,8 @@ def _cmd_plan_ab(args: argparse.Namespace) -> int:
     """
     import os
 
-    from ..planning_contract import build_planning_problem, extract_candidate
-    from ..operator_waivers import load_active_waivers
+    from ..planning.contract import build_planning_problem, extract_candidate
+    from ..season.waivers import load_active_waivers
     from ..pipeline.state import PipelineState, StageName
     from tournament_scheduler.stage3.ab import build_ab_report
 
@@ -453,8 +453,8 @@ def _cmd_plan_ab_participants(args: argparse.Namespace) -> int:
     """
     import os
 
-    from ..planning_contract import build_planning_problem, extract_candidate
-    from ..operator_waivers import load_active_waivers
+    from ..planning.contract import build_planning_problem, extract_candidate
+    from ..season.waivers import load_active_waivers
     from ..pipeline.state import PipelineState, StageName
     from tournament_scheduler.stage3.ab import build_ab_report
     from tournament_scheduler.stage3.optimizer import (
@@ -613,7 +613,7 @@ def _execute_optimize_plan(
     import os
 
     from ..pipeline.state import PipelineState, StageName
-    from ..planning_contract import extract_candidate
+    from ..planning.contract import extract_candidate
     from tournament_scheduler.stage3.ab import build_ab_report
 
     action_arguments = action_arguments or {}
@@ -834,7 +834,7 @@ def _cmd_plan_decide(args: argparse.Namespace) -> int:
         if not args.candidate:
             _console.print("[red]✗[/red] --candidate (sti til candidate.json) kreves for apply_candidate.")
             return 1
-        from ..planning_contract import extract_candidate
+        from ..planning.contract import extract_candidate
 
         try:
             candidate = extract_candidate(_load_json_file(args.candidate))
@@ -865,8 +865,8 @@ def _cmd_plan_decide(args: argparse.Namespace) -> int:
 
 
 def _cmd_plan_problem(args: argparse.Namespace) -> int:
-    from ..operator_waivers import load_active_waivers
-    from ..planning_contract import build_planning_problem
+    from ..season.waivers import load_active_waivers
+    from ..planning.contract import build_planning_problem
     from ..pipeline.state import PipelineState, StageName
 
     state = PipelineState(args.work_dir)

@@ -1,7 +1,7 @@
 """Holiday conflict checker.
 
 The exclusion rule itself lives in
-:mod:`tournament_scheduler.date_policy` so the initial scheduler and every
+:mod:`tournament_scheduler.planning.date_policy` so the initial scheduler and every
 later verification/repair path share one implementation. This checker is the
 thin scheduler adapter over that canonical policy.
 """
@@ -9,7 +9,7 @@ thin scheduler adapter over that canonical policy.
 from datetime import date, datetime
 from typing import List
 
-from tournament_scheduler.date_policy import holiday_exclusions
+from tournament_scheduler.planning.date_policy import holiday_exclusions
 from tournament_scheduler.interfaces import ConflictChecker
 from tournament_scheduler.models import ConflictContext, ConflictResult
 

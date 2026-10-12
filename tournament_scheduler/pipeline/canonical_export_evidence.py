@@ -29,7 +29,7 @@ def build_canonical_export_evidence(
     This is what lets a committed export directory reconstruct evidence ->
     audit input -> audit judgment without the original working directory.
     """
-    from ..planning_contract import extract_candidate, score_candidate
+    from ..planning.contract import extract_candidate, score_candidate
     from .fingerprints import stable_payload_sha256
 
     # Stage 4 independently verifies the canonical candidate and refreshes its

@@ -161,7 +161,7 @@ def _render(value: Any) -> Any:
 # Canonical operational facts a frozen projection carries and every artifact
 # pair should be able to confirm. ``participants`` is handled separately because
 # only one format may carry the full ``club|label|age`` identity, while both
-# carry labels. ``guest_slots`` is validated from the representable summary.
+# carry labels. ``shape.guest_slots`` is validated from the representable summary.
 _PROJECTION_FIELDS: tuple[str, ...] = (
     "date",
     "start_time",

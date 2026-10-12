@@ -22,10 +22,10 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from ..club_registry import CLUB_REGISTRY, club_for_arena as _club_for_arena
+from ..clubs.registry import CLUB_REGISTRY, club_for_arena as _club_for_arena
 from ..models import SeasonPlan, Team, Tournament
 from ..scheduler import TournamentScheduler
-from ..season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 from .state import PipelineState, StageName, StageStatus
 from .run_log_paths import resolve_active_run_log_dir
 from ..serialization.season_plan import season_plan_to_dict, tournament_from_dict
@@ -543,7 +543,7 @@ class TournamentUpdater:
 
         # Build the tournament. New logical tournaments receive a fresh opaque
         # lifecycle ID; ordinary edits above keep the existing ID in place.
-        from tournament_scheduler.tournament_identity import allocate_tournament_id
+        from tournament_scheduler.shape.identity import allocate_tournament_id
 
         new_id = allocate_tournament_id(t.id for t in plan.tournaments)
 

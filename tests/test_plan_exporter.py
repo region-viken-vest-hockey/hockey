@@ -11,7 +11,7 @@ from tournament_scheduler.excel.plan_exporter import SeasonPlanExporter, _NORWEG
 
 def _round_robin_games(teams):
     """Generate games with round_number set so tests verify the correct column values."""
-    from tournament_scheduler.season_planner import SeasonPlanner
+    from tournament_scheduler.planning.season_planner import SeasonPlanner
     return SeasonPlanner.generate_round_robin_games(teams, parallel_games=2)
 
 
@@ -226,7 +226,7 @@ class TestVarnerArenaHomeTeamRegression:
     def test_hjemmelag_column_shows_frisk_asker_for_varner_arena(self, tmp_path):
         """When a tournament is hosted at Varner Arena, all game rows in the
         per-tournament Excel sheet must show Frisk Asker in the Hjemmelag column."""
-        from tournament_scheduler.season_planner import SeasonPlanner
+        from tournament_scheduler.planning.season_planner import SeasonPlanner
 
         frisk = Team(club="Frisk Asker", label="Frisk Asker A", age_group="U10")
         visitors = [
@@ -298,7 +298,7 @@ class TestDuplicateLabelDisambiguation:
 
     def _make_plan_with_duplicate_labels(self):
         """Return a SeasonPlan where two teams share the same label but differ in club/age_group."""
-        from tournament_scheduler.season_planner import SeasonPlanner
+        from tournament_scheduler.planning.season_planner import SeasonPlanner
 
         # Two teams labelled "A-lag" in different clubs/age groups
         team_a1 = Team(club="Kongsberg", label="A-lag", age_group="U10")
@@ -397,7 +397,7 @@ class TestDuplicateLabelDisambiguation:
     def test_compute_team_travel_distances_disambiguates_duplicate_labels(self):
         """Issue #311: compute_team_travel_distances must key travel by the
         disambiguated team identity, not the raw (possibly shared) label."""
-        from tournament_scheduler.club_distances import compute_team_travel_distances
+        from tournament_scheduler.clubs.distances import compute_team_travel_distances
 
         plan = self._make_plan_with_duplicate_labels()
         result = compute_team_travel_distances(plan)
@@ -414,7 +414,7 @@ class TestDuplicateLabelDisambiguation:
     def test_compute_club_stats_attributes_travel_by_actual_club(self):
         """compute_club_stats must attribute travel to a team's real club via
         the disambiguated key, not by guessing from the label text (issue #311)."""
-        from tournament_scheduler.club_distances import compute_team_travel_distances
+        from tournament_scheduler.clubs.distances import compute_team_travel_distances
         from tournament_scheduler.html.data_computation import compute_club_stats
 
         plan = self._make_plan_with_duplicate_labels()

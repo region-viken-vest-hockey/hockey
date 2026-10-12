@@ -10,15 +10,15 @@ from datetime import date, datetime
 from types import SimpleNamespace
 
 
-from tournament_scheduler.club_registry import club_for_arena
-from tournament_scheduler.host_assignment import (
+from tournament_scheduler.clubs.registry import club_for_arena
+from tournament_scheduler.hosting.assignment import (
     assign_hosts,
     find_slot_for_tournament,
 )
 from tournament_scheduler.models import Roster, Team
 from tournament_scheduler.models import CalendarEvent
 from tournament_scheduler.scheduler import TournamentScheduler
-from tournament_scheduler.season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 from tournament_scheduler.utils.date_parser import DateParser
 
 
@@ -69,7 +69,7 @@ class TestClubForArena:
 
     def test_all_registered_arenas_resolve(self):
         """Every arena in CLUB_REGISTRY should resolve back to its club."""
-        from tournament_scheduler.club_registry import CLUB_REGISTRY
+        from tournament_scheduler.clubs.registry import CLUB_REGISTRY
         for club_name, entry in CLUB_REGISTRY.items():
             result = club_for_arena(entry.arena)
             assert result == club_name, (

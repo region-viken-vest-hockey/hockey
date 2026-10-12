@@ -28,8 +28,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, Sequence
 
-from ..pareto import dominates, representative_indices, vectors_equal
-from ..search_capability import recorded_capability_fingerprint
+from tournament_scheduler.scoring.pareto import dominates, representative_indices, vectors_equal
+from tournament_scheduler.repair.capability import recorded_capability_fingerprint
 
 # Bounded frontier size and convergence safeguards. These are the "configured
 # budgets" a terminal reason refers to; hitting one is bounded convergence, not
@@ -301,7 +301,7 @@ class FindingDirection:
     search_incomplete: bool = False
     bounded_exhausted: bool = False
     # Fingerprint of the search capability the freshly discovered finding
-    # describes (from its ``search_coverage``). A recorded exhaustion produced
+    # describes (from its ``repair.coverage``). A recorded exhaustion produced
     # by a different capability is stale, not current.
     search_capability: str = ""
     capability_stale: bool = False
@@ -832,7 +832,7 @@ def archive_entry_from_option(
     """Build an archive entry from a measured, verified repair/search option.
 
     ``option["objectives"]`` is produced by the shared maintenance measurement
-    boundary (``season_maintenance._annotate_pareto``), so the entry vector is
+    boundary (``season.maintenance._annotate_pareto``), so the entry vector is
     the same one the repair report marks non-dominated. The caller supplies the
     stable ref/fingerprint because candidate identity is a lifecycle contract
     owned by the Stage 3 session.

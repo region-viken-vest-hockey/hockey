@@ -80,7 +80,7 @@ class InteractiveStage3Capabilities:
         if not candidate or session.candidate is None:
             return ""
         try:
-            from ...planning_contract import extract_candidate
+            from ...planning.contract import extract_candidate
 
             before = extract_candidate(session.candidate)
             after = extract_candidate(candidate)
@@ -151,7 +151,7 @@ class InteractiveStage3Capabilities:
     # -- sub-decisions ----------------------------------------------------
 
     def _apply_assign_shared_host(self, session: Stage3Session, action: DecisionAction) -> Stage3CapabilityResult:
-        from ...shared_host_decision import shared_host_decision_record
+        from tournament_scheduler.hosting.shared_decision import shared_host_decision_record
 
         marker = session.pending_marker()
         decisions = list(session.shared_host_decisions)
@@ -312,8 +312,8 @@ class InteractiveStage3Capabilities:
         return ""
 
     def _apply_apply_repair(self, session: Stage3Session, action: DecisionAction) -> Stage3CapabilityResult:
-        from ...local_repair_options import apply_local_repair_option
-        from ...planning_contract import extract_candidate
+        from tournament_scheduler.repair.local_options import apply_local_repair_option
+        from ...planning.contract import extract_candidate
         from ...pipeline.state import StageName, StageStatus
         from tournament_scheduler.stage3.decision import invalidate_stale_candidate_checkpoint_keys
         from ...application.stage3_session_store import fingerprint_plan
@@ -401,7 +401,7 @@ class InteractiveStage3Capabilities:
             chosen_body = extract_candidate_body(retained_attempt.get("candidate"))
             source = str(retained_attempt.get("source") or "retained_attempt")
             if chosen_body is not None:
-                from ...planning_contract import verify_candidate
+                from ...planning.contract import verify_candidate
 
                 problem = self._problem() or {}
                 if problem:

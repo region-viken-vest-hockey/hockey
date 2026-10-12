@@ -13,7 +13,7 @@ import logging
 from datetime import date
 from typing import Any
 
-from tournament_scheduler.club_registry import canonicalize_club_name
+from tournament_scheduler.clubs.registry import canonicalize_club_name
 from tournament_scheduler.models import Game, SeasonPlan, Team, Tournament
 
 SEASON_PLAN_SCHEMA_VERSION = 1
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def _decode_guest_slots(data: dict[str, Any]) -> list[dict[str, Any]]:
     """Decode a tournament's reserved guest places from a persisted payload.
 
-    ``guest_slots`` is authoritative. A payload that only carries the legacy
+    ``shape.guest_slots`` is authoritative. A payload that only carries the legacy
     integer ``reserved_guest_slots`` is normalized into that many ``open``
     reservations so the simple operator-facing shape and the richer record
     list never disagree.
@@ -196,7 +196,7 @@ class SeasonPlanCodec:
         if tournament.host_confirmation_reason:
             payload["host_confirmation_reason"] = tournament.host_confirmation_reason
         if tournament.guest_slots:
-            # `guest_slots` is authoritative; `reserved_guest_slots` is a
+            # `shape.guest_slots` is authoritative; `reserved_guest_slots` is a
             # derived readability convenience so an operator can see at a
             # glance how many places are reserved.
             payload["guest_slots"] = [dict(record) for record in tournament.guest_slots]

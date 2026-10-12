@@ -288,7 +288,7 @@ class TestBuildClubBusyIntervals:
         real scrape, not a special case."""
         from datetime import date
 
-        from tournament_scheduler.sandefjord_allocation import (
+        from tournament_scheduler.booking.sandefjord_allocation import (
             SANDEFJORD_CLUB_NAME,
             sandefjord_fixed_busy_events,
         )

@@ -3,8 +3,8 @@ name: "Sesong: plan-integritet"
 on:
   pull_request:
     paths:
-      - "tournament_scheduler/host_assignment.py"
-      - "tournament_scheduler/warnings.py"
+      - "tournament_scheduler/hosting/assignment.py"
+      - "tournament_scheduler/planning/planner_warnings.py"
       - "tournament_scheduler/participation/fairness_scoring.py"
       - "scripts/season-plan-audit.py"
       - "tests/test_host_assignment_regression.py"

@@ -1,7 +1,7 @@
 """Canonical eligibility/withdrawal reconciliation for promoted seasons.
 
 A mid-season team withdrawal is a durable fact about the *eligible pool* for an
-age group, not only a per-tournament roster edit. ``effective_tournament_shape``
+age group, not only a per-tournament roster edit. ``shape.effective_shape``
 derives the legal no-bye shape from the registered pool, so removing a
 participant without recording the pool change looks like an avoidable
 underfill and is correctly refused. This module owns the explicit,
@@ -36,7 +36,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
-from tournament_scheduler.canonical_state import PARTICIPATION_WITHDRAWALS_KEY
+from tournament_scheduler.season.state import PARTICIPATION_WITHDRAWALS_KEY
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 ACTIVE = "active"

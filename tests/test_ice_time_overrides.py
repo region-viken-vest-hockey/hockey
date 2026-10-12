@@ -11,20 +11,20 @@ import json
 
 import pytest
 
-from tournament_scheduler.canonical_ice_time_overrides import (
+from tournament_scheduler.season.ice_time_overrides import (
     active_overrides,
     override_for_tournament,
     overrides_from_problem,
     project_overrides_into_problem,
 )
-from tournament_scheduler.canonical_state import canonical_state_revision
+from tournament_scheduler.season.state import canonical_state_revision
 from tournament_scheduler.booking.calendar_bookings import tournament_occupancy_interval_facts
-from tournament_scheduler.occupancy import effective_ice_time_minutes, tournament_end_time
+from tournament_scheduler.shape.occupancy import effective_ice_time_minutes, tournament_end_time
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.published_mutation_history import replayed_occupancy_overrides
+from tournament_scheduler.publication.mutation_history import replayed_occupancy_overrides
 from tournament_scheduler.serialization.season_plan import tournament_from_dict
 from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     clear_ice_time_minutes,
     confirm_calendar_booking,
@@ -500,7 +500,7 @@ def test_confirm_calendar_booking_accepts_host_confirmed_shorter_window(tmp_path
             }
         ]
     }
-    from tournament_scheduler.season_state import calendar_booking_candidates
+    from tournament_scheduler.application.canonical_season.store_facade import calendar_booking_candidates
 
     candidates = calendar_booking_candidates(
         season="2026-2027", root=root, club="A", problem=problem
@@ -740,7 +740,7 @@ def test_set_rejects_non_positive_minutes_and_unknown_tournament(tmp_path):
 def test_verifier_applies_override_to_format_minimum():
     """A projected override must not bypass the hard format/governing floor."""
 
-    from tournament_scheduler.planning_contract import verify_candidate
+    from tournament_scheduler.planning.contract import verify_candidate
 
     problem = _problem(ice=100, round_length=15)
     problem["ice_time_minutes_overrides"] = {"t1": 50}
@@ -752,9 +752,9 @@ def test_verifier_applies_override_to_format_minimum():
 def test_override_reaches_export_projection_and_end_times(tmp_path):
     """Exports/projection must render the same interval the verifier uses."""
 
-    from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
+    from tournament_scheduler.publication.projection_guard import tournament_projection
     from tournament_scheduler.serialization.season_plan import season_plan_from_dict
-    from tournament_scheduler.canonical_ice_time_overrides import apply_overrides_to_plan
+    from tournament_scheduler.season.ice_time_overrides import apply_overrides_to_plan
 
     root = _promote(tmp_path, [_tournament("t1", start="14:00")])
     problem = _problem(ice=100)

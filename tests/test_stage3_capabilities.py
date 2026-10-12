@@ -367,7 +367,7 @@ def test_select_candidate_accepts_responsibility_preserving_candidate(tmp_path):
 
 def test_apply_repair_rejects_candidate_that_transfers_responsibility(tmp_path, monkeypatch):
     """The local-repair capability is guarded too, not only candidate adoption."""
-    import tournament_scheduler.local_repair_options as lro
+    import tournament_scheduler.repair.local_options as lro
     from tournament_scheduler.application.stage3_session_store import fingerprint_plan
 
     state = PipelineState(str(tmp_path))

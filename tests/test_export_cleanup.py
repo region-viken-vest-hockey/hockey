@@ -10,7 +10,7 @@ from tournament_scheduler.pipeline.export_cleanup import (
     cleanup_superseded_exports,
     plan_superseded_export_cleanup,
 )
-from tournament_scheduler.pipeline.export_lifecycle import (
+from tournament_scheduler.publication.export_lifecycle import (
     PUBLISHED_STATUS,
     SUPERSEDED_STATUS,
     read_export_manifest,

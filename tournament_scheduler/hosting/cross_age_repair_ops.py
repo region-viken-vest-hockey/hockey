@@ -12,12 +12,12 @@ from typing import Any, Dict, Optional
 from tournament_scheduler.booking.calendar_availability import host_confirmation_from_evidence
 from tournament_scheduler.hosting.representation import host_eligible_teams, host_represented_in
 from tournament_scheduler.models import Tournament
-from tournament_scheduler.participant_selection import deficit_score
-from tournament_scheduler.warnings import _club_calendar_available
+from tournament_scheduler.planning.participant_selection import deficit_score
+from tournament_scheduler.planning.planner_warnings import _club_calendar_available
 
 
 def participants_with_host_represented(planner, participants, age_group, period, home_club, already_used):
-    """Read-only variant of `host_representation_repair.repair_host_representation`.
+    """Read-only variant of `repair.host_representation.repair_host_representation`.
 
     Must not mutate planner counters -- unlike that function, a rejected
     repair candidate here must leave no trace, so the swap is only computed

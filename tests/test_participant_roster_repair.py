@@ -1,8 +1,8 @@
 from datetime import date
 
 from tournament_scheduler.models import Roster, SeasonPlan, Team, Tournament
-from tournament_scheduler.participant_roster_repair import attempt_underfilled_roster_repairs
-from tournament_scheduler.season_planner import SeasonPlanner
+from tournament_scheduler.repair.participant_roster import attempt_underfilled_roster_repairs
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 
 
 class FakeScheduler:

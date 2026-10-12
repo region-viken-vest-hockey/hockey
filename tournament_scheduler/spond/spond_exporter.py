@@ -25,7 +25,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from rich.console import Console
 
 from ..models import SeasonPlan, Tournament
-from ..occupancy import tournament_end_time
+from tournament_scheduler.shape.occupancy import tournament_end_time
 from .spond_import import (
     SPOND_IMPORT_SHEET,
     populate_spond_import_sheet,

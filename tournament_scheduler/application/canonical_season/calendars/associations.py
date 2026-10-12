@@ -18,25 +18,25 @@ from tournament_scheduler.booking.calendar_bookings import (
     new_booking_evidence_record,
     tournament_occupancy_interval_facts,
 )
-from tournament_scheduler.canonical_exception_policy import reclassify_accepted_source_interval
+from tournament_scheduler.season.exception_policy import reclassify_accepted_source_interval
 from tournament_scheduler.booking.calendar_availability import CalendarAvailability, interval_availability
-from tournament_scheduler.canonical_baseline import (
+from tournament_scheduler.season.baseline_overlay import (
     approval_fingerprint,
     approval_placement_fingerprint,
 )
-from tournament_scheduler.canonical_ice_time_overrides import (
+from tournament_scheduler.season.ice_time_overrides import (
     project_overrides_into_problem,
     override_for_tournament,
     validate_and_normalize as validate_ice_time_override,
 )
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     canonical_state_revision,
     schedule_fingerprint,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 
 from ..ice_time import _minimum_override_minutes, _record_override_decision
 from ..shared import (

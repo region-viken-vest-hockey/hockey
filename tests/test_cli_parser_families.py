@@ -217,7 +217,7 @@ def test_parser_modules_stay_transport_only():
                         violations.append(f"{module.name}: from {node.module} import ...")
                 elif node.level == 1 and node.module in (None, "common"):
                     continue
-                elif node.level == 3 and node.module == "operator_waivers":
+                elif node.level == 3 and node.module == "season.waivers":
                     continue
                 else:
                     violations.append(f"{module.name}: relative import level={node.level} module={node.module}")

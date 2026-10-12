@@ -14,7 +14,7 @@ from tournament_scheduler.pipeline.stage3_planning import (
 )
 from tournament_scheduler.serialization.season_plan import season_plan_to_dict
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.season_planner import _normalize_penalty_hints
+from tournament_scheduler.planning.season_planner import _normalize_penalty_hints
 from tournament_scheduler.testing.canonical_input import (
     load_canonical_input_data,
     load_canonical_season_window,
@@ -22,7 +22,7 @@ from tournament_scheduler.testing.canonical_input import (
 
 
 class _FixedDatetime(datetime):
-    """`datetime` subclass with `.now()` pinned, for effective_start_date tests."""
+    """`datetime` subclass with `.now()` pinned, for planning.start_date tests."""
 
     @classmethod
     def now(cls, tz=None):
@@ -39,7 +39,7 @@ def _stable_effective_start_date_today(monkeypatch):
     real wall clock. 2025-08-25 is safely before every fixed `start_date`
     used in this module.
     """
-    monkeypatch.setattr("tournament_scheduler.effective_start_date.datetime", _FixedDatetime)
+    monkeypatch.setattr("tournament_scheduler.planning.start_date.datetime", _FixedDatetime)
 
 
 def _make_config():
@@ -114,7 +114,7 @@ def canonical_stage3_run(tmp_path_factory):
         pytest.skip("canonical input.xlsx has no registered teams")
     start, end = load_canonical_season_window()
     state = PipelineState(tmp_path_factory.mktemp("stage3-canonical-pipeline"))
-    with patch("tournament_scheduler.effective_start_date.datetime", _FixedDatetime):
+    with patch("tournament_scheduler.planning.start_date.datetime", _FixedDatetime):
         result = run(data, {}, state, start, end)
     return data, state, result
 
@@ -208,7 +208,7 @@ class TestRunStage3:
         # Pin "today" to *after* the configured start_date so the past-date
         # clamping path is exercised.
         monkeypatch.setattr(
-            "tournament_scheduler.effective_start_date.datetime",
+            "tournament_scheduler.planning.start_date.datetime",
             type("_LaterFixedDatetime", (datetime,), {
                 "now": classmethod(lambda cls, tz=None: datetime(2025, 9, 10, tzinfo=tz))
             }),
@@ -522,7 +522,7 @@ class TestRunStage3:
 def _make_joint_club_config():
     """`_make_config` plus one shared/joint-club registration (issue #274).
 
-    "Kongsberg/Tønsberg" has no arena of its own -- `host_assignment.py`
+    "Kongsberg/Tønsberg" has no arena of its own -- `hosting.assignment.py`
     resolves it to one of its constituents at placement time, same as real
     production data.
     """

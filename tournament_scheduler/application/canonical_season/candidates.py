@@ -5,13 +5,13 @@ from __future__ import annotations
 import os
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_baseline import approval_fingerprint
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.baseline_overlay import approval_fingerprint
+from tournament_scheduler.season.state import (
     CHANGE_PROTECTIONS_KEY,
     PARTICIPATION_WITHDRAWALS_KEY,
     schedule_fingerprint,
 )
-from tournament_scheduler.change_protections import (
+from tournament_scheduler.season.change_protections import (
     ACTIVE as CHANGE_PROTECTION_ACTIVE,
     RELEASED as CHANGE_PROTECTION_RELEASED,
     append_change_protections,
@@ -22,7 +22,7 @@ from tournament_scheduler.participation.withdrawals import (
     RELEASED as WITHDRAWAL_RELEASED,
     append_withdrawal_records,
 )
-from tournament_scheduler.request_constraints import (
+from tournament_scheduler.season.request_constraints import (
     compare_request_constraint_violations,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (
@@ -32,14 +32,14 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
     season_id_from_plan,
 )
-from tournament_scheduler.operational_acceptability import (
+from tournament_scheduler.season.acceptability import (
     check_operational_acceptability,
     required_opt_in_flags,
 )
-from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
-from tournament_scheduler.final_verification import verify_canonical_candidate
-from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
-from tournament_scheduler.published_baseline import (
+from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
+from tournament_scheduler.planning.verification import verify_canonical_candidate
+from tournament_scheduler.planning.contract import extract_candidate, verify_candidate
+from tournament_scheduler.publication.baseline import (
     assert_season_allows_global_regeneration,
     is_published_sealed,
 )
@@ -309,7 +309,7 @@ def apply_candidate(
     narration: neither it nor a caller-built contract/scope is authorization.
     """
 
-    from tournament_scheduler.canonical_baseline import (
+    from tournament_scheduler.season.baseline_overlay import (
         build_canonical_baseline,
         change_cost,
         verify_canonical_locks,

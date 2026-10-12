@@ -27,7 +27,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_history_summary import verification_hash
+from tournament_scheduler.season.history_summary import verification_hash
 from tournament_scheduler.infrastructure.canonical_season_store import (
     DEFAULT_SEASON_ROOT,
 )

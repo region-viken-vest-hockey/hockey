@@ -9,15 +9,18 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "tournament_scheduler"
 HOSTING_DIR = PACKAGE_ROOT / "hosting"
 
 HOSTING_MODULES = {
-    "coverage",
-    "responsibility",
+    "assignment",
     "balance_repair",
+    "candidate_selection",
+    "coverage",
     "cross_age_repair",
     "cross_age_repair_apply",
     "cross_age_repair_ops",
+    "representation",
+    "responsibility",
     "same_age_repair",
     "same_age_repair_apply",
-    "representation",
+    "shared_decision",
 }
 
 

@@ -1,10 +1,10 @@
-"""Tests for tournament_scheduler.season_config."""
+"""Tests for tournament_scheduler.season.config."""
 
 from unittest.mock import patch
 
 import pytest
 
-from tournament_scheduler.season_config import ParallelGamesConfig, SeasonConfigError
+from tournament_scheduler.season.config import ParallelGamesConfig, SeasonConfigError
 
 
 class TestParallelGamesConfig:

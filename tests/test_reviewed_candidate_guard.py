@@ -19,7 +19,7 @@ from tournament_scheduler.application.candidate_refinement import (
 )
 from tournament_scheduler.application.stage3_session_store import finalize_stage3_plan
 from tournament_scheduler.cli.pipeline_orchestrator.new_run_guard import guard_new_full_run
-from tournament_scheduler.pipeline.export_lifecycle import (
+from tournament_scheduler.publication.export_lifecycle import (
     SUPERSEDED_STATUS,
     write_draft_manifest,
 )
@@ -85,7 +85,7 @@ def test_predicate_is_clear_once_candidate_is_promoted(tmp_path):
 
 def test_predicate_is_clear_when_export_is_superseded(tmp_path):
     _state, export_dir, _session = _reviewed_candidate(tmp_path)
-    from tournament_scheduler.pipeline.export_lifecycle import read_export_manifest
+    from tournament_scheduler.publication.export_lifecycle import read_export_manifest
 
     manifest = read_export_manifest(export_dir)
     manifest["lifecycle_status"] = SUPERSEDED_STATUS

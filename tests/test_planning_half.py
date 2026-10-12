@@ -2,9 +2,9 @@
 
 Covers:
 - `planning_half.christmas_split_date`/`tournament_half`/`half_label`
-- `planning_contract.build_planning_problem` exposing `christmas_split_date`
+- `planning.contract.build_planning_problem` exposing `christmas_split_date`
   and `allow_cross_half_moves`
-- `planning_contract.score_candidate`'s `half_distribution`/`half_deviation_pct`
+- `planning.contract.score_candidate`'s `half_distribution`/`half_deviation_pct`
 - `stage3_optimizer`'s cross-half guardrail and within-half date move
 - `stage3_engine.run_planner` and `stage3_decision`'s optimize_plan schemas
   actually plumbing `move_dates_within_half` through to the optimizer, so a
@@ -14,8 +14,8 @@ Covers:
 
 from datetime import date
 
-from tournament_scheduler import planning_half
-from tournament_scheduler.planning_contract import score_candidate
+from tournament_scheduler.planning import half as planning_half
+from tournament_scheduler.planning.contract import score_candidate
 from tournament_scheduler.stage3.optimizer import (
     _Slot,
     _date_swap_is_valid,
@@ -67,7 +67,7 @@ class TestHalfLabel:
 
 
 # ---------------------------------------------------------------------------
-# planning_contract integration
+# planning.contract integration
 # ---------------------------------------------------------------------------
 
 
@@ -125,13 +125,13 @@ class TestScoreCandidateHalfDistribution:
 
 class TestBuildPlanningProblemSplitDate:
     def test_split_date_is_iso_string_when_window_spans_christmas(self):
-        from tournament_scheduler.planning_contract import build_planning_problem
+        from tournament_scheduler.planning.contract import build_planning_problem
 
         problem = build_planning_problem({}, None, date(2026, 10, 1), date(2027, 4, 30))
         assert problem["christmas_split_date"] == "2027-01-01"
 
     def test_split_date_is_none_for_spring_only_window(self):
-        from tournament_scheduler.planning_contract import build_planning_problem
+        from tournament_scheduler.planning.contract import build_planning_problem
 
         problem = build_planning_problem({}, None, date(2027, 1, 5), date(2027, 4, 30))
         assert problem["christmas_split_date"] is None
@@ -223,7 +223,7 @@ class TestHalfSnapshotIsolation:
         from datetime import datetime
 
         from tournament_scheduler.models import Roster, Team
-        from tournament_scheduler.season_planner import SeasonPlanner
+        from tournament_scheduler.planning.season_planner import SeasonPlanner
         from tournament_scheduler.testing.canonical_input import OfflineScheduler, all_weekend_dates
 
         start, end = datetime(2026, 10, 1), datetime(2027, 4, 30)
@@ -267,13 +267,13 @@ class TestHalfSnapshotIsolation:
 
 class TestAllowCrossHalfMovesConfig:
     def test_defaults_to_false(self):
-        from tournament_scheduler.planning_contract import build_planning_problem
+        from tournament_scheduler.planning.contract import build_planning_problem
 
         problem = build_planning_problem({}, None, date(2026, 10, 1), date(2027, 4, 30))
         assert problem["allow_cross_half_moves"] is False
 
     def test_config_can_enable_the_override(self):
-        from tournament_scheduler.planning_contract import build_planning_problem
+        from tournament_scheduler.planning.contract import build_planning_problem
 
         problem = build_planning_problem(
             {"allow_cross_half_moves": True}, None, date(2026, 10, 1), date(2027, 4, 30)

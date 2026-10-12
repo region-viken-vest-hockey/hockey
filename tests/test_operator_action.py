@@ -9,7 +9,7 @@ import pytest
 
 from tournament_scheduler.pipeline.capability_result import CapabilityResult
 from tournament_scheduler.pipeline.cache_manager import ScrapedDataCache
-from tournament_scheduler.pipeline.export_lifecycle import read_export_manifest, write_draft_manifest
+from tournament_scheduler.publication.export_lifecycle import read_export_manifest, write_draft_manifest
 from tournament_scheduler.pipeline.operator_action import (
     DEFAULT_REGISTRY,
     ActionRegistry,
@@ -494,7 +494,7 @@ def _write_export(work_dir, *, content: str = "<h1>plan</h1>") -> None:
     from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
     from tournament_scheduler.pipeline.run_manifest import RunManifest
     from tournament_scheduler.pipeline.verification_context import build_verification_context
-    from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
+    from tournament_scheduler.planning.contract import extract_candidate, verify_candidate
 
     export_dir = work_dir / "export"
     export_dir.mkdir(exist_ok=True)
@@ -677,7 +677,7 @@ class TestPublishPagesApprovalGate:
             source_run_id=None,
         )
 
-        from tournament_scheduler.pipeline import export_lifecycle
+        from tournament_scheduler.publication import export_lifecycle
 
         def fail_promote(*_args, **_kwargs):
             raise RuntimeError("cannot write manifest")

@@ -2,7 +2,7 @@ from collections import Counter
 from datetime import date, timedelta
 from types import SimpleNamespace
 
-from tournament_scheduler.host_assignment import assign_hosts, hosting_targets_for_age_group
+from tournament_scheduler.hosting.assignment import assign_hosts, hosting_targets_for_age_group
 from tournament_scheduler.models import Roster, Team
 
 

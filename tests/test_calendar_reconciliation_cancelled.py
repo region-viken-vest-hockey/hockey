@@ -10,7 +10,7 @@ persisted for ice that no longer has anything scheduled on it.
 
 from __future__ import annotations
 
-from tournament_scheduler.season_state import reconcile_calendar_bookings
+from tournament_scheduler.application.canonical_season.store_facade import reconcile_calendar_bookings
 from tests.test_approval_lifecycle import _host_a_problem, _promote, _tournament
 
 

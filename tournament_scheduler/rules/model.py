@@ -1,0 +1,850 @@
+"""Planner-independent canonical rules/audit model (issue #277, #305).
+
+Unlike :mod:`tournament_scheduler.rules.report`, which formats a prose
+explanation from `SeasonPlanner` private attributes, this module builds a
+small, structured list of rule entries purely from the public, serializable
+fields already on :class:`~tournament_scheduler.models.SeasonPlan`
+(``fairness_gate``, ``arena_day_collisions``, ``unresolved_hosting_obligations``,
+``unresolved_external_conflicts``, ``unresolved_participation_shortfalls``,
+``shared_host_decisions``, ``manual_adjustments``, ``tournaments`` /
+``Tournament.manual_booking_reason``).
+
+Because the source data is planner-independent, the same rules model can
+describe a candidate produced by any engine (``local_search``, a future
+``cp_sat`` shadow run from issue #276, ...) without depending on that
+engine's internals.
+
+A rule entry has the shape::
+
+    {
+        "id": str,
+        "title": str,
+        "type": "hard" | "strong_goal" | "required_obligation" | "soft" | "advisory" | "decision" | "default",
+        "scope": str,
+        "owner": str,
+        "description": str,
+        "configured_value": object | None,
+        "status": str,
+        "ok": bool,
+        "detail_rows": list[dict] | None,   # optional drill-down evidence
+    }
+
+``type`` groups the entries into the four sections the Regler view shows:
+hard constraints, operational obligations, soft quality goals, and
+decisions/exceptions for this run (see :func:`group_rules_by_type`).
+"""
+
+from __future__ import annotations
+
+from collections import defaultdict
+from typing import Any
+
+from tournament_scheduler.models import SeasonPlan
+from tournament_scheduler.rules.catalog import catalog_id_for_rules_model_entry, rules_model_semantics
+from tournament_scheduler.rules.obligations import (
+    external_conflict_rule as _external_conflict_rule,
+    hosting_obligation_rule as _hosting_obligation_rule,
+    tournament_placement_rule as _tournament_placement_rule,
+)
+
+# Scope labels for the fixed set of fairness-gate metric keys. Keys not
+# listed default to "sesong".
+_METRIC_SCOPES: dict[str, str] = {
+    "game_count_spread": "lag",
+    "team_temporal_coverage": "lag",
+    "hosting_deviation": "klubb",
+    "travel_distance": "lag",
+    "opponent_diversity": "lag",
+    "pairwise_matchups": "aldersgruppe",
+    "month_balance": "sesong",
+    "same_weekend_club_load": "klubb/uke",
+    "consecutive_weekend_club_load": "klubb",
+    "holiday_stretch_club_load": "klubb",
+    "arena_day_collisions": "arena/tid",
+}
+
+RULE_TYPES = ("hard", "strong_goal", "required_obligation", "soft", "decision", "advisory", "default")
+
+
+def _active_tournaments(plan: SeasonPlan) -> list[Any]:
+    return [t for t in plan.tournaments if not t.cancelled]
+
+
+def _metric_rule(metric: dict[str, Any]) -> dict[str, Any]:
+    key = str(metric.get("key", ""))
+    provenance = str(metric.get("provenance", "measurement"))
+    if provenance == "hard_invariant":
+        rule_type = "hard"
+        owner = "deterministic_verifier"
+    elif provenance == "configured":
+        rule_type = "required_obligation"
+        owner = "deterministic_measurement"
+    else:
+        rule_type = "soft"
+        owner = "deterministic_measurement"
+    status = str(metric.get("status", "pass"))
+    detail = str(metric.get("detail", ""))
+    value = metric.get("value")
+    unit = str(metric.get("unit", ""))
+    value_str = f"{value}{unit}" if unit else str(value)
+    rule: dict[str, Any] = {
+        "id": f"metric_{key}",
+        "title": str(metric.get("label", key)),
+        "type": rule_type,
+        "scope": _METRIC_SCOPES.get(key, "sesong"),
+        "owner": owner,
+        "description": detail or str(metric.get("label", key)),
+        "configured_value": metric.get("threshold"),
+        "status": f"{status} — {value_str}" if detail else status,
+        "ok": status not in ("fail", "warn"),
+    }
+    if key == "hosting_deviation" and metric.get("age_group_breakdown"):
+        rule["detail_rows"] = {
+            "label": "Vis vertskapsfordeling",
+            "kind": "hosting",
+            "rows": list(metric["age_group_breakdown"]),
+        }
+    return rule
+
+
+def _arena_collision_rule(plan: SeasonPlan) -> dict[str, Any]:
+    """Dedicated arena-collision rule sourced from ``plan.arena_day_collisions``.
+
+    issue #314: this must be the *only* place ``arena_day_collisions``
+    reaches the rules model. The generic fairness-gate metric loop is
+    filtered to exclude that key (see :func:`build_rules_model`) so a
+    stale ``fairness_gate`` snapshot from a superseded candidate can never
+    resurrect a collision count the freshly recomputed plan no longer has.
+    """
+    collisions = list(plan.arena_day_collisions or [])
+    if collisions:
+        names = ", ".join(
+            f"{item.get('host_club', '?')} ({item.get('date', '?')})" for item in collisions
+        )
+        status = f"{len(collisions)} kollisjon(er): {names}"
+    else:
+        status = "Ingen kollisjoner"
+    return {
+        "id": "arena_day_collisions",
+        "title": "Arena-/tidskollisjoner skal ikke forekomme",
+        "type": "hard",
+        "scope": _METRIC_SCOPES.get("arena_day_collisions", "sesong"),
+        "owner": "deterministic_verifier",
+        "description": (
+            "To turneringer skal aldri kreve samme arena i overlappende tidsrom. Sjekket "
+            "på nytt mot den endelig valgte kandidaten hver eksport, ikke gjenbrukt fra "
+            "en tidligere kandidat."
+        ),
+        "configured_value": "0 kollisjoner",
+        "status": status,
+        "ok": not collisions,
+    }
+
+
+def _participation_shortfall_rule(plan: SeasonPlan) -> dict[str, Any]:
+    unresolved = list(plan.unresolved_participation_shortfalls or [])
+    # A multi-team club whose aggregate age-group pool is complete but whose
+    # team labels are uneven is intra-club distribution, not a genuine missing
+    # participation opportunity -- keep it visible but do not report it as an
+    # unresolved shortfall.
+    genuine = [item for item in unresolved if item.get("counts_as_unresolved_shortfall", True)]
+    intra_club = [item for item in unresolved if not item.get("counts_as_unresolved_shortfall", True)]
+    if genuine:
+        def _label(item: dict[str, Any]) -> str:
+            half = item.get("period")
+            half_suffix = f", {half}" if half else ""
+            return f"{item.get('label', '?')} ({item.get('actual', '?')}/{item.get('target', '?')}{half_suffix})"
+
+        names = ", ".join(_label(item) for item in genuine)
+        status = f"{len(genuine)} avvik: {names}"
+    else:
+        status = "Oppfylt"
+    if intra_club:
+        status += (
+            f". {len(intra_club)} lag har en intern fordelingsulikhet i en aldersgruppe "
+            "der klubben samlet har fått sine deltakelsesplasser (ikke en manglende deltakelse)."
+        )
+    return {
+        "id": "participation_shortfalls",
+        "title": "Lag under sitt mål for antall turneringsdeltakelser",
+        "type": "required_obligation",
+        "scope": "lag",
+        "owner": "deterministic_placement_workflow",
+        "description": (
+            "Når et lags faktiske antall turneringer er lavere enn måltallet (oftest fordi det "
+            "ikke fantes nok ledige turneringsplasser), avvises ikke hele planen — dette er en "
+            "ikke-blokkerende mangel, ikke istidsarbeid, og rapporteres her i stedet for i "
+            "«Må planlegges manuelt». Et lag som er planlagt *over* et eksplisitt mål er derimot "
+            "et hardt verifikatoravvik — se «Deltakelsesmål må ikke overskrides» blant hardkravene. "
+            "For klubber med flere lag i samme aldersgruppe vurderes klubbens samlede spillerpool; "
+            "en jevn fordeling mellom lagnavnene er sekundært så lenge klubben har fått sine "
+            "deltakelsesplasser."
+        ),
+        "configured_value": "Faktisk ≥ mål",
+        "status": status,
+        "ok": not genuine,
+        "detail_rows": (
+            {
+                "label": "Vis avvik per lag",
+                "kind": "participation_shortfall",
+                "rows": unresolved,
+            }
+            if unresolved
+            else None
+        ),
+    }
+
+
+def _participation_target_deviation_rule(plan: SeasonPlan) -> dict[str, Any]:
+    """Strong-goal evidence: teams above/below their participation target.
+
+    A participation target is a strong operational goal, not a hard legality
+    boundary (see :mod:`tournament_scheduler.participation.targets`). This rule
+    therefore reports bounded deviation rather than a hard verifier failure:
+    exact target satisfaction is preferred, but a genuine over/under deviation
+    is allowed as a bounded relaxation with avoidability evidence.
+
+    Mirrors ``planning.contract.verify_candidate``'s participation evaluation:
+    an explicit per-team ``target_tournament_count`` always wins (season-wide);
+    otherwise ``plan.participation_targets_by_age_group``'s before/after value
+    for the team's age group is the authoritative per-half target, checked
+    independently per half using the same Christmas boundary as
+    :mod:`planning.half`.
+    """
+    from tournament_scheduler.planning import half as planning_half
+    from tournament_scheduler.participation.targets import BOUNDED_SEARCH_EXHAUSTED, PROVEN_INFEASIBLE
+
+    counts: dict[tuple[str, str, str], int] = {}
+    explicit_targets: dict[tuple[str, str, str], int] = {}
+    tournaments_per_age_group: dict[str, int] = {}
+    for tournament in _active_tournaments(plan):
+        tournaments_per_age_group[tournament.age_group] = (
+            tournaments_per_age_group.get(tournament.age_group, 0) + 1
+        )
+        for team in tournament.teams:
+            identity = (team.club, team.label, team.age_group)
+            counts[identity] = counts.get(identity, 0) + 1
+            if team.target_tournament_count is not None:
+                explicit_targets[identity] = team.target_tournament_count
+
+    def _direction(actual: int, target: int) -> str:
+        return "over" if actual > target else "under"
+
+    deviations: list[dict[str, Any]] = [
+        {
+            "team": identity[1],
+            "scope": "season",
+            "direction": _direction(counts[identity], target),
+            "actual": counts[identity],
+            "target": target,
+            "avoidability": (
+                PROVEN_INFEASIBLE
+                if counts[identity] < target
+                and tournaments_per_age_group.get(identity[2], 0) <= target
+                else BOUNDED_SEARCH_EXHAUSTED
+            ),
+        }
+        for identity, target in explicit_targets.items()
+        if counts.get(identity, 0) != target
+    ]
+
+    age_group_targets = plan.participation_targets_by_age_group or {}
+    if age_group_targets:
+        split_date = None
+        if plan.start_date and plan.end_date:
+            split_date = planning_half.christmas_split_date(plan.start_date, plan.end_date)
+        half_counts: dict[str, dict[tuple[str, str, str], int]] = {"before_christmas": {}, "after_christmas": {}}
+        half_tournaments: dict[tuple[str, str], int] = {}
+        for tournament in _active_tournaments(plan):
+            half = planning_half.tournament_half(tournament.date, split_date)
+            if half not in half_counts:
+                continue
+            half_tournaments[(tournament.age_group, half)] = (
+                half_tournaments.get((tournament.age_group, half), 0) + 1
+            )
+            for team in tournament.teams:
+                identity = (team.club, team.label, team.age_group)
+                half_counts[half][identity] = half_counts[half].get(identity, 0) + 1
+        for half, counts_for_half in half_counts.items():
+            for identity, count in counts_for_half.items():
+                if identity in explicit_targets:
+                    continue  # season-wide override checked above.
+                target = (age_group_targets.get(identity[2]) or {}).get(half)
+                if not isinstance(target, int) or count == target:
+                    continue
+                available = half_tournaments.get((identity[2], half), 0)
+                unavoidable = count < target and available <= target
+                deviations.append(
+                    {
+                        "team": identity[1],
+                        "scope": half,
+                        "direction": _direction(count, target),
+                        "actual": count,
+                        "target": target,
+                        "avoidability": PROVEN_INFEASIBLE if unavoidable else BOUNDED_SEARCH_EXHAUSTED,
+                    }
+                )
+
+    deviations.sort(key=lambda item: (item["scope"], item["team"]))
+    if deviations:
+        rendered = ", ".join(
+            f"{item['team']} ({item['actual']}/{item['target']}, {item['scope']}, {item['avoidability']})"
+            for item in deviations
+        )
+        status = f"{len(deviations)} avvik: {rendered}"
+    else:
+        status = "Oppfylt"
+    return {
+        "id": "participation_target_deviation",
+        "title": "Deltakelsesmål (sterkt mål, ikke absolutt tak)",
+        "type": "strong_goal",
+        "scope": "lag",
+        "owner": "deterministic_verifier",
+        "description": (
+            "Deltakelsesmålet er et sterkt driftsmål, ikke en hard lovlighetsgrense. "
+            "Planleggeren skal treffe målet når det er rimelig gjennomførbart, men et "
+            "begrenset avvik over eller under målet er tillatt når hardere "
+            "kapasitets-/planleggingshensyn gjør målet uoppnåelig. Hvert avvik bærer en "
+            "unngåelighetsstatus (avoidable / proven_infeasible / bounded_search_exhausted / "
+            "operator_accepted) slik at et unngåelig avvik ikke kan velges bort for en "
+            "lavere prioritert kvalitetsgevinst."
+        ),
+        "configured_value": "Faktisk ≈ mål (sterkt mål)",
+        "status": status,
+        "ok": not deviations,
+        "detail_rows": (
+            {"label": "Vis avvik per lag", "kind": "participation_target_deviation", "rows": deviations}
+            if deviations
+            else None
+        ),
+    }
+
+
+def _participation_targets_by_age_group_rule(plan: SeasonPlan) -> dict[str, Any] | None:
+    """Informational: the configured per-age-group, per-half participation targets.
+
+    Shows the authoritative before/after-Christmas target for
+    every active age group this plan was built against, so the Rules report
+    surfaces the configured policy alongside the actual/shortfall figures in
+    ``_participation_shortfall_rule`` / ``_participation_target_deviation_rule``.
+    Returns ``None`` when the plan carries no configured targets (e.g. an
+    older cached plan, or a non-canonical fixture).
+    """
+    targets = plan.participation_targets_by_age_group or {}
+    if not targets:
+        return None
+    rows = [
+        {
+            "age_group": age_group,
+            "before_christmas": ag_targets.get("before_christmas"),
+            "after_christmas": ag_targets.get("after_christmas"),
+        }
+        for age_group, ag_targets in sorted(targets.items())
+    ]
+    summary = "; ".join(
+        f"{row['age_group']}: {row['before_christmas']} før jul / {row['after_christmas']} etter jul"
+        for row in rows
+    )
+    return {
+        "id": "participation_targets_by_age_group",
+        "title": "Deltakelsesmål per aldersgruppe (før/etter jul)",
+        "type": "decision",
+        "scope": "aldersgruppe",
+        "owner": "input_workbook",
+        "description": (
+            "Hver aktiv aldersgruppe har et konfigurert mål for antall turneringsdeltakelser per "
+            "lag, uavhengig før og etter nyttår. Dette er det autoritative målet — ikke en vekt for "
+            "å fordele et sesongtotalt turneringsantall — og brukes direkte av planleggeren, "
+            "CP-SAT-optimaliseringen og verifikatoren."
+        ),
+        "configured_value": summary,
+        "status": "Konfigurert",
+        "ok": True,
+        "detail_rows": {"label": "Vis alle aldersgrupper", "kind": "participation_targets", "rows": rows},
+    }
+
+
+def _club_participation_fairness_rule(plan: SeasonPlan) -> dict[str, Any] | None:
+    """Informational: proportional club-share participation fairness evidence.
+
+    issue #327: deltakelse fordeles forholdsmessig etter en klubbs andel av
+    registrert deltakelsesbehov i aldersgruppen/halvdelen, ikke som et
+    eksakt mål per lag -- en stor klubb kan derfor legitimt trenge flere
+    3-lags-turneringer enn en liten klubb for å nå sin rettferdige andel.
+    This is evidence only, never a blocking rule: whether a residual
+    per-team shortfall reflects a genuine planner defect (see
+    ``_participation_shortfall_rule``) or an acceptable, capacity-limited
+    proportional outcome is a judgment the #325 LLM semantic auditor makes
+    from these numbers, not something this deterministic rule decides.
+    """
+    rows = list(plan.club_participation_fairness or [])
+    if not rows:
+        return None
+    return {
+        "id": "club_participation_fairness",
+        "title": "Forholdsmessig deltakelsesfordeling per klubb",
+        "type": "decision",
+        "scope": "klubb × aldersgruppe",
+        "owner": "deterministic_placement_workflow",
+        "description": (
+            "Deltakelse fordeles forholdsmessig etter hvor mange lag klubben har registrert i "
+            "aldersgruppen. Innen klubben roteres deltakelsen så jevnt som mulig. Det nominelle "
+            "deltakelsesmålet per lag brukes til å dimensjonere og balansere sesongen, men mindre "
+            "individuelle avvik er akseptable når klubbens samlede andel er rettferdig og "
+            "kapasiteten ellers er begrenset."
+        ),
+        "configured_value": "Faktisk andel ≈ registrert andel",
+        "status": f"{len(rows)} klubb/aldersgruppe-rader",
+        "ok": True,
+        "detail_rows": {"label": "Vis andelstall per klubb", "kind": "club_participation_fairness", "rows": rows},
+    }
+
+
+def _age_group_exact_match_rule(plan: SeasonPlan) -> dict[str, Any]:
+    """Hard rule: a team's age group must exactly equal its tournament's.
+
+    Mirrors ``verify_candidate``'s ``age_group_mismatch`` check. This is
+    also how U/JU separation is enforced: "U10" and "JU10" are always two
+    distinct category strings and are never mixed in the same tournament.
+    """
+    mismatches = [
+        f"{team.label} ({team.age_group}) i {tournament.id} ({tournament.age_group})"
+        for tournament in _active_tournaments(plan)
+        for team in tournament.teams
+        if team.age_group and team.age_group != tournament.age_group
+    ]
+    status = "Oppfylt" if not mismatches else f"{len(mismatches)} avvik: {', '.join(mismatches)}"
+    return {
+        "id": "age_group_exact_match",
+        "title": "Lagets aldersgruppe må være identisk med turneringens",
+        "type": "hard",
+        "scope": "lag × turnering",
+        "owner": "deterministic_verifier",
+        "description": (
+            "Aldersgruppen er en eksakt kategori-streng (f.eks. «U10» eller «JU10»), aldri bare "
+            "det numeriske alderstallet. U- og JU-kategorier blandes derfor aldri i samme "
+            "turnering, selv om de deler samme tall — «U10» og «JU10» er alltid to forskjellige "
+            "turneringer."
+        ),
+        "configured_value": "Eksakt match",
+        "status": status,
+        "ok": not mismatches,
+    }
+
+
+def _no_double_participation_rule(plan: SeasonPlan) -> dict[str, Any]:
+    """Hard rule: a team cannot play in two tournaments on the same date."""
+    by_identity: dict[tuple[str, str, str], dict[Any, list[str]]] = defaultdict(lambda: defaultdict(list))
+    for tournament in _active_tournaments(plan):
+        for team in tournament.teams:
+            identity = (team.club, team.label, team.age_group)
+            by_identity[identity][tournament.date].append(tournament.id)
+
+    conflicts = [
+        f"{identity[1]} ({tdate.isoformat()}): {', '.join(ids)}"
+        for identity, by_date in by_identity.items()
+        for tdate, ids in by_date.items()
+        if len(ids) > 1
+    ]
+    status = "Oppfylt" if not conflicts else f"{len(conflicts)} avvik: {', '.join(conflicts)}"
+    return {
+        "id": "no_same_date_double_participation",
+        "title": "Et lag kan ikke delta i flere turneringer samme dato",
+        "type": "hard",
+        "scope": "lag × dato",
+        "owner": "deterministic_verifier",
+        "description": "Et lag kan ikke stå oppført i mer enn én turnering på samme dato.",
+        "configured_value": "Maks 1 turnering per lag per dato",
+        "status": status,
+        "ok": not conflicts,
+    }
+
+
+def _date_window_rule(plan: SeasonPlan) -> dict[str, Any]:
+    outside: list[str] = []
+    if plan.start_date and plan.end_date:
+        outside = [
+            f"{tournament.id} ({tournament.date.isoformat()})"
+            for tournament in _active_tournaments(plan)
+            if not (plan.start_date <= tournament.date <= plan.end_date)
+        ]
+    status = "Oppfylt" if not outside else f"{len(outside)} avvik: {', '.join(outside)}"
+    return {
+        "id": "date_within_planning_window",
+        "title": "Turneringsdatoer må ligge innenfor planleggingsvinduet",
+        "type": "hard",
+        "scope": "turnering",
+        "owner": "deterministic_verifier",
+        "description": "Alle turneringer skal ha en dato innenfor sesongens start-/sluttdato.",
+        "configured_value": (
+            f"{plan.start_date.isoformat()} – {plan.end_date.isoformat()}"
+            if plan.start_date and plan.end_date
+            else "Ikke satt"
+        ),
+        "status": status,
+        "ok": not outside,
+    }
+
+
+def _holiday_date_rule(plan: SeasonPlan) -> dict[str, Any]:
+    """Hard rule: no tournament on a canonical holiday-excluded date.
+
+    The active excluded dates are derived from the canonical
+    :mod:`tournament_scheduler.planning.date_policy` and surfaced directly here, so the
+    operator/audit can see the policy actually being enforced rather than only
+    its violations.
+    """
+    from tournament_scheduler.planning.date_policy import holiday_exclusions
+
+    active = _active_tournaments(plan)
+    excluded: dict[Any, str] = {}
+    if plan.start_date and plan.end_date:
+        excluded = holiday_exclusions(plan.start_date, plan.end_date)
+    used = sorted(
+        f"{tournament.id} ({tournament.date.isoformat()})"
+        for tournament in active
+        if tournament.date in excluded
+    )
+    excluded_weekends = sorted(
+        excluded_date.isoformat()
+        for excluded_date in excluded
+        if excluded_date.weekday() in (5, 6)
+    )
+    return {
+        "id": "holiday_dates_not_used",
+        "title": "Helligdagsdatoer må ikke brukes",
+        "type": "hard",
+        "scope": "dato",
+        "owner": "deterministic_verifier",
+        "description": (
+            "Turneringer skal ikke legges i ferie-/helligdagshelger eller helgen rett "
+            "foran en helligdag."
+        ),
+        "configured_value": (
+            f"{len(excluded_weekends)} sperret(e) helgedato(er)"
+            if excluded_weekends
+            else "Ingen i vinduet"
+        ),
+        "excluded_dates": excluded_weekends,
+        "status": "Oppfylt" if not used else f"{len(used)} avvik: {', '.join(used)}",
+        "ok": not used,
+    }
+
+
+def _manual_adjustment_rules(plan: SeasonPlan) -> list[dict[str, Any]]:
+    """Hard rules sourced from ``plan.manual_adjustments`` (operator restrictions)."""
+    manual = plan.manual_adjustments or {}
+    active = _active_tournaments(plan)
+    active_dates = {t.date for t in active}
+    active_ids = {t.id for t in active}
+
+    def _parse_dates(raw: list[str]) -> set[Any]:
+        from datetime import date as _date
+
+        parsed = set()
+        for value in raw:
+            try:
+                parsed.add(_date.fromisoformat(str(value)))
+            except ValueError:
+                continue
+        return parsed
+
+    banned_dates = _parse_dates(list(manual.get("banned_dates", []) or []))
+    used_banned = sorted(d.isoformat() for d in (banned_dates & active_dates))
+    rules = [
+        {
+            "id": "banned_dates_not_used",
+            "title": "Sperrede datoer må ikke brukes",
+            "type": "hard",
+            "scope": "dato",
+            "owner": "deterministic_verifier",
+            "description": "Datoer operatøren har sperret for planlegging skal aldri få en turnering.",
+            "configured_value": f"{len(banned_dates)} sperret(e) dato(er)" if banned_dates else "Ingen konfigurert",
+            "status": "Oppfylt" if not used_banned else f"{len(used_banned)} avvik: {', '.join(used_banned)}",
+            "ok": not used_banned,
+        }
+    ]
+
+    excluded_hosts = set(manual.get("excluded_host_clubs", []) or [])
+    used_excluded = sorted(
+        {t.host_club for t in active if t.host_club and t.host_club in excluded_hosts}
+    )
+    rules.append(
+        {
+            "id": "excluded_host_clubs_not_used",
+            "title": "Ekskluderte vertsklubber må ikke brukes",
+            "type": "hard",
+            "scope": "klubb",
+            "owner": "deterministic_verifier",
+            "description": "Klubber operatøren har ekskludert fra vertskap skal aldri stå som vert.",
+            "configured_value": f"{len(excluded_hosts)} ekskludert" if excluded_hosts else "Ingen konfigurert",
+            "status": "Oppfylt" if not used_excluded else f"{len(used_excluded)} avvik: {', '.join(used_excluded)}",
+            "ok": not used_excluded,
+        }
+    )
+
+    locked_dates = _parse_dates(list(manual.get("locked_dates", []) or []))
+    missing_locked = sorted(d.isoformat() for d in (locked_dates - active_dates))
+    rules.append(
+        {
+            "id": "locked_dates_preserved",
+            "title": "Låste datoer må ha en planlagt turnering",
+            "type": "hard",
+            "scope": "dato",
+            "owner": "deterministic_verifier",
+            "description": "Datoer operatøren har låst inn skal alltid ha minst én turnering planlagt.",
+            "configured_value": f"{len(locked_dates)} låst(e) dato(er)" if locked_dates else "Ingen konfigurert",
+            "status": "Oppfylt" if not missing_locked else f"{len(missing_locked)} mangler: {', '.join(missing_locked)}",
+            "ok": not missing_locked,
+        }
+    )
+
+    pinned_ids = set(manual.get("pinned_tournament_ids", []) or [])
+    missing_pinned = sorted(pinned_ids - active_ids)
+    rules.append(
+        {
+            "id": "pinned_tournaments_preserved",
+            "title": "Fastnaglede turneringer må være med i planen",
+            "type": "hard",
+            "scope": "turnering",
+            "owner": "deterministic_verifier",
+            "description": "Turnering-ID-er operatøren har fastnaglet skal alltid finnes i den endelige planen.",
+            "configured_value": f"{len(pinned_ids)} fastnaglet" if pinned_ids else "Ingen konfigurert",
+            "status": "Oppfylt" if not missing_pinned else f"{len(missing_pinned)} mangler: {', '.join(missing_pinned)}",
+            "ok": not missing_pinned,
+        }
+    )
+    return rules
+
+
+def _calendar_trust_rule(plan: SeasonPlan) -> dict[str, Any]:
+    """Hard rule sourced from ``Tournament.manual_booking_reason``.
+
+    ``manual_booking_reason`` is set at plan-build time directly from the
+    canonical Stage 2 club-calendar trust status for the club actually
+    hosting each tournament in *this* run — it is the single source of
+    truth for which hosts need manual istid verification, so this rule
+    (and the page it renders on) never has to reconcile a second,
+    independently-derived "missing calendar" note that can drift out of
+    sync with it.
+    """
+    active = _active_tournaments(plan)
+    needs_manual = sorted(
+        {t.host_club or t.arena for t in active if t.manual_booking_reason}
+    )
+    status = (
+        "Ingen — alle vertskap har bekreftet kalender"
+        if not needs_manual
+        else f"{len(needs_manual)} vertskap krever manuell verifisering: {', '.join(needs_manual)}"
+    )
+    return {
+        "id": "calendar_trust_by_host",
+        "title": "Istid kan kun godkjennes automatisk mot en bekreftet («known») kalender",
+        "type": "hard",
+        "scope": "klubb",
+        "owner": "deterministic_placement_workflow",
+        "description": (
+            "En klubbs kalenderstatus er «known» (nok bevis for automatisk plassering), "
+            "«unknown» (blokkert/hoppet over/feilet skraping), «untrusted» (skrapingen "
+            "lyktes, men klubbens registeroppføring sier dataene ikke er den reelle, "
+            "fullstendige kalenderen) eller «source_review_required» (skrapingen lyktes, men "
+            "kildens dekning eller hendelsesform er mistenkelig eller ufullstendig). En klubb "
+            "med «untrusted», «unknown» eller «source_review_required» status beholder "
+            "sin fulle andel av vertskapsansvaret, og kilden kan ikke brukes til å bevise "
+            "ledig/ikke-booket istid før et fullstendig, autentisert kalendersøk er pålitelig. "
+            "Autentiske observerte hendelser fra en delvis kilde kan likevel fremmes som "
+            "positive bookingkandidater som krever eksplisitt tilknytning til en turnering."
+        ),
+        "configured_value": "Kun «known» godkjennes automatisk",
+        "status": status,
+        "ok": not needs_manual,
+    }
+
+
+def _static_enforced_rules() -> list[dict[str, Any]]:
+    """Hard rules enforced upstream by ``verify_candidate()`` / the placement
+    workflow that cannot be independently re-derived from the exported
+    :class:`SeasonPlan` alone (the underlying registered roster / configured
+    per-age-group capacity / planning-half boundary are Stage 1/3 inputs,
+    not fields carried on the plan). Still surfaced here so the canonical
+    constraint list is complete, but marked as enforced-at-planning-time
+    rather than independently re-checked against this export.
+    """
+    return [
+        {
+            "id": "registered_teams_only",
+            "title": "Kun registrerte lag kan delta",
+            "type": "hard",
+            "scope": "lag",
+            "owner": "deterministic_verifier",
+            "description": (
+                "Ethvert lag i en turnering må finnes i den registrerte laglisten for sesongen "
+                "(`verify_candidate`s `unregistered_team`-sjekk). Håndheves ved planlegging, ikke "
+                "uavhengig av eksportert plan siden den registrerte rosteren ikke er en del av "
+                "denne eksporten."
+            ),
+            "configured_value": "Kun registrerte lag",
+            "status": "Håndheves ved planlegging (verify_candidate)",
+            "ok": True,
+        },
+        {
+            "id": "tournament_capacity",
+            "title": "Turneringsstørrelse må respektere konfigurert kapasitet",
+            "type": "hard",
+            "scope": "turnering",
+            "owner": "deterministic_verifier",
+            "description": (
+                "Antall lag i en turnering skal ikke overstige kapasiteten konfigurert antall "
+                "parallelle kamper for aldersgruppen tillater (`verify_candidate`s "
+                "`tournament_over_capacity`-sjekk)."
+            ),
+            "configured_value": "≤ konfigurert kapasitet",
+            "status": "Håndheves ved planlegging (verify_candidate)",
+            "ok": True,
+        },
+        {
+            "id": "christmas_half_boundary",
+            "title": "Ingen stille flytting over nyttårsskillet",
+            "type": "hard",
+            "scope": "sesong",
+            "owner": "deterministic_verifier",
+            "description": (
+                "Sesongen deles i to uavhengige planleggingshalvdeler (før/etter 1. januar). En "
+                "turnering kan flyttes til en ny dato innenfor sin egen halvdel, men flytting over "
+                "nyttårsskillet krever et eksplisitt `allow_cross_half_moves`-unntak og skjer aldri "
+                "som en bieffekt av optimaliseringssøket."
+            ),
+            "configured_value": "1. januar",
+            "status": "Håndheves ved planlegging",
+            "ok": True,
+        },
+    ]
+
+
+def _shared_host_decisions(plan: SeasonPlan) -> list[dict[str, Any]]:
+    """Run-specific controller decisions (issue #305: not generic rules)."""
+    decisions: list[dict[str, Any]] = []
+    for decision in plan.shared_host_decisions or []:
+        registration = str(decision.get("registration", "?"))
+        age_group = str(decision.get("age_group", "?"))
+        chosen_club = str(decision.get("chosen_club", "?"))
+        decided_by = str(decision.get("decided_by", "")) or "ukjent"
+        decisions.append(
+            {
+                "id": f"shared_host_{registration}_{age_group}",
+                "title": f"Delt vertskap: {registration} ({age_group})",
+                "type": "decision",
+                "scope": "delt klubbregistrering",
+                "owner": "llm_controller",
+                "description": (
+                    str(decision.get("rationale", ""))
+                    or "Hvilken konstituerende klubb som bærer vertskapsansvaret for denne "
+                    "aldersgruppen er en kontekstuell rettferdighetsvurdering avgjort av "
+                    "LLM/kontroller blant registreringens egne deltakerklubber."
+                ),
+                "configured_value": chosen_club,
+                "status": f"Løst av {decided_by}" if decided_by != "ukjent" else "Løst",
+                "ok": True,
+            }
+        )
+    return decisions
+
+
+def build_rules_model(plan: SeasonPlan) -> list[dict[str, Any]]:
+    """Return the planner-independent canonical rules list for *plan*.
+
+    Sourced only from public :class:`SeasonPlan` fields, never from
+    `SeasonPlanner` private attributes, so the same function works
+    regardless of which engine produced the candidate.
+    """
+    gate = plan.fairness_gate if isinstance(plan.fairness_gate, dict) else {}
+    policy_gate = gate.get("policy_gate", {}) if isinstance(gate.get("policy_gate"), dict) else {}
+    policy_metrics = list(policy_gate.get("metrics", []) or [])
+    measurement_metrics = list(gate.get("measurements", []) or [])
+    # Fall back to the legacy blended `metrics` list when the canonical
+    # split isn't present (e.g. hand-built plans in tests).
+    if not policy_metrics and not measurement_metrics:
+        all_metrics = list(gate.get("metrics", []) or [])
+    else:
+        all_metrics = policy_metrics + measurement_metrics
+
+    # issue #314: arena-day collisions get exactly one source of truth —
+    # the dedicated rule below, sourced from the freshly recomputed
+    # `plan.arena_day_collisions`. Excluded here so an inherited
+    # `fairness_gate` snapshot from a superseded candidate can't
+    # reintroduce a stale collision count/status alongside it.
+    rules: list[dict[str, Any]] = [
+        _metric_rule(m)
+        for m in all_metrics
+        if isinstance(m, dict) and str(m.get("key", "")) != "arena_day_collisions"
+    ]
+
+    # Hard constraints directly re-derivable from the exported plan.
+    rules.append(_age_group_exact_match_rule(plan))
+    rules.append(_no_double_participation_rule(plan))
+    rules.append(_date_window_rule(plan))
+    rules.append(_holiday_date_rule(plan))
+    rules.append(_arena_collision_rule(plan))
+    rules.extend(_manual_adjustment_rules(plan))
+    rules.append(_calendar_trust_rule(plan))
+    rules.extend(_static_enforced_rules())
+
+    # Operational obligations.
+    rules.append(_hosting_obligation_rule(plan))
+    rules.append(_external_conflict_rule(plan))
+    rules.append(_participation_shortfall_rule(plan))
+    # A participation target is a strong goal, not a hard rule, so its
+    # bounded-deviation evidence is a soft/quality row alongside shortfalls.
+    rules.append(_participation_target_deviation_rule(plan))
+    rules.append(_tournament_placement_rule(plan))
+
+    # Decisions/exceptions for this run.
+    targets_rule = _participation_targets_by_age_group_rule(plan)
+    if targets_rule is not None:
+        rules.append(targets_rule)
+    fairness_rule = _club_participation_fairness_rule(plan)
+    if fairness_rule is not None:
+        rules.append(fairness_rule)
+    rules.extend(_shared_host_decisions(plan))
+    # Attach the stable catalog identity and its canonical semantics to each
+    # per-run rule where one is registered, so the Regler page renders the
+    # one canonical catalog (classification, meaning, owner, precedence)
+    # instead of maintaining an independent semantic list. Run-specific
+    # status/ok/detail_rows stay owned by this per-run model.
+    for rule in rules:
+        catalog_id = catalog_id_for_rules_model_entry(str(rule.get("id", "")))
+        if catalog_id:
+            rule["catalog_id"] = catalog_id
+            semantics = rules_model_semantics(str(rule.get("id", "")))
+            if semantics:
+                rule["catalog"] = semantics
+    return rules
+
+
+def group_rules_by_type(rules: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """Split a flat rules list into the four Regler-page sections."""
+    groups: dict[str, list[dict[str, Any]]] = {
+        "hard": [],
+        "strong_goal": [],
+        "required_obligation": [],
+        "soft": [],
+        "decision": [],
+    }
+    for rule in rules:
+        groups.setdefault(str(rule.get("type", "soft")), []).append(rule)
+    return groups
+
+
+def rules_summary_counts(rules: list[dict[str, Any]]) -> dict[str, int]:
+    """Return the compact top-summary counts shown on the Regler page."""
+    hard = [r for r in rules if r.get("type") == "hard"]
+    strong_goals = [r for r in rules if r.get("type") == "strong_goal"]
+    obligations = [r for r in rules if r.get("type") == "required_obligation"]
+    soft = [r for r in rules if r.get("type") == "soft"]
+    return {
+        "hard_total": len(hard),
+        "hard_ok": sum(1 for r in hard if r.get("ok")),
+        "strong_goal_deviations": sum(1 for r in strong_goals if not r.get("ok")),
+        "obligations_unresolved": sum(1 for r in obligations if not r.get("ok")),
+        "soft_warnings": sum(1 for r in soft if not r.get("ok")),
+    }

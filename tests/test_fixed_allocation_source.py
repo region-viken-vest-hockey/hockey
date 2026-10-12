@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from tournament_scheduler.pipeline.fixed_allocation_source import run_fixed_allocation_source
-from tournament_scheduler.sandefjord_allocation import SANDEFJORD_CLUB_NAME
+from tournament_scheduler.booking.sandefjord_allocation import SANDEFJORD_CLUB_NAME
 
 
 class TestRunFixedAllocationSource:

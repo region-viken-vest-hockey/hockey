@@ -20,7 +20,7 @@ _console = Console()
 
 def _cmd_season_guest_report(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season guest-report`` — guest slot report."""
-    from ..season_state import guest_slot_report
+    from ..application.canonical_season.store_facade import guest_slot_report
 
     report = guest_slot_report(args.season, root=args.root)
     if args.json:
@@ -45,7 +45,7 @@ def _cmd_season_guest_report(args: argparse.Namespace) -> int:
 def _cmd_season_guest_candidates(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season guest-candidates`` — guest slot candidates."""
     from ..pipeline.state import PipelineState
-    from ..season_state import guest_slot_candidates
+    from ..application.canonical_season.store_facade import guest_slot_candidates
     from .verification_problem import _canonical_verification_problem
 
     state = PipelineState(args.work_dir)
@@ -86,7 +86,7 @@ def _cmd_season_guest_candidates(args: argparse.Namespace) -> int:
 def _cmd_season_guest_reserve(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season guest-reserve`` — reserve guest slots."""
     from ..pipeline.state import PipelineState
-    from ..season_state import reserve_guest_slot
+    from ..application.canonical_season.store_facade import reserve_guest_slot
     from .verification_problem import _canonical_verification_problem
 
     state = PipelineState(args.work_dir)
@@ -117,7 +117,7 @@ def _cmd_season_guest_reserve(args: argparse.Namespace) -> int:
 def _cmd_season_guest_fill(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season guest-fill`` — fill a guest slot."""
     from ..pipeline.state import PipelineState
-    from ..season_state import fill_guest_slot
+    from ..application.canonical_season.store_facade import fill_guest_slot
     from .verification_problem import _canonical_verification_problem
 
     state = PipelineState(args.work_dir)
@@ -152,7 +152,7 @@ def _cmd_season_guest_fill(args: argparse.Namespace) -> int:
 def _cmd_season_guest_release(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season guest-release`` — release a guest slot."""
     from ..pipeline.state import PipelineState
-    from ..season_state import release_guest_slot
+    from ..application.canonical_season.store_facade import release_guest_slot
     from .verification_problem import _canonical_verification_problem
 
     state = PipelineState(args.work_dir)

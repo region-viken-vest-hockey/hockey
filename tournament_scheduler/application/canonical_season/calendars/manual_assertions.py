@@ -19,15 +19,15 @@ from tournament_scheduler.booking.calendar_bookings import (
     new_manual_assertion_record,
     validate_stated_interval,
 )
-from tournament_scheduler.canonical_exception_policy import reclassify_accepted_source_interval
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.exception_policy import reclassify_accepted_source_interval
+from tournament_scheduler.season.state import (
     canonical_state_revision,
 )
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 
 from ..shared import (
     _operator_identity,

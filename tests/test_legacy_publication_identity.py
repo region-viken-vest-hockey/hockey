@@ -24,7 +24,7 @@ from tournament_scheduler.infrastructure.canonical_revision_history import (
     load_canonical_plan_at_revision,
     revision_snapshot_path,
 )
-from tournament_scheduler.pipeline.export_projection_guard import (
+from tournament_scheduler.publication.projection_guard import (
     ExportProjectionError,
     diff_tournament_projection,
     projection_from_export_artifacts,
@@ -267,7 +267,7 @@ def test_real_sep_21_baseline_reconstructs_unique_stable_ids() -> None:
         pytest.skip("canonical history for the publication revision is unavailable")
 
     from tournament_scheduler.infrastructure.canonical_revision_history import load_canonical_schedule_at_revision
-    from tournament_scheduler.published_baseline import projection_problem_from_schedule
+    from tournament_scheduler.publication.baseline import projection_problem_from_schedule
 
     schedule_snapshot = load_canonical_schedule_at_revision(
         "2026-2027",
@@ -303,7 +303,7 @@ def test_real_sep_21_baseline_reconciles_with_durable_history() -> None:
         load_decisions,
         load_schedule,
     )
-    from tournament_scheduler.published_mutation_history import (
+    from tournament_scheduler.publication.mutation_history import (
         omission_projection,
         reconcile_published_baseline,
     )
@@ -319,9 +319,9 @@ def test_real_sep_21_baseline_reconciles_with_durable_history() -> None:
     if publication_plan is None:
         pytest.skip("canonical history for the publication revision is unavailable")
 
-    from tournament_scheduler.canonical_ice_time_overrides import active_overrides
+    from tournament_scheduler.season.ice_time_overrides import active_overrides
     from tournament_scheduler.infrastructure.canonical_revision_history import load_canonical_schedule_at_revision
-    from tournament_scheduler.published_baseline import (
+    from tournament_scheduler.publication.baseline import (
         effective_projection_from_canonical_schedule,
         projection_problem_from_schedule,
     )
@@ -362,7 +362,7 @@ def test_manual_booking_assertion_history_is_decision_only_for_reconciliation() 
     as decision-only history, not an unreplayable schedule mutation.
     """
 
-    from tournament_scheduler.published_mutation_history import reconcile_published_baseline
+    from tournament_scheduler.publication.mutation_history import reconcile_published_baseline
 
     plan = {"tournaments": [_tournament("rvv-0001", "2026-10-17", "14:15", "Tonsberghallen", "Tønsberg", "U12", ["A", "B"])]}
     projection = tournament_projection(plan, _problem(plan))
@@ -396,7 +396,7 @@ def test_rejected_booking_evidence_history_is_decision_only_for_reconciliation()
     mutation.
     """
 
-    from tournament_scheduler.published_mutation_history import reconcile_published_baseline
+    from tournament_scheduler.publication.mutation_history import reconcile_published_baseline
 
     plan = {"tournaments": [_tournament("rvv-0001", "2026-10-17", "14:15", "Tonsberghallen", "Tønsberg", "U12", ["A", "B"])]}
     projection = tournament_projection(plan, _problem(plan))

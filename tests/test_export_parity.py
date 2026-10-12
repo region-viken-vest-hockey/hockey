@@ -23,7 +23,7 @@ from tournament_scheduler.pipeline.export_parity import (
     verify_export_parity,
 )
 from tournament_scheduler.pipeline.export_parity.gate import publish_parity_gate
-from tournament_scheduler.season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 from tournament_scheduler.spond import SpondExporter
 
 REVISION = "rev-abc123"
@@ -496,12 +496,12 @@ def test_edited_cancelled_reason_fails_parity(tmp_path):
 
 import re  # noqa: E402
 
-from tournament_scheduler.canonical_state import compute_canonical_state_revision  # noqa: E402
+from tournament_scheduler.season.state import compute_canonical_state_revision  # noqa: E402
 from tournament_scheduler.infrastructure.canonical_season_store import (  # noqa: E402
     CanonicalSeasonSnapshot,
     CanonicalSeasonStore,
 )
-from tournament_scheduler.pipeline.export_projection_guard import tournament_projection  # noqa: E402
+from tournament_scheduler.publication.projection_guard import tournament_projection  # noqa: E402
 from tournament_scheduler.serialization.season_plan import season_plan_to_dict  # noqa: E402
 
 _CANONICAL_SEASON = "2026-2027"

@@ -30,21 +30,21 @@ from tests.test_unplaced_placement_repair import (
     _tournament,
     _write_season,
 )
-from tournament_scheduler.placement_infeasibility import (
+from tournament_scheduler.placement.infeasibility import (
     build_infeasibility_proof,
     coverage_from_proof,
     proof_is_current,
     proofs_by_obligation,
     search_scope_complete,
 )
-from tournament_scheduler.season_maintenance import list_findings, load_context, season_audit
-from tournament_scheduler.season_state import (
+from tournament_scheduler.season.maintenance import list_findings, load_context, season_audit
+from tournament_scheduler.application.canonical_season.store_facade import (
     placement_infeasibility_report,
     record_placement_infeasibility_proofs,
     release_placement_infeasibility_proofs,
 )
-from tournament_scheduler.search_capability import SearchCapability
-from tournament_scheduler.unplaced_placement_repair import (
+from tournament_scheduler.repair.capability import SearchCapability
+from tournament_scheduler.repair.unplaced_placement import (
     SEARCH_BOUNDED_EXHAUSTED,
     SEARCH_INCOMPLETE,
     enumerate_unplaced_placement_repairs,
@@ -300,7 +300,7 @@ def test_proof_is_scoped_to_the_obligation_and_current_capacity(tmp_path: Path) 
 def test_recording_and_releasing_proofs_are_decision_only_for_reconciliation() -> None:
     """A proof write must not replay as a schedule mutation on a sealed season."""
 
-    from tournament_scheduler.published_mutation_history import replay_recorded_mutations
+    from tournament_scheduler.publication.mutation_history import replay_recorded_mutations
 
     seed = {
         "t1": {

@@ -86,9 +86,9 @@ def normalize_participants(values: Iterable[Any]) -> tuple[str, ...]:
 
 
 def participant_separator() -> str:
-    """Canonical participant-identity separator (single owner: published_baseline)."""
+    """Canonical participant-identity separator (single owner: publication.baseline)."""
 
-    from tournament_scheduler.published_baseline import PARTICIPANT_SEPARATOR
+    from tournament_scheduler.publication.baseline import PARTICIPANT_SEPARATOR
 
     return PARTICIPANT_SEPARATOR
 
@@ -104,7 +104,7 @@ def participant_identity(club: Any, label: Any, age_group: Any) -> str:
     club_name = normalize_text(club)
     if club_name:
         try:
-            from tournament_scheduler.club_registry import canonicalize_club_name
+            from tournament_scheduler.clubs.registry import canonicalize_club_name
 
             club_name = canonicalize_club_name(club_name)
         except Exception:  # noqa: BLE001 - identity normalization must not fail parity
@@ -137,7 +137,7 @@ def participant_label(key: Any) -> str:
     text = str(key or "")
     separator = participant_separator()
     if separator in text:
-        from tournament_scheduler.published_baseline import participant_parts
+        from tournament_scheduler.publication.baseline import participant_parts
 
         _, label, _ = participant_parts(text)
         return normalize_text(label)

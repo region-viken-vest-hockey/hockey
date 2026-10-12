@@ -7,9 +7,9 @@ configuration, and it validates the value against the format/governing floors so
 an override can never silently make a tournament physically impossible.
 
 Every verification/booking consumer resolves the duration through
-:func:`~tournament_scheduler.canonical_ice_time_overrides.project_overrides_into_problem`,
+:func:`~tournament_scheduler.season.ice_time_overrides.project_overrides_into_problem`,
 which :func:`~tournament_scheduler.application.canonical_season.shared._resolve_plan_problem`
-and :func:`~tournament_scheduler.season_maintenance.project_canonical_overlays`
+and :func:`~tournament_scheduler.season.maintenance.project_canonical_overlays`
 both apply.
 """
 
@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_ice_time_overrides import (
+from tournament_scheduler.season.ice_time_overrides import (
     ACTIVE,
     RELEASED,
     IceTimeOverrideError,
@@ -26,9 +26,9 @@ from tournament_scheduler.canonical_ice_time_overrides import (
     override_records,
     validate_and_normalize,
 )
-from tournament_scheduler.canonical_state import canonical_state_revision
+from tournament_scheduler.season.state import canonical_state_revision
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
-from tournament_scheduler.occupancy import (
+from tournament_scheduler.shape.occupancy import (
     governing_minimum_ice_time_minutes,
     minimum_playing_requirement_minutes,
 )

@@ -10,8 +10,8 @@ from tournament_scheduler.application.canonical_season.config_reconciliation imp
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
 from tournament_scheduler.cli.rvv_cli import _canonical_verification_problem
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
-from tournament_scheduler.season_maintenance import repair_options
-from tournament_scheduler.season_state import canonical_state_revision, load_decisions, load_schedule, schedule_fingerprint
+from tournament_scheduler.season.maintenance import repair_options
+from tournament_scheduler.application.canonical_season.store_facade import canonical_state_revision, load_decisions, load_schedule, schedule_fingerprint
 
 YEAR = "2026-2027"
 

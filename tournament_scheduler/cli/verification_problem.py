@@ -28,7 +28,7 @@ def _canonical_verification_problem(
     from datetime import date as _date
 
     if season:
-        from ..season_state import SeasonStateError, load_decisions, load_schedule, schedule_path
+        from ..application.canonical_season.store_facade import SeasonStateError, load_decisions, load_schedule, schedule_path
 
         season_root = root or "season"
         # Only a genuinely absent canonical schedule may fall through to the
@@ -50,7 +50,7 @@ def _canonical_verification_problem(
                 # never refuse a mutation over a since-superseded fact or an
                 # already-committed withdrawal, and never re-derive an
                 # incomplete subset of the canonical overlays.
-                from ..season_maintenance import project_canonical_overlays
+                from ..season.maintenance import project_canonical_overlays
 
                 decisions = load_decisions(season, root=season_root)
                 try:
@@ -84,7 +84,7 @@ def _canonical_verification_problem(
         if not start_raw or not end_raw:
             return None
         try:
-            from ..canonical_baseline import resolve_canonical_season
+            from ..season.baseline_overlay import resolve_canonical_season
 
             resolved = resolve_canonical_season(
                 effective_config,

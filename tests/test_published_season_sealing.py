@@ -24,7 +24,7 @@ from tournament_scheduler.infrastructure.canonical_revision_history import (
 )
 
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
-from tournament_scheduler.canonical_state import canonical_state_revision, schedule_fingerprint
+from tournament_scheduler.season.state import canonical_state_revision, schedule_fingerprint
 from tournament_scheduler.infrastructure.canonical_season_store import (
     DECISIONS_SCHEMA_VERSION,
     SEASON_STATE_SCHEMA_VERSION,
@@ -32,8 +32,8 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     CanonicalSeasonStore,
     SeasonStateError,
 )
-from tournament_scheduler.pipeline.export_lifecycle import write_draft_manifest
-from tournament_scheduler.pipeline.export_projection_guard import (
+from tournament_scheduler.publication.export_lifecycle import write_draft_manifest
+from tournament_scheduler.publication.projection_guard import (
     ExportProjectionError,
     assert_export_preserves_canonical_plan,
     diff_tournament_projection,
@@ -44,14 +44,14 @@ from tournament_scheduler.pipeline.publication_lifecycle import (
     record_publication_seal,
 )
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.published_baseline import (
+from tournament_scheduler.publication.baseline import (
     PublishedBaselineError,
     SeasonSealedError,
     effective_projection_from_canonical_schedule,
     is_published_sealed,
     projection_from_canonical_schedule,
 )
-from tournament_scheduler.published_mutation_history import (
+from tournament_scheduler.publication.mutation_history import (
     reconcile_published_baseline,
     replayed_occupancy_overrides,
 )
@@ -598,7 +598,7 @@ def _write_sealed_repairable_season(
 
     from datetime import date as _date
 
-    from tournament_scheduler.planning_contract import build_planning_problem
+    from tournament_scheduler.planning.contract import build_planning_problem
 
     teams = [
         {"club": club, "label": f"{club} {index}", "age_group": "U10"}
@@ -839,8 +839,8 @@ def test_seal_fails_closed_on_unsupported_materialization(tmp_path: Path) -> Non
 
 
 def test_sealed_season_guards_global_regeneration(tmp_path: Path) -> None:
-    from tournament_scheduler.canonical_replan import replan_around_baseline
-    from tournament_scheduler.season_state import apply_candidate, normalize_placements
+    from tournament_scheduler.season.replan import replan_around_baseline
+    from tournament_scheduler.application.canonical_season.store_facade import apply_candidate, normalize_placements
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -868,7 +868,7 @@ def test_sealed_season_guards_global_regeneration(tmp_path: Path) -> None:
         )
 
     # Targeted, decision-only maintenance still works.
-    from tournament_scheduler.season_state import approve_tournament
+    from tournament_scheduler.application.canonical_season.store_facade import approve_tournament
 
     approve_tournament(season="2026-2027", tournament_id="rvv-1", root=root, actor="tester")
     status = CanonicalSeasonService(root=root).season_lifecycle_report("2026-2027")
@@ -878,7 +878,7 @@ def test_sealed_season_guards_global_regeneration(tmp_path: Path) -> None:
 def test_sealed_service_refuses_caller_constructed_wide_scope(tmp_path: Path) -> None:
     """A caller-built scope or stolen capability token is never authorization."""
 
-    from tournament_scheduler.season_state import apply_candidate as api_apply_candidate
+    from tournament_scheduler.application.canonical_season.store_facade import apply_candidate as api_apply_candidate
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -939,7 +939,7 @@ def test_sealed_service_refuses_caller_constructed_wide_scope(tmp_path: Path) ->
 
 
 def test_sealed_bounded_repair_is_reproduced_and_replays(tmp_path: Path) -> None:
-    from tournament_scheduler.season_maintenance import apply_repair, repair_options
+    from tournament_scheduler.season.maintenance import apply_repair, repair_options
 
     root = tmp_path / "season"
     _write_sealed_repairable_season(root)
@@ -969,7 +969,7 @@ def test_sealed_bounded_repair_is_reproduced_and_replays(tmp_path: Path) -> None
 def _minted_repair_authorization(root: Path):
     """Return a real sealed bounded-repair candidate plus its authorization."""
 
-    from tournament_scheduler.season_maintenance import (
+    from tournament_scheduler.season.maintenance import (
         apply_repair_to_plan,
         load_context,
         repair_options,
@@ -1365,7 +1365,7 @@ def test_sealed_confirm_calendar_booking_batch_replays_mixed_override_history(
         TOURNAMENT_BOOKING_EVIDENCE_KEY,
         iter_events,
     )
-    from tournament_scheduler.canonical_ice_time_overrides import active_overrides
+    from tournament_scheduler.season.ice_time_overrides import active_overrides
 
     root = tmp_path / "season"
     tournaments = [
@@ -1603,7 +1603,7 @@ def test_sealed_scoped_batch_reconciles_immediately(tmp_path: Path) -> None:
 
 
 def test_normalize_placements_dry_run_is_diagnostic_on_sealed_season(tmp_path: Path) -> None:
-    from tournament_scheduler.season_state import normalize_placements
+    from tournament_scheduler.application.canonical_season.store_facade import normalize_placements
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -1613,7 +1613,7 @@ def test_normalize_placements_dry_run_is_diagnostic_on_sealed_season(tmp_path: P
 
 
 def test_reopen_planning_requires_confirmation_and_reason(tmp_path: Path) -> None:
-    from tournament_scheduler.season_state import apply_candidate, reopen_planning
+    from tournament_scheduler.application.canonical_season.store_facade import apply_candidate, reopen_planning
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -1871,7 +1871,7 @@ def _candidate() -> dict:
 
 
 def test_promote_force_cannot_replace_sealed_season(tmp_path: Path) -> None:
-    from tournament_scheduler.season_state import promote_from_stage3, seal_published_season
+    from tournament_scheduler.application.canonical_season.store_facade import promote_from_stage3, seal_published_season
 
     work_dir = tmp_path / ".pipeline"
     root = tmp_path / "season"
@@ -1914,8 +1914,8 @@ def _seal_full(
     published_at: str = "2026-09-21T09:14:53+00:00",
     projection: dict | None = None,
 ) -> dict:
-    from tournament_scheduler.pipeline.publication_evidence import build_publication_evidence
-    from tournament_scheduler.published_baseline import projection_fingerprint
+    from tournament_scheduler.publication.evidence import build_publication_evidence
+    from tournament_scheduler.publication.baseline import projection_fingerprint
 
     resolved_projection = projection if projection is not None else _full_projection(root)
     evidence = build_publication_evidence(
@@ -1982,7 +1982,7 @@ def test_replacement_seal_does_not_mutate_canonical_schedule(tmp_path: Path) -> 
 
 
 def test_replacement_seal_rejects_mismatched_evidence_fingerprint(tmp_path: Path) -> None:
-    from tournament_scheduler.pipeline.publication_evidence import build_publication_evidence
+    from tournament_scheduler.publication.evidence import build_publication_evidence
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -2005,8 +2005,8 @@ def test_replacement_seal_rejects_mismatched_evidence_fingerprint(tmp_path: Path
 
 
 def test_record_publication_seal_writes_retained_before_after_evidence(tmp_path: Path) -> None:
-    from tournament_scheduler.pipeline.export_lifecycle import promote_export_manifest
-    from tournament_scheduler.pipeline.publication_evidence import read_publication_evidence
+    from tournament_scheduler.publication.export_lifecycle import promote_export_manifest
+    from tournament_scheduler.publication.evidence import read_publication_evidence
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -2175,7 +2175,7 @@ def test_publication_guard_blocks_on_unverifiable_previous_snapshot(
 
 
 def test_publication_evidence_report_shows_active_revision_and_delta(tmp_path: Path) -> None:
-    from tournament_scheduler.season_state import publication_evidence_report
+    from tournament_scheduler.application.canonical_season.store_facade import publication_evidence_report
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -2208,7 +2208,7 @@ def test_publication_guard_refuses_sealed_state_without_a_baseline(tmp_path: Pat
 
 def test_republish_seal_invokes_no_planning_or_scrape_path(tmp_path: Path, monkeypatch) -> None:
     import tournament_scheduler.pipeline.stage4_export as stage4_export
-    import tournament_scheduler.season_state as season_state
+    import tournament_scheduler.application.canonical_season.store_facade as season_state
 
     def _boom(*_args, **_kwargs):
         raise AssertionError("republish must not invoke a planning/scrape path")
@@ -2251,7 +2251,7 @@ def test_replacement_seal_labels_missing_previous_decision_snapshot(tmp_path: Pa
 
 
 def test_replacement_seal_rejects_conflicting_retained_evidence(tmp_path: Path) -> None:
-    from tournament_scheduler.pipeline.publication_evidence import (
+    from tournament_scheduler.publication.evidence import (
         PublicationEvidenceError,
         write_publication_evidence,
     )
@@ -2304,8 +2304,8 @@ def test_publication_evidence_write_failure_is_recoverable_on_retry(
     """A failed evidence write must not duplicate history and must recover on retry."""
 
     import tournament_scheduler.pipeline.publication_lifecycle as pub_lifecycle
-    from tournament_scheduler.pipeline.export_lifecycle import promote_export_manifest
-    from tournament_scheduler.pipeline.publication_evidence import read_publication_evidence
+    from tournament_scheduler.publication.export_lifecycle import promote_export_manifest
+    from tournament_scheduler.publication.evidence import read_publication_evidence
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())

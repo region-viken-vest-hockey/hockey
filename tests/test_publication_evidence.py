@@ -19,8 +19,8 @@ from pathlib import Path
 
 import pytest
 
-from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
-from tournament_scheduler.pipeline.publication_evidence import (
+from tournament_scheduler.publication.projection_guard import tournament_projection
+from tournament_scheduler.publication.evidence import (
     PublicationEvidenceError,
     build_publication_evidence,
     build_republish_delta,
@@ -330,7 +330,7 @@ class TestRetainedEvidence:
     def test_retry_repairs_missing_markdown_after_json_succeeded(
         self, tmp_path: Path, monkeypatch
     ) -> None:
-        import tournament_scheduler.pipeline.publication_evidence as module
+        import tournament_scheduler.publication.evidence as module
 
         evidence = build_publication_evidence(
             run_id="run-2",

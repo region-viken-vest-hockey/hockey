@@ -8,7 +8,7 @@ from tournament_scheduler.models import (
     ConflictContext,
     CalendarEvent
 )
-from tournament_scheduler.club_registry import get_club
+from tournament_scheduler.clubs.registry import get_club
 from tournament_scheduler.utils.date_parser import DateParser
 from tournament_scheduler.utils.slot_finder import find_available_slots, parse_time, minutes_to_time
 from tournament_scheduler.excel.tournament_reader import ExcelTournamentReader
@@ -132,7 +132,7 @@ class TournamentScheduler:
         time. If the host club has no trustworthy calendar evidence for this
         run, this returns a *provisional* slot at ``preferred_start`` instead
         of searching real (nonexistent) event data -- the club still gets to
-        host, but the caller (``season_planner.py``) flags the tournament's
+        host, but the caller (``planning.season_planner.py``) flags the tournament's
         ``manual_booking_reason`` so the istid gets booked/verified by hand,
         rather than this helper silently forcing a host substitution.
 

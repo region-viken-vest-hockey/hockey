@@ -13,28 +13,28 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-from tournament_scheduler.home_representation import (
+from tournament_scheduler.participation.home_representation import (
     home_representation_facts,
     home_representation_rows,
     multi_team_pools,
 )
-from tournament_scheduler.home_representation_repair import (
+from tournament_scheduler.repair.home_representation import (
     apply_home_representation_repair_option,
     enumerate_home_representation_repairs,
     home_representation_finding_id,
 )
-from tournament_scheduler.planning_contract import (
+from tournament_scheduler.planning.contract import (
     build_planning_problem,
     score_candidate,
     verify_candidate,
 )
 from tournament_scheduler.pipeline.audit_evidence import build_evidence_index
-from tournament_scheduler.season_maintenance import (
+from tournament_scheduler.season.maintenance import (
     apply_repair,
     list_findings,
     repair_options,
 )
-from tournament_scheduler.season_state import schedule_fingerprint
+from tournament_scheduler.application.canonical_season.store_facade import schedule_fingerprint
 
 YEAR = "2026-2027"
 
@@ -447,7 +447,7 @@ def _distribution_worsening_plan() -> Dict[str, Any]:
 
 
 def test_swap_rejected_when_sibling_distribution_materially_worsens() -> None:
-    import tournament_scheduler.home_representation_repair as module
+    import tournament_scheduler.repair.home_representation as module
 
     problem = _problem()
     plan = _distribution_worsening_plan()
@@ -476,7 +476,7 @@ def test_swap_rejected_when_sibling_distribution_materially_worsens() -> None:
 
 
 def test_hard_maximum_still_blocks_a_swap_despite_aggregate_preservation() -> None:
-    import tournament_scheduler.home_representation_repair as module
+    import tournament_scheduler.repair.home_representation as module
 
     problem = _problem()
     for team in problem["teams"]:
@@ -506,7 +506,7 @@ def test_hard_maximum_still_blocks_a_swap_despite_aggregate_preservation() -> No
 
 
 def test_cycle_moves_yields_a_participation_preserving_three_swap_plan() -> None:
-    import tournament_scheduler.home_representation_repair as module
+    import tournament_scheduler.repair.home_representation as module
 
     teams = _teams("Ringerike", "Ringerike ", "U10", 3) + _other_teams()
     all_teams = teams

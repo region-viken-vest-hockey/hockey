@@ -70,7 +70,7 @@ def _format_age(seconds: float | None) -> str:
 def _strategy_label(source_name: str) -> str | None:
     """Best-effort human label for the scraper strategy backing *source_name*."""
     try:
-        from ..club_registry import club_for_source_name
+        from ..clubs.registry import club_for_source_name
         from .scraper_strategies import get_deterministic_scraper_type, get_strategy, needs_llm_agent
     except ImportError:
         return None
@@ -148,7 +148,7 @@ def _source_health_result(
         requires_human = True
         problems.append(str(source.get("block_reason") or "Kilde blokkert uten oppgitt grunn."))
         try:
-            from ..club_registry import club_for_source_name
+            from ..clubs.registry import club_for_source_name
             from .scraper_strategies import get_strategy, requires_credentials
         except ImportError:
             get_strategy = None  # type: ignore[assignment]
@@ -200,7 +200,7 @@ def _source_health_result(
             )
 
         try:
-            from ..club_registry import club_for_source_name as _club_for_source_name
+            from ..clubs.registry import club_for_source_name as _club_for_source_name
         except ImportError:
             _club_for_source_name = None  # type: ignore[assignment]
         club_name = _club_for_source_name(name) if _club_for_source_name else None

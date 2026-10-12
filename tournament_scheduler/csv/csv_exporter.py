@@ -15,7 +15,7 @@ import csv
 import os
 from pathlib import Path
 
-from tournament_scheduler.club_distances import furthest_traveling_team
+from tournament_scheduler.clubs.distances import furthest_traveling_team
 from ..models import SeasonPlan
 
 

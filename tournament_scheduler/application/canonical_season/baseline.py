@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     SEASON_BASELINE_HISTORY_KEY,
     SEASON_BASELINE_KEY,
     canonical_state_revision,
@@ -24,7 +24,7 @@ from .shared import (
 def season_baseline_show(service, season: str) -> dict[str, Any]:
     """Return the stored season-quality baseline and current comparison."""
 
-    from tournament_scheduler.season_maintenance import list_findings
+    from tournament_scheduler.season.maintenance import list_findings
 
     snapshot = service.load(season)
     report = list_findings(season, root=service.store.root)
@@ -62,8 +62,8 @@ def season_baseline_create(
 ) -> dict[str, Any]:
     """Persist the current non-hard finding set as the accepted baseline."""
 
-    from tournament_scheduler.season_baseline import create_baseline_record
-    from tournament_scheduler.season_maintenance import list_findings
+    from tournament_scheduler.season.accepted_baseline import create_baseline_record
+    from tournament_scheduler.season.maintenance import list_findings
 
     snapshot = service.load(season)
     if snapshot.decisions.get(SEASON_BASELINE_KEY) and not replace:
@@ -117,8 +117,8 @@ def season_baseline_advance(
 ) -> dict[str, Any]:
     """Tighten the accepted baseline to the current equal-or-better state."""
 
-    from tournament_scheduler.season_baseline import create_baseline_record, compare_findings_to_baseline
-    from tournament_scheduler.season_maintenance import list_findings
+    from tournament_scheduler.season.accepted_baseline import create_baseline_record, compare_findings_to_baseline
+    from tournament_scheduler.season.maintenance import list_findings
 
     snapshot = service.load(season)
     existing = snapshot.decisions.get(SEASON_BASELINE_KEY)

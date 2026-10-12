@@ -14,7 +14,7 @@ import os
 import subprocess
 
 from tournament_scheduler.booking.calendar_bookings import new_manual_assertion_record
-from tournament_scheduler.canonical_state import schedule_fingerprint
+from tournament_scheduler.season.state import schedule_fingerprint
 from tournament_scheduler.infrastructure.canonical_season_store import (
     DECISIONS_SCHEMA_VERSION,
     SEASON_STATE_SCHEMA_VERSION,
@@ -25,11 +25,11 @@ from tournament_scheduler.pipeline.audit_result import write_audit_result
 from tournament_scheduler.pipeline.capability_result import CapabilityResult
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.pipeline.operator_action_audit import apply_publish_audit_gate
-from tournament_scheduler.published_baseline import build_baseline_record
+from tournament_scheduler.publication.baseline import build_baseline_record
 from tournament_scheduler.pipeline.run_manifest import RunManifest
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.pipeline.verification_context import build_verification_context
-from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
+from tournament_scheduler.planning.contract import extract_candidate, verify_candidate
 
 _SEASON = "2026-2027"
 
@@ -108,7 +108,7 @@ def _write_canonical(
         "plan": plan,
         "verification_context": {"problem": _problem()},
     }
-    from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
+    from tournament_scheduler.publication.projection_guard import tournament_projection
 
     baseline = build_baseline_record(
         season=_SEASON,
@@ -177,7 +177,7 @@ def _public_tournaments_html(work_dir, plan: dict, *, mislabelled_ids: set[str] 
     for a regression test.
     """
 
-    from tournament_scheduler.season_state import booking_status_report
+    from tournament_scheduler.application.canonical_season.store_facade import booking_status_report
 
     rows: dict[str, dict] = {}
     root = os.environ.get("RVV_CANONICAL_SEASON_ROOT")

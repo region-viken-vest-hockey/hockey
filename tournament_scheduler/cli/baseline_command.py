@@ -19,7 +19,7 @@ _console = Console()
 
 def _cmd_season_baseline(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season baseline`` — baseline management commands."""
-    from ..season_state import (
+    from ..application.canonical_season.store_facade import (
         season_baseline_advance,
         season_baseline_create,
         season_baseline_replace,

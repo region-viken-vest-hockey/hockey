@@ -30,7 +30,7 @@ from tournament_scheduler.pipeline.public_export_context import (
 from tournament_scheduler.pipeline.run_manifest import RunManifest
 from tournament_scheduler.pipeline.stage4_export import run as run_export
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.season_state import load_export_context, promote_from_stage3
+from tournament_scheduler.application.canonical_season.store_facade import load_export_context, promote_from_stage3
 
 
 CLUBS = ("Alfa", "Bravo", "Charlie", "Delta")

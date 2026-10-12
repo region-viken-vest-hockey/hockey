@@ -38,10 +38,10 @@ from pathlib import Path
 from typing import Any
 
 from tournament_scheduler.booking.arena_conflicts import find_arena_interval_collisions
-from ..final_verification import verify_final_candidate
-from ..planning_contract import extract_candidate
-from .export_lifecycle import EXPORT_LIFECYCLE_FILENAME, write_draft_manifest
-from .export_projection_guard import assert_export_preserves_canonical_plan, tournament_projection
+from ..planning.verification import verify_final_candidate
+from ..planning.contract import extract_candidate
+from tournament_scheduler.publication.export_lifecycle import EXPORT_LIFECYCLE_FILENAME, write_draft_manifest
+from tournament_scheduler.publication.projection_guard import assert_export_preserves_canonical_plan, tournament_projection
 from .fingerprints import stable_payload_sha256
 from ..excel.plan_exporter import SeasonPlanExporter
 from ..ical.ical_exporter import ICalExporter
@@ -111,7 +111,7 @@ def _export_approvals(effective_config: dict[str, Any], plan_dict: dict[str, Any
     approval overlay.
     """
     try:
-        from ..canonical_baseline import resolve_canonical_state
+        from ..season.baseline_overlay import resolve_canonical_state
 
         def _as_date(value: Any):
             if hasattr(value, "isoformat") and not isinstance(value, str):
@@ -257,7 +257,7 @@ def run(
     # are never demoted.
     normalization_report: dict[str, Any] = {}
     if allow_placement_normalization and isinstance(plan_dict, dict) and plan_dict.get("tournaments"):
-        from ..placement_normalization import normalize_unplaced_placements
+        from tournament_scheduler.placement.normalization import normalize_unplaced_placements
 
         plan_dict = copy.deepcopy(plan_dict)
         plan_checkpoint = {**plan_checkpoint, "plan": plan_dict}
@@ -302,7 +302,7 @@ def run(
     canonical_state = plan_checkpoint.get("canonical_state")
     is_canonical_export = isinstance(canonical_state, dict) and bool(canonical_state.get("season"))
     if normalization_report.get("changed") or is_canonical_export:
-        from ..plan_derived_state import reconcile_plan_derived_state
+        from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
 
         reconcile_plan_derived_state(plan_dict, export_verify_result, problem=export_problem)
     export_fingerprint = stable_payload_sha256(export_candidate.get("tournaments", []))
@@ -371,7 +371,7 @@ def run(
     # Render the same host-confirmed per-tournament occupied duration the
     # verifier used, so XLSX/HTML/iCal end times cannot disagree with the
     # canonical occupancy contract.
-    from tournament_scheduler.canonical_ice_time_overrides import apply_overrides_to_plan
+    from tournament_scheduler.season.ice_time_overrides import apply_overrides_to_plan
 
     apply_overrides_to_plan(plan, export_problem)
     export_path = Path(export_dir)
@@ -406,8 +406,8 @@ def run(
     booking_reconciliation: dict[str, Any] | None = None
     booking_reconciliation_error: str | None = None
     try:
-        from ..canonical_baseline import resolve_canonical_state
-        from ..season_state import (
+        from ..season.baseline_overlay import resolve_canonical_state
+        from ..application.canonical_season.store_facade import (
             approval_report,
             booking_status_report,
             calendar_booking_assessment,
@@ -667,13 +667,13 @@ def run(
         if not entry.get("interval"):
             entry["interval"] = placement_tournament.start_time or placement_tournament.date.isoformat()
     # Render the canonical conflict-aware candidate weekends
-    # (``candidate_weekends``) for each unresolved placement. This consumes
+    # (``booking.candidate_weekends``) for each unresolved placement. This consumes
     # the same evidence-only provider the Stage 3 decision context exposes; it
     # never generates a placement or changes schedule state.
     candidate_weekends_by_tournament: dict[str, dict] = {}
     if export_problem:
         try:
-            from ..host_placement_repair import collect_candidate_weekend_evidence
+            from tournament_scheduler.repair.host_placement import collect_candidate_weekend_evidence
 
             for bundle in collect_candidate_weekend_evidence(plan_dict, export_problem):
                 key = str(bundle.get("tournament_id") or "") or str(bundle.get("finding_id") or "")
@@ -682,7 +682,7 @@ def run(
         except Exception:  # noqa: BLE001 - evidence is best-effort, never blocks export
             candidate_weekends_by_tournament = {}
     # Genuine external calendar conflicts the planner/optimizer couldn't route
-    # around (see planning_contract.verify_candidate's manual_external_conflict_placements).
+    # around (see planning.contract.verify_candidate's manual_external_conflict_placements).
     external_conflict_entries: list[dict[str, str]] = []
     for item in getattr(plan, "unresolved_external_conflicts", None) or []:
         conflict_host_club = str(item.get("host_club", "") or "")

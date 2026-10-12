@@ -15,10 +15,10 @@ from datetime import date
 from itertools import combinations
 from typing import Any, Dict, Iterable, Optional, Tuple
 
-from tournament_scheduler import planning_half
-from tournament_scheduler.game_generation import generate_tournament_games
+from tournament_scheduler.planning import half as planning_half
+from tournament_scheduler.shape.game_generation import generate_tournament_games
 from tournament_scheduler.models import Team
-from tournament_scheduler.planning_contract import _parse_date, _team_identity
+from tournament_scheduler.planning.contract import _parse_date, _team_identity
 
 TeamIdentity = Tuple[str, str, str]
 
@@ -152,7 +152,7 @@ def _resolve_split_date(
     """Resolve the shared Christmas-half boundary for *slots* (issue #298).
 
     Prefers ``problem["christmas_split_date"]`` -- the single boundary every
-    engine already agrees on (:mod:`planning_half`) -- and only falls back to
+    engine already agrees on (:mod:`planning.half`) -- and only falls back to
     deriving it from the slot dates themselves when no problem contract is
     available (e.g. a bare candidate/tests).
     """
@@ -172,7 +172,7 @@ def _group_slots_by_half(
 ) -> "list[tuple[str, list[_TournamentSlot]]]":
     """Partition *slots* into independent before/after-Christmas solver groups.
 
-    Uses the shared :mod:`planning_half` contract from issue #293 as the
+    Uses the shared :mod:`planning.half` contract from issue #293 as the
     solver boundary (issue #298 Phase 2): each half is solved as its own
     smaller participant-assignment model instead of one monolithic Oct-Apr
     model, which shrinks the assignment/pair-variable count and keeps a

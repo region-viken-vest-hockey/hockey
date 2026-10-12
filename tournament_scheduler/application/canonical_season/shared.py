@@ -10,24 +10,24 @@ from tournament_scheduler.booking.calendar_bookings import (
     project_associations_into_problem,
     project_manual_assertions_into_problem,
 )
-from tournament_scheduler.canonical_baseline import resolve_approval
-from tournament_scheduler.canonical_banned_dates import project_banned_dates_into_problem
-from tournament_scheduler.canonical_holiday_exceptions import project_exceptions_into_problem
-from tournament_scheduler.canonical_ice_time_overrides import project_overrides_into_problem
-from tournament_scheduler.guest_slots import GUEST_SLOT_OPEN, active_guest_slots
+from tournament_scheduler.season.baseline_overlay import resolve_approval
+from tournament_scheduler.season.banned_dates import project_banned_dates_into_problem
+from tournament_scheduler.season.holiday_exceptions import project_exceptions_into_problem
+from tournament_scheduler.season.ice_time_overrides import project_overrides_into_problem
+from tournament_scheduler.shape.guest_slots import GUEST_SLOT_OPEN, active_guest_slots
 from tournament_scheduler.participation.withdrawals import project_into_problem
 from tournament_scheduler.infrastructure.canonical_revision_history import (
     load_canonical_schedule_at_revision,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
-from tournament_scheduler.published_baseline import (
+from tournament_scheduler.publication.baseline import (
     backfill_projection_entry,
     baseline_migration_requires_backfill,
     baseline_projection,
     baseline_requires_backfill,
     projection_problem_from_schedule,
 )
-from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
+from tournament_scheduler.publication.projection_guard import tournament_projection
 
 APPROVED_STATUS = "approved"
 
@@ -337,7 +337,7 @@ def _regenerate_tournament_games(
     the known RVV teams); filling the place regenerates the complete schedule.
     """
 
-    from tournament_scheduler.game_generation import generate_tournament_games
+    from tournament_scheduler.shape.game_generation import generate_tournament_games
     from tournament_scheduler.models import Team
 
     age_group = str(tournament.get("age_group") or "")

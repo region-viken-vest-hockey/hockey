@@ -185,13 +185,13 @@ class Tournament:
     # title and the configured reason), for review/audit output.
     host_confirmation_reason: Optional[str] = None
     # First-class reserved guest places on this tournament (see
-    # `guest_slots.py`). Each record is one place with a lifecycle status
+    # `shape.guest_slots.py`). Each record is one place with a lifecycle status
     # (open/filled/released) plus optional external-team metadata. An active
     # reservation counts toward the tournament's capacity/ice-time shape but
     # never toward RVV participation, hosting or fairness.
     guest_slots: List[Dict[str, object]] = field(default_factory=list)
     # Resolved host-confirmed per-tournament occupied-duration override for this
-    # rendering/verification pass (see canonical_ice_time_overrides). It is a
+    # rendering/verification pass (see season.ice_time_overrides). It is a
     # derived in-memory value, never serialized into the canonical plan: the
     # durable decision lives in decisions.json and is projected into the
     # verification problem / export rendering. ``None`` means use the
@@ -202,7 +202,7 @@ class Tournament:
     def reserved_guest_slots(self) -> int:
         """Number of active (open or filled) reserved guest places."""
 
-        from tournament_scheduler.guest_slots import active_guest_slot_count
+        from tournament_scheduler.shape.guest_slots import active_guest_slot_count
 
         return active_guest_slot_count(self)
 
@@ -351,7 +351,7 @@ class SeasonPlan:
     # from participation/hosting/fairness aggregation -- most of the age
     # group's slots still materialized normally. Each entry carries
     # `category`, `age_group`, `period`, plus category-specific fields (see
-    # `participant_selection.rebalance_roster_sizes_across_dates`).
+    # `planning.participant_selection.rebalance_roster_sizes_across_dates`).
     same_date_capacity_evidence: List[Dict[str, object]] = field(default_factory=list)
     # Manual operator adjustments preserved across checkpoint round-trips.
     # Keys are small string lists such as locked_dates, banned_dates,
@@ -409,17 +409,17 @@ class SeasonPlan:
     unresolved_participation_shortfalls: List[Dict[str, str]] = field(default_factory=list)
     # Authoritative per-age-group, per-half participation target this plan
     # was built against, carried on the plan so planner-independent
-    # consumers (rules_model.py, the rules report) can show it without
+    # consumers (rules/model.py, the rules report) can show it without
     # depending on SeasonPlanner internals.
     participation_targets_by_age_group: Dict[str, Dict[str, int]] = field(default_factory=dict)
     # issue #274: explicit LLM/controller decisions for shared/joint-club
     # registrations choosing which constituent club carries a hosting
     # obligation. Entry: {"registration", "age_group", "chosen_club",
     # "rationale", "decided_by", "decided_at"}. Provenance only -- no
-    # chain-of-thought. See `shared_host_decision.py`.
+    # chain-of-thought. See `hosting.shared_decision.py`.
     shared_host_decisions: List[Dict[str, str]] = field(default_factory=list)
     # Explicit operator-authorized waivers for hard planning rules this plan
-    # relies on (see `operator_waivers.py`). Provenance/audit only -- a
+    # relies on (see `season/waivers.py`). Provenance/audit only -- a
     # waiver is created/revoked through the operator CLI, never by the
     # planner. Each entry mirrors the persisted waiver record.
     operator_waivers: List[Dict[str, object]] = field(default_factory=list)
@@ -433,7 +433,7 @@ class SeasonPlan:
     # materialized as a placeholder ``Tournament`` at all, surfaced here as
     # explicit planning work for manual placement instead. Each entry has a
     # stable ``id`` that does not depend on a tournament id (see
-    # ``placement_findings.unplaced_placement_finding_id``). Entry:
+    # ``placement.findings.unplaced_placement_finding_id``). Entry:
     # {"id", "age_group", "date", "period", "candidate_hosts",
     # "participant_clubs", "reason", "category":
     # "manual_tournament_placement"}. issue #330: also carries
@@ -456,7 +456,7 @@ class SeasonPlan:
     # tournaments list, which omits zero-participation teams), so this is
     # populated by SeasonPlanner, not independently re-derivable from the
     # plan's own tournaments. Non-blocking evidence only -- see
-    # `rules_model._club_participation_fairness_rule`; the #325 LLM auditor,
+    # `rules.model._club_participation_fairness_rule`; the #325 LLM auditor,
     # not this list, judges whether a residual deficit is acceptable. Each
     # entry: {"age_group", "period", "club", "teams", "target_share",
     # "actual_share", "expected_slots", "actual_slots", "delta",

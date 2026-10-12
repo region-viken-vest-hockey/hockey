@@ -36,8 +36,8 @@ def current_hard_verification(work_dir: str) -> dict[str, Any]:
     proven consistent. Callers must treat that as a publication block, not as
     "no violations found".
     """
-    from ..final_verification import verify_final_candidate
-    from ..planning_contract import extract_candidate
+    from ..planning.verification import verify_final_candidate
+    from ..planning.contract import extract_candidate
     from .verification_context import (
         VerificationContextError,
         resolve_publish_verification_context,

@@ -10,7 +10,7 @@ from rich import box
 from rich.text import Text
 
 if TYPE_CHECKING:
-    from tournament_scheduler.club_distances import furthest_traveling_team
+    from tournament_scheduler.clubs.distances import furthest_traveling_team
     from tournament_scheduler.models import SeasonPlan, Tournament
 
 console = Console()

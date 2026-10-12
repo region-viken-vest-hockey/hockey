@@ -13,7 +13,7 @@ from tournament_scheduler.pipeline.operator_action import DEFAULT_REGISTRY
 from tournament_scheduler.pipeline.run_manifest import RunManifest
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.pipeline.verification_context import build_verification_context
-from tournament_scheduler.planning_contract import extract_candidate, verify_candidate
+from tournament_scheduler.planning.contract import extract_candidate, verify_candidate
 
 
 def _init_repo(repo_dir) -> None:

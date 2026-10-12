@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from tournament_scheduler import rules_report as rules_report_module
+from tournament_scheduler.rules import report as rules_report_module
 from tournament_scheduler.models import CalendarEvent
-from tournament_scheduler.rules_report import render_rules_markdown
+from tournament_scheduler.rules.report import render_rules_markdown
 from tournament_scheduler.testing.canonical_input import build_canonical_planner
 
 

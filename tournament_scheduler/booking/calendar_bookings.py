@@ -665,9 +665,9 @@ def tournament_occupancy_interval_facts(
     arena-interval verifier describe the same booked window.
     """
 
-    # Local import breaks the canonical_state <-> calendar_bookings import
+    # Local import breaks the season.state <-> calendar_bookings import
     # cycle; the projection helper itself is the single key definition.
-    from tournament_scheduler.canonical_ice_time_overrides import overrides_from_problem
+    from tournament_scheduler.season.ice_time_overrides import overrides_from_problem
 
     age_group = str(tournament.get("age_group") or "")
     start_time = str(tournament.get("start_time") or "")
@@ -818,7 +818,7 @@ def governing_floor_finding(
     arena overlaps are checked separately and remain hard.
     """
 
-    from tournament_scheduler.occupancy import governing_minimum_ice_time_minutes
+    from tournament_scheduler.shape.occupancy import governing_minimum_ice_time_minutes
 
     try:
         minutes = int(accepted_minutes)

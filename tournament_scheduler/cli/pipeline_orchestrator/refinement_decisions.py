@@ -16,10 +16,10 @@ def _refinement_decision_problem(state: "Any", plan_obj: "Any") -> "dict[str, An
     apply here).
     """
     try:
-        from ...canonical_baseline import resolve_canonical_baseline
-        from ...operator_waivers import load_active_waivers
+        from ...season.baseline_overlay import resolve_canonical_baseline
+        from ...season.waivers import load_active_waivers
         from ...pipeline.state import StageName
-        from ...planning_contract import build_planning_problem
+        from ...planning.contract import build_planning_problem
 
         start_date = getattr(plan_obj, "start_date", None)
         end_date = getattr(plan_obj, "end_date", None)

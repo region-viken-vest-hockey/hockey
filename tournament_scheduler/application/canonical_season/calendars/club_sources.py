@@ -11,7 +11,7 @@ from tournament_scheduler.booking.calendar_bookings import (
     booking_status_report as _booking_status_report,
     new_club_booking_source_record,
 )
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     canonical_state_revision,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (

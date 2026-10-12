@@ -1,4 +1,4 @@
-from tournament_scheduler.effective_tournament_shape import compute_effective_tournament_shape, shape_violation
+from tournament_scheduler.shape.effective_shape import compute_effective_tournament_shape, shape_violation
 
 
 def test_full_pool_supports_preferred_shape_with_capacity_cap():

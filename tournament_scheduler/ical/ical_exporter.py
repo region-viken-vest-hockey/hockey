@@ -24,7 +24,7 @@ from typing import Optional
 from icalendar import Calendar, Event, vText
 
 from ..models import SeasonPlan, Tournament, Game
-from ..occupancy import tournament_required_ice_minutes
+from tournament_scheduler.shape.occupancy import tournament_required_ice_minutes
 
 
 def _stable_uid(*parts: object) -> str:

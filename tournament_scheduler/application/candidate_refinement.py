@@ -22,7 +22,7 @@ This module owns the missing normal path:
 
 Stage 1/2 checkpoints and fingerprints are read-only inputs: refinement never
 rescrapes and never rebuilds the planning baseline. The repair legality and
-mutation stay in the deterministic providers (``season_maintenance``); this
+mutation stay in the deterministic providers (``season.maintenance``); this
 module only composes the session lifecycle, the independent verifier and the
 export boundary.
 
@@ -100,7 +100,7 @@ def reviewed_unpromoted_candidate(
     if not session.is_finalized():
         return None
 
-    from ..pipeline.export_lifecycle import SUPERSEDED_STATUS, read_export_manifest
+    from tournament_scheduler.publication.export_lifecycle import SUPERSEDED_STATUS, read_export_manifest
     from ..pipeline.state import PipelineState, StageName
 
     state = PipelineState(work_dir)
@@ -155,7 +155,7 @@ def refinement_findings(
     plan: Mapping[str, Any], problem: Mapping[str, Any]
 ) -> list[dict[str, Any]]:
     """Stable actionable findings over the unpromoted candidate."""
-    from ..season_maintenance import findings_for_plan
+    from ..season.maintenance import findings_for_plan
 
     return findings_for_plan(plan, problem)
 
@@ -169,7 +169,7 @@ def refinement_options(
     dimensions: Iterable[str] = DEFAULT_DIMENSIONS,
 ) -> dict[str, Any]:
     """Deterministic repair options for one finding on the unpromoted candidate."""
-    from ..season_maintenance import repair_options_for_plan
+    from ..season.maintenance import repair_options_for_plan
 
     return repair_options_for_plan(
         plan, problem, finding_id, allow_search=allow_search, dimensions=dimensions
@@ -218,7 +218,7 @@ def load_finalized_candidate(
 
 def _prior_export_provenance(work_dir: str | Path) -> dict[str, Any]:
     """Describe the reviewed export the refinement will supersede."""
-    from ..pipeline.export_lifecycle import read_export_manifest
+    from tournament_scheduler.publication.export_lifecycle import read_export_manifest
     from ..pipeline.state import PipelineState, StageName
 
     state = PipelineState(work_dir)
@@ -279,7 +279,7 @@ def refine_finalized_candidate(
             "instead of refining over a live public projection"
         )
 
-    from ..season_maintenance import apply_repair_to_plan, baseline_for_plan
+    from ..season.maintenance import apply_repair_to_plan, baseline_for_plan
 
     applied = apply_repair_to_plan(
         candidate,
@@ -724,7 +724,7 @@ def _reexport_refined_candidate(
     manifest is marked superseded (and thereby protected from draft retention)
     and points at the replacement export.
     """
-    from ..pipeline.export_lifecycle import mark_export_superseded
+    from tournament_scheduler.publication.export_lifecycle import mark_export_superseded
     from ..pipeline.stage4_export import run as stage4_run
 
     prior_dir = prior_export.get("export_dir")

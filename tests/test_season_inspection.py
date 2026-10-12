@@ -15,7 +15,7 @@ from pathlib import Path
 from tournament_scheduler.cli.args import build_parser
 from tournament_scheduler.cli.rvv_cli import _cmd_season
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     add_request_constraint,
     constraint_inspection,

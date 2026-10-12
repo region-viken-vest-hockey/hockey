@@ -10,7 +10,7 @@ from tournament_scheduler.hosting.cross_age_repair import (
 from tournament_scheduler.hosting.coverage import hosting_coverage_matrix
 from tournament_scheduler.hosting.cross_age_repair_apply import attempt_cross_age_repairs
 from tournament_scheduler.models import Roster, SeasonPlan, Team, Tournament
-from tournament_scheduler.season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 from tournament_scheduler.testing.canonical_input import OfflineScheduler
 
 

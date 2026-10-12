@@ -145,18 +145,28 @@ moved one domain slice at a time.
 
 | Package | Owns | Status |
 |---|---|---|
-| `hosting/` | hosting coverage, responsibility, representation and hosting repair providers | moved |
-| `participation/` | participation targets, withdrawals and deviation repair, fairness model/scoring, temporal coverage | moved |
-| `booking/` | calendar availability and bookings, arena conflict detection and the arena-conflict decision record | moved |
+| `planning/` | planning contract (candidate extraction, planning problem, independent hard verifier and scorer) and its distribution blocks, the before/after-Christmas split, final export verification, the Stage 1/2 `season_planner`, participant selection and roster sizing, planner warnings, start date, derived plan state and the canonical date-admissibility policy | moved |
+| `shape/` | tournament shape: hall occupancy contract, roster-shape feasibility, guest slots, round-robin and limited-round game generation, tournament identity | moved |
+| `placement/` | placed/provisional/unplaced normalization, unresolved placement findings and their identity, durable placement infeasibility proofs, same-date participant relocation | moved |
+| `hosting/` | hosting coverage, responsibility, representation, host assignment and candidate ranking, shared/joint-club hosting decisions, hosting repair providers | moved |
+| `participation/` | participation targets, withdrawals and deviation repair, fairness model/scoring, temporal coverage, home representation, club opponent diversity, per-team schedule quality | moved |
+| `booking/` | calendar availability and bookings, arena conflict detection and the arena-conflict decision record, candidate weekends, fixed club ice allocations (Sandefjord) | moved |
+| `clubs/` | RVV club reference data: the club registry (home arenas, calendar sources) and approximate driving distances | moved |
+| `intake/` | season input intake: SharePoint registration import and roster configuration loading | moved |
 | `stage3/` | Stage 3 search: local optimizer, CP-SAT engine and its slot/club-cap/diagnostic helpers, engine dispatch, A/B and shadow comparison, decision context | moved |
-| `planning_contract.py`, `planning_half.py`, `final_verification.py`, `rule_catalog.py` and related flat modules | planning problem, verification and scoring | not yet moved |
-| `canonical_*`, `season_*`, `application/` | canonical season state, maintenance, approvals and requests | not yet moved |
-| `cli/`, `pipeline/`, `html/`, `excel/`, `csv/`, `ical/` | CLI transport, use-case orchestration and rendering/export adapters | layer adapters |
+| `season/` | canonical season state and lifecycle records, promoted-season maintenance with its accepted baseline and context, maintenance findings and their resolution, operational acceptability, approvals, requests, protections and waivers | moved |
+| `repair/` | repair providers (bounded, verified options per finding family) and the dispatch, evaluation, adoption and capability boundary that applies them | moved |
+| `rules/` | the canonical rule catalog (`catalog`), the rules model, operational obligations and the rules report | moved |
+| `scoring/` | shared quality objective vector (`quality_objectives`), the single Pareto dominance relation and bounded down-select (`pareto`), plan metric helpers (`game_metrics`) | moved |
+| `publication/` | sealed-season publication identity and published baseline, reconciliation with canonical mutations, export projection guard, tournament-scoped republish eligibility, publication evidence and export lifecycle manifests | moved |
+| `models.py`, `interfaces.py`, `scheduler.py` | shared tournament data model, abstract component interfaces and the scheduler orchestrator | kept at root deliberately (shared kernel and orchestration) |
+| `application/` | canonical use-case orchestration and typed capabilities | layer (application) |
+| `cli/`, `pipeline/`, `html/`, `excel/`, `csv/`, `ical/`, `data_sources/`, `infrastructure/` | CLI transport, pipeline orchestration, rendering/export adapters, calendar scraping, persistence | layer adapters |
 
-Layer rules for domain packages (`hosting/`, `participation/`): they must not import
-from `tournament_scheduler.cli` or `tournament_scheduler.infrastructure`. The locality
-guards in `tests/test_hosting_package_layout.py` and
-`tests/test_participation_package_layout.py` enforce the placement and the import rule.
+Layer rules for domain packages: they must not import from `tournament_scheduler.cli` or `tournament_scheduler.infrastructure`. Each domain package has a locality guard `tests/test_<package>_package_layout.py` that pins its module set, keeps the flat modules from reappearing at the package root, and blocks imports of the CLI and infrastructure layers.
+
+
+Recorded exceptions: `publication/` still reaches outward for a few existing dependencies, tracked for follow-up rather than enforced by the locality guard: `pipeline/fingerprints` (stable payload hashing), `html` (the cancelled-tournaments filename constant), `hosting` and `season` helpers, and, lazily, `application/canonical_season/store_facade` (booking status and decision loads in `scope`). The publication-lifecycle orchestration that imports the canonical season store stays in `pipeline/publication_lifecycle`.
 
 ## Scheduling-rule implementation map
 
@@ -200,7 +210,7 @@ Generators and optimizers may consume these rules to construct candidates, but t
 
 ### Canonical rule catalog
 
-`tournament_scheduler/rule_catalog.py` is the one searchable, metadata-only registry of every active scheduling semantic: its stable ID, primary classification (`hard_constraint`, `operational_obligation`, `soft_objective`, `operator_decision`, `fact_evidence_semantic`), meaning, canonical owner/facade, input source, verifier/measurement owner, mutation/search providers, evidence projection, tests, status and the small amount of `precedes`/`depends_on` precedence that actually matters. The generated agent-facing table lives in [`architecture/rule-catalog.md`](architecture/rule-catalog.md) and is kept current by `scripts/render-rule-catalog.py`.
+`tournament_scheduler/rules/catalog.py` is the one searchable, metadata-only registry of every active scheduling semantic: its stable ID, primary classification (`hard_constraint`, `operational_obligation`, `soft_objective`, `operator_decision`, `fact_evidence_semantic`), meaning, canonical owner/facade, input source, verifier/measurement owner, mutation/search providers, evidence projection, tests, status and the small amount of `precedes`/`depends_on` precedence that actually matters. The generated agent-facing table lives in [`architecture/rule-catalog.md`](architecture/rule-catalog.md) and is kept current by `scripts/render-rule-catalog.py`.
 
 The catalog is navigation/identity only -- it never verifies, scores or generates rule code; the deterministic implementations it names remain the executable truth. The canonical verifier annotates each returned violation with its stable `rule_id`, the season-findings projector attaches each finding's `rule_id` (plus a `counts_by_rule_id` summary), quality/score metrics carry an `objective_id` for every registered score path, and the per-run Rules ("Regler") model attaches the matching `catalog_id` plus the catalog's classification/meaning/owner. The Regler HTML and rules report also render a reference section generated directly from `rule_catalog.active_catalog_references()`, so the surfaces consume one identity instead of maintaining a second semantic list. `tests/test_rule_catalog.py` guards against duplicate IDs, unregistered public verifier codes or season finding codes, unregistered quality score paths, ambiguous finding-code ownership, invalid precedence references, owner/test drift and a stale generated table.
 
@@ -258,7 +268,7 @@ The strong-goal families are owned the same way. `hosting.balance_repair` turns 
 
 ### Accepted quality debt is one season-quality baseline, not a waiver
 
-A promoted operational season usually carries accepted, non-hard deviations that cannot realistically be eliminated (season capacity, arena availability, excluded weekends, club constraints). Re-surfacing them as open work on every maintenance change makes it hard to tell whether a requested change introduced a *new* problem. The **season quality baseline** (`tournament_scheduler.season_baseline`, lifecycle `CanonicalSeasonService.season_baseline_*`) is the one regression reference for that purpose.
+A promoted operational season usually carries accepted, non-hard deviations that cannot realistically be eliminated (season capacity, arena availability, excluded weekends, club constraints). Re-surfacing them as open work on every maintenance change makes it hard to tell whether a requested change introduced a *new* problem. The **season quality baseline** (`tournament_scheduler.season.accepted_baseline`, lifecycle `CanonicalSeasonService.season_baseline_*`) is the one regression reference for that purpose.
 
 It is deliberately separate from every adjacent concept:
 
@@ -573,11 +583,11 @@ GitHub Pages is a static publication target, not the planning system of record. 
 
 Spond exports and per-club review packets remain private/review artifacts unless deliberately distributed separately. WordPress is the editorial/navigation layer and should link/embed generated Pages output rather than copy schedules by hand.
 
-The publication guard compares the export and canonical state through one versioned full operational tournament projection (stable id, age group, placement, roster identity, canonical occupancy duration/end, cancellation and guest-reservation facts) owned by `pipeline/export_projection_guard`. It reports field-level differences and fails closed on an unknown/incomplete projection schema, so a published booking/timetable fact can never be treated as unchanged merely because placement/participants match. The current-state side of that comparison is the revision-bound **effective** operational projection (`published_baseline.effective_projection_from_canonical_schedule`): the promoted verification problem with the live canonical decision overlays projected in through the one shared overlay facade, exactly as the canonical export path uses it. A schedule-only projection would report an accepted per-tournament ice-time override as stale export drift. The historical baseline is never recomputed with current overlays. A legacy published baseline that predates the versioned projection is backfilled read-only from the historically authoritative canonical schedule at its recorded publication revision; the immutable baseline record is never rewritten and no historical duration or status is invented.
+The publication guard compares the export and canonical state through one versioned full operational tournament projection (stable id, age group, placement, roster identity, canonical occupancy duration/end, cancellation and guest-reservation facts) owned by `publication/projection_guard`. It reports field-level differences and fails closed on an unknown/incomplete projection schema, so a published booking/timetable fact can never be treated as unchanged merely because placement/participants match. The current-state side of that comparison is the revision-bound **effective** operational projection (`publication.baseline.effective_projection_from_canonical_schedule`): the promoted verification problem with the live canonical decision overlays projected in through the one shared overlay facade, exactly as the canonical export path uses it. A schedule-only projection would report an accepted per-tournament ice-time override as stale export drift. The historical baseline is never recomputed with current overlays. A legacy published baseline that predates the versioned projection is backfilled read-only from the historically authoritative canonical schedule at its recorded publication revision; the immutable baseline record is never rewritten and no historical duration or status is invented.
 
 Sealed reconciliation stays a distinct check that replays only authorized schedule mutations. A current active per-tournament ice-time override is applied to the reconciled projection as a decision-backed occupancy change and reported with before/after duration provenance, rather than being silently ignored or failing as unexplained drift; a release event restores the recorded age-group default.
 
-Replacing the public snapshot of a sealed season is owned by `pipeline/publication_lifecycle` and `pipeline/publication_evidence`. The new immutable baseline links the publication it replaced and records the exact stable-id republish delta plus separately-reported approval/booking/protection changes; the before/after record is retained under `season/<season>/evidence/publications/<publication_id>/`. Before replacing `/latest/` the boundary verifies the previous bundle is retained behind an immutable Pages reference (`run_id` / commit / bundle fingerprint) and that its `/runs/<run_id>/` snapshot exists, so rollback stays reachable. A legacy baseline without such a reference fails closed and is backfilled with `season seal-published`; the shared agent procedure is `.agents/commands/rvv-miniputt/republish.md`.
+Replacing the public snapshot of a sealed season is owned by `pipeline/publication_lifecycle` and `publication/evidence`. The new immutable baseline links the publication it replaced and records the exact stable-id republish delta plus separately-reported approval/booking/protection changes; the before/after record is retained under `season/<season>/evidence/publications/<publication_id>/`. Before replacing `/latest/` the boundary verifies the previous bundle is retained behind an immutable Pages reference (`run_id` / commit / bundle fingerprint) and that its `/runs/<run_id>/` snapshot exists, so rollback stays reachable. A legacy baseline without such a reference fails closed and is backfilled with `season seal-published`; the shared agent procedure is `.agents/commands/rvv-miniputt/republish.md`.
 
 ## Generated data
 

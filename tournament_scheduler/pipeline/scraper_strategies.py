@@ -155,7 +155,7 @@ STRATEGIES: dict[str, ScraperStrategy] = {
     # Sandefjord Penguins is intentionally absent here (issue #261): the club
     # has a known fixed weekend ice-time allocation instead of a bookable
     # BookUp calendar, so Stage 2 never needs to scrape or MFA-recover a
-    # Sandefjord BookUp session. See `tournament_scheduler.sandefjord_allocation`.
+    # Sandefjord BookUp session. See `tournament_scheduler.booking.sandefjord_allocation`.
     "Jar": ScraperStrategy(
         engine=CalendarEngine.FORUMBOOKING,
         url="https://www.forumbooking.no/schema.aspx?obj=2&schema=Jarhallen%20(ishall)&kalender=true&safarifix=true",

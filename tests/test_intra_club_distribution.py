@@ -18,19 +18,19 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
-from tournament_scheduler.intra_club_distribution_repair import (
+from tournament_scheduler.repair.intra_club_distribution import (
     apply_intra_club_distribution_repair_option,
     enumerate_intra_club_distribution_repairs,
     intra_club_distribution_finding_id,
 )
-from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
-from tournament_scheduler.season_maintenance import (
+from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
+from tournament_scheduler.season.maintenance import (
     apply_repair,
     list_findings,
     repair_options,
     search,
 )
-from tournament_scheduler.season_state import schedule_fingerprint
+from tournament_scheduler.application.canonical_season.store_facade import schedule_fingerprint
 
 YEAR = "2026-2027"
 

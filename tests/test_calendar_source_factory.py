@@ -2,7 +2,7 @@
 
 import pytest
 
-from tournament_scheduler.club_registry import (
+from tournament_scheduler.clubs.registry import (
     CLUB_REGISTRY,
     CalendarSourceKind,
     ClubCalendarSource,

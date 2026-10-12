@@ -4,32 +4,32 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_baseline import approval_fingerprint, resolve_approval
-from tournament_scheduler.canonical_history_summary import (
+from tournament_scheduler.season.baseline_overlay import approval_fingerprint, resolve_approval
+from tournament_scheduler.season.history_summary import (
     operational_acceptability_summary,
     verification_summary,
 )
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     canonical_state_revision,
     schedule_fingerprint,
 )
-from tournament_scheduler.change_protections import (
+from tournament_scheduler.season.change_protections import (
     append_change_protections,
     build_move_protections,
     protection_violations,
 )
-from tournament_scheduler.request_constraints import (
+from tournament_scheduler.season.request_constraints import (
     compare_request_constraint_violations,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.operational_acceptability import (
+from tournament_scheduler.season.acceptability import (
     check_operational_acceptability,
     required_opt_in_flags,
 )
-from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
-from tournament_scheduler.final_verification import verify_canonical_candidate
+from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
+from tournament_scheduler.planning.verification import verify_canonical_candidate
 
 from .shared import (
     _operator_identity,
@@ -92,7 +92,7 @@ def _apply_move_to_plan(
                     f"the planning window {window_start.isoformat()}\u2013{window_end.isoformat()}"
                 )
             if not allow_cross_half and original_placement.get("date"):
-                from tournament_scheduler import planning_half
+                from tournament_scheduler.planning import half as planning_half
 
                 split = planning_half.christmas_split_date(window_start, window_end)
                 old_half = planning_half.tournament_half(
@@ -107,7 +107,7 @@ def _apply_move_to_plan(
 
     effective_host_club = host_club
     if arena is not None and host_club is None:
-        from tournament_scheduler.club_distances import arena_to_club
+        from tournament_scheduler.clubs.distances import arena_to_club
 
         owner = arena_to_club(arena)
         if owner and owner != target.get("host_club"):

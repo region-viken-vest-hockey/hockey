@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 from tournament_scheduler.conflict_checkers.holiday_checker import HolidayConflictChecker
 from tournament_scheduler.models import CalendarEvent
-from tournament_scheduler.sandefjord_allocation import sandefjord_fixed_busy_events
+from tournament_scheduler.booking.sandefjord_allocation import sandefjord_fixed_busy_events
 from tournament_scheduler.scheduler import TournamentScheduler
 from tournament_scheduler.utils.date_parser import DateParser
 
@@ -70,7 +70,7 @@ class TestFindArenaSlotForDate:
 
     def test_no_arena_has_a_fitting_slot_returns_none(self):
         scheduler = _make_scheduler()
-        from tournament_scheduler.club_registry import CLUB_REGISTRY
+        from tournament_scheduler.clubs.registry import CLUB_REGISTRY
 
         events_by_club = {
             club: _busy_all_day()

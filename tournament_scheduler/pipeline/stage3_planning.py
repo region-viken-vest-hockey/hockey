@@ -1,6 +1,6 @@
 """Stage 3 — deterministic season planning.
 
-Calls :class:`~tournament_scheduler.season_planner.SeasonPlanner` to produce a
+Calls :class:`~tournament_scheduler.planning.season_planner.SeasonPlanner` to produce a
 :class:`~tournament_scheduler.models.SeasonPlan` with built-in deterministic
 quality scores (diversity, balance, pairwise-matchup).
 
@@ -43,10 +43,10 @@ from datetime import date, datetime
 from typing import Any
 import threading
 
-from ..effective_start_date import compute_effective_start_date
+from tournament_scheduler.planning.start_date import compute_effective_start_date
 from tournament_scheduler.participation.fairness_scoring import build_fairness_gate as _build_fairness_gate
 from ..models import SeasonPlan
-from ..season_planner import SeasonPlanner
+from tournament_scheduler.planning.season_planner import SeasonPlanner
 from .fingerprints import stable_payload_sha256
 from .not_started import NOT_STARTED_MESSAGE
 from .state import PipelineState, StageName, StageStatus
@@ -324,7 +324,7 @@ def _adopt_canonical_baseline(
     than raised here -- the normal pre-export hard-verification gate remains
     the single authority that blocks a bad downstream export.
     """
-    from ..planning_contract import build_planning_problem, verify_candidate
+    from ..planning.contract import build_planning_problem, verify_candidate
 
     schedule = canonical_state.get("schedule") or {}
     baseline = canonical_state.get("baseline")
@@ -417,7 +417,7 @@ def run(
         When ``1`` (default), behaviour is identical to the original
         deterministic single-pass run (seed=None).
     today:
-        Override for "today" (issue #272 `effective_start_date` derivation).
+        Override for "today" (issue #272 `planning.start_date` derivation).
         Defaults to the real `Europe/Oslo` date. Tests that model a fixed
         historical season window should pass this explicitly instead of
         relying on the real wall clock.
@@ -495,7 +495,7 @@ def run(
     # The durable canonical files are resolved from the configured season
     # root, independent of `.pipeline`, and the same overlay is folded into
     # the planning problem so locks gate every later search.
-    from ..canonical_baseline import resolve_canonical_season, resolve_canonical_state
+    from ..season.baseline_overlay import resolve_canonical_season, resolve_canonical_state
 
     canonical_season = resolve_canonical_season(config, planning_start.date(), end_date.date())
     canonical_state: dict[str, Any] | None = None

@@ -19,13 +19,13 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_state import canonical_state_revision
-from tournament_scheduler.finding_resolution import is_blocking_finding
+from tournament_scheduler.season.state import canonical_state_revision
+from tournament_scheduler.season.finding_resolution import is_blocking_finding
 from tournament_scheduler.pipeline.export_parity.gate import (
     CanonicalFreshness,
     resolve_canonical_freshness,
 )
-from tournament_scheduler.pipeline.publication_scope import (
+from tournament_scheduler.publication.scope import (
     STATUS_BLOCKED,
     STATUS_ELIGIBLE,
     STATUS_HELD,
@@ -410,12 +410,12 @@ def season_blockers(
     """
 
     try:
-        from tournament_scheduler.season_maintenance import (
+        from tournament_scheduler.season.maintenance import (
             list_findings,
             load_context,
             season_audit,
         )
-        from tournament_scheduler.season_state import (
+        from tournament_scheduler.application.canonical_season.store_facade import (
             publication_evidence_report,
             season_lifecycle_report,
         )

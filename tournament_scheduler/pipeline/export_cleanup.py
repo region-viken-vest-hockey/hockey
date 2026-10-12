@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .export_lifecycle import (
+from tournament_scheduler.publication.export_lifecycle import (
     DRAFT_STATUS,
     PUBLISHED_STATUS,
     SUPERSEDED_STATUS,

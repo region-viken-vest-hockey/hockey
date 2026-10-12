@@ -9,20 +9,26 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "tournament_scheduler"
 PARTICIPATION_DIR = PACKAGE_ROOT / "participation"
 
 PARTICIPATION_MODULES = {
-    "targets",
-    "withdrawals",
     "deviation_repair",
     "fairness_model",
     "fairness_scoring",
+    "home_representation",
+    "opponent_diversity",
+    "targets",
+    "team_schedule_quality",
     "temporal_coverage",
+    "withdrawals",
 }
 
 FLAT_PARTICIPATION_MODULES = {
-    "participation_targets",
-    "participation_withdrawals",
-    "participation_deviation_repair",
     "fairness_model",
     "fairness_scoring",
+    "home_representation",
+    "opponent_diversity",
+    "participation_deviation_repair",
+    "participation_targets",
+    "participation_withdrawals",
+    "team_schedule_quality",
     "temporal_coverage",
 }
 

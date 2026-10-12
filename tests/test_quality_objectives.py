@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from tournament_scheduler.quality_objectives import (
+from tournament_scheduler.scoring.quality_objectives import (
     QUALITY_METRIC_PATHS,
     QUALITY_OBJECTIVE_DIMENSIONS,
     compare_quality_scores,

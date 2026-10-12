@@ -1,0 +1,182 @@
+"""Canonical-season state identity.
+
+Two distinct identities exist for a promoted season and must never be
+conflated:
+
+``schedule_fingerprint``
+    The tournament-content identity. Changing a tournament's content changes
+    it; changing a decision/lock/acceptance does not. It answers "is this the
+    same schedule?" for export, diff and audit.
+
+``canonical_state_revision``
+    The effective canonical-planning-state identity. It combines the schedule
+    fingerprint with the durable decisions, participation acceptances and the
+    promoted verification/problem context, so an approval, lock, acceptance or
+    revoke produces a new revision even though the tournament content is
+    unchanged. Findings/options/actions bind to this revision so a sequential
+    operator decision invalidates previously generated repair options.
+
+Participation acceptance identity is also owned here. Canonical team identity is
+``(club, label, age_group)``, so an acceptance is keyed by all three plus its
+scope; legacy records that omitted ``age_group`` are migrated explicitly rather
+than silently colliding.
+"""
+
+from __future__ import annotations
+
+from typing import Any, Mapping
+
+from tournament_scheduler.booking.calendar_bookings import (
+    CLUB_BOOKING_SOURCE_ASSERTIONS_KEY,
+    MANUAL_BOOKING_ASSERTIONS_KEY,
+)
+from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
+from tournament_scheduler.placement.infeasibility import PROOF_KEY as PLACEMENT_INFEASIBILITY_PROOFS_KEY
+from tournament_scheduler.publication.baseline import SEASON_LIFECYCLE_KEY
+
+CANONICAL_STATE_REVISION_KEY = "canonical_state_revision"
+
+CHANGE_PROTECTIONS_KEY = "change_protections"
+PARTICIPATION_ACCEPTANCES_KEY = "participation_acceptances"
+PARTICIPATION_ACCEPTANCE_PREFIX = "participation_acceptance"
+PARTICIPATION_WITHDRAWALS_KEY = "participation_withdrawals"
+REQUEST_CONSTRAINTS_KEY = "request_constraints"
+BANNED_DATES_KEY = "banned_dates"
+HOLIDAY_DATE_EXCEPTIONS_KEY = "holiday_date_exceptions"
+SEASON_BASELINE_KEY = "season_baseline"
+SEASON_BASELINE_HISTORY_KEY = "season_baseline_history"
+CALENDAR_BOOKING_ASSOCIATIONS_KEY = "calendar_booking_associations"
+ICE_TIME_OVERRIDES_KEY = "ice_time_minutes_overrides"
+
+
+def schedule_fingerprint(plan_dict: Mapping[str, Any]) -> str:
+    """Return the tournament-content fingerprint of a plan payload."""
+
+    return stable_payload_sha256(plan_dict.get("tournaments", []))
+
+
+def compute_canonical_state_revision(
+    schedule: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+) -> str:
+    """Return the effective canonical-state revision for a snapshot.
+
+    The projection deliberately names only semantically relevant fields, so the
+    result is a pure function of durable state (never of the previously stored
+    revision or of volatile write timestamps).
+    """
+
+    payload = {
+        "schedule_fingerprint": schedule_fingerprint(schedule.get("plan") or {}),
+        "decisions": decisions.get("decisions") or {},
+        "participation_acceptances": decisions.get(PARTICIPATION_ACCEPTANCES_KEY) or [],
+        "participation_withdrawals": decisions.get(PARTICIPATION_WITHDRAWALS_KEY) or [],
+        "change_protections": decisions.get(CHANGE_PROTECTIONS_KEY) or [],
+        "request_constraints": decisions.get(REQUEST_CONSTRAINTS_KEY) or [],
+        "banned_dates": decisions.get(BANNED_DATES_KEY) or [],
+        "holiday_date_exceptions": decisions.get(HOLIDAY_DATE_EXCEPTIONS_KEY) or [],
+        "season_baseline": decisions.get(SEASON_BASELINE_KEY) or {},
+        "season_baseline_history": decisions.get(SEASON_BASELINE_HISTORY_KEY) or [],
+        "season_lifecycle": decisions.get(SEASON_LIFECYCLE_KEY) or {},
+        "calendar_booking_associations": decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or [],
+        "manual_booking_assertions": decisions.get(MANUAL_BOOKING_ASSERTIONS_KEY) or [],
+        "ice_time_minutes_overrides": decisions.get(ICE_TIME_OVERRIDES_KEY) or [],
+        "verification_context": schedule.get("verification_context"),
+    }
+    # Included only when present so adding the club-wide source overlay does not
+    # silently rewrite the revision of an existing season that has no source
+    # record; recording/clearing one does advance the revision as any other
+    # semantic decision would.
+    club_booking_sources = decisions.get(CLUB_BOOKING_SOURCE_ASSERTIONS_KEY)
+    if club_booking_sources:
+        payload["club_booking_source_assertions"] = club_booking_sources
+    # Durable placement-infeasibility proofs are part of the effective canonical
+    # state once recorded, but an empty key must not silently rewrite an older
+    # season's revision (same reasoning as the club-booking source overlay).
+    placement_infeasibility_proofs = decisions.get(PLACEMENT_INFEASIBILITY_PROOFS_KEY)
+    if placement_infeasibility_proofs:
+        payload["placement_infeasibility_proofs"] = placement_infeasibility_proofs
+    return stable_payload_sha256(payload)
+
+
+def canonical_state_revision(
+    schedule: Mapping[str, Any],
+    decisions: Mapping[str, Any] | None = None,
+) -> str:
+    """Return the effective revision readers should bind to.
+
+    Seasons written by the canonical mutation service carry an explicit
+    ``canonical_state_revision``. Older promoted files do not, so they fall back
+    to the schedule content revision; the value converges on the first write
+    through :class:`~tournament_scheduler.application.canonical_season_service.CanonicalSeasonService`.
+    """
+
+    resolved_decisions = decisions if isinstance(decisions, Mapping) else {}
+    stored = resolved_decisions.get(CANONICAL_STATE_REVISION_KEY) or schedule.get(
+        CANONICAL_STATE_REVISION_KEY
+    )
+    if stored:
+        return str(stored)
+    return str(schedule.get("revision") or schedule.get("fingerprint") or "")
+
+
+def participation_acceptance_id(club: str, label: str, age_group: str, scope: str) -> str:
+    """Stable identity for one accepted team/scope participation deviation."""
+
+    return f"{PARTICIPATION_ACCEPTANCE_PREFIX}:{club}:{label}:{age_group}:{scope}"
+
+
+def migrate_participation_acceptance_ids(decisions: dict[str, Any]) -> list[str]:
+    """Rewrite legacy acceptance ids to include ``age_group``.
+
+    Legacy ids omitted the age group, so the same club/label/scope in two age
+    groups could collide. The record already stores ``age_group``; the migration
+    recomputes the id from it and keeps the old value for audit. Returns the ids
+    that were migrated.
+    """
+
+    records = decisions.get(PARTICIPATION_ACCEPTANCES_KEY)
+    if not isinstance(records, list):
+        return []
+    migrated: list[str] = []
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        club = str(record.get("club") or "")
+        label = str(record.get("label") or "")
+        age_group = str(record.get("age_group") or "")
+        scope = str(record.get("scope") or "")
+        if not (club and label and age_group and scope):
+            continue
+        expected = participation_acceptance_id(club, label, age_group, scope)
+        current = str(record.get("id") or "")
+        if current == expected:
+            continue
+        record["id"] = expected
+        if current:
+            record.setdefault("migrated_from", current)
+        migrated.append(expected)
+    return migrated
+
+
+__all__ = [
+    "BANNED_DATES_KEY",
+    "CALENDAR_BOOKING_ASSOCIATIONS_KEY",
+    "CANONICAL_STATE_REVISION_KEY",
+    "PLACEMENT_INFEASIBILITY_PROOFS_KEY",
+    "CHANGE_PROTECTIONS_KEY",
+    "CLUB_BOOKING_SOURCE_ASSERTIONS_KEY",
+    "ICE_TIME_OVERRIDES_KEY",
+    "PARTICIPATION_ACCEPTANCES_KEY",
+    "PARTICIPATION_ACCEPTANCE_PREFIX",
+    "PARTICIPATION_WITHDRAWALS_KEY",
+    "REQUEST_CONSTRAINTS_KEY",
+    "SEASON_BASELINE_KEY",
+    "SEASON_BASELINE_HISTORY_KEY",
+    "SEASON_LIFECYCLE_KEY",
+    "canonical_state_revision",
+    "compute_canonical_state_revision",
+    "migrate_participation_acceptance_ids",
+    "participation_acceptance_id",
+    "schedule_fingerprint",
+]

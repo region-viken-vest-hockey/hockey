@@ -1763,7 +1763,7 @@ class TestSharedHostInteractiveDecision:
     def test_no_judge_and_non_interactive_falls_back_without_pausing(self, state, tmp_path):
         """`_cmd_run` (never interactive) with no headless judge configured:
         matches every other decision point's no-judge legacy fallback --
-        empty decisions, host_assignment.py's deterministic order applies,
+        empty decisions, hosting.assignment.py's deterministic order applies,
         no pause (there is nothing to pause for in this entrypoint)."""
         from datetime import datetime
 
@@ -2367,7 +2367,7 @@ class TestStage3HostTeamMissingRepairContext:
             _stage3_interactive_state_path,
             _write_stage3_interactive_state,
         )
-        from tournament_scheduler.host_team_missing_repair import (
+        from tournament_scheduler.repair.host_team_missing import (
             build_host_team_missing_decision_context,
         )
 
@@ -2441,7 +2441,7 @@ class TestStage3HostTeamMissingRepairContext:
             _stage3_interactive_state_path,
             _write_stage3_interactive_state,
         )
-        from tournament_scheduler.search_neighborhood_repair import (
+        from tournament_scheduler.repair.search_neighborhood import (
             build_search_neighborhood_decision_context,
         )
 
@@ -2587,7 +2587,7 @@ class TestStage3UnderfilledRosterRepairContext:
             _stage3_interactive_state_path,
             _write_stage3_interactive_state,
         )
-        from tournament_scheduler.underfilled_roster_repair import (
+        from tournament_scheduler.repair.underfilled_roster import (
             build_underfilled_roster_decision_context,
         )
 
@@ -2761,7 +2761,7 @@ class TestStage3HostPlacementRepairContext:
             _stage3_interactive_state_path,
             _write_stage3_interactive_state,
         )
-        from tournament_scheduler.host_placement_repair import (
+        from tournament_scheduler.repair.host_placement import (
             build_host_placement_decision_context,
         )
 

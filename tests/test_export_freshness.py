@@ -15,7 +15,7 @@ from tournament_scheduler.application.canonical_season_service import CanonicalS
 from tournament_scheduler.cli.rvv_cli import main
 from tournament_scheduler.pipeline.export_parity.gate import publish_parity_gate
 from tournament_scheduler.pipeline.state import PipelineState, StageName
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     add_banned_date,
     canonical_state_revision,
     load_decisions,
@@ -185,7 +185,7 @@ def test_season_export_fails_closed_when_latch_not_cleared(
     root = _promote(tmp_path)
     export_dir = tmp_path / "canonical-export"
 
-    import tournament_scheduler.season_state as season_state
+    import tournament_scheduler.application.canonical_season.store_facade as season_state
 
     def stale_freshness(*_args, **_kwargs):
         return {
@@ -313,7 +313,7 @@ def test_season_export_is_stale_when_freshness_does_not_cover_artifacts(
     root = _promote(tmp_path)
     export_dir = tmp_path / "canonical-export"
 
-    import tournament_scheduler.season_state as season_state
+    import tournament_scheduler.application.canonical_season.store_facade as season_state
 
     def mismatched_freshness(*_args, **_kwargs):
         return {

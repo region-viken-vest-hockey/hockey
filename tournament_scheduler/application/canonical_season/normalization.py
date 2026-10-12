@@ -5,22 +5,22 @@ from __future__ import annotations
 import copy
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_baseline import (
+from tournament_scheduler.season.baseline_overlay import (
     approval_fingerprint,
     approval_placement_fingerprint,
 )
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     CHANGE_PROTECTIONS_KEY,
     schedule_fingerprint,
 )
-from tournament_scheduler.change_protections import (
+from tournament_scheduler.season.change_protections import (
     ACTIVE as CHANGE_PROTECTION_ACTIVE,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
+from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
 
 from .shared import (
@@ -51,10 +51,10 @@ def normalize_placements(
     the full verifier and the derived projections are recomputed before
     the result is accepted.
     """
-    from tournament_scheduler.placement_normalization import (
+    from tournament_scheduler.placement.normalization import (
         normalize_unplaced_placements,
     )
-    from tournament_scheduler.published_baseline import (
+    from tournament_scheduler.publication.baseline import (
         SeasonSealedError,
         is_published_sealed,
     )
@@ -158,7 +158,7 @@ def normalize_arena_identities(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Re-emit the canonical schedulable arena across a promoted season.
 
-    Arena identity is owned by ``club_registry.canonical_arena_name``: a
+    Arena identity is owned by ``clubs.registry.canonical_arena_name``: a
     tournament already placed at its club's canonical arena is left
     byte-identical, while one at a legacy alias of that same venue (for
     example ``Ringerikshallen`` -> ``Schjongshallen``) is rewritten in
@@ -171,7 +171,7 @@ def normalize_arena_identities(
     so a later repair/replan cannot reintroduce the legacy label.
     """
 
-    from tournament_scheduler.club_registry import canonical_arena_name
+    from tournament_scheduler.clubs.registry import canonical_arena_name
     from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
     snapshot = service.load(season)

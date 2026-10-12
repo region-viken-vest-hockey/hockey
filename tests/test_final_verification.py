@@ -1,4 +1,4 @@
-from tournament_scheduler.final_verification import verify_final_candidate
+from tournament_scheduler.planning.verification import verify_final_candidate
 
 
 def _team(label: str) -> dict:

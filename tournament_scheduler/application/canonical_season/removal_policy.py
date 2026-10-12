@@ -25,7 +25,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
 from tournament_scheduler.participation.withdrawals import is_registered_participant, team_identity
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 
 
 def remaining_team_identities(
@@ -117,7 +117,7 @@ def evaluate_removal_consequences(
     that only lost tournaments is reported separately and never blocks.
     """
 
-    from tournament_scheduler.team_schedule_quality import (
+    from tournament_scheduler.participation.team_schedule_quality import (
         compare_changed_team_schedule_consequence,
     )
 

@@ -1,10 +1,10 @@
-"""Tests for tournament_scheduler.sandefjord_allocation (issue #261)."""
+"""Tests for tournament_scheduler.booking.sandefjord_allocation (issue #261)."""
 
 from __future__ import annotations
 
 from datetime import date, datetime
 
-from tournament_scheduler.sandefjord_allocation import (
+from tournament_scheduler.booking.sandefjord_allocation import (
     SANDEFJORD_ARENA,
     SANDEFJORD_CLUB_NAME,
     sandefjord_fixed_busy_events,
@@ -58,7 +58,7 @@ class TestSandefjordFixedBusyEvents:
         assert slots == []
 
     def test_club_name_matches_registry(self):
-        from tournament_scheduler.club_registry import CLUB_REGISTRY
+        from tournament_scheduler.clubs.registry import CLUB_REGISTRY
 
         assert SANDEFJORD_CLUB_NAME in CLUB_REGISTRY
         assert CLUB_REGISTRY[SANDEFJORD_CLUB_NAME].arena == SANDEFJORD_ARENA

@@ -7,7 +7,7 @@ from tournament_scheduler.application.canonical_season.changes import (
     render_change_log_markdown,
     write_change_log_markdown,
 )
-from tournament_scheduler.canonical_state import canonical_state_revision, schedule_fingerprint
+from tournament_scheduler.season.state import canonical_state_revision, schedule_fingerprint
 from tournament_scheduler.cli.rvv_cli import _cmd_season
 from tournament_scheduler.html import SEASON_CHANGES_FILENAME
 from tournament_scheduler.pipeline.season_changes_view import (
@@ -16,7 +16,7 @@ from tournament_scheduler.pipeline.season_changes_view import (
     status_label,
     write_html,
 )
-from tournament_scheduler.season_state import change_request_ledger
+from tournament_scheduler.application.canonical_season.store_facade import change_request_ledger
 
 
 SEASON = "2026-2027"

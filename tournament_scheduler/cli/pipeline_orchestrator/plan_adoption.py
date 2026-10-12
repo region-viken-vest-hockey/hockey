@@ -60,7 +60,7 @@ def _decide_plan_adoption(
         get_judge_if_headless,
         parse_action_verdict,
     )
-    from ...planning_contract import extract_candidate
+    from ...planning.contract import extract_candidate
     from tournament_scheduler.stage3.ab import build_ab_report
     from tournament_scheduler.stage3.decision import build_stage3_decision_context
 

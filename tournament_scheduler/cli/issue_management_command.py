@@ -23,7 +23,7 @@ def _cmd_season_blockers(args: argparse.Namespace) -> int:
 
 def _cmd_season_findings(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season findings`` — show findings."""
-    from ..season_maintenance import list_findings
+    from ..season.maintenance import list_findings
 
     report = list_findings(args.season, root=args.root)
     if args.json:
@@ -73,7 +73,7 @@ def _cmd_season_findings(args: argparse.Namespace) -> int:
 
 def _cmd_season_audit(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season audit`` — run season audit."""
-    from ..season_maintenance import season_audit
+    from ..season.maintenance import season_audit
 
     report = season_audit(args.season, root=args.root)
     if args.json:
@@ -104,7 +104,7 @@ def _cmd_season_audit(args: argparse.Namespace) -> int:
 def _cmd_season_record_infeasibility(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season record-infeasibility`` — record placement infeasibility proofs."""
     from ..pipeline.state import PipelineState
-    from ..season_maintenance import record_placement_infeasibility_proofs
+    from ..season.maintenance import record_placement_infeasibility_proofs
 
     state = PipelineState(args.work_dir)
     result = record_placement_infeasibility_proofs(
@@ -144,7 +144,7 @@ def _cmd_season_record_infeasibility(args: argparse.Namespace) -> int:
 def _cmd_season_release_infeasibility(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season release-infeasibility`` — release placement infeasibility proofs."""
     from ..pipeline.state import PipelineState
-    from ..season_maintenance import release_placement_infeasibility_proofs
+    from ..season.maintenance import release_placement_infeasibility_proofs
 
     state = PipelineState(args.work_dir)
     result = release_placement_infeasibility_proofs(
@@ -170,7 +170,7 @@ def _cmd_season_release_infeasibility(args: argparse.Namespace) -> int:
 def _cmd_season_infeasibility_report(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season infeasibility-report`` — show infeasibility report."""
     from ..pipeline.state import PipelineState
-    from ..season_maintenance import placement_infeasibility_report
+    from ..season.maintenance import placement_infeasibility_report
 
     state = PipelineState(args.work_dir)
     result = placement_infeasibility_report(

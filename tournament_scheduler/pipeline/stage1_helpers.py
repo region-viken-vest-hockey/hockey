@@ -10,8 +10,8 @@ from typing import Any
 
 from .input_workbook import load_workbook_config
 
-from ..occupancy import governing_minimum_ice_time_minutes, minimum_playing_requirement_minutes
-from ..roster_loader import RosterLoader
+from tournament_scheduler.shape.occupancy import governing_minimum_ice_time_minutes, minimum_playing_requirement_minutes
+from ..intake.roster_loader import RosterLoader
 
 logger = logging.getLogger(__name__)
 

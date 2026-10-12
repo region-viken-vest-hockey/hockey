@@ -1,0 +1,574 @@
+"""Central registry of Region Viken Vest (RVV) clubs and their calendar sources.
+
+This module maps each of the nine RVV clubs (https://www.rvvhockey.no/) to the
+right calendar data-source construction so the rest of the pipeline (season
+planner, conflict checkers, etc.) can simply look a club up by name instead of
+re-deriving URLs / scraper types inline.
+
+Each entry records:
+  - the club's home arena name (used by the season planner to verify that
+    every arena gets at least one tournament)
+  - the kind of calendar source ("outlook" for Outlook/Playwright-based ice
+    halls via `IceHallCalendar` + `CalendarScraper`, "ical" for generic iCal
+    feeds via `ICalScraper`, or "unknown" where no source URL/ID is known yet)
+  - the URL (for "outlook"/generic feeds) or calendar_id (for "ical")
+  - a `skip` flag for clubs that cannot yet be scraped, so the rest of the
+    pipeline can simply filter them out and continue working for the clubs
+    with known sources.
+
+Known/working deterministic sources today include Ringerike/Frisk Asker
+(Teamup iCal), Kongsberg (Outlook iframe), Holmen (Sportello GraphQL), Jar
+(Forumbooking weekly HTML), Skien (BRP/Exigo daily Next.js payload), and Jutul
+(StyledCalendar widget).
+
+Tønsberg uses BookUp's public JavaScript-rendered availability calendar. Stage 2
+reads interval evidence deterministically with Playwright; no account,
+credential, MFA, or session handoff is required. The bounded live refresh does
+not click every interval for contract tenancy details, so the source is not
+trusted as automatic external-blocker or negative-booking proof.
+
+Sandefjord Penguins is *not* a BookUp/credentialed source for the RVV
+Miniputt pipeline (issue #261): the club has a known, fixed weekly ice-time
+allocation instead of a bookable calendar, modelled deterministically in
+`tournament_scheduler.booking.sandefjord_allocation` and fed into Stage 2 as a
+`"fixed_allocation"` source (`pipeline.fixed_allocation_source`). The entry
+below keeps `source`/`kind=OUTLOOK` only so `is_known` stays true for the
+legacy registry consumers that still inspect `CalendarDataSource`; the
+Stage 1-4 pipeline uses the fixed-allocation source instead.
+"""
+
+import logging
+import unicodedata
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Dict, List, Optional, Tuple
+
+from tournament_scheduler.booking.calendar_availability import (
+    CalendarAvailability,
+    CalendarEventClassificationRule,
+)
+
+logger = logging.getLogger(__name__)
+
+
+class CalendarSourceKind(Enum):
+    """The kind of calendar data source a club uses."""
+
+    # Outlook/Playwright-based webkalender, consumed via IceHallCalendar(url, CalendarScraper())
+    OUTLOOK = "outlook"
+    # Generic iCal feed (Google Calendar, Forumbooking, Teamup, etc.), consumed via ICalScraper(calendar_id)
+    ICAL = "ical"
+    # No known calendar source yet — registry entry exists as a documented placeholder
+    UNKNOWN = "unknown"
+
+
+@dataclass(frozen=True)
+class ClubCalendarSource:
+    """Registry entry describing how to build a calendar data source for a club."""
+
+    club: str
+    arena: str
+    kind: CalendarSourceKind
+    # Machine-readable source used by the scraper. For ICAL sources this can
+    # be a Google Calendar ID or direct iCal feed URL.
+    source: Optional[str] = None
+    # Human-readable calendar page used for operator audit/cross-checking.
+    # When omitted, callers should fall back to ``source``.
+    human_url: Optional[str] = None
+    # True when no usable source is known yet — pipeline should skip this club
+    # rather than fail, and surface a TODO so the source can be added later.
+    skip: bool = False
+    note: Optional[str] = None
+    # When set, the iCal scraper will discard any event whose LOCATION field
+    # does not contain this string (case-insensitive substring match). Useful
+    # when a feed covers multiple arenas but RVV can only use one of them.
+    location_filter: Optional[str] = None
+    # When set, the iCal scraper discards any event whose LOCATION field
+    # *does* contain this string (case-insensitive substring match) -- the
+    # inverse of `location_filter`. Useful when a feed is otherwise entirely
+    # one arena's evidence but a minority of entries are actually elsewhere
+    # (e.g. an away fixture whose resource label is suffixed with the
+    # destination city rather than a genuinely distinct LOCATION value that
+    # `location_filter` could select against).
+    location_exclude_substring: Optional[str] = None
+    # issue #264: whether this club's *scraped* calendar entries represent a
+    # generic club allocation it controls (busy in the public/arena calendar
+    # so other bookers can't take it, but usable by the club itself for its
+    # own miniputt tournaments) rather than a genuine external booking. When
+    # True, `pipeline.stage3_helpers._build_club_busy_intervals` tags this
+    # club's busy intervals `"kind": "club_controlled"`, and
+    # `planning.contract.external_calendar_conflict` no longer treats them as
+    # a hard conflict for tournaments this same club hosts (though
+    # `verify_candidate` still records their use for the evidence bundle).
+    # Defaults to False -- flip per club only once a run's calendar evidence
+    # has concretely established club control, never as a blanket
+    # assumption. Deliberately independent of Sandefjord Penguins' fixed
+    # weekly allocation (`booking/sandefjord_allocation.py`): that club's busy
+    # windows represent ice genuinely unavailable to it and must stay a hard
+    # conflict, not club-controlled.
+    club_controlled_calendar: bool = False
+    # Explicit, source/club-configured event-title classification
+    # rules. Each rule matches a normalized substring of an event title and
+    # classifies the interval as ``movable_busy`` (host-controlled ice the
+    # club may displace for an RVV tournament) or ``fixed_busy`` (a genuine
+    # external commitment). Rules are per-club on purpose: the same words can
+    # mean different things at another hall, so there is deliberately no
+    # global phrase table. An unconfigured club keeps every event
+    # ``fixed_busy`` (or ``movable_busy`` when `club_controlled_calendar` is
+    # set, preserving the earlier behavior).
+    event_classification_rules: Tuple[CalendarEventClassificationRule, ...] = field(
+        default_factory=tuple
+    )
+    # issue #274: whether a successful scrape of `source` is trustworthy
+    # enough evidence for *automatic* tournament placement. Separate from
+    # `is_known` on purpose -- a source can return real rows (so the scraper
+    # itself "succeeds") while still not being the calendar that actually
+    # needs to be trusted for booking decisions (e.g. Tønsberg's BookUp URL
+    # currently only exposes generic/public placeholder data, not the full
+    # authenticated booking calendar). Defaults to True; flip to False only
+    # when a club's returned data is known not to be the real, complete
+    # calendar. The club still counts fully toward hosting fairness/coverage
+    # -- this only forces every one of its hosted tournaments into manual
+    # placement (`pipeline.scraper_event_helpers._group_club_calendar_status`).
+    trusted_for_auto_placement: bool = True
+    # issue #279: non-schedulable arena/ownership aliases -- physical venues
+    # this club owns or is historically associated with, but which RVV can
+    # never select as a schedulable tournament arena (e.g. Varner Arena for
+    # Frisk Asker). `club_for_arena()` still resolves these for
+    # ownership/reporting/home-team reverse lookups, but they must never be
+    # written into `arena` itself, since `arena` is what the season planner
+    # and Stage 3 treat as schedulable.
+    non_schedulable_arena_aliases: Tuple[str, ...] = field(default_factory=tuple)
+    # Former names for this club's *same* schedulable arena. Unlike
+    # `non_schedulable_arena_aliases` these are historical labels for the
+    # venue `arena` already names, not a different physical venue: they are
+    # accepted as normalization input (including legacy canonical schedules),
+    # resolve back to this club, and are always rewritten to the canonical
+    # `arena` before any schedulable output. Never emit a legacy alias.
+    legacy_arena_aliases: Tuple[str, ...] = field(default_factory=tuple)
+
+    @property
+    def is_known(self) -> bool:
+        """Whether this club has a usable, known calendar source today."""
+        return not self.skip and self.source is not None
+
+
+# The nine RVV clubs. Order follows the PROJECT.md / plan listing.
+CLUB_REGISTRY: Dict[str, ClubCalendarSource] = {
+    "Ringerike": ClubCalendarSource(
+        club="Ringerike",
+        arena="Schjongshallen",
+        # `Ringerikshallen` is the venue's former name. It stays a recognized
+        # normalization input so historical calendars/schedules resolve to
+        # Ringerike, but canonical schedulable output is always Schjongshallen.
+        legacy_arena_aliases=("Ringerikshallen",),
+        kind=CalendarSourceKind.ICAL,
+        # The public calendar page is the operator-audit view; Teamup exposes
+        # the actual machine-readable iCal export at ics.teamup.com using the
+        # same calendar key.
+        source="https://ics.teamup.com/feed/ksr8bg1tpn5s3npskw/0.ics",
+        human_url="https://teamup.com/ksr8bg1tpn5s3npskw",
+        note="Teamup iCal export feed with explicit human calendar URL for audit/cross-checking.",
+    ),
+    "Tønsberg": ClubCalendarSource(
+        club="Tønsberg",
+        arena="Tonsberghallen",
+        kind=CalendarSourceKind.OUTLOOK,
+        source="https://www.bookup.no/utleie/Index/860#___/view:item/id:860/part:/r:8/mod:book",
+        skip=False,
+        note=(
+            "BookUp SPA -- the public 'Se tilgjengelighet' view returns exact "
+            "per-slot interval evidence without login. Bounded live refresh does "
+            "not click every event for Leietaker/Formål details, so generic "
+            "Booket intervals are not authoritative for automatic placement, "
+            "hard external blockers, or confirmed-not-booked conclusions."
+        ),
+        trusted_for_auto_placement=False,
+    ),
+    "Frisk Asker": ClubCalendarSource(
+        club="Frisk Asker",
+        # RVV can book Askerhallen only.
+        arena="Askerhallen",
+        kind=CalendarSourceKind.ICAL,
+        source="https://ics.teamup.com/feed/ksdwpwxysmxwnuftoy/0.ics",
+        human_url="https://teamup.com/ksdwpwxysmxwnuftoy",
+        skip=False,
+        note=(
+            "This Teamup feed ('Frisk Asker Istider Askerhallen') is Askerhallen-"
+            "only, so no inclusion location filter is applied: every valid "
+            "scraped event counts as Askerhallen availability evidence. "
+            "LOCATION/resource labels are preserved as audit metadata only; "
+            "ambiguous numbered labels, FA resource labels, missing LOCATION, "
+            "or even Varner-like text must not reassign or exclude evidence "
+            "from this configured Askerhallen source. Keep the separate "
+            "Varner Teamup calendar out of this registry entry unless RVV "
+            "explicitly adds a non-schedulable audit source."
+        ),
+        location_filter=None,
+        non_schedulable_arena_aliases=("Varner Arena",),
+    ),
+    "Sandefjord Penguins": ClubCalendarSource(
+        club="Sandefjord Penguins",
+        arena="Bugården ishall",
+        kind=CalendarSourceKind.OUTLOOK,
+        source="https://www.bookup.no/Utleie/#Bug%C3%A5rdshallen___/view:item/id:4497/part:/place:3907:SANDEFJORD/q:sandefjord/r:31/mod:book",
+        skip=False,
+        note=(
+            "Issue #261: the RVV Miniputt pipeline no longer scrapes this "
+            "BookUp URL -- Sandefjord Penguins has a known, fixed weekend "
+            "ice-time allocation instead (see booking/sandefjord_allocation.py), fed "
+            "into Stage 2 via a 'fixed_allocation' source. The BookUp URL is "
+            "kept only so legacy, non-pipeline CLI commands still see this "
+            "club as 'known'."
+        ),
+        # Sandefjord's generated allocation events are deterministic repo
+        # knowledge, not ambiguous scraped titles: encoding them as an
+        # explicit ``fixed_busy`` rule keeps them out of the unclassified
+        # set that a controller may otherwise investigate for an inferred
+        # movable interpretation. This ice is genuinely unavailable to the
+        # club and must never be traded away as host-controlled capacity.
+        event_classification_rules=(
+            CalendarEventClassificationRule(
+                pattern="fast istid",
+                classification=CalendarAvailability.FIXED_BUSY,
+                # No reason text: this rule only pins the deterministic
+                # classification so the interval can never be reinterpreted.
+                # The busy-interval contract is unchanged, so no ``reason``
+                # key is added to the serialized evidence.
+                reason="",
+            ),
+        ),
+    ),
+    "Jar": ClubCalendarSource(
+        club="Jar",
+        arena="Jar Isforum",
+        kind=CalendarSourceKind.OUTLOOK,
+        source="https://www.forumbooking.no/schema.aspx?obj=2&schema=Jarhallen%20(ishall)&kalender=true&safarifix=true",
+        skip=False,
+        note=(
+            "Forumbooking HTML schema viewer -- currently scraped via "
+            "Playwright (iframe-based). Maps to 368 events."
+        ),
+    ),
+    "Holmen": ClubCalendarSource(
+        club="Holmen",
+        arena="Holmen ishall",
+        kind=CalendarSourceKind.OUTLOOK,
+        source="https://kalender.sportello.no/booking/11055",
+        skip=False,
+        note=(
+            "Sportello booking widget -- scraped deterministically via the public GraphQL API. "
+            "Maps to 176 events."
+        ),
+    ),
+    "Skien": ClubCalendarSource(
+        club="Skien",
+        arena="Skien ishall",
+        kind=CalendarSourceKind.OUTLOOK,
+        source="https://skienfritidspark.brp.exigo.no/ishallen",
+        note=(
+            "brp.exigo.no Next.js app with ?date=YYYY-MM-DD parameter -- "
+            "scraped via date-parameter approach."
+        ),
+    ),
+    "Jutul": ClubCalendarSource(
+        club="Jutul",
+        arena="Baerum ishall",
+        kind=CalendarSourceKind.OUTLOOK,
+        source="https://baerumishall.no/kalender/",
+        skip=False,
+        note=(
+            "StyledCalendar JS widget -- needs a browser-capable harness. "
+            "Currently blocked in deterministic scraping (0 events)."
+        ),
+    ),
+    "Kongsberg": ClubCalendarSource(
+        club="Kongsberg",
+        arena="Kongsberghallen",
+        kind=CalendarSourceKind.OUTLOOK,
+        source="https://kongsberghallen.no/webkalender/ishall/",
+        note="Outlook/Playwright-based webkalender (existing integration). Also has a ball hall calendar.",
+        # Kongsberg's "Åpen ishall" (open ice) entries are not
+        # external bookings -- the club controls the slot and may move or
+        # replace the open-ice session to free the hall for an RVV
+        # tournament. Classifying them as movable rather than fixed keeps
+        # Kongsberg's own weekends usable instead of falling to manual
+        # placement while valid host-controlled intervals exist. Explicitly
+        # scoped to Kongsberg/source: another hall could use the same phrase
+        # differently, so this is not a global keyword table.
+        event_classification_rules=(
+            CalendarEventClassificationRule(
+                pattern="åpen ishall",
+                classification=CalendarAvailability.MOVABLE_BUSY,
+                reason=(
+                    "host-controlled open ice; may be moved or replaced for an "
+                    "RVV tournament, subject to Kongsberg confirmation"
+                ),
+            ),
+        ),
+    ),
+}
+
+
+def club_for_source_name(source_name: str) -> Optional[str]:
+    """Map a Stage 1 calendar-source ``name`` to its RVV club name.
+
+    Source names in ``input.xlsx`` are usually the club name itself
+    (e.g. ``"Jutul"``, ``"Frisk Asker"``), but some legacy entries append the
+    arena/hall (e.g. ``"Kongsberg ishall"``, ``"Skien ishall"``). This looks
+    up ``CLUB_REGISTRY`` for an exact match first, then falls back to a
+    case-insensitive prefix match against each registered club name.
+
+    Returns ``None`` if no club matches.
+    """
+    if source_name in CLUB_REGISTRY:
+        return source_name
+
+    canonical = canonicalize_club_name(source_name)
+    if canonical in CLUB_REGISTRY:
+        return canonical
+
+    lowered = source_name.strip().lower()
+    for club_name in CLUB_REGISTRY:
+        if lowered.startswith(club_name.lower()):
+            return club_name
+    return None
+
+
+def canonical_arena_name(arena_name: str) -> Optional[str]:
+    """Return the schedulable, canonical arena string for *arena_name*.
+
+    Resolves a registry arena to itself and a ``legacy_arena_aliases`` entry to
+    its club's canonical :attr:`ClubCalendarSource.arena`. Returns ``None`` for
+    an unrecognized name (including ``non_schedulable_arena_aliases``, which
+    name real but non-schedulable venues and must never be silently rewritten).
+
+    This is the single normalization input for canonical maintenance that needs
+    to re-emit arena identity: an already-canonical name is returned unchanged,
+    so the operation is idempotent and can never convert Schjongshallen back to
+    a legacy alias.
+    """
+    lowered = arena_name.strip().lower()
+    for entry in CLUB_REGISTRY.values():
+        entry_lower = entry.arena.lower()
+        if entry_lower == lowered:
+            return entry.arena
+        parts = [part.strip() for part in entry_lower.split("/")]
+        if lowered in parts:
+            return entry.arena
+        if lowered in (alias.strip().lower() for alias in entry.legacy_arena_aliases):
+            return entry.arena
+    return None
+
+
+def club_for_arena(arena_name: str) -> Optional[str]:
+    """Return the club name that owns *arena_name*, or ``None`` if not found.
+
+    Performs a case-insensitive match against each entry's ``arena`` field in
+    :data:`CLUB_REGISTRY`. This is the authoritative reverse-lookup for
+    resolving a venue name to the owning club; downstream callers should prefer
+    this over maintaining a separate arena→club dictionary.
+
+    Returns the canonical club name (as registered in :data:`CLUB_REGISTRY`)
+    on a match, or ``None`` if no entry matches. Multi-arena labels that are
+    stored as ``"Arena A / Arena B"`` are treated as aliases for each
+    individual component.
+
+    Also resolves ``non_schedulable_arena_aliases`` (issue #279): physical
+    venues a club owns historically/for reporting purposes but that are not
+    schedulable RVV tournament arenas (e.g. Varner Arena for Frisk Asker).
+    This lets ownership/reverse-lookup callers keep working without ever
+    making the alias a schedulable ``arena``.
+
+    Also resolves ``legacy_arena_aliases`` (former names of the club's own
+    schedulable arena, e.g. Ringerikshallen for Ringerike) so historical
+    schedules/evidence still resolve to the owning club even though canonical
+    output never emits the legacy label.
+    """
+    lowered = arena_name.strip().lower()
+    for club_name, entry in CLUB_REGISTRY.items():
+        entry_lower = entry.arena.lower()
+        if entry_lower == lowered:
+            return club_name
+        parts = [part.strip() for part in entry_lower.split("/")]
+        if lowered in parts:
+            return club_name
+        if lowered in (alias.strip().lower() for alias in entry.non_schedulable_arena_aliases):
+            return club_name
+        if lowered in (alias.strip().lower() for alias in entry.legacy_arena_aliases):
+            return club_name
+    return None
+
+
+def arenas_for_date_search(host_club: str) -> List[ClubCalendarSource]:
+    """Return arena candidates for a date/slot search, host first.
+
+    Returns the *host_club*'s own :class:`ClubCalendarSource` entry first
+    (if it has a known calendar source), followed by every other club with a
+    known calendar source as fallback hosts -- in :data:`CLUB_REGISTRY`
+    iteration order.
+
+    This preserves the existing single-arena-per-club model (each registry
+    entry still has exactly one ``arena``); it simply orders the known
+    entries so a slot-finder can try the preferred host first and fall back
+    to other clubs' arenas/calendars for the same date if needed.
+
+    Clubs without a usable calendar source (``skip=True`` or ``source is
+    None``) are omitted entirely, including the host itself if it has no
+    known source.
+
+    Raises ``KeyError`` (via :func:`get_club`) if *host_club* is not in
+    :data:`CLUB_REGISTRY`.
+    """
+    host_entry = get_club(host_club)
+
+    candidates: List[ClubCalendarSource] = []
+    if host_entry.is_known:
+        candidates.append(host_entry)
+
+    for club_name, entry in CLUB_REGISTRY.items():
+        if club_name == host_club:
+            continue
+        if entry.is_known:
+            candidates.append(entry)
+
+    return candidates
+
+
+# Known name variants per canonical RVV club (issue #272). This is the single
+# source of truth for club-identity aliases across the whole pipeline --
+# registration/team import, workbook/Stage 1 roster, Stage 2 calendar/source
+# data, arena lookup, Stage 3 host assignment/fairness, manual-placement
+# diagnostics, and exports/reports all resolve through
+# `canonicalize_club_name`/`get_club` instead of maintaining their own alias
+# tables.
+CLUB_ALIASES: Dict[str, List[str]] = {
+    "Ringerike": [],
+    "Tønsberg": ["Tonsberg"],
+    "Frisk Asker": [],
+    "Sandefjord Penguins": ["Sandefjord", "Sandefjord Penguins Ishockeyklubb"],
+    "Jar": [],
+    "Holmen": [],
+    "Skien": [],
+    "Jutul": [],
+    "Kongsberg": [],
+}
+
+
+def _normalize(text: str) -> str:
+    """Unicode NFKC + casefold + collapsed whitespace."""
+    return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
+
+
+# normalized alias/canonical-name -> canonical name, built once at import time
+_NORMALIZED_LOOKUP: Dict[str, str] = {}
+for _canonical, _aliases in CLUB_ALIASES.items():
+    _NORMALIZED_LOOKUP[_normalize(_canonical)] = _canonical
+    for _alias in _aliases:
+        _NORMALIZED_LOOKUP[_normalize(_alias)] = _canonical
+
+# normalized token set per canonical club, for unique-containment matching
+_CANONICAL_TOKENS: Dict[str, set] = {
+    canonical: set(_normalize(canonical).split()) for canonical in CLUB_ALIASES
+}
+
+
+def canonicalize_club_name(raw: str) -> str:
+    """Resolve *raw* to a canonical RVV club name (issue #272).
+
+    Deterministic resolution order:
+      1. Unicode/case/whitespace normalization.
+      2. Exact canonical-name match.
+      3. Exact alias match.
+      4. Unique word/token containment match (every token of exactly one
+         canonical name is present in *raw*'s tokens).
+      5. Otherwise the name is left unresolved: the whitespace-trimmed
+         original is returned unchanged, and an ambiguous containment match
+         is logged rather than silently guessed at. Fuzzy/Levenshtein
+         matching is intentionally never used here -- see
+         :func:`suggest_club_name` for diagnostics-only suggestions.
+    """
+    cleaned = raw.strip()
+    normalized = _normalize(cleaned)
+    if normalized in _NORMALIZED_LOOKUP:
+        return _NORMALIZED_LOOKUP[normalized]
+
+    raw_tokens = set(normalized.split())
+    matches = [
+        canonical
+        for canonical, tokens in _CANONICAL_TOKENS.items()
+        if tokens and tokens <= raw_tokens
+    ]
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        logger.warning(
+            "Ambiguous club name %r matches multiple canonical clubs %s; leaving unresolved",
+            raw,
+            sorted(matches),
+        )
+    return cleaned
+
+
+def suggest_club_name(raw: str) -> Optional[str]:
+    """Diagnostic-only fuzzy suggestion for an unresolved club name.
+
+    E.g. ``suggest_club_name("Sandefjord Penguns")`` may suggest
+    ``"Sandefjord Penguins"``. This is never used to resolve identity
+    automatically -- only :func:`canonicalize_club_name`'s deterministic
+    steps do that.
+    """
+    import difflib
+
+    normalized = _normalize(raw.strip())
+    best = difflib.get_close_matches(normalized, _NORMALIZED_LOOKUP.keys(), n=1, cutoff=0.75)
+    return _NORMALIZED_LOOKUP[best[0]] if best else None
+
+
+def get_club(name: str) -> ClubCalendarSource:
+    """Look up a club's registry entry by name.
+
+    Raises KeyError with a helpful message if the club is not in the registry.
+    """
+    resolved = canonicalize_club_name(name)
+    try:
+        return CLUB_REGISTRY[resolved]
+    except KeyError:
+        raise KeyError(
+            f"Unknown club '{name}'. Known clubs: {', '.join(sorted(CLUB_REGISTRY))}"
+        )
+
+
+def known_clubs() -> List[ClubCalendarSource]:
+    """Return registry entries for clubs with a usable, known calendar source."""
+    return [entry for entry in CLUB_REGISTRY.values() if entry.is_known]
+
+
+def missing_clubs() -> List[ClubCalendarSource]:
+    """Return registry entries for clubs that are missing a calendar source (skip=True)."""
+    return [entry for entry in CLUB_REGISTRY.values() if entry.skip]
+
+
+def build_data_source(entry: ClubCalendarSource, cache=None):
+    """Construct the appropriate CalendarDataSource for a registry entry.
+
+    Thin wrapper around the registry-driven
+    `data_sources.calendar_source_factory.build_calendar_source`, kept here for
+    backward compatibility with existing callers/tests that import
+    `build_data_source` from `clubs.registry`.
+
+    For OUTLOOK sources this builds an `IceHallCalendar` backed by a shared
+    `OutlookCalendarScraper` (Playwright-based webkalender).
+    For ICAL sources this builds an `IceHallCalendar` backed by an `ICalScraper`
+    constructed from the entry's `source` (calendar_id or feed URL), matching
+    the existing Skien integration pattern.
+
+    Args:
+        entry: The club's `ClubCalendarSource` registry entry.
+        cache: Optional shared `CalendarCache` to back the underlying scraper.
+
+    Returns None for UNKNOWN/skip entries.
+    """
+    from tournament_scheduler.data_sources.calendar_source_factory import build_calendar_source
+
+    return build_calendar_source(entry, cache)

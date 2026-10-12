@@ -5,12 +5,12 @@ from __future__ import annotations
 from datetime import date as _date
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_baseline import approval_fingerprint, resolve_approval
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.baseline_overlay import approval_fingerprint, resolve_approval
+from tournament_scheduler.season.state import (
     canonical_state_revision,
     schedule_fingerprint,
 )
-from tournament_scheduler.guest_slots import (
+from tournament_scheduler.shape.guest_slots import (
     DEFAULT_GUEST_AGE_GROUPS,
     GUEST_SLOT_FILLED,
     GUEST_SLOT_OPEN,
@@ -26,8 +26,8 @@ from tournament_scheduler.guest_slots import (
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.plan_derived_state import reconcile_plan_derived_state
-from tournament_scheduler.final_verification import verify_canonical_candidate
+from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
+from tournament_scheduler.planning.verification import verify_canonical_candidate
 
 from .shared import (
     _operator_identity,
@@ -101,7 +101,7 @@ def guest_slot_candidates(
     resolved_problem = _resolve_plan_problem(schedule, problem, decisions)
     allowed = {str(group) for group in (age_groups or DEFAULT_GUEST_AGE_GROUPS)}
     records = decisions.get("decisions", {}) or {}
-    from tournament_scheduler import planning_half
+    from tournament_scheduler.planning import half as planning_half
 
     start = schedule["plan"].get("start_date")
     end = schedule["plan"].get("end_date")

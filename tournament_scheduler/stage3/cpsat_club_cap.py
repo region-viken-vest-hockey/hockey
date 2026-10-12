@@ -13,7 +13,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
-from tournament_scheduler.planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
+from tournament_scheduler.planning.contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
 
 
 def build_club_excess_terms(model: Any, x: dict, slots, teams_by_age_group: dict) -> list:

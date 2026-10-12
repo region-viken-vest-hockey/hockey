@@ -51,7 +51,7 @@ def resolve_canonical_freshness(
         return CanonicalFreshness()
     root = Path(season_root) if season_root else Path(repo_dir) / "season"
     try:
-        from ...canonical_state import canonical_state_revision
+        from ...season.state import canonical_state_revision
         from ...infrastructure.canonical_season_store import CanonicalSeasonStore
 
         snapshot = CanonicalSeasonStore(root).load(season)
@@ -69,7 +69,7 @@ def resolve_canonical_freshness(
 
 def _manifest_for(export_dir: Path) -> dict[str, Any]:
     try:
-        from ..export_lifecycle import read_export_manifest
+        from tournament_scheduler.publication.export_lifecycle import read_export_manifest
 
         return read_export_manifest(export_dir) or {}
     except Exception:  # noqa: BLE001

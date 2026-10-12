@@ -18,10 +18,10 @@ tournament_scheduler/cli/pipeline_orchestrator/run_command_interactive.py	592
 tournament_scheduler/cli/plan_command.py	906
 tournament_scheduler/cli/plan_critic.py	603
 tournament_scheduler/cli/reporting.py	603
-tournament_scheduler/club_registry.py	574
+tournament_scheduler/clubs/registry.py	574
 tournament_scheduler/excel/plan_exporter.py	577
 tournament_scheduler/participation/fairness_scoring.py	478
-tournament_scheduler/host_assignment.py	444
+tournament_scheduler/hosting/assignment.py	444
 tournament_scheduler/html/data_computation.py	368
 tournament_scheduler/html/html_exporter.py	729
 tournament_scheduler/ical/ical_exporter.py	386
@@ -32,7 +32,7 @@ tournament_scheduler/llm_judge/prompts.py	321
 # `candidate_reallocation_slots` evidence) -- a single dataclass field, not a
 # splittable chunk on its own.
 tournament_scheduler/models.py	513
-tournament_scheduler/participant_selection.py	519
+tournament_scheduler/planning/participant_selection.py	519
 # audit_context.py grew by 44 lines for issue #328 (a new
 # `cross_age_hosting_repairs` pass-through in `_summarize_plan_for_audit`,
 # plus a widened checklist item 2 summary surfacing unresolved obligations
@@ -71,16 +71,16 @@ tournament_scheduler/pipeline/tournament_updater.py	931
 # builds cross-age hosting-repair evidence and attaches it to each unresolved
 # obligation row instead of the bare club/age_group pair) -- a few lines woven
 # into an already-large verification function, not a splittable chunk.
-tournament_scheduler/planning_contract.py	1897
-tournament_scheduler/registrations.py	505
+tournament_scheduler/planning/contract.py	1897
+tournament_scheduler/intake/registrations.py	505
 tournament_scheduler/review/review_packet_exporter.py	446
-tournament_scheduler/rules_model.py	853
+tournament_scheduler/rules/model.py	853
 # season_planner.py was already over this recorded baseline (2188 lines)
 # before issue #328 -- an untracked prior growth this change did not cause
 # and does not attempt to fix. issue #328 itself added the cross-age
 # hosting-repair call site, the enriched coverage-tournament/unresolved-
 # obligation dicts, and their imports (~36 lines) on top of that.
-tournament_scheduler/season_planner.py	2702
+tournament_scheduler/planning/season_planner.py	2702
 tournament_scheduler/spond/spond_exporter.py	449
 tournament_scheduler/stage3/cpsat.py	704
 # stage3/decision.py grew by 1 line for issue #324 (one extra weight-name
@@ -96,7 +96,7 @@ tournament_scheduler/stage3/decision.py	353
 tournament_scheduler/stage3/optimizer.py	2706
 tournament_scheduler/tools/calendar_compare.py	401
 tournament_scheduler/utils/rich_output.py	596
-tournament_scheduler/warnings.py	508
+tournament_scheduler/planning/planner_warnings.py	508
 # Snapshot taken with issue #642: these files already exceeded the 300-line
 # guideline when the ratchet was re-enabled in scripts/check. They are grandfathered
 # at their current size and must shrink, never grow; split them when next touched.
@@ -134,10 +134,10 @@ tournament_scheduler/application/stage3_controller.py	340
 tournament_scheduler/application/stage3_session.py	780
 tournament_scheduler/application/stage3_session_store.py	777
 tournament_scheduler/booking/calendar_bookings.py	2488
-tournament_scheduler/candidate_weekends.py	362
-tournament_scheduler/canonical_baseline.py	684
-tournament_scheduler/canonical_exception_policy.py	430
-tournament_scheduler/change_protections.py	370
+tournament_scheduler/booking/candidate_weekends.py	362
+tournament_scheduler/season/baseline_overlay.py	684
+tournament_scheduler/season/exception_policy.py	430
+tournament_scheduler/season/change_protections.py	370
 tournament_scheduler/cli/pipeline_orchestrator/arena_conflict_decisions.py	350
 tournament_scheduler/cli/pipeline_orchestrator/stage3_capabilities.py	487
 tournament_scheduler/cli/plan_adjustment_commands.py	402
@@ -145,25 +145,25 @@ tournament_scheduler/cli/season_canonical_commands.py	489
 tournament_scheduler/cli/season_command.py	399
 tournament_scheduler/cli/season_lifecycle_command.py	334
 tournament_scheduler/cli/waiver_command.py	463
-tournament_scheduler/coupled_placement_repair.py	1396
-tournament_scheduler/date_policy_relocation.py	449
-tournament_scheduler/final_verification.py	467
-tournament_scheduler/findings_construction.py	885
-tournament_scheduler/guest_slots.py	558
-tournament_scheduler/home_representation_repair.py	1188
-tournament_scheduler/host_placement_repair.py	1121
-tournament_scheduler/host_team_missing_repair.py	835
+tournament_scheduler/repair/coupled_placement.py	1396
+tournament_scheduler/repair/date_policy_relocation.py	449
+tournament_scheduler/planning/verification.py	467
+tournament_scheduler/season/findings.py	885
+tournament_scheduler/shape/guest_slots.py	558
+tournament_scheduler/repair/home_representation.py	1188
+tournament_scheduler/repair/host_placement.py	1121
+tournament_scheduler/repair/host_team_missing.py	835
 tournament_scheduler/hosting/balance_repair.py	579
 tournament_scheduler/hosting/coverage.py	414
 tournament_scheduler/html/renderers/rules_table.py	344
 tournament_scheduler/infrastructure/canonical_season_store.py	674
-tournament_scheduler/intra_club_distribution_repair.py	1046
+tournament_scheduler/repair/intra_club_distribution.py	1046
 tournament_scheduler/llm_judge/audit.py	429
-tournament_scheduler/movable_capacity_repair.py	571
-tournament_scheduler/operator_waivers.py	446
-tournament_scheduler/opponent_diversity.py	390
-tournament_scheduler/participant_roster_repair.py	314
-tournament_scheduler/participant_roster_sizing.py	360
+tournament_scheduler/repair/movable_capacity.py	571
+tournament_scheduler/season/waivers.py	446
+tournament_scheduler/participation/opponent_diversity.py	390
+tournament_scheduler/repair/participant_roster.py	314
+tournament_scheduler/planning/participant_roster_sizing.py	360
 tournament_scheduler/participation/deviation_repair.py	348
 tournament_scheduler/participation/targets.py	1113
 tournament_scheduler/participation/withdrawals.py	695
@@ -171,34 +171,34 @@ tournament_scheduler/pipeline/audit_evidence.py	1034
 tournament_scheduler/pipeline/audit_workflow.py	329
 tournament_scheduler/pipeline/controller_trace.py	467
 tournament_scheduler/pipeline/export_parity/comparator.py	349
-tournament_scheduler/pipeline/export_projection_guard.py	839
+tournament_scheduler/publication/projection_guard.py	839
 tournament_scheduler/pipeline/operator_action_audit.py	523
-tournament_scheduler/pipeline/publication_evidence.py	549
+tournament_scheduler/publication/evidence.py	549
 tournament_scheduler/pipeline/publication_lifecycle.py	404
-tournament_scheduler/pipeline/publication_scope.py	557
+tournament_scheduler/publication/scope.py	557
 tournament_scheduler/pipeline/scraper_bookup.py	425
 tournament_scheduler/pipeline/scraper_outlook.py	528
 tournament_scheduler/pipeline/scraper_styledcalendar.py	377
 tournament_scheduler/pipeline/source_integrity.py	638
 tournament_scheduler/pipeline/stage4_export_manual_schedule.py	429
 tournament_scheduler/pipeline/verification_context.py	303
-tournament_scheduler/placement_infeasibility.py	453
-tournament_scheduler/placement_normalization.py	510
-tournament_scheduler/placement_preserving_roster_repair.py	629
-tournament_scheduler/published_baseline.py	430
-tournament_scheduler/published_mutation_history.py	734
-tournament_scheduler/repair_adoption_guard.py	1248
-tournament_scheduler/repair_application.py	795
-tournament_scheduler/repair_options.py	411
-tournament_scheduler/request_constraints.py	847
-tournament_scheduler/rule_catalog.py	1740
-tournament_scheduler/rules_report_operational_rules.py	312
-tournament_scheduler/search_neighborhood_repair.py	563
-tournament_scheduler/season_baseline.py	341
-tournament_scheduler/season_maintenance.py	772
-tournament_scheduler/season_state.py	1512
+tournament_scheduler/placement/infeasibility.py	453
+tournament_scheduler/placement/normalization.py	510
+tournament_scheduler/repair/placement_preserving_roster.py	629
+tournament_scheduler/publication/baseline.py	430
+tournament_scheduler/publication/mutation_history.py	734
+tournament_scheduler/repair/adoption_guard.py	1248
+tournament_scheduler/repair/apply.py	795
+tournament_scheduler/repair/dispatch.py	411
+tournament_scheduler/season/request_constraints.py	847
+tournament_scheduler/rules/catalog.py	1740
+tournament_scheduler/rules/operational_rules.py	312
+tournament_scheduler/repair/search_neighborhood.py	563
+tournament_scheduler/season/accepted_baseline.py	341
+tournament_scheduler/season/maintenance.py	772
+tournament_scheduler/application/canonical_season/store_facade.py	1512
 tournament_scheduler/serialization/season_plan.py	304
 tournament_scheduler/spond/spond_import.py	312
-tournament_scheduler/team_schedule_quality.py	1002
-tournament_scheduler/underfilled_roster_repair.py	672
-tournament_scheduler/unplaced_placement_repair.py	1103
+tournament_scheduler/participation/team_schedule_quality.py	1002
+tournament_scheduler/repair/underfilled_roster.py	672
+tournament_scheduler/repair/unplaced_placement.py	1103

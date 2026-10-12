@@ -6,14 +6,14 @@ from pathlib import Path
 import pytest
 
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.request_constraints import (
+from tournament_scheduler.season.request_constraints import (
     RequestConstraintError,
     compare_constraint_violations,
     constraint_id,
     constraint_violations,
     validate_and_normalize,
 )
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     add_request_constraint,
     apply_candidate,

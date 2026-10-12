@@ -26,8 +26,8 @@ def _baseline_hard_violations_for_plan(
     if plan is None:
         return []
     try:
-        from ...final_verification import verify_final_candidate
-        from ...planning_contract import extract_candidate
+        from ...planning.verification import verify_final_candidate
+        from ...planning.contract import extract_candidate
 
         candidate = extract_candidate(plan)
     except (ValueError, KeyError):

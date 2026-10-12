@@ -9,7 +9,7 @@ ortools = pytest.importorskip(
 )
 from ortools.sat.python import cp_model
 
-from tournament_scheduler.planning_contract import score_candidate, verify_candidate
+from tournament_scheduler.planning.contract import score_candidate, verify_candidate
 from tournament_scheduler.stage3.cpsat import (
     CpSatNoCandidate,
     optimize_candidate_cp_sat,

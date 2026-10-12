@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from tournament_scheduler.canonical_baseline import SEASON_ROOT_ENV_VAR
+from tournament_scheduler.season.baseline_overlay import SEASON_ROOT_ENV_VAR
 from tournament_scheduler.testing.canonical_input import (
     build_canonical_planner,
     canonical_input_has_teams,

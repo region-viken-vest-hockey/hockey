@@ -1,12 +1,12 @@
-"""Tests for the roster config loader (roster_loader.py)."""
+"""Tests for the roster config loader (intake/roster_loader.py)."""
 
 import json
 
 import pytest
 
 from tournament_scheduler.models import Roster, Team
-from tournament_scheduler.roster_loader import RosterConfigError, RosterLoader
-from tournament_scheduler.season_config import _YAML_AVAILABLE
+from tournament_scheduler.intake.roster_loader import RosterConfigError, RosterLoader
+from tournament_scheduler.season.config import _YAML_AVAILABLE
 
 VALID_CONFIG = {
     "Jar": {"U10": ["Jar 1", "Jar 2"], "U11": ["Jar 1"]},

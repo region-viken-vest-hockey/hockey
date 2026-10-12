@@ -14,21 +14,21 @@ from pathlib import Path
 import pytest
 
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
-from tournament_scheduler.guest_slots import (
+from tournament_scheduler.shape.guest_slots import (
     active_guest_slot_count,
     guest_slot_summary,
     open_guest_slot_count,
     rvv_team_count,
 )
-from tournament_scheduler.game_generation import generate_tournament_games
+from tournament_scheduler.shape.game_generation import generate_tournament_games
 from tournament_scheduler.html.html_exporter import HtmlExporter
 from tournament_scheduler.models import Team, Tournament
 from tournament_scheduler.participation.targets import evaluate_participation
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.review.review_packet_exporter import ReviewPacketExporter
 from tournament_scheduler.serialization.season_plan import season_plan_from_dict, season_plan_to_dict
-from tournament_scheduler.season_state import (
+from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     apply_candidate,
     fill_guest_slot,
@@ -43,7 +43,7 @@ from tournament_scheduler.testing.reviewed_export import (
     build_problem_from_candidate,
     write_reviewed_stage4_export,
 )
-from tournament_scheduler.underfilled_roster_repair import enumerate_underfilled_roster_repairs
+from tournament_scheduler.repair.underfilled_roster import enumerate_underfilled_roster_repairs
 
 
 def _round_robin(teams: list[dict]) -> list[dict]:
@@ -460,7 +460,7 @@ def test_html_export_shows_open_and_filled_guest_places(tmp_path: Path) -> None:
 
 
 def test_final_verification_accepts_open_reservation(tmp_path: Path) -> None:
-    from tournament_scheduler.final_verification import verify_final_candidate
+    from tournament_scheduler.planning.verification import verify_final_candidate
 
     _work_dir, root, problem = _spare_capacity_case(tmp_path)
     schedule = reserve_guest_slot(
@@ -569,7 +569,7 @@ def test_review_packet_workbook_shows_guest_places(tmp_path: Path) -> None:
 
 
 def _codes(tournaments) -> set[str]:
-    from tournament_scheduler.guest_slots import guest_reservation_integrity_violations
+    from tournament_scheduler.shape.guest_slots import guest_reservation_integrity_violations
 
     return {
         violation["code"]
@@ -584,7 +584,7 @@ def test_guest_reservation_integrity_requires_filled_records_to_match_guests() -
     reservation or dropping a malformed record consumed/introduced a place
     outside the reserve/fill/release lifecycle and must fail the verifier.
     """
-    from tournament_scheduler.guest_slots import guest_reservation_integrity_violations
+    from tournament_scheduler.shape.guest_slots import guest_reservation_integrity_violations
 
     filled_slot = {
         "id": "guest:1",
@@ -654,7 +654,7 @@ def test_guest_reservation_integrity_requires_filled_records_to_match_guests() -
 
 
 def test_guest_reservation_integrity_rejects_malformed_explicit_records() -> None:
-    from tournament_scheduler.guest_slots import guest_reservation_integrity_violations
+    from tournament_scheduler.shape.guest_slots import guest_reservation_integrity_violations
 
     malformed = _candidate(["A1", "B1", "C1"])
     malformed["tournaments"][0]["guest_slots"] = [
@@ -669,7 +669,7 @@ def test_guest_reservation_integrity_rejects_malformed_explicit_records() -> Non
     }
 
     # A present-but-non-list value must not be reinterpreted as the legacy
-    # integer-only payload; absent guest_slots stays compatible.
+    # integer-only payload; absent shape.guest_slots stays compatible.
     for bad_value in ({"id": "g1", "status": "filled"}, "corrupt", None):
         wrong_type = _candidate(["A1", "B1", "C1"])
         wrong_type["tournaments"][0]["guest_slots"] = bad_value

@@ -14,15 +14,15 @@ from pathlib import Path
 
 import pytest
 
-from tournament_scheduler.operational_acceptability import (
+from tournament_scheduler.season.acceptability import (
     CATEGORY_FIXED_BUSY_PLACEMENT,
     CATEGORY_HOST_CONFIRMATION_DEPENDENCY,
     CATEGORY_UNRESOLVED_PLACEMENT_OBLIGATION,
     check_operational_acceptability,
     operational_placement_profile,
 )
-from tournament_scheduler.planning_contract import verify_candidate
-from tournament_scheduler.season_state import (
+from tournament_scheduler.planning.contract import verify_candidate
+from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     apply_candidate,
     load_schedule,

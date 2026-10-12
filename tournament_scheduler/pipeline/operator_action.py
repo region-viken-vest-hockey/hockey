@@ -625,7 +625,7 @@ def _execute_publish_pages(
     # existing sanitization/audit/approval gates. A FAIL or NOT_CHECKABLE result
     # blocks publication instead of silently publishing a mismatched or stale
     # Excel/HTML pair.
-    from .export_lifecycle import read_export_manifest
+    from tournament_scheduler.publication.export_lifecycle import read_export_manifest
     from .export_parity.gate import (
         is_canonical_export_checkpoint,
         is_canonical_season_manifest,
@@ -896,7 +896,7 @@ def _execute_publish_pages(
     if publish_result.status in ("ok", "warning"):
         publication_state_error: Exception | None = None
         try:
-            from .export_lifecycle import promote_export_manifest, read_export_manifest
+            from tournament_scheduler.publication.export_lifecycle import promote_export_manifest, read_export_manifest
 
             if read_export_manifest(export_dir) is not None:
                 source_run_id = RunManifest(work_dir).read().get("run_id")

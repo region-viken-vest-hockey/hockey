@@ -19,22 +19,22 @@ import copy
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
-from tournament_scheduler.canonical_baseline import (
+from tournament_scheduler.season.baseline_overlay import (
     build_canonical_baseline,
     change_cost,
     verify_canonical_locks,
 )
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     canonical_state_revision,
     schedule_fingerprint,
 )
-from tournament_scheduler.change_protections import (
+from tournament_scheduler.season.change_protections import (
     MUST_NOT_PARTICIPATE,
     active_change_protections,
     build_net_roster_protections,
     protection_violations,
 )
-from tournament_scheduler.guest_slots import release_guest_slots_for_cancellation
+from tournament_scheduler.shape.guest_slots import release_guest_slots_for_cancellation
 from tournament_scheduler.hosting.responsibility import (
     unexplained_responsibility_transfers,
 )
@@ -47,8 +47,8 @@ from tournament_scheduler.participation.withdrawals import (
     project_into_problem,
 )
 
-from tournament_scheduler.final_verification import verify_canonical_candidate
-from tournament_scheduler.request_constraints import compare_request_constraint_violations
+from tournament_scheduler.planning.verification import verify_canonical_candidate
+from tournament_scheduler.season.request_constraints import compare_request_constraint_violations
 
 from .shared import (
     _now_iso,
@@ -296,7 +296,7 @@ def _compute_before_fingerprints(
     decisions: Mapping[str, Any],
 ) -> None:
     """Populate before_fingerprint for each tournament using approval_fingerprint."""
-    from tournament_scheduler.canonical_baseline import approval_fingerprint
+    from tournament_scheduler.season.baseline_overlay import approval_fingerprint
 
     for tournament in tournaments:
         decision = decisions.get("decisions", {}).get(tournament.tournament_id, {})

@@ -3,7 +3,7 @@
 The historical writer embedded a full whole-season ``verify_candidate`` result
 inside every ``move`` history entry, which duplicates the same payload per move
 and dominates ``decisions.json``. The current writer persists a bounded
-:func:`~tournament_scheduler.canonical_history_summary.verification_summary`
+:func:`~tournament_scheduler.season.history_summary.verification_summary`
 instead. This module owns the deliberate migration of the already-oversized
 history: it preserves every replay-critical history event in order, moves the
 exact old evidence into the durable content-addressed archive, replaces the
@@ -28,8 +28,8 @@ import json
 from copy import deepcopy
 from typing import Any, Mapping
 
-from tournament_scheduler.canonical_history_summary import verification_summary
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.history_summary import verification_summary
+from tournament_scheduler.season.state import (
     CANONICAL_STATE_REVISION_KEY,
     compute_canonical_state_revision,
     migrate_participation_acceptance_ids,
@@ -48,13 +48,13 @@ from tournament_scheduler.infrastructure.canonical_evidence_archive import (
 from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
-from tournament_scheduler.canonical_ice_time_overrides import active_overrides
-from tournament_scheduler.published_baseline import (
+from tournament_scheduler.season.ice_time_overrides import active_overrides
+from tournament_scheduler.publication.baseline import (
     active_baseline,
     effective_projection_from_canonical_schedule,
     is_published_sealed,
 )
-from tournament_scheduler.published_mutation_history import reconcile_published_baseline
+from tournament_scheduler.publication.mutation_history import reconcile_published_baseline
 
 from .shared import _now_iso, _operator_identity, published_baseline_reconciliation
 
@@ -410,7 +410,7 @@ def history_inventory(
 ) -> dict[str, Any]:
     """Return a read-only size/shape inventory for one season and its artifacts."""
 
-    from tournament_scheduler.canonical_inventory import history_inventory as _inventory
+    from tournament_scheduler.application.canonical_season.inventory import history_inventory as _inventory
 
     return _inventory(
         season,

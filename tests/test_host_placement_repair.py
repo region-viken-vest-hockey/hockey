@@ -3,17 +3,17 @@
 from copy import deepcopy
 
 from tournament_scheduler.application.decisions import DecisionAction, decide
-from tournament_scheduler.host_placement_repair import (
+from tournament_scheduler.repair.host_placement import (
     apply_host_placement_repair_option,
     build_host_placement_decision_context,
     collect_candidate_weekend_evidence,
     enumerate_host_placement_repairs,
 )
-from tournament_scheduler.local_repair_options import (
+from tournament_scheduler.repair.local_options import (
     apply_local_repair_option,
     enumerate_local_repair_options,
 )
-from tournament_scheduler.planning_contract import verify_candidate
+from tournament_scheduler.planning.contract import verify_candidate
 
 MANUAL_REASON = "Ingen verifisert ledig istid for H 2026-01-10 — turneringen må plasseres manuelt."
 

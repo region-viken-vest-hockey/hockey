@@ -18,8 +18,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from ..effective_tournament_shape import compute_effective_tournament_shape, shape_violation
-from ..guest_slots import (
+from tournament_scheduler.shape.effective_shape import compute_effective_tournament_shape, shape_violation
+from tournament_scheduler.shape.guest_slots import (
     active_guest_slot_count,
     guest_slot_records,
     has_open_guest_slots,
@@ -28,11 +28,11 @@ from ..guest_slots import (
     rvv_team_count,
 )
 from tournament_scheduler.hosting.representation import clubs_represent_same_club
-from ..plan_derived_state import (
+from tournament_scheduler.planning.derived_state import (
     publication_readiness_with_plan_placements,
     reconcile_plan_derived_state,
 )
-from ..planning_contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
+from ..planning.contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
 from tournament_scheduler.participation.targets import INTRA_CLUB_DISTRIBUTION
 from tournament_scheduler.participation.withdrawals import withdrawn_team_count_for_tournament
 from . import audit_evidence
@@ -521,7 +521,7 @@ def _collect_plan_audit_facts(
     # issue #408: intra-club home representation. The registered roster is
     # required to know the sibling pool, so this degrades gracefully to an
     # empty list when the config checkpoint carries no teams.
-    from tournament_scheduler.home_representation import home_representation_rows
+    from tournament_scheduler.participation.home_representation import home_representation_rows
 
     home_representation = home_representation_rows(registered_teams, tournaments)
 
@@ -931,7 +931,7 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
     elif isinstance(plan_dict, dict) and plan_dict.get("operator_waivers"):
         operator_waivers = list(plan_dict.get("operator_waivers") or [])
     else:
-        from ..operator_waivers import load_active_waivers, waiver_audit_rows
+        from ..season.waivers import load_active_waivers, waiver_audit_rows
 
         operator_waivers = waiver_audit_rows({"operator_waivers": load_active_waivers(work_dir)})
     publication_readiness = plan_dict.get("publication_readiness") if isinstance(plan_dict, dict) else None
@@ -983,8 +983,8 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
         export_checkpoint.get("canonical_season") if isinstance(export_checkpoint, dict) else None
     )
     if canonical_season and isinstance(plan_dict, dict):
-        from ..canonical_baseline import default_season_root
-        from .publication_scope import resolve_publication_scope
+        from ..season.baseline_overlay import default_season_root
+        from tournament_scheduler.publication.scope import resolve_publication_scope
 
         bound_problem = verification_problem
         readiness_reasons = (

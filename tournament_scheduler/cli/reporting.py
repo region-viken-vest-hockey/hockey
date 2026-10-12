@@ -190,7 +190,7 @@ def _build_status_text(work_dir: Path) -> str:
                 )
 
     try:
-        from ..pipeline.export_lifecycle import find_export_manifests
+        from tournament_scheduler.publication.export_lifecycle import find_export_manifests
 
         export_records = find_export_manifests(work_dir.parent / "export")
     except Exception:

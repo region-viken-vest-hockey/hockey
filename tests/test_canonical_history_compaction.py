@@ -20,12 +20,12 @@ import pytest
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
-from tournament_scheduler.season_state import load_decisions, move_tournament, promote_from_stage3
-from tournament_scheduler.canonical_history_summary import (
+from tournament_scheduler.application.canonical_season.store_facade import load_decisions, move_tournament, promote_from_stage3
+from tournament_scheduler.season.history_summary import (
     verification_hash,
     verification_summary,
 )
-from tournament_scheduler.canonical_state import (
+from tournament_scheduler.season.state import (
     CANONICAL_STATE_REVISION_KEY,
     PARTICIPATION_ACCEPTANCES_KEY,
     compute_canonical_state_revision,
@@ -42,7 +42,7 @@ from tournament_scheduler.infrastructure.canonical_evidence_archive import (
     moves_dir,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
-from tournament_scheduler.published_mutation_history import replay_recorded_mutations
+from tournament_scheduler.publication.mutation_history import replay_recorded_mutations
 
 YEAR = "2026-2027"
 

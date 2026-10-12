@@ -1,7 +1,7 @@
 """Registry-driven factory for building calendar data sources for RVV clubs.
 
 This module centralises the mapping from a `ClubCalendarSource` registry entry
-(`tournament_scheduler.club_registry`) to the concrete, scraper-backed
+(`tournament_scheduler.clubs.registry`) to the concrete, scraper-backed
 `CalendarDataSource` instance the rest of the pipeline (season planner,
 conflict checkers, scheduling command, etc.) actually consumes.
 
@@ -21,7 +21,7 @@ consistent across every club:
 
 `UNKNOWN` and `skip=True` entries have no usable source yet; `build_calendar_source`
 returns `None` for them so callers can simply skip those clubs (mirroring
-`ClubCalendarSource.is_known` / `club_registry.missing_clubs`).
+`ClubCalendarSource.is_known` / `clubs.registry.missing_clubs`).
 
 Note for clubs still pending a discovered source (Holmen, Frisk Asker, Jutul,
 Jar, Tønsberg, Sandefjord Penguins — see notes on each `CLUB_REGISTRY` entry
@@ -37,7 +37,7 @@ club, activating it is just a matter of updating its registry entry
 
 from typing import Dict, List, Optional, Tuple
 
-from tournament_scheduler.club_registry import (
+from tournament_scheduler.clubs.registry import (
     CalendarSourceKind,
     ClubCalendarSource,
     known_clubs,
@@ -71,7 +71,7 @@ def build_calendar_source(
         return None
 
     # Imported lazily to avoid pulling in Playwright/iCal dependencies for
-    # callers that only need the registry (mirrors club_registry.build_data_source).
+    # callers that only need the registry (mirrors clubs.registry.build_data_source).
     from tournament_scheduler.data_sources.calendar_scraper import OutlookCalendarScraper
     from tournament_scheduler.data_sources.ical_scraper import ICalScraper
     from tournament_scheduler.data_sources.ice_hall_calendar import IceHallCalendar
@@ -93,7 +93,7 @@ def build_known_calendar_sources(
 ) -> Tuple[List[CalendarDataSource], Dict[str, CalendarDataSource]]:
     """Build calendar data sources for every club with a usable, known source.
 
-    Loops over `club_registry.known_clubs()` (i.e. every entry where
+    Loops over `clubs.registry.known_clubs()` (i.e. every entry where
     `is_known` is true — `skip=False` and `source` is set) and builds a
     `CalendarDataSource` for each via `build_calendar_source`, sharing a single
     `CalendarCache` across all of them so repeated runs hit the on-disk cache

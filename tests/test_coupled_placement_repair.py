@@ -15,7 +15,7 @@ from typing import Any, Dict, List
 
 import pytest
 
-from tournament_scheduler.coupled_placement_repair import (
+from tournament_scheduler.repair.coupled_placement import (
     CoupledPlacementRepairError,
     apply_coupled_placement_repair_option,
     apply_placement_swap,
@@ -23,19 +23,19 @@ from tournament_scheduler.coupled_placement_repair import (
     placement_swap_consequences,
     resolve_swap_fields,
 )
-from tournament_scheduler.planning_contract import build_planning_problem, verify_candidate
-from tournament_scheduler.repair_adoption_guard import (
+from tournament_scheduler.planning.contract import build_planning_problem, verify_candidate
+from tournament_scheduler.repair.adoption_guard import (
     REGRESSION_TEMPORAL_OFFENDERS,
     REGRESSION_TRAVEL,
     REGRESSION_UNIQUE_OPPONENTS,
 )
-from tournament_scheduler.season_maintenance import (
+from tournament_scheduler.season.maintenance import (
     apply_repair,
     list_findings,
     repair_options,
     search,
 )
-from tournament_scheduler.season_state import load_schedule
+from tournament_scheduler.application.canonical_season.store_facade import load_schedule
 
 YEAR = "2026-2027"
 
@@ -272,7 +272,7 @@ def test_placement_only_conflict_is_repaired_by_same_age_roster_rotation() -> No
 
 
 def test_provider_rejects_a_candidate_that_moves_hosting_responsibility(monkeypatch) -> None:
-    import tournament_scheduler.coupled_placement_repair as module
+    import tournament_scheduler.repair.coupled_placement as module
 
     plan = _coupled_plan()
     problem = _problem()
@@ -478,7 +478,7 @@ def test_bounded_search_reports_exhaustion_not_infeasibility(
 ) -> None:
     # When the configured bounded search runs and produces no verified option,
     # the result is exhaustion of *this* search, never proof of infeasibility.
-    import tournament_scheduler.coupled_placement_repair as module
+    import tournament_scheduler.repair.coupled_placement as module
 
     root, _plan, _problem_dict = _season(tmp_path)
     monkeypatch.setattr(
@@ -579,7 +579,7 @@ def _production_problem() -> Dict[str, Any]:
 
 
 def _production_plan(problem: Dict[str, Any]) -> Dict[str, Any]:
-    from tournament_scheduler.host_team_missing_repair import _regenerate_games
+    from tournament_scheduler.repair.host_team_missing import _regenerate_games
 
     u9 = _production_u9_teams()
     u11_fixed = _production_u11_fixed()
@@ -721,7 +721,7 @@ def _production_roster_repaired_after(
     """The production coupled mutation: swap rvv-0184/rvv-0145 and repair the
     double-booked U11 roster by replacing Ringerike 2 with Frisk Asker 1."""
 
-    from tournament_scheduler.host_team_missing_repair import _regenerate_games
+    from tournament_scheduler.repair.host_team_missing import _regenerate_games
 
     after = apply_placement_swap(plan, "rvv-0184", "rvv-0145")
     by_id = {tournament["id"]: tournament for tournament in after["tournaments"]}
@@ -842,7 +842,7 @@ def test_production_apply_rejects_material_team_regression_directly() -> None:
             }
         },
     }
-    from tournament_scheduler.host_team_missing_repair import candidate_fingerprint
+    from tournament_scheduler.repair.host_team_missing import candidate_fingerprint
 
     applied = apply_coupled_placement_repair_option(
         plan,
@@ -866,8 +866,8 @@ def test_bounded_selection_keeps_safe_candidate_ahead_of_rejected(
     # ranking itself must prefer automatic acceptability: a cheaper, larger
     # focus-improvement candidate that is consequence-rejected must never take
     # the slot a generated safe candidate needs.
-    import tournament_scheduler.coupled_placement_repair as module
-    from tournament_scheduler.host_team_missing_repair import RepairOption
+    import tournament_scheduler.repair.coupled_placement as module
+    from tournament_scheduler.repair.host_team_missing import RepairOption
 
     _root, plan, problem = _season(tmp_path)
     calls = {"n": 0}
@@ -935,8 +935,8 @@ def test_option_rank_orders_acceptability_before_cost() -> None:
     # The full class ordering: automatic-acceptability dominates the #401
     # operational opt-in class, which in turn dominates consequence-rejected
     # candidates even when those are cheaper and improve the focus team more.
-    import tournament_scheduler.coupled_placement_repair as module
-    from tournament_scheduler.host_team_missing_repair import RepairOption
+    import tournament_scheduler.repair.coupled_placement as module
+    from tournament_scheduler.repair.host_team_missing import RepairOption
 
     def option(name: str, *, consequence: bool, opt_in: bool) -> RepairOption:
         return RepairOption(
@@ -1018,7 +1018,7 @@ def _u9_plan(problem: Dict[str, Any], *, siblings_busy: bool) -> Dict[str, Any]:
     are free in the positive scene and already clustered in the negative one.
     """
 
-    from tournament_scheduler.host_team_missing_repair import _regenerate_games
+    from tournament_scheduler.repair.host_team_missing import _regenerate_games
 
     def team(club: str, label: str) -> Dict[str, str]:
         return {"club": club, "label": label, "age_group": "U9"}

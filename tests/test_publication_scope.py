@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tournament_scheduler.canonical_state import schedule_fingerprint
+from tournament_scheduler.season.state import schedule_fingerprint
 from tournament_scheduler.booking.calendar_bookings import (
     TOURNAMENT_BOOKING_EVIDENCE_KEY,
     new_booking_evidence_record,
@@ -26,14 +26,14 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     CanonicalSeasonSnapshot,
     CanonicalSeasonStore,
 )
-from tournament_scheduler.pipeline.publication_scope import (
+from tournament_scheduler.publication.scope import (
     STATUS_BLOCKED,
     STATUS_ELIGIBLE,
     STATUS_HELD,
     STATUS_NOT_CHECKABLE,
     evaluate_publication_scope,
 )
-from tournament_scheduler.published_baseline import build_baseline_record
+from tournament_scheduler.publication.baseline import build_baseline_record
 
 _SEASON = "2026-2027"
 
@@ -131,7 +131,7 @@ def _write_season(
 
 
 def _projection(plan: dict) -> dict:
-    from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
+    from tournament_scheduler.publication.projection_guard import tournament_projection
 
     return tournament_projection(plan, _problem(plan))
 
