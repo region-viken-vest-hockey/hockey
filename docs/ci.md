@@ -153,3 +153,16 @@ a stale PR can't merge past a check that has since caught a regression on
 `main`. The slower/optional workflows above should **not** be added as
 required checks — they're not triggered on every PR and would permanently
 block merging.
+
+## Local pre-push gate and sandboxed harnesses
+
+A global pre-push hook scopes its gate to the push. A push that changes only Markdown under `docs/` or at the repository root runs the cheap gate (`scripts/check lint file-length quick rule-catalog architecture-docs`, about 30 seconds). Any other push runs the full quick PR tier, `make check`: dependency lock, lint, file length, quick tests, rules report, CLI contracts, secret scan. The rules report is the expensive phase, about two and a half minutes. The generated rules report (`docs/rvv-miniputt-rules-report.md`) counts as code, so a push that changes it runs the full gate. An empty push list also runs the full gate. Run `git push` in the foreground with a generous timeout, because a full gate can take five minutes. Never background it.
+
+- **Network:** the `dependency-lock` phase needs `pypi.org` and `files.pythonhosted.org`. Pushes and PR creation need `github.com`. Declare these hosts in the harness's network allowlist for the push command. Do not work around the hook.
+- **Caches:** the hook defaults `PIP_TOOLS_CACHE_DIR`, `PIP_CACHE_DIR` and `MISE_CACHE_DIR` to a writable scratch directory when they are unset. A sandbox that mounts the home cache read-only needs nothing more. Set them yourself only to choose a different location.
+- **Verify the lock first:** `scripts/check dependency-lock` must exit 0 and leave `requirements.lock` unchanged before the push.
+- **Config writes:** in a sandboxed shell, `.git/config.lock` can be mounted and cannot be removed, so any command that writes `.git/config` fails with "could not lock config file". Use `git switch --no-track -c <branch>` and `gh pr create --head <branch>`, which need no upstream. Do not set upstream tracking from inside the sandbox.
+- **Partial success:** if `git push` exits non-zero after the remote branch exists, confirm with `git ls-remote --heads origin <branch>` against `git rev-parse HEAD` before retrying or repeating the push.
+- **Stale locks:** remove `.git/config.lock` only after confirming that no git process holds it. Ask the owner first if the lock is not clearly stale.
+- **Hook location:** the pre-push hook is user-global, at `~/.config/git/hooks/pre-push` (`core.hooksPath`). It is not versioned in this repository, so changes to it stay on that machine. Its directory can be read-only from the Bash sandbox; edit the file with the file-edit tools, not shell redirection.
+- **Bypass:** `SKIP_LOCAL_CHECK=1` skips the local gate. Use it only when the repository owner has decided the gate does not apply.

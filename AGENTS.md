@@ -20,6 +20,10 @@ the human-facing shorthand and delegates to it. Start with `make help`; the
 stable. Behavioral Make-specific safeguards remain in the Makefile/Taskfile
 wrapper where they cannot move cleanly.
 
+### Pushing
+
+Follow the local pre-push gate and the sandboxed-harness notes in [`docs/ci.md`](docs/ci.md#local-pre-push-gate-and-sandboxed-harnesses) before any `git push` or PR creation.
+
 ## Source-of-truth order
 
 When facts/instructions disagree:
