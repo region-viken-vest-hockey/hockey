@@ -18,7 +18,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from tournament_scheduler.rules import catalog
+from tournament_scheduler.rules import catalog, catalog_doc
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -330,7 +330,7 @@ def test_precedence_references_are_registered_and_acyclic() -> None:
 def test_generated_ownership_table_is_current() -> None:
     target = REPO_ROOT / catalog.CATALOG_DOC_PATH
     assert target.exists(), "run scripts/render-rule-catalog.py"
-    assert target.read_text(encoding="utf-8") == catalog.render_markdown(), (
+    assert target.read_text(encoding="utf-8") == catalog_doc.render_markdown(), (
         "docs/architecture/rule-catalog.md is stale; run scripts/render-rule-catalog.py"
     )
 
@@ -404,7 +404,7 @@ def test_publication_readiness_reason_codes_resolve_to_rules() -> None:
 
 
 def test_ownership_table_lists_every_active_rule() -> None:
-    rendered = catalog.render_markdown()
+    rendered = catalog_doc.render_markdown()
     for entry in catalog.RULE_CATALOG:
         if entry.status == catalog.STATUS_ACTIVE:
             assert f"`{entry.id}`" in rendered
@@ -600,3 +600,113 @@ def test_validation_rejects_a_strong_goal_on_a_hard_constraint(monkeypatch) -> N
     monkeypatch.setattr(catalog, "RULE_CATALOG", entries)
     problems = catalog.validate_catalog(REPO_ROOT)
     assert any(problem.startswith(f"{hard.id}: priority tier") for problem in problems)
+
+
+def test_convergence_direction_resolves_through_the_catalog() -> None:
+    from tournament_scheduler.application import pareto_convergence
+
+    assert catalog.convergence_direction_for_finding_code("unplaced_tournament_placement") == (
+        "unplaced_placement"
+    )
+    assert catalog.convergence_direction_for_finding_code("unplaced_placement") is None
+    finding = {"code": "unplaced_tournament_placement", "category": "placement", "finding_id": "f"}
+    assert pareto_convergence.classify_finding(finding).direction == "unplaced_placement"
+    assert not hasattr(pareto_convergence, "DIRECTION_BY_CODE")
+
+
+def test_validation_rejects_a_convergence_direction_for_a_foreign_finding_code(monkeypatch) -> None:
+    import dataclasses
+
+    owner = catalog.CATALOG_BY_ID["tournament_placement_obligation"]
+    broken = dataclasses.replace(
+        owner, convergence_directions=(("hosting_age_group_coverage_missing", "placement"),)
+    )
+    entries = tuple(broken if entry.id == owner.id else entry for entry in catalog.RULE_CATALOG)
+    monkeypatch.setattr(catalog, "RULE_CATALOG", entries)
+    problems = catalog.validate_catalog(REPO_ROOT)
+    assert any("convergence direction for 'hosting_age_group_coverage_missing'" in p for p in problems)
+
+
+# Module-level literal tables outside the catalog that are keyed by, or hold,
+# verifier/finding codes. Each entry names a different identity space (plan
+# field, report dimension, category label) or a known consolidation target.
+# A new entry must be justified here; a new secondary code table otherwise fails.
+_SANCTIONED_CODE_TABLES: dict[tuple[str, str], str] = {
+    (
+        "tournament_scheduler/application/canonical_season/scoped_mutation.py",
+        "_IGNORED_PLAN_FIELDS",
+    ): "plan field names that happen to share spelling with finding codes",
+    (
+        "tournament_scheduler/application/pareto_convergence.py",
+        "DIRECTION_BY_CATEGORY",
+    ): "finding category labels, not finding codes",
+    (
+        "tournament_scheduler/pipeline/audit_evidence.py",
+        "EVIDENCE_CATEGORIES",
+    ): "evidence/checklist projection keyed by finding code; move into the catalog evidence projection",
+    (
+        "tournament_scheduler/repair/evaluation.py",
+        "MAINTENANCE_DEFECT_DIMENSIONS",
+    ): "defect dimension names for repair evaluation",
+    (
+        "tournament_scheduler/season/history_summary.py",
+        "_COUNTED_LIST_FIELDS",
+    ): "verification report field names",
+}
+
+
+def _code_table_hits() -> dict[tuple[str, str], list[str]]:
+    code_strings = {
+        code
+        for entry in catalog.RULE_CATALOG
+        for code in (*entry.verifier_codes, *entry.finding_codes)
+    }
+    hits: dict[tuple[str, str], list[str]] = {}
+    for path in sorted((REPO_ROOT / "tournament_scheduler").rglob("*.py")):
+        relative = path.relative_to(REPO_ROOT).as_posix()
+        if relative == "tournament_scheduler/rules/catalog.py":
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=relative)
+        for node in tree.body:
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
+                continue
+            target = node.targets[0] if isinstance(node, ast.Assign) else node.target
+            if not isinstance(target, ast.Name):
+                continue
+            value = node.value
+            if isinstance(value, ast.Dict):
+                elements = [key for key in value.keys if key is not None]
+            elif isinstance(value, (ast.Set, ast.Tuple, ast.List)):
+                elements = list(value.elts)
+            else:
+                continue
+            found = sorted(
+                {
+                    element.value
+                    for element in elements
+                    if isinstance(element, ast.Constant)
+                    and isinstance(element.value, str)
+                    and element.value in code_strings
+                }
+            )
+            if found:
+                hits[(relative, target.id)] = found
+    return hits
+
+
+def test_no_secondary_verifier_or_finding_code_table_outside_the_catalog() -> None:
+    unsanctioned = sorted(set(_code_table_hits()) - set(_SANCTIONED_CODE_TABLES))
+    assert unsanctioned == [], (
+        "module-level tables keyed by catalog verifier/finding codes must resolve through "
+        "tournament_scheduler/rules/catalog.py or be sanctioned here with a reason: "
+        + ", ".join(f"{path}:{name}" for path, name in unsanctioned)
+    )
+
+
+def test_sanctioned_code_tables_are_not_stale() -> None:
+    stale = sorted(set(_SANCTIONED_CODE_TABLES) - set(_code_table_hits()))
+    assert stale == [], "sanctioned code tables no longer exist or no longer hold catalog codes: " + str(stale)
+
+
+def test_render_check_uses_the_repository_root_by_default() -> None:
+    assert catalog_doc.main(["--check"]) == 0
