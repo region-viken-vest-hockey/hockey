@@ -30,6 +30,7 @@ from typing import Any, Iterable, Mapping, Sequence
 
 from tournament_scheduler.scoring.pareto import dominates, representative_indices, vectors_equal
 from tournament_scheduler.repair.capability import recorded_capability_fingerprint
+from tournament_scheduler.rules.catalog import convergence_direction_for_finding_code
 
 # Bounded frontier size and convergence safeguards. These are the "configured
 # budgets" a terminal reason refers to; hitting one is bounded convergence, not
@@ -84,9 +85,6 @@ DIRECTION_BY_CATEGORY: Mapping[str, str] = {
     "manual_placement": "placement",
     "movable_capacity": "movable_capacity",
     "roster_shape": "roster_shape",
-}
-DIRECTION_BY_CODE: Mapping[str, str] = {
-    "unplaced_tournament_placement": "unplaced_placement",
 }
 GENERIC_DIRECTION = "generic"
 
@@ -347,7 +345,7 @@ def classify_finding(finding: Mapping[str, Any]) -> FindingDirection:
         or finding.get("operator_required")
         or category in OPERATOR_REQUIRED_CATEGORIES
     )
-    direction = DIRECTION_BY_CODE.get(code) or DIRECTION_BY_CATEGORY.get(category) or GENERIC_DIRECTION
+    direction = convergence_direction_for_finding_code(code) or DIRECTION_BY_CATEGORY.get(category, GENERIC_DIRECTION)
     return FindingDirection(
         finding_id=str(finding.get("finding_id") or ""),
         direction=direction,

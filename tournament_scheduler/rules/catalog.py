@@ -29,10 +29,10 @@ Design constraints (from the issue):
   actually matters (for hosting: coverage before proportional balance) without
   becoming a rule engine.
 
-``validate_catalog`` and ``render_markdown`` are consumed by the conformance
-guards in ``tests/test_rule_catalog.py`` and by
-``scripts/render-rule-catalog.py``. The generated agent-facing ownership table
-lives in ``docs/architecture/rule-catalog.md``.
+``validate_catalog`` is consumed by the conformance guards in
+``tests/test_rule_catalog.py``. The generated agent-facing ownership table in
+``docs/architecture/rule-catalog.md`` is rendered by
+``tournament_scheduler.rules.catalog_doc``.
 """
 
 from __future__ import annotations
@@ -83,6 +83,13 @@ TIER_HARD = 0
 TIER_OPERATIONAL_OBLIGATION = 1
 TIER_STRONG_GOAL = 2
 TIER_SOFT = 3
+
+TIER_LABELS: dict[int, str] = {
+    TIER_HARD: "hard (0)",
+    TIER_OPERATIONAL_OBLIGATION: "operational obligation (1)",
+    TIER_STRONG_GOAL: "strong goal (2)",
+    TIER_SOFT: "soft (3)",
+}
 
 _DEFAULT_TIER_BY_CLASSIFICATION: dict[str, int] = {
     HARD_CONSTRAINT: TIER_HARD,
@@ -136,6 +143,10 @@ class RuleEntry:
     regression_codes: tuple[str, ...] = ()
     # Explicit tier; ``None`` derives it from the classification.
     priority_tier: int | None = None
+    # Convergence-direction grouping for finding codes this rule owns, as
+    # ``(finding_code, direction)`` pairs. A code without a pair keeps the
+    # category-derived direction. Each pair's code must be in ``finding_codes``.
+    convergence_directions: tuple[tuple[str, str], ...] = ()
 
 
 # ---------------------------------------------------------------------------
@@ -683,6 +694,7 @@ _OBLIGATIONS: tuple[RuleEntry, ...] = (
         evidence_projection=("plan.unresolved_tournament_placements", "manual work items"),
         tests=("tests/test_placement_normalization.py", "tests/test_unplaced_placement_repair.py"),
         finding_codes=("unplaced_placement", "unplaced_tournament_placement"),
+        convergence_directions=(("unplaced_tournament_placement", "unplaced_placement"),),
     ),
     RuleEntry(
         id="guest_reservation_integrity",
@@ -1285,6 +1297,15 @@ def rule_id_for_finding_code(code: str) -> str | None:
     return None
 
 
+def convergence_direction_for_finding_code(code: str) -> str | None:
+    """Return the registered convergence direction for one finding code, if any."""
+    for entry in RULE_CATALOG:
+        for finding_code, direction in entry.convergence_directions:
+            if finding_code == code:
+                return direction
+    return None
+
+
 def rule_id_for_score_path(path: str) -> str | None:
     """Map a ``score_candidate`` score path to its stable catalog objective ID."""
     for entry in RULE_CATALOG:
@@ -1497,6 +1518,23 @@ def validate_catalog(repo_root: Path | None = None) -> list[str]:
                     f"{entry.id}: priority tier {entry.priority_tier} requires classification {required!r}"
                 )
 
+    # A finding code may carry at most one convergence direction across the whole
+    # catalog (a second pair for the same code is an error even within one entry),
+    # and only on the rule that registers that finding code.
+    direction_owner: dict[str, str] = {}
+    for entry in RULE_CATALOG:
+        for finding_code, _direction in entry.convergence_directions:
+            if finding_code not in entry.finding_codes:
+                problems.append(
+                    f"{entry.id}: convergence direction for {finding_code!r} requires it as a finding code"
+                )
+            if finding_code in direction_owner:
+                problems.append(
+                    f"convergence direction for {finding_code!r} declared more than once "
+                    f"(first by {direction_owner[finding_code]}, again by {entry.id})"
+                )
+            direction_owner[finding_code] = entry.id
+
     # Precedence / dependency references must exist and precedence must be acyclic.
     for entry in RULE_CATALOG:
         for reference in (*entry.precedes, *entry.depends_on):
@@ -1516,225 +1554,3 @@ def validate_catalog(repo_root: Path | None = None) -> list[str]:
             problems.append(f"rules-model id {model_id!r} maps to unknown rule {rule_id!r}")
 
     return problems
-
-
-# ---------------------------------------------------------------------------
-# Markdown rendering
-# ---------------------------------------------------------------------------
-
-
-def _md_escape(value: str) -> str:
-    return value.replace("|", "\\|").replace("\n", " ")
-
-
-def _code_list(values: tuple[str, ...]) -> str:
-    return ", ".join(f"`{value}`" for value in values) if values else "—"
-
-
-def _owner_module(dotted: str) -> str:
-    return f"`{dotted}`"
-
-
-def _summary_table(entries: tuple[RuleEntry, ...]) -> list[str]:
-    lines = [
-        "| Rule ID | Meaning | Canonical owner | Verifier / measurement | Tests |",
-        "|---|---|---|---|---|",
-    ]
-    for entry in entries:
-        lines.append(
-            "| `{id}` | {meaning} | {owner} | {verifier} | {tests} |".format(
-                id=entry.id,
-                meaning=_md_escape(entry.meaning),
-                owner=_owner_module(entry.canonical_owner),
-                verifier=_code_list((entry.verifier_owner,)) if entry.verifier_owner else "—",
-                tests=_code_list(entry.tests),
-            )
-        )
-    return lines
-
-
-def _entry_detail(entry: RuleEntry) -> list[str]:
-    classification = CLASSIFICATION_LABELS.get(entry.classification, entry.classification)
-    lines = [
-        f"### `{entry.id}`",
-        "",
-        f"`{classification}` · status `{entry.status}` · "
-        f"operator-waivable: {'yes' if entry.waivable else 'no (structural)'}  ",
-        f"**Meaning:** {entry.meaning}  ",
-        f"**Canonical owner:** `{entry.canonical_owner}`  ",
-        f"**Input / fact source:** {entry.input_source or '—'}  ",
-        f"**Verifier / measurement:** {('`' + entry.verifier_owner + '`') if entry.verifier_owner else '—'}  ",
-        "**Codes:** "
-        f"verifier {_code_list(entry.verifier_codes)} · "
-        f"finding {_code_list(entry.finding_codes)} · "
-        f"score {_code_list(entry.score_paths)}  ",
-        "**Providers:** "
-        f"mutation {_code_list(entry.mutation_providers)} · "
-        f"search {_code_list(entry.search_providers)}  ",
-        "**Evidence / report:** " + _code_list(entry.evidence_projection) + "  ",
-        "**Tests:** " + _code_list(entry.tests) + "  ",
-        "**Precedence:** "
-        f"precedes {_code_list(entry.precedes)} · "
-        f"depends on {_code_list(entry.depends_on)}",
-        "",
-    ]
-    return lines
-
-
-def render_markdown() -> str:
-    """Render the canonical agent-facing ownership table."""
-    lines: list[str] = [
-        "# Scheduling rule catalog",
-        "",
-        "> **Generated** from `tournament_scheduler/rules/catalog.py` by",
-        "> `python3 scripts/render-rule-catalog.py`. Do not edit by hand.",
-        "",
-        "This is the one compact, searchable answer to *what scheduling semantics exist, who",
-        "owns each one, and which semantics take precedence when they interact*. It is metadata",
-        "and navigation only: the deterministic implementations named by each entry remain the",
-        "executable truth.",
-        "",
-        "Search this page for a rule ID (for example `host_representation`,",
-        "`hosting_age_group_coverage`, `hosting_proportional_balance` or",
-        "`arena_interval_non_overlap`) to find the owning facade, its verifier and its tests",
-        "before editing code.",
-        "",
-        "## Stable identity in deterministic outputs",
-        "",
-        "The catalog is the one source of rule/objective identity, and the semantic/application",
-        "boundaries reuse it instead of re-deriving prose:",
-        "",
-        "* verifier violations carry `rule_id` (attached by `annotate_violations`);",
-        "* `season findings` carry `rule_id` per finding plus a `counts_by_rule_id` summary",
-        "  (attached by `annotate_findings`);",
-        "* quality/score metrics in `compare_quality_scores` carry `objective_id` for every",
-        "  registered score path;",
-        "* the Regler/rules model carries `catalog_id` per per-run row.",
-        "",
-        "`rule_id_for_verifier_code`, `rule_id_for_finding_code` and `rule_id_for_score_path`",
-        "own the lookups; callers must not hard-code a second mapping.",
-        "",
-        "## How to use this catalog",
-        "",
-        "Before introducing a new rule because of a production failure, determine which case it is:",
-        "",
-        "1. **Does a catalog entry already describe the intended semantic?** Fix the owning",
-        "   implementation/conformance; do not add another rule.",
-        "2. **Is the semantic correct but no legal repair is exposed?** Add an action/search",
-        "   capability under the existing `local_repair_options` boundary, not another hard rule.",
-        "3. **Is the candidate correct but state/resume is wrong?** Route to the stage-3",
-        "   session/lifecycle owner (not a hockey rule).",
-        "4. **Is the candidate correct but evidence/reporting is wrong?** Fix the evidence/report",
-        "   projection.",
-        "5. **Is this genuinely new operator policy?** Add/catalog it deliberately with",
-        "   classification, source and generic tests.",
-        "",
-        "Production clubs/dates remain regression fixtures, never rule identities.",
-        "",
-        "For hosting anomalies specifically, check in this order:",
-        "",
-        "```text",
-        "Is club x age-group coverage satisfied or structurally impossible?",
-        "  -> Is assigned responsibility consistent with coverage + proportional target?",
-        "     -> Was responsibility preserved through placement/repair/search?",
-        "        -> Only then inspect lower-priority balance/placement quality.",
-        "```",
-        "",
-        "## Classification vocabulary",
-        "",
-        "| Classification | Meaning |",
-        "|---|---|",
-        "| `hard_constraint` | Legality boundary; a violation blocks validity (waivable only where declared). |",
-        "| `operational_obligation` | Must be satisfied or surfaced as unresolved manual work. |",
-        "| `soft_objective` | Optimized, but never justifies regressing a higher-priority obligation. |",
-        "| `operator_decision` | A deliberate operator/agent choice among valid alternatives. |",
-        "| `fact_evidence_semantic` | A classification/evidence fact feeding rules, not a rule itself. |",
-        "",
-        "## Precedence",
-        "",
-        "The catalog declares only the precedence that actually matters. For hosting:",
-        "",
-        "```text",
-        "hard legality / host_representation",
-        "        -> hosting_age_group_coverage",
-        "           -> hosting_proportional_balance",
-        "              -> placement convenience / calendar quality",
-        "```",
-        "",
-        "and responsibility preservation applies once a target is assigned:",
-        "",
-        "```text",
-        "hosting target -> hosting_responsibility -> placement / repair / search",
-        "```",
-        "",
-        "An agent must not compare two candidates solely by a lower-priority metric when one",
-        "candidate regresses a higher-priority operational obligation.",
-        "",
-        "| Higher priority | Must precede |",
-        "|---|---|",
-    ]
-    pairs = precedence_pairs()
-    if pairs:
-        for higher, lower in pairs:
-            lines.append(f"| `{higher}` | `{lower}` |")
-    else:
-        lines.append("| — | — |")
-
-    sections = [
-        ("Hard constraints", HARD_CONSTRAINT),
-        ("Operational obligations", OPERATIONAL_OBLIGATION),
-        ("Soft objectives", SOFT_OBJECTIVE),
-        ("Operator decisions", OPERATOR_DECISION),
-        ("Fact / evidence semantics", FACT_EVIDENCE_SEMANTIC),
-    ]
-    for title, classification in sections:
-        lines.extend(["", f"## {title}", ""])
-        lines.extend(_summary_table(entries_by_classification(classification)))
-
-    lines.extend(["", "## Stable ID map", "", "| Emitted code / score path | Rule / objective ID |", "|---|---|"])
-    for entry in RULE_CATALOG:
-        for code in entry.verifier_codes:
-            lines.append(f"| `{code}` (verifier) | `{entry.id}` |")
-    for entry in RULE_CATALOG:
-        for code in entry.finding_codes:
-            lines.append(f"| `{code}` (finding) | `{entry.id}` |")
-    for entry in RULE_CATALOG:
-        for path in entry.score_paths:
-            lines.append(f"| `{path}` (score) | `{entry.id}` |")
-    lines.append("")
-
-    lines.extend(["## Entry details", ""])
-    for entry in RULE_CATALOG:
-        lines.extend(_entry_detail(entry))
-
-    return "\n".join(lines).rstrip() + "\n"
-
-
-def main(argv: list[str] | None = None) -> int:
-    """Write the generated ownership table; ``--check`` verifies it is current."""
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Render docs/architecture/rule-catalog.md")
-    parser.add_argument("--check", action="store_true", help="fail if the committed doc is stale")
-    parser.add_argument("--root", default=None, help="repository root")
-    args = parser.parse_args(argv)
-
-    root = Path(args.root).resolve() if args.root else Path(__file__).resolve().parent.parent
-    target = root / CATALOG_DOC_PATH
-    rendered = render_markdown()
-    if args.check:
-        existing = target.read_text(encoding="utf-8") if target.exists() else ""
-        if existing != rendered:
-            print(f"{CATALOG_DOC_PATH} is stale; run scripts/render-rule-catalog.py")
-            return 1
-        print(f"{CATALOG_DOC_PATH} is current")
-        return 0
-
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(rendered, encoding="utf-8")
-    print(f"Wrote {CATALOG_DOC_PATH}")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())  # pragma: no cover
