@@ -858,12 +858,12 @@ _SOFT: tuple[RuleEntry, ...] = (
     ),
     RuleEntry(
         id="opponent_club_diversity",
-        regression_codes=("more_concentrated_club_exposure",),
+        regression_codes=("more_concentrated_club_exposure", "fewer_unique_opponent_clubs"),
 
         classification=SOFT_OBJECTIVE,
         meaning=(
-            "Each individual squad's exposure to any one opposing club should stay bounded "
-            "within its age group. Exposure is normalized by that club's squad supply, so a "
+            "Each individual squad should meet a variety of opposing clubs within its age "
+            "group. Exposure to one club is normalized by that club's squad supply, so a "
             "large multi-squad club is not penalized merely for supplying more opponents, "
             "while genuinely concentrated exposure remains visible."
         ),
@@ -872,17 +872,17 @@ _SOFT: tuple[RuleEntry, ...] = (
         verifier_owner="tournament_scheduler.planning.contract.score_candidate",
         evidence_projection=("score_candidate.opponent_diversity.*",),
         tests=("tests/test_opponent_diversity.py",),
-        score_paths=("opponent_diversity.max_club_exposure_index",),
+        score_paths=(
+            "opponent_diversity.min_distinct_opponent_clubs",
+            "opponent_diversity.max_club_exposure_index",
+        ),
     ),
     RuleEntry(
         id="inter_club_diversity",
-        regression_codes=("same_club_clustering_worse", "fewer_unique_opponent_clubs"),
+        regression_codes=("same_club_clustering_worse", "inter_club_coverage_worse"),
 
         classification=SOFT_OBJECTIVE,
-        meaning=(
-            "Tournaments should mix teams across clubs rather than concentrating same-club "
-            "matchups, and each squad should meet a variety of opposing clubs."
-        ),
+        meaning="Tournaments should mix teams across clubs rather than concentrating same-club matchups.",
         canonical_owner="tournament_scheduler.scoring.quality_objectives",
         input_source="candidate generated games",
         verifier_owner="tournament_scheduler.planning.contract.score_candidate",
@@ -890,7 +890,6 @@ _SOFT: tuple[RuleEntry, ...] = (
         tests=("tests/test_quality_objectives.py",),
         score_paths=(
             "opponent_diversity.inter_club_diversity",
-            "opponent_diversity.min_distinct_opponent_clubs",
             "opponent_diversity.same_club_pairing_count",
             "opponent_diversity.max_same_club_teams_per_tournament",
             "opponent_diversity.club_count_excess_over_2",

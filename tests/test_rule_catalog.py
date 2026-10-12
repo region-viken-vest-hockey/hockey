@@ -480,6 +480,7 @@ def test_every_quality_materiality_code_keeps_its_adoption_tier() -> None:
         "more_concentrated_club_exposure": catalog.TIER_SOFT,
         "same_club_clustering_worse": catalog.TIER_SOFT,
         "fewer_unique_opponent_clubs": catalog.TIER_SOFT,
+        "inter_club_coverage_worse": catalog.TIER_SOFT,
         "hosting_balance_worse": catalog.TIER_STRONG_GOAL,
         "unresolved_hosting_obligation_worse": catalog.TIER_OPERATIONAL_OBLIGATION,
         "home_representation_worse": catalog.TIER_STRONG_GOAL,
@@ -508,6 +509,23 @@ def test_quality_materiality_path_and_code_share_one_owning_rule() -> None:
     assert mismatches == [], "score path and regression code disagree: " + "; ".join(mismatches)
 
 
+def test_per_squad_and_global_club_diversity_keep_separate_owners() -> None:
+    from tournament_scheduler.repair import adoption_guard as guard
+
+    assert catalog.rule_id_for_score_path("opponent_diversity.min_distinct_opponent_clubs") == (
+        "opponent_club_diversity"
+    )
+    assert catalog.rule_id_for_regression_code(guard.REGRESSION_UNIQUE_OPPONENTS) == (
+        "opponent_club_diversity"
+    )
+    assert catalog.rule_id_for_score_path("opponent_diversity.inter_club_diversity") == (
+        "inter_club_diversity"
+    )
+    assert catalog.rule_id_for_regression_code(guard.REGRESSION_INTER_CLUB_COVERAGE) == (
+        "inter_club_diversity"
+    )
+
+
 def test_regression_tiers_match_the_adoption_precedence() -> None:
     # Characterization of the tier model adoption comparison has always used.
     # Moving ownership into the catalog must not change which regression is
@@ -531,6 +549,7 @@ def test_regression_tiers_match_the_adoption_precedence() -> None:
         guard.REGRESSION_CLUB_REPETITION: catalog.TIER_SOFT,
         guard.REGRESSION_SAME_CLUB_CLUSTERING: catalog.TIER_SOFT,
         guard.REGRESSION_UNIQUE_OPPONENTS: catalog.TIER_SOFT,
+        guard.REGRESSION_INTER_CLUB_COVERAGE: catalog.TIER_SOFT,
         guard.REGRESSION_TRAVEL: catalog.TIER_SOFT,
     }
     assert expected.keys() == _adoption_regression_codes()

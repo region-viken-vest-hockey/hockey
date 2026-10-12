@@ -152,8 +152,8 @@ candidate regresses a higher-priority operational obligation.
 | `intra_club_participation_distribution` | soft (3) | Within a multi-team club and age group, participation is rotated evenly across the club's sibling team labels. An aggregate-complete but label-uneven pool is a distribution imbalance, not a missing participation opportunity. | `tournament_scheduler.participation.targets` | `tournament_scheduler.participation.targets` | `tests/test_participation_targets.py`, `tests/test_intra_club_distribution.py` |
 | `home_representation` | strong goal (2) | When a multi-team club hosts a tournament, the club's sibling teams take turns representing it. A spread of 0-1 is balanced; hosting coverage/balance is unchanged by which sibling shows up. | `tournament_scheduler.participation.home_representation` | `tournament_scheduler.participation.home_representation` | `tests/test_home_representation.py` |
 | `opponent_repetition` | soft (3) | Teams should meet diverse opponents; repeated pairings beyond the configured expectation are minimized. The primary opponent identity is the opposing club within an age group, not the exact squad label, so a swap between sibling squads is not a new opponent. Exact squad-pair counts remain available as diagnostics. | `tournament_scheduler.scoring.quality_objectives` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_quality_objectives.py` |
-| `opponent_club_diversity` | soft (3) | Each individual squad's exposure to any one opposing club should stay bounded within its age group. Exposure is normalized by that club's squad supply, so a large multi-squad club is not penalized merely for supplying more opponents, while genuinely concentrated exposure remains visible. | `tournament_scheduler.participation.opponent_diversity` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_opponent_diversity.py` |
-| `inter_club_diversity` | soft (3) | Tournaments should mix teams across clubs rather than concentrating same-club matchups, and each squad should meet a variety of opposing clubs. | `tournament_scheduler.scoring.quality_objectives` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_quality_objectives.py` |
+| `opponent_club_diversity` | soft (3) | Each individual squad should meet a variety of opposing clubs within its age group. Exposure to one club is normalized by that club's squad supply, so a large multi-squad club is not penalized merely for supplying more opponents, while genuinely concentrated exposure remains visible. | `tournament_scheduler.participation.opponent_diversity` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_opponent_diversity.py` |
+| `inter_club_diversity` | soft (3) | Tournaments should mix teams across clubs rather than concentrating same-club matchups. | `tournament_scheduler.scoring.quality_objectives` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_quality_objectives.py` |
 | `temporal_spacing` | soft (3) | A team's tournaments should be spaced sensibly; very short turnaround gaps are minimized. | `tournament_scheduler.participation.team_schedule_quality` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_team_schedule_quality.py`, `tests/test_fairness_temporal.py` |
 | `temporal_coverage` | soft (3) | A team's tournaments should cover the season rather than cluster in one stretch. | `tournament_scheduler.participation.temporal_coverage` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_temporal_coverage.py` |
 | `travel_distance` | soft (3) | Estimated team travel between home and away arenas should be kept reasonable. | `tournament_scheduler.clubs.distances` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_club_distances.py` |
@@ -274,9 +274,9 @@ candidate regresses a higher-priority operational obligation.
 | `opponent_diversity.pairs_meeting_3_plus` (score) | `opponent_repetition` |
 | `opponent_diversity.max_club_pair_repeat` (score) | `opponent_repetition` |
 | `opponent_diversity.club_pairs_meeting_3_plus` (score) | `opponent_repetition` |
+| `opponent_diversity.min_distinct_opponent_clubs` (score) | `opponent_club_diversity` |
 | `opponent_diversity.max_club_exposure_index` (score) | `opponent_club_diversity` |
 | `opponent_diversity.inter_club_diversity` (score) | `inter_club_diversity` |
-| `opponent_diversity.min_distinct_opponent_clubs` (score) | `inter_club_diversity` |
 | `opponent_diversity.same_club_pairing_count` (score) | `inter_club_diversity` |
 | `opponent_diversity.max_same_club_teams_per_tournament` (score) | `inter_club_diversity` |
 | `opponent_diversity.club_count_excess_over_2` (score) | `inter_club_diversity` |
@@ -896,11 +896,11 @@ candidate regresses a higher-priority operational obligation.
 
 `Soft objective` · status `active` · operator-waivable: yes  
 **Priority tier:** soft (3)  
-**Meaning:** Each individual squad's exposure to any one opposing club should stay bounded within its age group. Exposure is normalized by that club's squad supply, so a large multi-squad club is not penalized merely for supplying more opponents, while genuinely concentrated exposure remains visible.  
+**Meaning:** Each individual squad should meet a variety of opposing clubs within its age group. Exposure to one club is normalized by that club's squad supply, so a large multi-squad club is not penalized merely for supplying more opponents, while genuinely concentrated exposure remains visible.  
 **Canonical owner:** `tournament_scheduler.participation.opponent_diversity`  
 **Input / fact source:** candidate participants and generated games  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.score_candidate`  
-**Codes:** verifier — · finding — · score `opponent_diversity.max_club_exposure_index`  
+**Codes:** verifier — · finding — · score `opponent_diversity.min_distinct_opponent_clubs`, `opponent_diversity.max_club_exposure_index`  
 **Providers:** mutation — · search —  
 **Evidence / report:** `score_candidate.opponent_diversity.*`  
 **Tests:** `tests/test_opponent_diversity.py`  
@@ -910,11 +910,11 @@ candidate regresses a higher-priority operational obligation.
 
 `Soft objective` · status `active` · operator-waivable: yes  
 **Priority tier:** soft (3)  
-**Meaning:** Tournaments should mix teams across clubs rather than concentrating same-club matchups, and each squad should meet a variety of opposing clubs.  
+**Meaning:** Tournaments should mix teams across clubs rather than concentrating same-club matchups.  
 **Canonical owner:** `tournament_scheduler.scoring.quality_objectives`  
 **Input / fact source:** candidate generated games  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.score_candidate`  
-**Codes:** verifier — · finding — · score `opponent_diversity.inter_club_diversity`, `opponent_diversity.min_distinct_opponent_clubs`, `opponent_diversity.same_club_pairing_count`, `opponent_diversity.max_same_club_teams_per_tournament`, `opponent_diversity.club_count_excess_over_2`, `opponent_diversity.tournaments_with_3plus_same_club`  
+**Codes:** verifier — · finding — · score `opponent_diversity.inter_club_diversity`, `opponent_diversity.same_club_pairing_count`, `opponent_diversity.max_same_club_teams_per_tournament`, `opponent_diversity.club_count_excess_over_2`, `opponent_diversity.tournaments_with_3plus_same_club`  
 **Providers:** mutation — · search —  
 **Evidence / report:** `score_candidate.opponent_diversity.inter_club_diversity`  
 **Tests:** `tests/test_quality_objectives.py`  
