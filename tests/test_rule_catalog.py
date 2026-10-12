@@ -126,6 +126,113 @@ def test_scanned_verifier_code_set_is_not_trivially_empty() -> None:
     assert {"host_team_missing", "bye_team_not_allowed", "canonical_placement_locked"} <= codes
 
 
+# Operational surfaces whose reason codes describe export, publication-gate or
+# freshness state rather than a scheduling semantic. They are not catalog rules.
+_NON_SCHEDULING_DIAGNOSTIC_PREFIXES = (
+    "tournament_scheduler/pipeline/export_parity/",
+    "tournament_scheduler/pipeline/activity_export.py",
+    "tournament_scheduler/application/season_blockers.py",
+)
+
+# Ratchet: scheduling-related codes emitted today that are not yet registered in
+# the catalog. Each entry is an open audit item, not an approved identity. A new
+# unregistered code fails the guard; an entry that becomes registered or stops
+# being emitted must be removed here.
+_GRANDFATHERED_UNREGISTERED_CODES = frozenset(
+    {
+        "booking_feasibility_warnings",
+        "change_protection_violation",
+        "duplicate_calendar_booking_association",
+        "duplicate_tournament_id",
+        "fewer_distinct_opponent_clubs",
+        "fewer_unique_opponents",
+        "hard_violations",
+        "manual_external_conflict_placements",
+        "missing_tournament_id",
+        "more_repeated_opponent_excess",
+        "opponent_measure_changed",
+        "participation_count_changed",
+        "participation_shortfall_worsened",
+        "temporal_coverage_worse",
+        "tournament_placement_shortfall",
+        "travel_worse",
+        "unknown_lineage_tournament_id",
+        "unknown_pinned_tournament_id",
+        "unknown_waiver_tournament_id",
+    }
+)
+
+
+def _all_emitted_codes_by_module() -> dict[str, set[str]]:
+    """Map each emitted ``code`` string to the package modules that emit it.
+
+    Covers every ``"code"`` dict value and every ``_violate``/``_add`` call in
+    ``tournament_scheduler``, excluding the catalog itself and the operational
+    surfaces listed in ``_NON_SCHEDULING_DIAGNOSTIC_PREFIXES``.
+    """
+    emitted: dict[str, set[str]] = {}
+    for path in sorted((REPO_ROOT / "tournament_scheduler").rglob("*.py")):
+        relative = path.relative_to(REPO_ROOT).as_posix()
+        if relative == "tournament_scheduler/rules/catalog.py":
+            continue
+        if relative.startswith(_NON_SCHEDULING_DIAGNOSTIC_PREFIXES):
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=relative)
+        for node in ast.walk(tree):
+            candidates: list[ast.AST] = []
+            if isinstance(node, ast.Dict):
+                for key, value in zip(node.keys, node.values):
+                    if isinstance(key, ast.Constant) and key.value == "code":
+                        candidates.append(value)
+            elif isinstance(node, ast.Call):
+                name = getattr(node.func, "id", None) or getattr(node.func, "attr", None)
+                if name == "_violate" and node.args:
+                    candidates.append(node.args[0])
+                elif name == "_add" and len(node.args) >= 2:
+                    candidates.append(node.args[1])
+            for candidate in candidates:
+                for code in _literal_strings(candidate):
+                    emitted.setdefault(code, set()).add(relative)
+    return emitted
+
+
+def _registered_codes() -> set[str]:
+    registered: set[str] = set()
+    for entry in catalog.RULE_CATALOG:
+        registered |= set(entry.verifier_codes)
+        registered |= set(entry.finding_codes)
+        registered |= set(entry.regression_codes)
+    return registered
+
+
+def test_no_new_unregistered_scheduling_codes_are_emitted() -> None:
+    registered = _registered_codes()
+    unregistered = {
+        code
+        for code in _all_emitted_codes_by_module()
+        if code not in registered
+    }
+    new = sorted(unregistered - _GRANDFATHERED_UNREGISTERED_CODES)
+    assert new == [], (
+        "new scheduling-related codes without a catalog identity (register them or "
+        "add an explicit exemption with a reason): " + ", ".join(new)
+    )
+
+
+def test_grandfathered_unregistered_codes_are_still_open_items() -> None:
+    emitted = _all_emitted_codes_by_module()
+    registered = _registered_codes()
+    stale = sorted(
+        code
+        for code in _GRANDFATHERED_UNREGISTERED_CODES
+        if code in registered or code not in emitted
+    )
+    assert stale == [], (
+        "grandfathered codes that are now registered or no longer emitted; remove them: "
+        + ", ".join(stale)
+    )
+
+
 def test_annotate_violations_attaches_rule_ids() -> None:
     violations = [
         {"code": "host_team_missing", "message": "m"},
