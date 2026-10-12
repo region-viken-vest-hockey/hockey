@@ -31,7 +31,7 @@ from typing import Any, Iterable, Mapping
 
 from tournament_scheduler.season.state import canonical_state_revision
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
-from tournament_scheduler.pipeline.export_projection_guard import (
+from tournament_scheduler.publication.projection_guard import (
     diff_tournament_projection,
     tournament_projection,
 )

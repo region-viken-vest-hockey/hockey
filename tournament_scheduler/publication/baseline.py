@@ -11,7 +11,7 @@ identity of that transition:
   published) and its publication history.
 
 The reconciliation invariant across the baseline and later canonical mutations
-is implemented in :mod:`tournament_scheduler.published_mutation_history`. Both
+is implemented in :mod:`tournament_scheduler.publication.mutation_history`. Both
 modules are pure and offline: they never read Git history, files or the network.
 """
 
@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from tournament_scheduler.pipeline.export_projection_guard import (
+from tournament_scheduler.publication.projection_guard import (
     FULL_OPERATIONAL_PROJECTION_SCHEMA,
     FULL_OPERATIONAL_PROJECTION_VERSION,
     occupied_end_time,

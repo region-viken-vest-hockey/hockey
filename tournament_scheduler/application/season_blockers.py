@@ -25,7 +25,7 @@ from tournament_scheduler.pipeline.export_parity.gate import (
     CanonicalFreshness,
     resolve_canonical_freshness,
 )
-from tournament_scheduler.pipeline.publication_scope import (
+from tournament_scheduler.publication.scope import (
     STATUS_BLOCKED,
     STATUS_ELIGIBLE,
     STATUS_HELD,

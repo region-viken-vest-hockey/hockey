@@ -69,7 +69,7 @@ def resolve_canonical_freshness(
 
 def _manifest_for(export_dir: Path) -> dict[str, Any]:
     try:
-        from ..export_lifecycle import read_export_manifest
+        from tournament_scheduler.publication.export_lifecycle import read_export_manifest
 
         return read_export_manifest(export_dir) or {}
     except Exception:  # noqa: BLE001

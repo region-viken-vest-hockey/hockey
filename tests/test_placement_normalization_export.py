@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from tournament_scheduler.pipeline.export_projection_guard import ExportProjectionError, tournament_projection
+from tournament_scheduler.publication.projection_guard import ExportProjectionError, tournament_projection
 from tournament_scheduler.pipeline.run_manifest import RunManifest
 from tournament_scheduler.pipeline.stage4_export import run as run_export
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus

@@ -18,7 +18,7 @@ from tournament_scheduler.pipeline.cache_manager import ScrapedDataCache
 from tournament_scheduler.pipeline.not_started import NOT_STARTED_MESSAGE
 from tournament_scheduler.pipeline.pages_bundle import build_public_bundle
 from tournament_scheduler.pipeline.pages_publish import bundle_fingerprint
-from tournament_scheduler.pipeline.export_lifecycle import promote_export_manifest, read_export_manifest
+from tournament_scheduler.publication.export_lifecycle import promote_export_manifest, read_export_manifest
 from tournament_scheduler.pipeline.stage4_export import Stage4Error, run
 from tournament_scheduler.serialization.season_plan import season_plan_from_dict
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus

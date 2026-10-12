@@ -32,8 +32,8 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     CanonicalSeasonStore,
     SeasonStateError,
 )
-from tournament_scheduler.pipeline.export_lifecycle import write_draft_manifest
-from tournament_scheduler.pipeline.export_projection_guard import (
+from tournament_scheduler.publication.export_lifecycle import write_draft_manifest
+from tournament_scheduler.publication.projection_guard import (
     ExportProjectionError,
     assert_export_preserves_canonical_plan,
     diff_tournament_projection,
@@ -44,14 +44,14 @@ from tournament_scheduler.pipeline.publication_lifecycle import (
     record_publication_seal,
 )
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.published_baseline import (
+from tournament_scheduler.publication.baseline import (
     PublishedBaselineError,
     SeasonSealedError,
     effective_projection_from_canonical_schedule,
     is_published_sealed,
     projection_from_canonical_schedule,
 )
-from tournament_scheduler.published_mutation_history import (
+from tournament_scheduler.publication.mutation_history import (
     reconcile_published_baseline,
     replayed_occupancy_overrides,
 )
@@ -1914,8 +1914,8 @@ def _seal_full(
     published_at: str = "2026-09-21T09:14:53+00:00",
     projection: dict | None = None,
 ) -> dict:
-    from tournament_scheduler.pipeline.publication_evidence import build_publication_evidence
-    from tournament_scheduler.published_baseline import projection_fingerprint
+    from tournament_scheduler.publication.evidence import build_publication_evidence
+    from tournament_scheduler.publication.baseline import projection_fingerprint
 
     resolved_projection = projection if projection is not None else _full_projection(root)
     evidence = build_publication_evidence(
@@ -1982,7 +1982,7 @@ def test_replacement_seal_does_not_mutate_canonical_schedule(tmp_path: Path) -> 
 
 
 def test_replacement_seal_rejects_mismatched_evidence_fingerprint(tmp_path: Path) -> None:
-    from tournament_scheduler.pipeline.publication_evidence import build_publication_evidence
+    from tournament_scheduler.publication.evidence import build_publication_evidence
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -2005,8 +2005,8 @@ def test_replacement_seal_rejects_mismatched_evidence_fingerprint(tmp_path: Path
 
 
 def test_record_publication_seal_writes_retained_before_after_evidence(tmp_path: Path) -> None:
-    from tournament_scheduler.pipeline.export_lifecycle import promote_export_manifest
-    from tournament_scheduler.pipeline.publication_evidence import read_publication_evidence
+    from tournament_scheduler.publication.export_lifecycle import promote_export_manifest
+    from tournament_scheduler.publication.evidence import read_publication_evidence
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
@@ -2251,7 +2251,7 @@ def test_replacement_seal_labels_missing_previous_decision_snapshot(tmp_path: Pa
 
 
 def test_replacement_seal_rejects_conflicting_retained_evidence(tmp_path: Path) -> None:
-    from tournament_scheduler.pipeline.publication_evidence import (
+    from tournament_scheduler.publication.evidence import (
         PublicationEvidenceError,
         write_publication_evidence,
     )
@@ -2304,8 +2304,8 @@ def test_publication_evidence_write_failure_is_recoverable_on_retry(
     """A failed evidence write must not duplicate history and must recover on retry."""
 
     import tournament_scheduler.pipeline.publication_lifecycle as pub_lifecycle
-    from tournament_scheduler.pipeline.export_lifecycle import promote_export_manifest
-    from tournament_scheduler.pipeline.publication_evidence import read_publication_evidence
+    from tournament_scheduler.publication.export_lifecycle import promote_export_manifest
+    from tournament_scheduler.publication.evidence import read_publication_evidence
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())

@@ -100,7 +100,7 @@ def reviewed_unpromoted_candidate(
     if not session.is_finalized():
         return None
 
-    from ..pipeline.export_lifecycle import SUPERSEDED_STATUS, read_export_manifest
+    from tournament_scheduler.publication.export_lifecycle import SUPERSEDED_STATUS, read_export_manifest
     from ..pipeline.state import PipelineState, StageName
 
     state = PipelineState(work_dir)
@@ -218,7 +218,7 @@ def load_finalized_candidate(
 
 def _prior_export_provenance(work_dir: str | Path) -> dict[str, Any]:
     """Describe the reviewed export the refinement will supersede."""
-    from ..pipeline.export_lifecycle import read_export_manifest
+    from tournament_scheduler.publication.export_lifecycle import read_export_manifest
     from ..pipeline.state import PipelineState, StageName
 
     state = PipelineState(work_dir)
@@ -724,7 +724,7 @@ def _reexport_refined_candidate(
     manifest is marked superseded (and thereby protected from draft retention)
     and points at the replacement export.
     """
-    from ..pipeline.export_lifecycle import mark_export_superseded
+    from tournament_scheduler.publication.export_lifecycle import mark_export_superseded
     from ..pipeline.stage4_export import run as stage4_run
 
     prior_dir = prior_export.get("export_dir")

@@ -14,7 +14,7 @@ from __future__ import annotations
 from typing import Any, Iterable, Mapping
 
 from tournament_scheduler.season.ice_time_overrides import active_overrides
-from tournament_scheduler.published_baseline import (
+from tournament_scheduler.publication.baseline import (
     SEASON_LIFECYCLE_KEY,
     STATE_PUBLISHED_SEALED,
     PublishedBaselineError,
@@ -26,7 +26,7 @@ from tournament_scheduler.published_baseline import (
     projection_fingerprint,
     publication_history,
 )
-from tournament_scheduler.pipeline.publication_evidence import (
+from tournament_scheduler.publication.evidence import (
     PublicationEvidenceError,
     build_republish_delta,
     decision_snapshot,
@@ -34,7 +34,7 @@ from tournament_scheduler.pipeline.publication_evidence import (
     previous_publication_link,
     validate_publication_evidence,
 )
-from tournament_scheduler.published_mutation_history import (
+from tournament_scheduler.publication.mutation_history import (
     omission_projection,
     reconcile_published_baseline,
 )

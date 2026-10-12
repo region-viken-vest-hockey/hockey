@@ -75,7 +75,7 @@ def guard_sealed_season_run(cfg: Any, start: Any, end: Any) -> bool:
     """
     try:
         from ...season.baseline_overlay import resolve_canonical_state
-        from ...published_baseline import is_published_sealed
+        from tournament_scheduler.publication.baseline import is_published_sealed
 
         resolved = resolve_canonical_state(cfg, start, end)
     except Exception:

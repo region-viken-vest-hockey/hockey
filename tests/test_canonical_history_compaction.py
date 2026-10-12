@@ -42,7 +42,7 @@ from tournament_scheduler.infrastructure.canonical_evidence_archive import (
     moves_dir,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
-from tournament_scheduler.published_mutation_history import replay_recorded_mutations
+from tournament_scheduler.publication.mutation_history import replay_recorded_mutations
 
 YEAR = "2026-2027"
 

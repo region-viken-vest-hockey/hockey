@@ -984,7 +984,7 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
     )
     if canonical_season and isinstance(plan_dict, dict):
         from ..season.baseline_overlay import default_season_root
-        from .publication_scope import resolve_publication_scope
+        from tournament_scheduler.publication.scope import resolve_publication_scope
 
         bound_problem = verification_problem
         readiness_reasons = (

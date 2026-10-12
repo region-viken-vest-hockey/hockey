@@ -114,7 +114,7 @@ def _select_active_published(
 ) -> dict[str, Any] | None:
     """Select the active published export by canonical identity, not generation.
 
-    ``export_lifecycle.find_export_manifests`` orders records by ``generated_at``,
+    ``publication.export_lifecycle.find_export_manifests`` orders records by ``generated_at``,
     which is not publication order. The canonical baseline ``publication_id`` owns
     that identity; without it we use the newest ``published_at`` and fail closed
     when no publication time exists rather than falling back to generation time.
@@ -152,7 +152,7 @@ def _publication_evidence(
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
     try:
-        from tournament_scheduler.pipeline import export_lifecycle
+        from tournament_scheduler.publication import export_lifecycle
     except Exception:
         missing.append("canonical export lifecycle: unavailable")
         return None, []

@@ -37,7 +37,7 @@ def _now_iso() -> str:
 
 def _manifest_for(export_dir: Path) -> dict[str, Any]:
     try:
-        from ..export_lifecycle import read_export_manifest
+        from tournament_scheduler.publication.export_lifecycle import read_export_manifest
     except Exception:  # noqa: BLE001 - never let an import break a read-only check
         return {}
     return read_export_manifest(export_dir) or {}

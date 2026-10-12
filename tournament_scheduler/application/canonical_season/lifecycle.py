@@ -21,12 +21,12 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
 from tournament_scheduler.season.ice_time_overrides import active_overrides
-from tournament_scheduler.published_baseline import (
+from tournament_scheduler.publication.baseline import (
     active_baseline,
     effective_projection_from_canonical_schedule,
     is_published_sealed,
 )
-from tournament_scheduler.published_mutation_history import reconcile_published_baseline
+from tournament_scheduler.publication.mutation_history import reconcile_published_baseline
 
 from .shared import published_baseline_reconciliation
 

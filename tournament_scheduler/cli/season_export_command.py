@@ -96,14 +96,14 @@ def _cmd_season_export(args: argparse.Namespace) -> int:
     except PublicExportContextError as exc:
         raise SeasonStateError(str(exc)) from exc
 
-    from ..pipeline.export_lifecycle import find_published_exports_for_season
+    from tournament_scheduler.publication.export_lifecycle import find_published_exports_for_season
 
     published_exports = find_published_exports_for_season(
         args.season,
         season_root=args.root,
     )
     latest_published_export = published_exports[0] if published_exports else None
-    from ..pipeline.export_projection_guard import ExportProjectionError
+    from tournament_scheduler.publication.projection_guard import ExportProjectionError
 
     # A published baseline that predates ``schedule_projection`` can only
     # be recovered by binding its rows to the canonical plan *at the
@@ -116,7 +116,7 @@ def _cmd_season_export(args: argparse.Namespace) -> int:
         from ..infrastructure.canonical_revision_history import (
             load_canonical_schedule_at_revision,
         )
-        from ..published_baseline import projection_problem_from_schedule
+        from tournament_scheduler.publication.baseline import projection_problem_from_schedule
 
         published_canonical_schedule = load_canonical_schedule_at_revision(
             str(latest_published_export.get("canonical_season") or args.season),

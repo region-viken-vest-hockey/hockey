@@ -28,8 +28,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
-from .export_projection_guard import diff_tournament_projection
-from .fingerprints import stable_payload_sha256
+from tournament_scheduler.publication.projection_guard import diff_tournament_projection
+from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
 PUBLICATION_EVIDENCE_SCHEMA_VERSION = 1
 PUBLICATION_EVIDENCE_DIRNAME = "publications"

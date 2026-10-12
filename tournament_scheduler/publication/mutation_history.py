@@ -36,12 +36,12 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
-from tournament_scheduler.pipeline.export_projection_guard import (
+from tournament_scheduler.publication.projection_guard import (
     diff_tournament_projection,
     occupied_end_time,
 )
 
-from tournament_scheduler.published_baseline import (
+from tournament_scheduler.publication.baseline import (
     PARTICIPANT_SEPARATOR,
     participant_parts,
     projection_entry,

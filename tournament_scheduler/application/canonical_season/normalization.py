@@ -54,7 +54,7 @@ def normalize_placements(
     from tournament_scheduler.placement_normalization import (
         normalize_unplaced_placements,
     )
-    from tournament_scheduler.published_baseline import (
+    from tournament_scheduler.publication.baseline import (
         SeasonSealedError,
         is_published_sealed,
     )

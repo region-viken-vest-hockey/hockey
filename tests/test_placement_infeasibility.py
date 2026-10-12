@@ -300,7 +300,7 @@ def test_proof_is_scoped_to_the_obligation_and_current_capacity(tmp_path: Path) 
 def test_recording_and_releasing_proofs_are_decision_only_for_reconciliation() -> None:
     """A proof write must not replay as a schedule mutation on a sealed season."""
 
-    from tournament_scheduler.published_mutation_history import replay_recorded_mutations
+    from tournament_scheduler.publication.mutation_history import replay_recorded_mutations
 
     seed = {
         "t1": {

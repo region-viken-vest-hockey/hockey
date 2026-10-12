@@ -171,11 +171,11 @@ tournament_scheduler/pipeline/audit_evidence.py	1034
 tournament_scheduler/pipeline/audit_workflow.py	329
 tournament_scheduler/pipeline/controller_trace.py	467
 tournament_scheduler/pipeline/export_parity/comparator.py	349
-tournament_scheduler/pipeline/export_projection_guard.py	839
+tournament_scheduler/publication/projection_guard.py	839
 tournament_scheduler/pipeline/operator_action_audit.py	523
-tournament_scheduler/pipeline/publication_evidence.py	549
+tournament_scheduler/publication/evidence.py	549
 tournament_scheduler/pipeline/publication_lifecycle.py	404
-tournament_scheduler/pipeline/publication_scope.py	557
+tournament_scheduler/publication/scope.py	557
 tournament_scheduler/pipeline/scraper_bookup.py	425
 tournament_scheduler/pipeline/scraper_outlook.py	528
 tournament_scheduler/pipeline/scraper_styledcalendar.py	377
@@ -185,8 +185,8 @@ tournament_scheduler/pipeline/verification_context.py	303
 tournament_scheduler/placement_infeasibility.py	453
 tournament_scheduler/placement_normalization.py	510
 tournament_scheduler/placement_preserving_roster_repair.py	629
-tournament_scheduler/published_baseline.py	430
-tournament_scheduler/published_mutation_history.py	734
+tournament_scheduler/publication/baseline.py	430
+tournament_scheduler/publication/mutation_history.py	734
 tournament_scheduler/repair_adoption_guard.py	1248
 tournament_scheduler/repair_application.py	795
 tournament_scheduler/repair_options.py	411

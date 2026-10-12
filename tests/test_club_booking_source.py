@@ -24,7 +24,7 @@ from tournament_scheduler.booking.calendar_bookings import (
     event_fingerprint,
 )
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
-from tournament_scheduler.published_mutation_history import replay_recorded_mutations
+from tournament_scheduler.publication.mutation_history import replay_recorded_mutations
 from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     booking_status_report,

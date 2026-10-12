@@ -21,20 +21,20 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     load_decisions,
     load_schedule,
 )
-from tournament_scheduler.published_baseline import (
+from tournament_scheduler.publication.baseline import (
     active_baseline,
     effective_projection_from_canonical_schedule,
     is_published_sealed,
     projection_fingerprint,
 )
 
-from .export_lifecycle import read_export_manifest
-from .export_projection_guard import (
+from tournament_scheduler.publication.export_lifecycle import read_export_manifest
+from tournament_scheduler.publication.projection_guard import (
     FULL_OPERATIONAL_PROJECTION_SCHEMA,
     FULL_OPERATIONAL_PROJECTION_VERSION,
     diff_tournament_projection,
 )
-from .publication_evidence import (
+from tournament_scheduler.publication.evidence import (
     build_publication_evidence,
     write_publication_evidence,
 )
@@ -291,7 +291,7 @@ def _previous_publication_recoverability(
         run_id = str(evidence.get("run_id") or "")
         expected_bundle_fingerprint = str(evidence.get("bundle_fingerprint") or "")
     if not run_id:
-        from .export_lifecycle import find_published_exports_for_season
+        from tournament_scheduler.publication.export_lifecycle import find_published_exports_for_season
 
         publication_id = str(baseline.get("publication_id") or "")
         for record in find_published_exports_for_season(season, season_root=_season_root(repo_dir)):

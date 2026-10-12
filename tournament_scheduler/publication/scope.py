@@ -41,7 +41,7 @@ from __future__ import annotations
 import os
 from typing import Any, Mapping
 
-from .export_projection_guard import diff_tournament_projection, tournament_projection
+from tournament_scheduler.publication.projection_guard import diff_tournament_projection, tournament_projection
 
 PUBLICATION_SCOPE_SCHEMA_VERSION = 1
 PUBLICATION_SCOPE = "publication_scope"
@@ -315,7 +315,7 @@ def evaluate_publication_scope(
         )
         return result
 
-    from tournament_scheduler.published_baseline import (
+    from tournament_scheduler.publication.baseline import (
         active_baseline,
         baseline_projection,
     )

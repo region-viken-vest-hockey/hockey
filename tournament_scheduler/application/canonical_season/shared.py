@@ -20,14 +20,14 @@ from tournament_scheduler.infrastructure.canonical_revision_history import (
     load_canonical_schedule_at_revision,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
-from tournament_scheduler.published_baseline import (
+from tournament_scheduler.publication.baseline import (
     backfill_projection_entry,
     baseline_migration_requires_backfill,
     baseline_projection,
     baseline_requires_backfill,
     projection_problem_from_schedule,
 )
-from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
+from tournament_scheduler.publication.projection_guard import tournament_projection
 
 APPROVED_STATUS = "approved"
 

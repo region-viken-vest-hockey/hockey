@@ -40,8 +40,8 @@ from typing import Any
 from tournament_scheduler.booking.arena_conflicts import find_arena_interval_collisions
 from ..planning.verification import verify_final_candidate
 from ..planning.contract import extract_candidate
-from .export_lifecycle import EXPORT_LIFECYCLE_FILENAME, write_draft_manifest
-from .export_projection_guard import assert_export_preserves_canonical_plan, tournament_projection
+from tournament_scheduler.publication.export_lifecycle import EXPORT_LIFECYCLE_FILENAME, write_draft_manifest
+from tournament_scheduler.publication.projection_guard import assert_export_preserves_canonical_plan, tournament_projection
 from .fingerprints import stable_payload_sha256
 from ..excel.plan_exporter import SeasonPlanExporter
 from ..ical.ical_exporter import ICalExporter

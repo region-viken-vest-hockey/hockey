@@ -15,7 +15,7 @@ from __future__ import annotations
 import subprocess
 
 from tournament_scheduler.pipeline.audit_result import write_audit_result
-from tournament_scheduler.pipeline.export_lifecycle import write_draft_manifest
+from tournament_scheduler.publication.export_lifecycle import write_draft_manifest
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.pipeline.operator_action import DEFAULT_REGISTRY
 from tournament_scheduler.pipeline.run_manifest import RunManifest

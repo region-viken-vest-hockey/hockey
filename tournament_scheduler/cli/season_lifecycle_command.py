@@ -226,8 +226,8 @@ def _cmd_season_seal_published(args: argparse.Namespace) -> int:
     import json as _json
 
     from ..infrastructure.canonical_revision_history import load_canonical_schedule_at_revision
-    from ..pipeline.export_lifecycle import find_published_exports_for_season
-    from ..pipeline.export_projection_guard import (
+    from tournament_scheduler.publication.export_lifecycle import find_published_exports_for_season
+    from tournament_scheduler.publication.projection_guard import (
         projection_from_export_artifacts,
         tournament_projection,
     )
@@ -251,7 +251,7 @@ def _cmd_season_seal_published(args: argparse.Namespace) -> int:
         if isinstance(publication_canonical_schedule, dict)
         else None
     )
-    from ..published_baseline import projection_problem_from_schedule
+    from tournament_scheduler.publication.baseline import projection_problem_from_schedule
 
     publication_canonical_problem = (
         projection_problem_from_schedule(publication_canonical_schedule)
@@ -267,7 +267,7 @@ def _cmd_season_seal_published(args: argparse.Namespace) -> int:
                 "ikke gjenopprettes. Nekter å seile."
             )
             return 1
-        from ..pipeline.export_projection_guard import ExportProjectionError
+        from tournament_scheduler.publication.projection_guard import ExportProjectionError
 
         try:
             published_projection = projection_from_export_artifacts(
@@ -279,7 +279,7 @@ def _cmd_season_seal_published(args: argparse.Namespace) -> int:
             _console.print(f"[red]✗[/red] {exc}")
             return 1
     if publication_canonical_plan is not None:
-        from ..pipeline.export_projection_guard import ExportProjectionError
+        from tournament_scheduler.publication.projection_guard import ExportProjectionError
 
         try:
             publication_canonical_projection = tournament_projection(

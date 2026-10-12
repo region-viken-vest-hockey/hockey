@@ -501,7 +501,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (  # noqa
     CanonicalSeasonSnapshot,
     CanonicalSeasonStore,
 )
-from tournament_scheduler.pipeline.export_projection_guard import tournament_projection  # noqa: E402
+from tournament_scheduler.publication.projection_guard import tournament_projection  # noqa: E402
 from tournament_scheduler.serialization.season_plan import season_plan_to_dict  # noqa: E402
 
 _CANONICAL_SEASON = "2026-2027"

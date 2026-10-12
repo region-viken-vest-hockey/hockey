@@ -251,10 +251,10 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
         public_api=(
             "tournament_scheduler.pipeline.stage4_export.run",
             "tournament_scheduler.pipeline.canonical_export_evidence.build_canonical_export_evidence",
-            "tournament_scheduler.pipeline.export_lifecycle.write_draft_manifest",
-            "tournament_scheduler.pipeline.export_projection_guard.assert_export_preserves_canonical_plan",
+            "tournament_scheduler.publication.export_lifecycle.write_draft_manifest",
+            "tournament_scheduler.publication.projection_guard.assert_export_preserves_canonical_plan",
         ),
-        implementation_owner="tournament_scheduler/pipeline/stage4_export.py + canonical_export_evidence.py + export_lifecycle.py + export_projection_guard.py",
+        implementation_owner="tournament_scheduler/pipeline/stage4_export.py + canonical_export_evidence.py + publication/export_lifecycle.py + publication/projection_guard.py",
         invariants=(
             *_EXPORT_CONTRACT,
             "Canonical preview/rejection/commit does not materialize exports unless the caller explicitly enters this export boundary.",
@@ -311,13 +311,13 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
         tasks=("report publication evidence", "publish Pages bundle", "verify publication preflight"),
         boundary="publication",
         public_api=(
-            "tournament_scheduler.pipeline.publication_evidence.build_publication_evidence",
+            "tournament_scheduler.publication.evidence.build_publication_evidence",
             "tournament_scheduler.pipeline.publication_lifecycle.assert_publication_allowed",
             "tournament_scheduler.pipeline.pages_publish.publish",
             "tournament_scheduler.application.canonical_season.lifecycle_status.publication_evidence_report",
             "tournament_scheduler.application.canonical_season.lifecycle_status.verify_sealed_reconciliation",
         ),
-        implementation_owner="tournament_scheduler/pipeline/publication_evidence.py + publication_lifecycle.py + pages_publish.py + application/canonical_season/lifecycle_status.py",
+        implementation_owner="tournament_scheduler/publication/evidence.py + publication_lifecycle.py + pages_publish.py + application/canonical_season/lifecycle_status.py",
         invariants=(
             *_PUBLICATION_CONTRACT,
         ),

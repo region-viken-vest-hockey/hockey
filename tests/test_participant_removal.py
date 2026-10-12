@@ -36,8 +36,8 @@ from tournament_scheduler.participation.withdrawals import (
     withdrawn_team_count_for_tournament,
     withdrawn_team_identities_for_tournament,
 )
-from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
-from tournament_scheduler.published_mutation_history import reconcile_published_baseline
+from tournament_scheduler.publication.projection_guard import tournament_projection
+from tournament_scheduler.publication.mutation_history import reconcile_published_baseline
 from tournament_scheduler.application.canonical_season.store_facade import (
     batch_maintenance,
     load_decisions,
@@ -1122,7 +1122,7 @@ def test_ringerike_ju8_withdrawal_regression_case(tmp_path: Path) -> None:
     # A sealed season refuses whole-season regeneration even after a durable
     # withdrawal: the retirement is not a licence to rebuild the season.
     from tournament_scheduler.season.replan import replan_around_baseline
-    from tournament_scheduler.published_baseline import SeasonSealedError
+    from tournament_scheduler.publication.baseline import SeasonSealedError
 
     with pytest.raises(SeasonSealedError):
         replan_around_baseline(

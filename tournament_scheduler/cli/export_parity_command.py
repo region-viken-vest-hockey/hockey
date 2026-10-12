@@ -55,7 +55,7 @@ def _cmd_export_parity(args: argparse.Namespace) -> int:
     export_dir = Path(args.export_dir)
     manifest = {}
     try:
-        from ..pipeline.export_lifecycle import read_export_manifest
+        from tournament_scheduler.publication.export_lifecycle import read_export_manifest
 
         manifest = read_export_manifest(export_dir) or {}
     except Exception:  # noqa: BLE001 - best-effort read-only provenance

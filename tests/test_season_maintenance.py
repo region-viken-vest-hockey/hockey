@@ -53,7 +53,7 @@ from tournament_scheduler.application.canonical_season.store_facade import (
     schedule_fingerprint,
 )
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
-from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
+from tournament_scheduler.publication.projection_guard import tournament_projection
 from tournament_scheduler.season.baseline_overlay import approval_fingerprint
 
 

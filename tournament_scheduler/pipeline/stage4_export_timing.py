@@ -7,7 +7,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .export_lifecycle import prune_draft_exports
+from tournament_scheduler.publication.export_lifecycle import prune_draft_exports
 from .stage4_export_errors import Stage4Error
 
 DEFAULT_EXPORT_DIR = "export"

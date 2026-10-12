@@ -25,7 +25,7 @@ from tournament_scheduler.pipeline.audit_result import write_audit_result
 from tournament_scheduler.pipeline.capability_result import CapabilityResult
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.pipeline.operator_action_audit import apply_publish_audit_gate
-from tournament_scheduler.published_baseline import build_baseline_record
+from tournament_scheduler.publication.baseline import build_baseline_record
 from tournament_scheduler.pipeline.run_manifest import RunManifest
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.pipeline.verification_context import build_verification_context
@@ -108,7 +108,7 @@ def _write_canonical(
         "plan": plan,
         "verification_context": {"problem": _problem()},
     }
-    from tournament_scheduler.pipeline.export_projection_guard import tournament_projection
+    from tournament_scheduler.publication.projection_guard import tournament_projection
 
     baseline = build_baseline_record(
         season=_SEASON,

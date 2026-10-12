@@ -853,7 +853,7 @@ def test_confirm_calendar_booking_aligns_canonical_interval_to_authoritative_eve
         "age_group": "U10",
         "round_count": "1",
     }
-    from tournament_scheduler.published_mutation_history import replay_recorded_mutations
+    from tournament_scheduler.publication.mutation_history import replay_recorded_mutations
 
     seed = {
         "t1": {

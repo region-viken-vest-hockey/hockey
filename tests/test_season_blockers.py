@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from tournament_scheduler.application.season_blockers import build_blocker_report
 from tournament_scheduler.pipeline.export_parity.gate import CanonicalFreshness
-from tournament_scheduler.pipeline.publication_scope import (
+from tournament_scheduler.publication.scope import (
     STATUS_BLOCKED,
     STATUS_ELIGIBLE,
     STATUS_HELD,
