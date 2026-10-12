@@ -1518,8 +1518,9 @@ def validate_catalog(repo_root: Path | None = None) -> list[str]:
                     f"{entry.id}: priority tier {entry.priority_tier} requires classification {required!r}"
                 )
 
-    # A finding code may carry at most one convergence direction, and only on
-    # the rule that registers that finding code.
+    # A finding code may carry at most one convergence direction across the whole
+    # catalog (a second pair for the same code is an error even within one entry),
+    # and only on the rule that registers that finding code.
     direction_owner: dict[str, str] = {}
     for entry in RULE_CATALOG:
         for finding_code, _direction in entry.convergence_directions:
@@ -1527,10 +1528,10 @@ def validate_catalog(repo_root: Path | None = None) -> list[str]:
                 problems.append(
                     f"{entry.id}: convergence direction for {finding_code!r} requires it as a finding code"
                 )
-            if finding_code in direction_owner and direction_owner[finding_code] != entry.id:
+            if finding_code in direction_owner:
                 problems.append(
-                    f"convergence direction for {finding_code!r} declared by both "
-                    f"{direction_owner[finding_code]} and {entry.id}"
+                    f"convergence direction for {finding_code!r} declared more than once "
+                    f"(first by {direction_owner[finding_code]}, again by {entry.id})"
                 )
             direction_owner[finding_code] = entry.id
 

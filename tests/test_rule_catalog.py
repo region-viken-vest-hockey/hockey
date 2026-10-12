@@ -627,6 +627,20 @@ def test_validation_rejects_a_convergence_direction_for_a_foreign_finding_code(m
     assert any("convergence direction for 'hosting_age_group_coverage_missing'" in p for p in problems)
 
 
+def test_validation_rejects_duplicate_convergence_directions_within_one_entry(monkeypatch) -> None:
+    import dataclasses
+
+    owner = catalog.CATALOG_BY_ID["tournament_placement_obligation"]
+    code = "unplaced_tournament_placement"
+    broken = dataclasses.replace(
+        owner, convergence_directions=((code, "unplaced_placement"), (code, "other_direction"))
+    )
+    entries = tuple(broken if entry.id == owner.id else entry for entry in catalog.RULE_CATALOG)
+    monkeypatch.setattr(catalog, "RULE_CATALOG", entries)
+    problems = catalog.validate_catalog(REPO_ROOT)
+    assert any(f"convergence direction for {code!r} declared more than once" in p for p in problems)
+
+
 # Module-level literal tables outside the catalog that are keyed by, or hold,
 # verifier/finding codes. Each entry names a different identity space (plan
 # field, report dimension, category label) or a known consolidation target.
@@ -640,6 +654,18 @@ _SANCTIONED_CODE_TABLES: dict[tuple[str, str], str] = {
         "tournament_scheduler/application/pareto_convergence.py",
         "DIRECTION_BY_CATEGORY",
     ): "finding category labels, not finding codes",
+    (
+        "tournament_scheduler/application/pareto_convergence.py",
+        "REVIEW_PRIORITY_DIMENSIONS",
+    ): "review priority report counter names mapped to metric dimensions, not finding codes",
+    (
+        "tournament_scheduler/application/convergence_refinement.py",
+        "_MATERIAL_METRIC_LABELS",
+    ): "quality metric names mapped to human-readable labels, not finding codes",
+    (
+        "tournament_scheduler/repair/local_options.py",
+        "REPAIR_PROVIDERS",
+    ): "repair enumerator dispatch keyed by defect name; move into the catalog repair projection",
     (
         "tournament_scheduler/pipeline/audit_evidence.py",
         "EVIDENCE_CATEGORIES",
@@ -655,6 +681,31 @@ _SANCTIONED_CODE_TABLES: dict[tuple[str, str], str] = {
 }
 
 
+def _literal_table_code_hits(tree: ast.Module, code_strings: set[str]) -> dict[str, list[str]]:
+    """Module-level dict/set/tuple/list literals holding a catalog code as a key, value, or nested element."""
+    hits: dict[str, list[str]] = {}
+    for node in tree.body:
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
+            continue
+        target = node.targets[0] if isinstance(node, ast.Assign) else node.target
+        if not isinstance(target, ast.Name):
+            continue
+        if not isinstance(node.value, (ast.Dict, ast.Set, ast.Tuple, ast.List)):
+            continue
+        found = sorted(
+            {
+                element.value
+                for element in ast.walk(node.value)
+                if isinstance(element, ast.Constant)
+                and isinstance(element.value, str)
+                and element.value in code_strings
+            }
+        )
+        if found:
+            hits[target.id] = found
+    return hits
+
+
 def _code_table_hits() -> dict[tuple[str, str], list[str]]:
     code_strings = {
         code
@@ -667,31 +718,22 @@ def _code_table_hits() -> dict[tuple[str, str], list[str]]:
         if relative == "tournament_scheduler/rules/catalog.py":
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=relative)
-        for node in tree.body:
-            if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
-                continue
-            target = node.targets[0] if isinstance(node, ast.Assign) else node.target
-            if not isinstance(target, ast.Name):
-                continue
-            value = node.value
-            if isinstance(value, ast.Dict):
-                elements = [key for key in value.keys if key is not None]
-            elif isinstance(value, (ast.Set, ast.Tuple, ast.List)):
-                elements = list(value.elts)
-            else:
-                continue
-            found = sorted(
-                {
-                    element.value
-                    for element in elements
-                    if isinstance(element, ast.Constant)
-                    and isinstance(element.value, str)
-                    and element.value in code_strings
-                }
-            )
-            if found:
-                hits[(relative, target.id)] = found
+        for name, found in _literal_table_code_hits(tree, code_strings).items():
+            hits[(relative, name)] = found
     return hits
+
+
+def test_code_table_scan_catches_a_code_held_only_as_a_value() -> None:
+    code = "unplaced_tournament_placement"
+    tree = ast.parse(
+        f'PLACEMENT_BY_NAME = {{"placement": "{code}"}}\n'
+        f'NESTED = {{"placement": ("{code}",)}}\n'
+        f'PLAIN = {{"placement": "not_a_code"}}\n'
+    )
+
+    hits = _literal_table_code_hits(tree, {code})
+
+    assert hits == {"PLACEMENT_BY_NAME": [code], "NESTED": [code]}
 
 
 def test_no_secondary_verifier_or_finding_code_table_outside_the_catalog() -> None:
