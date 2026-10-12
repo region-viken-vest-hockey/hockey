@@ -29,7 +29,9 @@ from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, Sequence
 
 from tournament_scheduler.scoring.pareto import dominates, representative_indices, vectors_equal
-from tournament_scheduler.repair.capability import COVERAGE_BOUNDED_EXHAUSTED, recorded_capability_fingerprint
+from tournament_scheduler.repair.capability import (
+    COVERAGE_BOUNDED_EXHAUSTED, COVERAGE_SEARCH_INCOMPLETE, recorded_capability_fingerprint,
+)
 from tournament_scheduler.rules.catalog import convergence_direction_for_finding_code
 
 # Bounded frontier size and convergence safeguards. These are the "configured
@@ -338,7 +340,7 @@ def classify_finding(finding: Mapping[str, Any]) -> FindingDirection:
     category = str(finding.get("category") or "")
     coverage = finding.get("search_coverage") or {}
     coverage_status = str(coverage.get("status") or "") if isinstance(coverage, Mapping) else ""
-    search_incomplete = coverage_status == "search_incomplete"
+    search_incomplete = coverage_status == COVERAGE_SEARCH_INCOMPLETE
     bounded_exhausted = coverage_status == COVERAGE_BOUNDED_EXHAUSTED
     operator_required = bool(
         finding.get("requires_operator")
@@ -609,7 +611,7 @@ class ConvergenceController:
                 return direction
         for direction in untried_directions:
             if direction.search_incomplete:
-                self.last_selection_reason = f"{prefix}search_incomplete"
+                self.last_selection_reason = f"{prefix}{COVERAGE_SEARCH_INCOMPLETE}"
                 return direction
         self.last_selection_reason = f"{prefix}fair_direction_round"
         return untried_directions[0]

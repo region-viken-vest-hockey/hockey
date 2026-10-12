@@ -24,6 +24,7 @@ canonical atomically-verified mutation boundary (``application.canonical_season.
 
 from __future__ import annotations
 
+from tournament_scheduler.repair.capability import COVERAGE_SEARCH_INCOMPLETE
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from .baseline_overlay import build_canonical_baseline
@@ -751,7 +752,7 @@ def _escalation(options: List[Dict[str, Any]], rejected: List[Dict[str, Any]], f
             "untried_dimensions": list(coverage.get("untried") or []),
             "next": (
                 "request bounded search for the untried dimensions"
-                if coverage.get("status") == "search_incomplete"
+                if coverage.get("status") == COVERAGE_SEARCH_INCOMPLETE
                 else "inspect rejected_candidates for the deterministic rejection reasons"
             ),
         }

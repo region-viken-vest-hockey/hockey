@@ -7,6 +7,7 @@ planning problems, including the classification of different finding types
 
 from __future__ import annotations
 
+from tournament_scheduler.repair.capability import COVERAGE_PROVEN_INFEASIBLE
 from tournament_scheduler.season.finding_resolution import annotate_resolutions
 from tournament_scheduler.hosting.balance_repair import hosting_finding_id
 from tournament_scheduler.season.maintenance_context import SeasonMaintenanceError
@@ -22,13 +23,7 @@ from tournament_scheduler.rules.catalog import annotate_findings
 from tournament_scheduler.repair.coverage import cheap_search_coverage
 from tournament_scheduler.repair.unplaced_placement import obligation_search_coverage
 from tournament_scheduler.repair.unplaced_placement import unplaced_placement_search_capability
-from typing import Any
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 
 def construct_findings(
@@ -339,7 +334,7 @@ def _participation_findings(
             "target": deviation.get("target"),
             "deviation": int(deviation.get("deviation", 0)),
             "avoidability": avoidability,
-            "proven_infeasible": avoidability == "proven_infeasible",
+            "proven_infeasible": avoidability == COVERAGE_PROVEN_INFEASIBLE,
             "searchable": True,
             "message": (
                 f"{team} ({club}, {deviation.get('age_group')}) is {deviation.get('direction')} "

@@ -6,6 +6,7 @@ consequence analysis, and Pareto-optimal selection for maintenance decisions.
 
 from __future__ import annotations
 
+from tournament_scheduler.repair.capability import COVERAGE_BOUNDED_EXHAUSTED
 from tournament_scheduler.season.findings import _avoidability_count
 from tournament_scheduler.season.findings import _count
 from tournament_scheduler.season.findings import _manual_count
@@ -186,8 +187,8 @@ def _metric_delta(
         ),
         "participation_deviations_before": _count(before_verification, "participation_deviations"),
         "participation_deviations_after": _count(after, "participation_deviations"),
-        "bounded_search_exhausted_before": _avoidability_count(before_verification, "bounded_search_exhausted"),
-        "bounded_search_exhausted_after": _avoidability_count(after, "bounded_search_exhausted"),
+        "bounded_search_exhausted_before": _avoidability_count(before_verification, COVERAGE_BOUNDED_EXHAUSTED),
+        "bounded_search_exhausted_after": _avoidability_count(after, COVERAGE_BOUNDED_EXHAUSTED),
         "avoidable_before": _avoidability_count(before_verification, "avoidable"),
         "avoidable_after": _avoidability_count(after, "avoidable"),
         "changed_tournament_count": len(_changed_tournament_ids(before_plan, after_plan)),

@@ -18,6 +18,7 @@ instead of independently parsing the persisted artifacts.
 
 from __future__ import annotations
 
+from tournament_scheduler.repair.capability import COVERAGE_BOUNDED_EXHAUSTED
 import json
 from typing import Any
 
@@ -100,8 +101,7 @@ EVIDENCE_CATEGORIES: dict[str, dict[str, Any]] = {
     },
     "home_representation": {
         "description": (
-            "Per-sibling participation in a multi-team club's own home tournaments "
-            "(spread; 0-1 is balanced)."
+            "Per-sibling participation in a multi-team club's own home tournaments (spread; 0-1 is balanced)."
         ),
         "checklist_item": 2,
         "unresolved": False,
@@ -402,11 +402,11 @@ def _extract_records(raw: dict[str, Any]) -> list[dict[str, Any]]:
         records.append(
             _record(
                 category="participation_target_deviations",
-                finding_type=str(row.get("avoidability") or "bounded_search_exhausted"),
+                finding_type=str(row.get("avoidability") or COVERAGE_BOUNDED_EXHAUSTED),
                 summary=(
                     f"{row.get('team') or row.get('label') or '?'} ({row.get('age_group') or '?'}, "
                     f"{row.get('scope') or 'season'}): {row.get('actual')}/{row.get('target')} "
-                    f"{row.get('direction') or ''} — {row.get('avoidability') or 'bounded_search_exhausted'}"
+                    f"{row.get('direction') or ''} — {row.get('avoidability') or COVERAGE_BOUNDED_EXHAUSTED}"
                 ),
                 detail=row,
                 club=row.get("club"),
