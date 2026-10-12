@@ -427,14 +427,6 @@ _UNCATALOGUED_ADOPTION_REGRESSIONS = frozenset(
     {"hard_verification_regression", "cycle_detected"}
 )
 
-# A quality metric path whose catalog objective and regression code resolve to
-# different rules. ``inter_club_diversity`` measures the same club-diversity
-# shortfall that ``fewer_unique_opponent_clubs`` reports, which the catalog
-# places under ``opponent_club_diversity``. Keep this list explicit so the
-# divergence is visible until the owners are reconciled.
-_KNOWN_PATH_RULE_DIVERGENCES = {
-    "opponent_diversity.inter_club_diversity": ("inter_club_diversity", "opponent_club_diversity"),
-}
 
 
 def _adoption_regression_codes() -> set[str]:
@@ -511,8 +503,6 @@ def test_quality_materiality_path_and_code_share_one_owning_rule() -> None:
         code_rule = catalog.rule_id_for_regression_code(code)
         if path_rule is None or code_rule is None:
             continue  # reported by the resolution test above
-        if (path_rule, code_rule) == _KNOWN_PATH_RULE_DIVERGENCES.get(path):
-            continue
         if path_rule != code_rule:
             mismatches.append(f"{path} -> {path_rule} but {code} -> {code_rule}")
     assert mismatches == [], "score path and regression code disagree: " + "; ".join(mismatches)
@@ -641,6 +631,29 @@ def test_validation_rejects_duplicate_convergence_directions_within_one_entry(mo
     assert any(f"convergence direction for {code!r} declared more than once" in p for p in problems)
 
 
+def test_validation_rejects_a_duplicate_evidence_category(monkeypatch) -> None:
+    import dataclasses
+
+    original = catalog.EVIDENCE_CATEGORIES
+    duplicate = dataclasses.replace(original[0], description="a second declaration")
+    monkeypatch.setattr(catalog, "EVIDENCE_CATEGORIES", (*original, duplicate))
+    problems = catalog.validate_catalog(REPO_ROOT)
+    assert f"evidence category {original[0].name!r} is declared more than once" in problems
+
+
+def test_audit_evidence_reads_categories_from_the_catalog() -> None:
+    from tournament_scheduler.pipeline import audit_evidence
+
+    from tournament_scheduler.rules import evidence_categories
+
+    assert audit_evidence.EVIDENCE_CATEGORIES is evidence_categories.EVIDENCE_CATEGORIES
+    assert catalog.EVIDENCE_CATEGORIES is evidence_categories.EVIDENCE_CATEGORIES
+    assert all(
+        isinstance(category, evidence_categories.EvidenceCategory)
+        for category in evidence_categories.EVIDENCE_CATEGORIES
+    )
+
+
 # Module-level literal tables outside the catalog that are keyed by, or hold,
 # verifier/finding codes. Each entry names a different identity space (plan
 # field, report dimension, category label) or a known consolidation target.
@@ -666,10 +679,6 @@ _SANCTIONED_CODE_TABLES: dict[tuple[str, str], str] = {
         "tournament_scheduler/repair/local_options.py",
         "REPAIR_PROVIDERS",
     ): "repair enumerator dispatch keyed by defect name; move into the catalog repair projection",
-    (
-        "tournament_scheduler/pipeline/audit_evidence.py",
-        "EVIDENCE_CATEGORIES",
-    ): "evidence/checklist projection keyed by finding code; move into the catalog evidence projection",
     (
         "tournament_scheduler/repair/evaluation.py",
         "MAINTENANCE_DEFECT_DIMENSIONS",
@@ -706,6 +715,16 @@ def _literal_table_code_hits(tree: ast.Module, code_strings: set[str]) -> dict[s
     return hits
 
 
+# The registry boundary: catalog.py and the audit evidence categories it owns may
+# hold catalog codes; every other module must resolve through them.
+_REGISTRY_MODULES = frozenset(
+    {
+        "tournament_scheduler/rules/catalog.py",
+        "tournament_scheduler/rules/evidence_categories.py",
+    }
+)
+
+
 def _code_table_hits() -> dict[tuple[str, str], list[str]]:
     code_strings = {
         code
@@ -715,7 +734,7 @@ def _code_table_hits() -> dict[tuple[str, str], list[str]]:
     hits: dict[tuple[str, str], list[str]] = {}
     for path in sorted((REPO_ROOT / "tournament_scheduler").rglob("*.py")):
         relative = path.relative_to(REPO_ROOT).as_posix()
-        if relative == "tournament_scheduler/rules/catalog.py":
+        if relative in _REGISTRY_MODULES:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=relative)
         for name, found in _literal_table_code_hits(tree, code_strings).items():

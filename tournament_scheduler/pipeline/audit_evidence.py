@@ -22,6 +22,7 @@ import json
 from typing import Any
 
 from tournament_scheduler.hosting.representation import clubs_represent_same_club
+from tournament_scheduler.rules.evidence_categories import EVIDENCE_CATEGORIES, EVIDENCE_CATEGORY_BY_NAME
 
 # Explicit, tested upper bound for the *default* audit context payload. The
 # bound covers the serialized overview; detailed evidence is fetched
@@ -47,205 +48,6 @@ EVIDENCE_EXPANSION_MAX_BYTES = 60_000
 EVIDENCE_EXPANSION_QUERY_LIMIT = 25
 
 _SEVERITY_ORDER = {"critical": 0, "major": 1, "minor": 2, "info": 3}
-
-# Canonical evidence categories, aligned to the finding lists/finding types
-# the pipeline already persists rather than a parallel taxonomy. ``checklist
-# item`` is the operator-checklist item the category primarily supports;
-# ``unresolved`` marks the categories that represent an open/manual finding.
-EVIDENCE_CATEGORIES: dict[str, dict[str, Any]] = {
-    "participation_shortfalls": {
-        "description": "Teams whose final participation count is below target (per-team category/reason).",
-        "checklist_item": 1,
-        "unresolved": True,
-        "severity": "major",
-    },
-    "club_participation_fairness": {
-        "description": "Per club/age-group proportional participation share (target vs actual).",
-        "checklist_item": 1,
-        "unresolved": False,
-        "severity": "info",
-    },
-    "participation_club_pools": {
-        "description": (
-            "Club x age-group x scope aggregate player-pool view: aggregate target/actual, exact team "
-            "distribution and the deterministic classification (intra_club_distribution / minor / "
-            "material club-pool shortfall / single-team) that separates a genuine shortage from an "
-            "intra-club label imbalance."
-        ),
-        "checklist_item": 1,
-        "unresolved": False,
-        "severity": "info",
-    },
-    "manual_participation_placements": {
-        "description": "Manual participation placements the final verifier surfaced for operator follow-up.",
-        "checklist_item": 1,
-        "unresolved": True,
-        "severity": "major",
-    },
-    "participation_target_deviations": {
-        "description": (
-            "Bounded participation-target deviations (over or under) with the deterministic "
-            "avoidability classification (avoidable / proven_infeasible / bounded_search_exhausted / "
-            "operator_accepted) the controller uses to judge the residual trade-off."
-        ),
-        "checklist_item": 1,
-        "unresolved": True,
-        "severity": "major",
-    },
-    "unresolved_hosting_obligations": {
-        "description": "Club x age-group hosting obligations with no placed tournament, including untried reallocation candidates.",
-        "checklist_item": 2,
-        "unresolved": True,
-        "severity": "major",
-    },
-    "home_representation": {
-        "description": (
-            "Per-sibling participation in a multi-team club's own home tournaments "
-            "(spread; 0-1 is balanced)."
-        ),
-        "checklist_item": 2,
-        "unresolved": False,
-        "severity": "info",
-    },
-    "same_age_hosting_repairs": {
-        "description": "Same-age hosting-coverage repairs attempted (repaired or rejected-with-reason).",
-        "checklist_item": 2,
-        "unresolved": False,
-        "severity": "info",
-    },
-    "cross_age_hosting_repairs": {
-        "description": "Cross-age hosting-coverage repairs attempted (repaired or rejected-with-reason).",
-        "checklist_item": 2,
-        "unresolved": False,
-        "severity": "info",
-    },
-    "unresolved_tournament_placements": {
-        "description": "Concrete rosters/dates that could not be given a participant-host arena/time.",
-        "checklist_item": 2,
-        "unresolved": True,
-        "severity": "major",
-    },
-    "unresolved_external_conflicts": {
-        "description": "Hosts with an external calendar conflict the plan could not route around.",
-        "checklist_item": 4,
-        "unresolved": True,
-        "severity": "major",
-    },
-    "manual_external_conflict_placements": {
-        "description": "External calendar conflicts the final verifier surfaced for operator follow-up.",
-        "checklist_item": 4,
-        "unresolved": True,
-        "severity": "major",
-    },
-    "movable_allocations_used": {
-        "description": (
-            "Tournaments placed in a host-controlled movable_busy interval (e.g. Kongsberg open ice): "
-            "feasible subject to the host moving/replacing the listed event."
-        ),
-        "checklist_item": 4,
-        "unresolved": True,
-        "severity": "major",
-    },
-    "calendar_interpretations_used": {
-        "description": (
-            "Controller-requested inferred movable_busy interpretations recorded on the "
-            "candidate (host confirmation required); the source calendar is unchanged."
-        ),
-        "checklist_item": 4,
-        "unresolved": True,
-        "severity": "major",
-    },
-    "tournament_duration": {
-        "description": "Per-tournament required duration/end time derived from configured ice time and rounds.",
-        "checklist_item": 3,
-        "unresolved": False,
-        "severity": "info",
-    },
-    "blocking_byes": {
-        "description": "Tournaments with pause/bye teams or an invalid no-bye roster (a hard policy violation).",
-        "checklist_item": 3,
-        "unresolved": True,
-        "severity": "critical",
-    },
-    "input_constrained_shape": {
-        "description": "Tournaments whose odd/bye shape is a legitimate input-constrained adaptation, not a defect.",
-        "checklist_item": 3,
-        "unresolved": False,
-        "severity": "info",
-    },
-    "guest_reservations": {
-        "description": "Reserved guest places and their open/filled/released lifecycle status.",
-        "checklist_item": 3,
-        "unresolved": False,
-        "severity": "info",
-    },
-    "underfilled_tournaments": {
-        "description": "Tournaments below their configured full-capacity game count.",
-        "checklist_item": 4,
-        "unresolved": True,
-        "severity": "minor",
-    },
-    "calendar_sources": {
-        "description": "Persisted Stage 2 source/calendar health (blocked, empty, cached, warnings).",
-        "checklist_item": 4,
-        "unresolved": False,
-        "severity": "info",
-    },
-    "host_participation": {
-        "description": "Tournaments whose host club has no participating team.",
-        "checklist_item": 5,
-        "unresolved": True,
-        "severity": "major",
-    },
-    "duplicate_team_days": {
-        "description": "Teams scheduled in more than one tournament on the same day.",
-        "checklist_item": 6,
-        "unresolved": True,
-        "severity": "major",
-    },
-    "same_club_participants": {
-        "description": "Tournaments with more than two teams from the same club.",
-        "checklist_item": 7,
-        "unresolved": False,
-        "severity": "minor",
-    },
-    "same_club_participants_hard_max": {
-        "description": "Tournaments above the hard maximum number of teams from one club (an invalid plan).",
-        "checklist_item": 7,
-        "unresolved": True,
-        "severity": "critical",
-    },
-    "export_consistency": {
-        "description": "Per-output-format row/event counts cross-checked against the selected plan.",
-        "checklist_item": 8,
-        "unresolved": False,
-        "severity": "info",
-    },
-    "verify_violations": {
-        "description": "Violations from the deterministic Stage 4 verification result.",
-        "checklist_item": 9,
-        "unresolved": True,
-        "severity": "critical",
-    },
-    "operator_waivers": {
-        "description": "Active operator waivers that authorize a precise exception to a hard rule.",
-        "checklist_item": 9,
-        "unresolved": False,
-        "severity": "info",
-    },
-    "waived_violations": {
-        "description": "Hard-rule violations that passed only because of an operator waiver.",
-        "checklist_item": 9,
-        "unresolved": False,
-        "severity": "minor",
-    },
-    "stale_approvals": {
-        "description": "Per-tournament approvals whose protected fields changed and must be re-approved.",
-        "checklist_item": 9,
-        "unresolved": True,
-        "severity": "major",
-    },
-}
 
 _SELECTOR_COMMANDS = {
     "item": "operator audit-evidence --item <n>",
@@ -294,16 +96,16 @@ def _record(
     clubs: list[str] | None = None,
     age_group: Any = None,
 ) -> dict[str, Any]:
-    meta = EVIDENCE_CATEGORIES.get(category, {})
+    meta = EVIDENCE_CATEGORY_BY_NAME.get(category)
     resolved_clubs = {str(value) for value in clubs or [] if value}
     if club:
         resolved_clubs.add(str(club))
     return {
         "category": category,
         "finding_type": finding_type or category,
-        "checklist_item": checklist_item if checklist_item is not None else meta.get("checklist_item"),
-        "unresolved": bool(unresolved) if unresolved is not None else bool(meta.get("unresolved")),
-        "severity": severity or meta.get("severity") or "info",
+        "checklist_item": checklist_item if checklist_item is not None else (meta.checklist_item if meta else None),
+        "unresolved": bool(unresolved) if unresolved is not None else bool(meta and meta.unresolved),
+        "severity": severity or (meta.severity if meta else None) or "info",
         "tournament_id": str(tournament_id) if tournament_id else None,
         "club": str(club) if club else None,
         "clubs": sorted(resolved_clubs),
@@ -825,21 +627,22 @@ def _extract_records(raw: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _category_summaries(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    by_category: dict[str, list[dict[str, Any]]] = {name: [] for name in EVIDENCE_CATEGORIES}
+    by_category: dict[str, list[dict[str, Any]]] = {category.name: [] for category in EVIDENCE_CATEGORIES}
     for record in records:
         by_category.setdefault(record["category"], []).append(record)
 
     summaries: list[dict[str, Any]] = []
-    for name, meta in EVIDENCE_CATEGORIES.items():
+    for meta in EVIDENCE_CATEGORIES:
+        name = meta.name
         rows = by_category.get(name, [])
         clubs = sorted({club for row in rows for club in (row.get("clubs") or [])})
         age_groups = sorted({row["age_group"] for row in rows if row.get("age_group")})
         summaries.append(
             {
                 "category": name,
-                "description": meta["description"],
-                "checklist_item": meta["checklist_item"],
-                "unresolved": bool(meta["unresolved"]),
+                "description": meta.description,
+                "checklist_item": meta.checklist_item,
+                "unresolved": bool(meta.unresolved),
                 "count": len(rows),
                 "unresolved_count": sum(1 for row in rows if row.get("unresolved")),
                 "clubs_affected": len(clubs),
@@ -889,7 +692,7 @@ def _club_selector_values(records: list[dict[str, Any]]) -> list[str]:
 def build_evidence_overview(index: dict[str, Any]) -> dict[str, Any]:
     """Build the bounded, discoverable overview placed in the audit context."""
     records = index.get("records") or []
-    by_category: dict[str, list[dict[str, Any]]] = {name: [] for name in EVIDENCE_CATEGORIES}
+    by_category: dict[str, list[dict[str, Any]]] = {category.name: [] for category in EVIDENCE_CATEGORIES}
     for record in records:
         by_category.setdefault(record["category"], []).append(record)
 
@@ -912,13 +715,13 @@ def build_evidence_overview(index: dict[str, Any]) -> dict[str, Any]:
         "categories": categories,
         "available_selectors": {
             "checklist_items": [int(item["item_id"]) for item in _checklist_item_ids()],
-            "categories": list(EVIDENCE_CATEGORIES),
+            "categories": [category.name for category in EVIDENCE_CATEGORIES],
             "clubs": clubs,
             "club_count": len(clubs),
             "age_groups": age_groups,
             "tournament_ids": tournament_ids[:50],
             "tournament_id_count": len(tournament_ids),
-            "unresolved_categories": [name for name, meta in EVIDENCE_CATEGORIES.items() if meta["unresolved"]],
+            "unresolved_categories": [category.name for category in EVIDENCE_CATEGORIES if category.unresolved],
         },
         "evidence_commands": dict(_SELECTOR_COMMANDS),
     }

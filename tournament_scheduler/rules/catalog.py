@@ -42,6 +42,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from tournament_scheduler.rules.evidence_categories import EVIDENCE_CATEGORIES
+
 # --- classification vocabulary ------------------------------------------------
 
 HARD_CONSTRAINT = "hard_constraint"
@@ -856,12 +858,12 @@ _SOFT: tuple[RuleEntry, ...] = (
     ),
     RuleEntry(
         id="opponent_club_diversity",
-        regression_codes=("more_concentrated_club_exposure", "fewer_unique_opponent_clubs"),
+        regression_codes=("more_concentrated_club_exposure",),
 
         classification=SOFT_OBJECTIVE,
         meaning=(
-            "Each individual squad should meet a variety of opposing clubs within its age "
-            "group. Exposure to one club is normalized by that club's squad supply, so a "
+            "Each individual squad's exposure to any one opposing club should stay bounded "
+            "within its age group. Exposure is normalized by that club's squad supply, so a "
             "large multi-squad club is not penalized merely for supplying more opponents, "
             "while genuinely concentrated exposure remains visible."
         ),
@@ -870,17 +872,17 @@ _SOFT: tuple[RuleEntry, ...] = (
         verifier_owner="tournament_scheduler.planning.contract.score_candidate",
         evidence_projection=("score_candidate.opponent_diversity.*",),
         tests=("tests/test_opponent_diversity.py",),
-        score_paths=(
-            "opponent_diversity.min_distinct_opponent_clubs",
-            "opponent_diversity.max_club_exposure_index",
-        ),
+        score_paths=("opponent_diversity.max_club_exposure_index",),
     ),
     RuleEntry(
         id="inter_club_diversity",
-        regression_codes=("same_club_clustering_worse",),
+        regression_codes=("same_club_clustering_worse", "fewer_unique_opponent_clubs"),
 
         classification=SOFT_OBJECTIVE,
-        meaning="Tournaments should mix teams across clubs rather than concentrating same-club matchups.",
+        meaning=(
+            "Tournaments should mix teams across clubs rather than concentrating same-club "
+            "matchups, and each squad should meet a variety of opposing clubs."
+        ),
         canonical_owner="tournament_scheduler.scoring.quality_objectives",
         input_source="candidate generated games",
         verifier_owner="tournament_scheduler.planning.contract.score_candidate",
@@ -888,6 +890,7 @@ _SOFT: tuple[RuleEntry, ...] = (
         tests=("tests/test_quality_objectives.py",),
         score_paths=(
             "opponent_diversity.inter_club_diversity",
+            "opponent_diversity.min_distinct_opponent_clubs",
             "opponent_diversity.same_club_pairing_count",
             "opponent_diversity.max_same_club_teams_per_tournament",
             "opponent_diversity.club_count_excess_over_2",
@@ -1534,6 +1537,11 @@ def validate_catalog(repo_root: Path | None = None) -> list[str]:
                     f"(first by {direction_owner[finding_code]}, again by {entry.id})"
                 )
             direction_owner[finding_code] = entry.id
+
+    # Evidence category names are the audit's identity space; each may be declared once.
+    evidence_names = [category.name for category in EVIDENCE_CATEGORIES]
+    for name in sorted({name for name in evidence_names if evidence_names.count(name) > 1}):
+        problems.append(f"evidence category {name!r} is declared more than once")
 
     # Precedence / dependency references must exist and precedence must be acyclic.
     for entry in RULE_CATALOG:
