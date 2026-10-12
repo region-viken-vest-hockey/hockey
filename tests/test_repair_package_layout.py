@@ -10,6 +10,7 @@ REPAIR_DIR = PACKAGE_ROOT / "repair"
 
 REPAIR_MODULES = {
     "adoption_guard",
+    "adoption_regression_codes",
     "apply",
     "capability",
     "coupled_placement",
