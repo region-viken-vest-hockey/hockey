@@ -142,12 +142,10 @@ _GRANDFATHERED_UNREGISTERED_CODES = frozenset(
     {
         "change_protection_violation",
         "duplicate_calendar_booking_association",
-        "duplicate_tournament_id",
         "fewer_distinct_opponent_clubs",
         "fewer_unique_opponents",
         "hard_violations",
         "manual_external_conflict_placements",
-        "missing_tournament_id",
         "more_repeated_opponent_excess",
         "opponent_measure_changed",
         "participation_count_changed",
@@ -155,9 +153,6 @@ _GRANDFATHERED_UNREGISTERED_CODES = frozenset(
         "temporal_coverage_worse",
         "tournament_placement_shortfall",
         "travel_worse",
-        "unknown_lineage_tournament_id",
-        "unknown_pinned_tournament_id",
-        "unknown_waiver_tournament_id",
     }
 )
 
@@ -241,6 +236,47 @@ def test_booking_feasibility_warnings_has_one_booking_floor_owner() -> None:
     assert {entry.id for entry in catalog.RULE_CATALOG if code in entry.finding_codes} == {owner}
     assert catalog.rule_id_for_finding_code(code) == owner
     assert code not in _GRANDFATHERED_UNREGISTERED_CODES
+
+
+_TOURNAMENT_IDENTITY_CODES = (
+    "missing_tournament_id",
+    "duplicate_tournament_id",
+    "unknown_lineage_tournament_id",
+    "unknown_pinned_tournament_id",
+    "unknown_waiver_tournament_id",
+)
+
+
+def test_tournament_identity_codes_have_one_durable_identity_owner() -> None:
+    # Identity validation is the single emitter of these codes; each must resolve
+    # to exactly one catalog owner, and that owner must not be waivable.
+    owner = "tournament_durable_identity"
+    emitted = _all_emitted_codes_by_module()
+    for code in _TOURNAMENT_IDENTITY_CODES:
+        assert emitted[code] == {"tournament_scheduler/shape/identity.py"}
+        assert {entry.id for entry in catalog.RULE_CATALOG if code in entry.verifier_codes} == {owner}
+        assert catalog.rule_id_for_verifier_code(code) == owner
+        assert code not in _GRANDFATHERED_UNREGISTERED_CODES
+    entry = catalog.CATALOG_BY_ID[owner]
+    assert entry.classification == catalog.HARD_CONSTRAINT
+    assert entry.waivable is False
+
+
+def test_tournament_identity_violations_carry_their_rule_id() -> None:
+    from tournament_scheduler.planning.contract import verify_candidate
+
+    candidate = {
+        "tournaments": [
+            {"id": "dup", "date": "2026-01-10", "arena": "A", "age_group": "U10", "teams": [], "derived_from": ["gone"]},
+            {"id": "dup", "date": "2026-01-17", "arena": "A", "age_group": "U10", "teams": []},
+            {"id": "", "date": "2026-01-24", "arena": "A", "age_group": "U10", "teams": []},
+        ],
+        "manual_adjustments": {"pinned_tournament_ids": ["missing"]},
+        "operator_waivers": [{"scope": {"tournament_id": "also-missing"}}],
+    }
+    violations = {v["code"]: v for v in verify_candidate(candidate)["violations"]}
+    for code in _TOURNAMENT_IDENTITY_CODES:
+        assert violations[code]["rule_id"] == "tournament_durable_identity"
 
 
 def test_annotate_violations_attaches_rule_ids() -> None:

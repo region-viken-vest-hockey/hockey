@@ -228,6 +228,30 @@ _HARD: tuple[RuleEntry, ...] = (
         finding_codes=("input_constrained_shape",),
     ),
     RuleEntry(
+        id="tournament_durable_identity",
+        classification=HARD_CONSTRAINT,
+        meaning=(
+            "Every active tournament carries exactly one non-empty durable id, active ids are "
+            "unique, and every lineage, manual pin or operator-waiver reference names a known "
+            "tournament id. Ids are opaque lifecycle identifiers and are never derived from "
+            "mutable placement fields. Structural: never operator-waivable."
+        ),
+        canonical_owner="tournament_scheduler.shape.identity",
+        input_source="candidate tournaments[].id/derived_from, identity_registry, manual_adjustments, operator_waivers scope",
+        verifier_owner="tournament_scheduler.planning.contract.verify_candidate",
+        mutation_providers=("tournament_scheduler.pipeline.tournament_updater", "tournament_scheduler.planning.season_planner"),
+        evidence_projection=("verify_candidate.violations",),
+        tests=("tests/test_tournament_identity.py", "tests/test_rule_catalog.py"),
+        verifier_codes=(
+            "missing_tournament_id",
+            "duplicate_tournament_id",
+            "unknown_lineage_tournament_id",
+            "unknown_pinned_tournament_id",
+            "unknown_waiver_tournament_id",
+        ),
+        waivable=False,
+    ),
+    RuleEntry(
         id="club_hard_max",
         classification=HARD_CONSTRAINT,
         meaning="At most three teams from one club may participate in one tournament.",
