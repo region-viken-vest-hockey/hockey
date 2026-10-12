@@ -11,7 +11,7 @@ rich>=14.0.0
 
 # Optional: enables loading YAML config files (parallel-games config and
 # roster config) via ParallelGamesConfig/RosterLoader in
-# tournament_scheduler/season_config.py and tournament_scheduler/roster_loader.py.
+# tournament_scheduler/season/config.py and tournament_scheduler/intake/roster_loader.py.
 # Without it, only JSON config files can be loaded (a clear Norwegian-language
 # error is raised if a .yaml/.yml file is requested).
 # pyyaml>=6.0
