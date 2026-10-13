@@ -88,19 +88,19 @@ def _rendered_booking_badge_label(tournament_payload: dict) -> tuple[str, str]:
         / "script_shared.js"
     ).read_text(encoding="utf-8")
     state_match = re.search(r"function operationalStateOf\(t\) \{.*?\n\}", source, re.S)
-    manual_match = re.search(r"function isManualConfirmedBooking\(t\) \{.*?\n\}", source, re.S)
-    label_match = re.search(r"function operationalStateLabel\(t, state\) \{.*?\n\}", source, re.S)
-    assert state_match and manual_match and label_match, "shared template must expose booking badge helpers"
+    public_state_match = re.search(r"function publicBookingStateOf\(t\) \{.*?\n\}", source, re.S)
+    public_label_match = re.search(r"function publicBookingStateLabel\(state\) \{.*?\n\}", source, re.S)
+    assert state_match and public_state_match and public_label_match, "shared template must expose booking badge helpers"
     script = (
         state_match.group(0)
         + "\n"
-        + manual_match.group(0)
+        + public_state_match.group(0)
         + "\n"
-        + label_match.group(0)
+        + public_label_match.group(0)
         + "\nconst t = "
         + json.dumps(tournament_payload, ensure_ascii=False)
-        + ";\nconst state = operationalStateOf(t);\n"
-        + "console.log(JSON.stringify([state, operationalStateLabel(t, state)]));\n"
+        + ";\nconst state = publicBookingStateOf(t);\n"
+        + "console.log(JSON.stringify([state, publicBookingStateLabel(state)]));\n"
     )
     completed = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
     state, label = json.loads(completed.stdout)
@@ -466,7 +466,7 @@ class TestRunStage4:
         assert embedded[0]["obs"] == "booked"
         assert embedded[0]["bs"] == "manually_booked"
         assert embedded[0]["bauth"] == "manual_club_confirmation"
-        assert _rendered_booking_badge_label(embedded[0]) == ("booked", "BOOKET · LÅST (M)")
+        assert _rendered_booking_badge_label(embedded[0]) == ("booked", "BOOKET · LÅST")
 
     def test_canonical_export_keeps_frozen_booking_candidates_out_of_schedule_artifacts(self, tmp_path, monkeypatch):
         """Frozen real-shaped assessment candidates stay diagnostics-only.
@@ -1958,7 +1958,10 @@ class TestRunStage4:
         assert "1 turneringer &middot; 1 kamper &middot; 2 lag" in manual_html
         html = Path(files["html"]).read_text(encoding="utf-8")
         assert 'href="manual_schedule.html"' in html
-        assert "MÅ BOOKES MANUELT" in html
+        # The public season plan shows only the two-state booking projection;
+        # the manual-placement detail lives in the manual-schedule view.
+        assert "IKKE BEKREFTET" in html
+        assert "MÅ BOOKES MANUELT" not in html
 
     def test_calendars_html_generated_when_scrape_cache_populated(self, tmp_path):
         """stage4 should write calendars.html when the scrape cache contains events and link it in the navbar."""

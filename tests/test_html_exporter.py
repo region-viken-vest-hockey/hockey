@@ -176,7 +176,7 @@ def _shared_operational_helpers_js() -> str:
     """Extract the shared operational-state helpers from the shipped bundle."""
 
     source = _SHARED_TEMPLATE.read_text(encoding="utf-8")
-    names = ("operationalStateOf", "isManualConfirmedBooking", "operationalStateLabel", "bookingStatusLabel", "escapeHtml")
+    names = ("operationalStateOf", "publicBookingStateOf", "publicBookingStateLabel", "bookingStatusLabel", "escapeHtml")
     parts = []
     for name in names:
         match = re.search(rf"function {name}\([^)]*\) \{{.*?\n\}}", source, re.S)
@@ -349,12 +349,16 @@ class TestBookingStatusRendering:
         assert embedded["t-booked"]["bs"] == "confirmed_booked"
         assert embedded["t-missing"]["ba"] is True
         assert 'id="filterBooking"' in html
-        assert "IKKE BOOKET" in html
+        assert '<option value="confirmed_booked">' not in html
+        assert '<option value="booked">Booket · låst</option>' in html
+        assert '<option value="not_booked">Ikke bekreftet</option>' in html
         # The heatmap exposes only operational states, never the weaker raw
         # detailed status, and shares the cards' legend vocabulary.
-        assert "heatmap-booking-action_required" in html
-        assert "må følges opp" in html
+        assert "heatmap-booking-booked" in html
+        assert "heatmap-booking-not_booked" in html
         assert "booket · låst" in html
+        assert "ikke bekreftet" in html
+        assert "heatmap-booking-action_required" not in html
         assert "heatmap-booking-confirmed_not_booked" not in html
 
     def test_heatmap_primary_state_matches_card_operational_state(self, tmp_path):
@@ -472,10 +476,14 @@ class TestBookingStatusRendering:
         assert "&lt;img src=x onerror=alert(1)&gt;" in rendered
         assert "<img" not in rendered
         assert "heatmap-booking-booked" in rendered
-        assert "heatmap-booking-action_required" in rendered
+        # Stale/rejected/unmatched/action-required collapse to the public
+        # not-confirmed state; no internal vocabulary reaches the heatmap.
+        assert "heatmap-booking-not_booked" in rendered
+        assert "heatmap-booking-action_required" not in rendered
         assert "BOOKET · LÅST" in rendered
-        assert "MÅ RE-BEKREFTES" in rendered
-        assert "må følges opp" in rendered
+        assert "IKKE BEKREFTET" in rendered
+        assert "MÅ RE-BEKREFTES" not in rendered
+        assert "må følges opp" not in rendered
 
     def test_heatmap_rejects_invalid_club_colors(self):
         """Club colours are CSS, not HTML: constrain them to the hex format."""
@@ -594,10 +602,11 @@ class TestBookingStatusRendering:
         # The compact export key for the observed interval is `boi`; a negative
         # row must not carry it.
         assert "boi" not in embedded["t-absent"]
-        assert '<option value="changed_slot_review">' in html
-        assert '<option value="presumed_unscheduled">' in html
-        assert "ENDRET TID" in html
-        assert "TROLIG IKKE SATT OPP" in html
+        # Both internal states collapse to the public two-state projection.
+        assert '<option value="changed_slot_review">' not in html
+        assert '<option value="presumed_unscheduled">' not in html
+        assert "ENDRET TID · MÅ VURDERES" not in html
+        assert "IKKE BEKREFTET" in html
 
     def test_schedule_embeds_distinct_approval_and_booking_states(self, tmp_path):
         plan_dict = {
@@ -899,26 +908,24 @@ console.log(buildBookingDetails(item));
         if node is None:
             pytest.fail("node is required to execute the shipped schedule template")
 
+        # Manual authority is not a public qualifier: every confirmed form reads
+        # as the same two-state label.
         cases = [
-            ({"obs": "booked", "bs": "confirmed_booked", "bauth": "calendar_event_association"}, "BOOKET · LÅST"),
-            ({"obs": "booked", "bs": "manually_booked", "bauth": "manual_club_confirmation"}, "BOOKET · LÅST (M)"),
-            (
-                {"obs": "booked", "bs": "manually_booked", "bauth": "manual_club_confirmation_interpretation"},
-                "BOOKET · LÅST (M)",
-            ),
-            # Legacy payload without the typed authority still reads as manual.
-            ({"obs": "booked", "bs": "manually_booked"}, "BOOKET · LÅST (M)"),
+            {"obs": "booked", "bs": "confirmed_booked", "bauth": "calendar_event_association"},
+            {"obs": "booked", "bs": "manually_booked", "bauth": "manual_club_confirmation"},
+            {"obs": "booked", "bs": "manually_booked", "bauth": "manual_club_confirmation_interpretation"},
+            {"obs": "booked", "bs": "manually_booked"},
         ]
         script = _shared_operational_helpers_js() + (
             "const cases = "
             + json.dumps(cases)
             + ";\nconsole.log(JSON.stringify(cases.map(function(c){"
-            "var s = operationalStateOf(c[0]); return [s, operationalStateLabel(c[0], s), c[1]]; })));\n"
+            "var s = publicBookingStateOf(c); return [s, publicBookingStateLabel(s)]; })));\n"
         )
         completed = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
-        for state, label, expected in json.loads(completed.stdout):
+        for state, label in json.loads(completed.stdout):
             assert state == "booked"
-            assert label == expected
+            assert label == "BOOKET · LÅST"
 
     def test_booked_card_renders_one_primary_badge(self):
         """A booked/locked card shows one operational badge and no competing approval badge."""
@@ -934,33 +941,74 @@ console.log(buildBookingDetails(item));
             [self._booked_card(bs="manually_booked", bauth="manual_club_confirmation")]
         )
         assert manual.count('class="booking-badge booking-badge--booked') == 1
-        assert "BOOKET · LÅST (M)" in manual
+        assert "BOOKET · LÅST" in manual
+        assert "(M)" not in manual
         assert 'class="approval-badge' not in manual
         assert "GODKJENT" not in manual
         # The full authority remains inspectable in the expanded booking details.
         assert "Autoritet:" in manual
         assert "manuell klubbekreftelse" in manual
 
-    def test_stale_approval_stays_visible_alongside_the_booked_badge(self):
-        """A stale approval is actionable and must not be suppressed by the booking badge."""
+    def test_cancelled_card_keeps_cancellation_only_without_booking_badge(self):
+        """A cancelled card must not also carry a public booking status."""
+
+        cancelled = _render_schedule_cards(
+            [self._booked_card(cx=True, cr="Arena stengt", obs="not_booked", bs="unknown", bauth=None)]
+        )
+        assert "AVLYST" in cancelled
+        assert 'class="booking-badge' not in cancelled
+        assert "IKKE BEKREFTET" not in cancelled
+        assert "BOOKET · LÅST" not in cancelled
+
+    def test_stale_approval_does_not_render_a_public_approval_badge(self):
+        """Approval state is operator-facing; the public card keeps one booking badge."""
 
         stale = _render_schedule_cards([self._booked_card(ap="stale_approval")])
         assert stale.count('class="booking-badge booking-badge--booked') == 1
-        assert 'class="approval-badge approval-badge--stale"' in stale
-        assert "GODKJENNING UTGÅR" in stale
+        assert 'class="approval-badge' not in stale
+        assert "GODKJENNING UTGÅR" not in stale
 
-    def test_unbooked_approved_card_keeps_its_approval_badge(self):
-        """Placement approval stays visible when the ticket is not an operational booking."""
+    def test_unbooked_approved_card_shows_only_ikke_bekreftet(self):
+        """An approved but unconfirmed ticket reads as the public not-confirmed state."""
 
         pending = _render_schedule_cards(
             [self._booked_card(obs="not_booked", bs="unknown", bauth=None, ap="approved")]
         )
-        assert 'class="approval-badge"' in pending
-        assert "GODKJENT" in pending
-        assert 'class="booking-badge booking-badge--not_booked"' in pending
+        assert 'class="approval-badge' not in pending
+        assert "GODKJENT" not in pending
+        assert pending.count('class="booking-badge booking-badge--not_booked"') == 1
+        assert "IKKE BEKREFTET" in pending
+
+    @pytest.mark.parametrize(
+        "overrides",
+        [
+            {"obs": "action_required", "bs": "stale", "ba": True},
+            {"obs": "action_required", "bs": "manually_not_booked", "ba": True},
+            {"obs": "changed_slot_review", "bs": "unknown", "bac": "proposed_changed_slot", "ba": True},
+            {"obs": "presumed_unscheduled", "bs": "unknown", "bac": "presumed_unscheduled"},
+            {"obs": "unknown", "bs": "unknown", "bac": "unmatched"},
+            {"obs": "not_booked", "bs": "ambiguous"},
+        ],
+    )
+    def test_non_booked_internal_states_collapse_to_ikke_bekreftet(self, overrides):
+        """Internal non-booked states never appear as top-level public vocabulary."""
+
+        card = _render_schedule_cards([self._booked_card(bauth=None, ap="approved", **overrides)])
+        assert card.count('class="booking-badge booking-badge--not_booked"') == 1
+        assert "IKKE BEKREFTET" in card
+        for internal in (
+            "MÅ BOOKES MANUELT",
+            "AVVIST · MÅ BOOKES PÅ NYTT",
+            "MÅ RE-BEKREFTES",
+            "ENDRET TID · MÅ VURDERES",
+            "TROLIG IKKE SATT OPP",
+            "UKJENT BOOKING",
+            "GODKJENNING UTGÅR",
+        ):
+            assert internal not in card.split('<div class="booking-details">')[0], internal
 
     def test_heatmap_marks_manual_authority_with_the_same_booked_label(self):
-        """The heatmap tooltip shares the card's manual ``(M)`` qualifier."""
+        """The heatmap tooltip shares the card's two-state public label."""
 
         manual = {
             "id": "t1",
@@ -989,7 +1037,8 @@ console.log(buildBookingDetails(item));
         rendered = _render_heatmap(
             [manual], heatmap, clubs=["Holmen"], weeks=["2025-W40"], colors=colors
         )
-        assert "BOOKET · LÅST (M)" in rendered
+        assert "BOOKET · LÅST" in rendered
+        assert "(M)" not in rendered
 
 
 class TestTeamFilter:

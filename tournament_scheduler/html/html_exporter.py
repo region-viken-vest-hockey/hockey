@@ -137,15 +137,8 @@ class HtmlExporter:
             booking_filter_html = (
                 '<select id="filterBooking" class="filter-select">'
                 '<option value="">Alle bookingstatuser</option>'
-                '<option value="needs_attention">Må følges opp</option>'
-                '<option value="confirmed_booked">Booket bekreftet</option>'
-                '<option value="manually_booked">Manuelt booket</option>'
-                '<option value="changed_slot_review">Endret tid må vurderes</option>'
-                '<option value="presumed_unscheduled">Trolig ikke satt opp</option>'
-                '<option value="confirmed_not_booked">Ikke booket</option>'
-                '<option value="manually_not_booked">Manuelt ikke booket</option>'
-                '<option value="unknown">Ikke kontrollert</option>'
-                '<option value="stale">Utdatert/uklar</option>'
+                '<option value="booked">Booket · låst</option>'
+                '<option value="not_booked">Ikke bekreftet</option>'
                 '</select>'
             )
         if approval_counts:

@@ -157,34 +157,17 @@ function operationalStateOf(t) {
   return '';
 }
 
-// Manual confirmation is a compact qualifier on the one booked badge, not a
-// second operational state. The full authority/source label stays in the
-// expandable booking details. Self-contained so the shipped helper can be
-// evaluated in isolation by the presentation tests.
-function isManualConfirmedBooking(t) {
-  if (!t) return false;
-  var authority = t.bauth;
-  if (authority === 'manual_club_confirmation' || authority === 'manual_club_confirmation_interpretation') return true;
-  // Legacy/hand-built payloads may carry the manual projection without the
-  // typed authority field; a manually-booked record is still manual.
-  return t.bs === 'manually_booked';
+// Public booking projection: the published plan states only whether a slot is
+// booked/locked or not yet confirmed. Every internal operational state
+// (action required, changed slot, presumed unscheduled, unknown, stale,
+// rejected, unmatched) collapses to not_booked. Manual authority and the
+// detailed evidence stay in the expandable booking details.
+function publicBookingStateOf(t) {
+  return operationalStateOf(t) === 'booked' ? 'booked' : 'not_booked';
 }
 
-function operationalStateLabel(t, state) {
-  t = t || {};
-  if (state === 'booked') return isManualConfirmedBooking(t) ? 'BOOKET · LÅST (M)' : 'BOOKET · LÅST';
-  if (state === 'changed_slot_review') return 'ENDRET TID · MÅ VURDERES';
-  if (state === 'presumed_unscheduled') return 'TROLIG IKKE SATT OPP';
-  if (state === 'unknown') return 'UKJENT BOOKING';
-  if (state === 'action_required') {
-    // An explicit rejection or an invalidated confirmation needs a rebooking,
-    // not the generic manual-placement wording.
-    if (t.bs === 'manually_not_booked' || t.bs === 'confirmed_not_booked') return 'AVVIST · MÅ BOOKES PÅ NYTT';
-    if (t.bs === 'stale') return 'MÅ RE-BEKREFTES';
-    return (t.rhc && !t.mb) ? 'KREVER VERTSSBEKREFTELSE' : 'MÅ BOOKES MANUELT';
-  }
-  if (state === 'not_booked') return 'IKKE BEKREFTET';
-  return '';
+function publicBookingStateLabel(state) {
+  return state === 'booked' ? 'BOOKET · LÅST' : 'IKKE BEKREFTET';
 }
 
 // Raw detailed evidence label. Drill-down provenance only -- never a competing
@@ -218,23 +201,11 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-// The heatmap legend is the operational state set, so a weaker detailed
-// status can never appear next to an operationally booked slot.
-var OPERATIONAL_HEATMAP_LEGEND = [
+// The heatmap uses the same two-state public projection as the season-plan cards.
+var PUBLIC_HEATMAP_LEGEND = [
   ['booked', 'booket · låst'],
-  ['action_required', 'må følges opp'],
-  ['changed_slot_review', 'endret tid · må vurderes'],
-  ['presumed_unscheduled', 'trolig ikke satt opp'],
-  ['not_booked', 'ikke bekreftet'],
-  ['unknown', 'ukjent']
+  ['not_booked', 'ikke bekreftet']
 ];
-
-function heatmapOperationalClass(state) {
-  for (var i = 0; i < OPERATIONAL_HEATMAP_LEGEND.length; i++) {
-    if (OPERATIONAL_HEATMAP_LEGEND[i][0] === state) return state;
-  }
-  return 'unknown';
-}
 
 // Render calendar heatmap
 (function() {
@@ -256,17 +227,10 @@ function heatmapOperationalClass(state) {
   });
   function heatmapState(item) {
     var card = cardById[item.tournament_id];
-    return (card ? operationalStateOf(card) : item.operational_state) || 'unknown';
+    return publicBookingStateOf(card || {obs: item.operational_state});
   }
   function heatmapTitle(item) {
-    var card = cardById[item.tournament_id];
-    var state = heatmapState(item);
-    var title = (item.age_group || '') + ' – ' + (operationalStateLabel(card, state) || state);
-    var details = [];
-    if (item.booking_status && item.booking_status !== 'unknown') details.push(bookingStatusLabel(item.booking_status));
-    if (item.needs_attention) details.push('må følges opp');
-    if (details.length) title += ' · ' + details.join(' · ');
-    return title;
+    return (item.age_group || '') + ' – ' + publicBookingStateLabel(heatmapState(item));
   }
 
   const currentTheme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
@@ -297,9 +261,9 @@ function heatmapOperationalClass(state) {
     span.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + c.bg + ';border:1px solid ' + c.text + '"></span>' + escapeHtml(club);
     legend.appendChild(span);
   });
-  OPERATIONAL_HEATMAP_LEGEND.forEach(function(item) {
+  PUBLIC_HEATMAP_LEGEND.forEach(function(item) {
     const span = document.createElement('span');
-    span.className = 'heatmap-booking-legend heatmap-booking-' + heatmapOperationalClass(item[0]);
+    span.className = 'heatmap-booking-legend heatmap-booking-' + item[0];
     span.textContent = item[1];
     legend.appendChild(span);
   });
@@ -341,7 +305,7 @@ function heatmapOperationalClass(state) {
         });
         const label = items.map(function(item) {
           const state = heatmapState(item);
-          return '<span class="heatmap-booking-item heatmap-booking-' + heatmapOperationalClass(state) + '" title="' + escapeHtml(heatmapTitle(item)) + '">' + escapeHtml(item.age_group || '') + '</span>';
+          return '<span class="heatmap-booking-item heatmap-booking-' + state + '" title="' + escapeHtml(heatmapTitle(item)) + '">' + escapeHtml(item.age_group || '') + '</span>';
         }).join('');
         bodyHtml += '<td style="background:' + c.bg + ';border:1px solid ' + c.text + ';padding:3px 4px;text-align:center;font-size:10px;color:' + c.text + ';font-weight:600;white-space:nowrap">' + label + '</td>';
       } else {
