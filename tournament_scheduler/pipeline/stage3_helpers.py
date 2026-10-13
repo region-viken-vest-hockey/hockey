@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 from tournament_scheduler.booking.calendar_availability import classify_club_event, legacy_kind
@@ -103,14 +103,7 @@ def _build_events_by_club(scraping_result: dict[str, Any] | None) -> dict[str, l
         club_events: list[CalendarEvent] = []
         for e in events:
             try:
-                club_events.append(
-                    CalendarEvent(
-                        date=e["date"],
-                        name=e.get("name", ""),
-                        datetime=datetime.fromisoformat(e["datetime"]),
-                        duration_hours=e.get("duration_hours", 0.0), location=e.get("location", ""),
-                    )
-                )
+                club_events.append(CalendarEvent.from_source_dict(e))
             except (KeyError, ValueError) as exc:
                 logger.warning(
                     "Dropped malformed event for club %r: %s — raw: %s",
@@ -264,7 +257,8 @@ def _build_club_busy_intervals(
                     "end": minutes_to_time(end_minutes),
                     "kind": legacy_kind(availability),
                     "availability": availability.value,
-                    "calendar_event": event.name, **interval_resource_fields(club_name, event.location),
+                    "calendar_event": event.name,
+                    **interval_resource_fields(club_name, event.resources),
                 }
                 if reason:
                     entry["reason"] = reason

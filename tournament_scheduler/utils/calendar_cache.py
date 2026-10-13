@@ -5,10 +5,13 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional
-from tournament_scheduler.models import CalendarEvent
+from tournament_scheduler.models_calendar import CalendarEvent, source_identity_from_dict, source_identity_to_dict
 from rich.console import Console
 
 console = Console()
+
+# Bump when the cached event shape gains fields that old entries cannot supply.
+CACHE_SCHEMA_VERSION = 2
 
 
 class CalendarCache:
@@ -101,6 +104,10 @@ class CalendarCache:
             cached_time = datetime.fromisoformat(data['timestamp'])
             if datetime.now() - cached_time > self.ttl:
                 return None
+            # Entries written before structured resource identity lack it;
+            # treat them as a miss so resource evidence is never silently absent.
+            if data.get('schema') != CACHE_SCHEMA_VERSION:
+                return None
 
             # Reconstruct CalendarEvent objects. Preserve source audit fields
             # (LOCATION and iCal all-day semantics) instead of dropping them on
@@ -114,6 +121,7 @@ class CalendarCache:
                     datetime=datetime.fromisoformat(event_data['datetime']),
                     duration_hours=event_data['duration_hours'],
                     location=event_data.get('location', ''),
+                    **source_identity_from_dict(event_data),
                 )
                 if event_data.get('all_day'):
                     event.all_day = True
@@ -161,11 +169,13 @@ class CalendarCache:
             }
             if event.location:
                 event_data['location'] = event.location
+            event_data.update(source_identity_to_dict(event))
             if bool(getattr(event, 'all_day', False)):
                 event_data['all_day'] = True
             events_data.append(event_data)
 
         data = {
+            'schema': CACHE_SCHEMA_VERSION,
             'timestamp': datetime.now().isoformat(),
             'url': url,
             'calendar_name': calendar_name,

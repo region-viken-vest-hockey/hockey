@@ -8,8 +8,8 @@ same time are two real occupancies, never duplicate copies of one event.
 Resource detail is modelled only for clubs that declare a tournament footprint
 in ``MINIPUTT_RESOURCE_FOOTPRINTS``. Other clubs keep resource-agnostic
 evidence, for example Frisk Asker, whose resource labels are audit metadata
-only. A booking that spans several resources is stored with a joined LOCATION
-label (``"Ishockey - bane 1 + Ishockey - bane 2"``) by the source scraper.
+only. The source scraper keeps a booking's resources as structured
+``CalendarEvent.resources``; the joined LOCATION label is display text only.
 """
 
 from __future__ import annotations
@@ -17,6 +17,8 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable, Mapping
 from typing import Any
+
+from tournament_scheduler.models_calendar import SourceResource
 
 # Labels the footprint table names, e.g. "Bane 1" -> "bane-1". Club names map to
 # the labels a miniputt tournament occupies at that club's arena.
@@ -53,17 +55,18 @@ def tournament_resource_footprint(club: str) -> frozenset[str]:
     return frozenset().union(*(resource_ids_in_text(label) for label in MINIPUTT_RESOURCE_FOOTPRINTS.get(club, ())))
 
 
-def interval_resource_fields(club: str, location: Any) -> dict[str, list[str]]:
+def interval_resource_fields(club: str, resources: Iterable[SourceResource]) -> dict[str, list[str]]:
     """Return the resource evidence to store on one busy interval.
 
-    Only footprint clubs get a ``resources`` key, so every other club's interval
-    evidence and fingerprint stay exactly as before.
+    *resources* are the source resources the booking occupies. Only footprint
+    clubs get a ``resources`` key, so every other club's interval evidence and
+    fingerprint stay exactly as before.
     """
 
     if not tournament_resource_footprint(club):
         return {}
-    resources = sorted(resource_ids_in_text(location))
-    return {"resources": resources} if resources else {}
+    ids = sorted(frozenset().union(*(resource_ids_in_text(res.label) for res in resources)))
+    return {"resources": ids} if ids else {}
 
 
 def event_resource_ids(event: Mapping[str, Any]) -> frozenset[str]:

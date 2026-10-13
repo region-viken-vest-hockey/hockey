@@ -32,15 +32,6 @@ RELATION_SAME_DATE_TIME_SHIFT = "same_date_time_shift"
 RELATION_PROXIMATE_DATE_SHIFT = "proximate_date_shift"
 
 
-RELATION_SAME_DATE_OVERLAP = "same_date_overlap"
-
-
-RELATION_SAME_DATE_TIME_SHIFT = "same_date_time_shift"
-
-
-RELATION_PROXIMATE_DATE_SHIFT = "proximate_date_shift"
-
-
 _AGE_TOKEN_RE = re.compile(r"\b(J?U)\s?(\d{1,2})\b", re.IGNORECASE)
 
 

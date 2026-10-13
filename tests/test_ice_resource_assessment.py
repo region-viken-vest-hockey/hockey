@@ -16,6 +16,7 @@ from tournament_scheduler.booking.ice_resources import (
     tournament_resource_footprint,
 )
 from tournament_scheduler.booking.interval_facts import event_fingerprint
+from tournament_scheduler.models_calendar import SourceResource
 from tournament_scheduler.pipeline.stage3_helpers import _build_club_busy_intervals
 
 BOTH = ["bane-1", "bane-2"]
@@ -87,8 +88,9 @@ def test_location_labels_normalize_to_stable_resource_ids():
 
 
 def test_only_footprint_clubs_store_resource_fields():
-    assert interval_resource_fields("Skien", "Ishockey - bane 2") == {"resources": ["bane-2"]}
-    assert interval_resource_fields("Frisk Asker", "Askerhallen - bane 1") == {}
+    bane_2 = SourceResource(id="363", label="Ishockey - bane 2")
+    assert interval_resource_fields("Skien", [bane_2]) == {"resources": ["bane-2"]}
+    assert interval_resource_fields("Frisk Asker", [SourceResource(id="1", label="Askerhallen - bane 1")]) == {}
 
 
 def test_stage3_busy_intervals_carry_resource_ids_for_skien_only():
@@ -101,6 +103,11 @@ def test_stage3_busy_intervals_carry_resource_ids_for_skien_only():
                     "datetime": "2026-09-12T10:00:00",
                     "duration_hours": 2.0,
                     "location": "Ishockey - bane 1 + Ishockey - bane 2",
+                    "resources": [
+                        {"id": "362", "label": "Ishockey - bane 1"},
+                        {"id": "363", "label": "Ishockey - bane 2"},
+                    ],
+                    "order_id": "1192286",
                 }
             ]
         }

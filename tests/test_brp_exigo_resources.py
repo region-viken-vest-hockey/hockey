@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 
+from tournament_scheduler.models_calendar import SourceResource
 from tournament_scheduler.pipeline.scraper_brp_exigo import _parse_brp_exigo_day
 
 
@@ -90,44 +91,50 @@ def test_rows_without_order_id_are_not_merged_by_title():
     assert len(events) == 2
 
 
-def test_booking_age_label_reads_group_before_team_list():
-    from tournament_scheduler.pipeline.scraper_brp_exigo import _booking_age_label
-
-    assert _booking_age_label("JU10: Skien, Jar Blå, Frisk Asker Orange") == "JU10"
-    assert _booking_age_label("Kamper U9: Skien, Frisk Asker3") == "U9"
-    assert _booking_age_label("U11. Tønsberg Hvit, Jar Lilla") == "U11"
-    assert _booking_age_label("Team name with 2 digits, U12") is None
-    assert _booking_age_label("") is None
-
-
-def test_generic_title_gets_age_group_from_message_lookup():
-    page = _page(_BANES, [_item(1, 1192286, 362, "Skien Ishockeyklubb")])
-
-    events = _parse_brp_exigo_day(
-        page,
-        datetime(2026, 9, 5),
-        message_lookup=lambda item: "JU10: Skien, Jar Blå, Frisk Asker Orange",
+def test_spanning_booking_keeps_order_identity_and_resource_ids():
+    page = _page(
+        _BANES,
+        [
+            _item(1, 1192286, 362, "Skien Ishockeyklubb"),
+            _item(1, 1192286, 363, "Skien Ishockeyklubb"),
+        ],
     )
 
-    assert events[0].name == "Skien Ishockeyklubb - JU10 10:00-12:00"
+    event = _parse_brp_exigo_day(page, datetime(2026, 9, 5))[0]
 
-
-def test_title_with_age_group_is_not_looked_up():
-    page = _page(_BANES, [_item(1, 1, 362, "U15 kamp")])
-    calls = []
-
-    _parse_brp_exigo_day(
-        page,
-        datetime(2026, 9, 5),
-        message_lookup=lambda item: calls.append(item) or "JU10: x",
+    assert event.order_id == "1192286"
+    assert event.resources == (
+        SourceResource(id="362", label="Ishockey - bane 1"),
+        SourceResource(id="363", label="Ishockey - bane 2"),
     )
+    assert event.location == "Ishockey - bane 1 + Ishockey - bane 2"
 
-    assert calls == []
+
+def test_single_resource_booking_has_one_structured_resource():
+    page = _page(_BANES, [_item(1, 1, 363, "Hockeyskole")])
+
+    event = _parse_brp_exigo_day(page, datetime(2026, 9, 5))[0]
+
+    assert event.resources == (SourceResource(id="363", label="Ishockey - bane 2"),)
+    assert event.order_id == "1"
 
 
-def test_failed_lookup_leaves_event_name_unchanged():
-    page = _page(_BANES, [_item(1, 1, 362, "Skien Ishockeyklubb")])
+def test_calendar_cache_roundtrip_keeps_structured_resources(tmp_path):
+    from tournament_scheduler.utils.calendar_cache import CalendarCache
 
-    events = _parse_brp_exigo_day(page, datetime(2026, 9, 5), message_lookup=lambda item: "")
+    page = _page(
+        _BANES,
+        [
+            _item(1, 1192286, 362, "Skien Ishockeyklubb"),
+            _item(1, 1192286, 363, "Skien Ishockeyklubb"),
+        ],
+    )
+    events = _parse_brp_exigo_day(page, datetime(2026, 9, 5))
+    cache = CalendarCache(cache_dir=str(tmp_path))
+    start = end = datetime(2026, 9, 5)
 
-    assert events[0].name == "Skien Ishockeyklubb 10:00-12:00"
+    cache.set("https://example.test/ishallen", "Skien", start, end, events)
+    cached = cache.get("https://example.test/ishallen", "Skien", start, end)
+
+    assert cached[0].resources == events[0].resources
+    assert cached[0].order_id == "1192286"
