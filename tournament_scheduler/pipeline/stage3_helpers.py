@@ -6,10 +6,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from tournament_scheduler.booking.calendar_availability import (
-    classify_club_event,
-    legacy_kind,
-)
+from tournament_scheduler.booking.calendar_availability import classify_club_event, legacy_kind
+from tournament_scheduler.booking.ice_resources import interval_resource_fields
 from ..clubs.registry import CLUB_REGISTRY, canonicalize_club_name
 from ..models import CalendarEvent, Roster, Team
 from tournament_scheduler.planning.season_planner import SeasonPlanner
@@ -110,7 +108,7 @@ def _build_events_by_club(scraping_result: dict[str, Any] | None) -> dict[str, l
                         date=e["date"],
                         name=e.get("name", ""),
                         datetime=datetime.fromisoformat(e["datetime"]),
-                        duration_hours=e.get("duration_hours", 0.0),
+                        duration_hours=e.get("duration_hours", 0.0), location=e.get("location", ""),
                     )
                 )
             except (KeyError, ValueError) as exc:
@@ -244,7 +242,7 @@ def _build_club_busy_intervals(
         # `calendar_availability.classify_club_event` and
         # `planning.contract.external_calendar_conflict` /
         # `movable_calendar_opportunity`.
-        intervals: list[dict[str, str]] = []
+        intervals: list[dict[str, Any]] = []
         for event in events:
             parsed = DateParser.parse(event.date)
             if not parsed:
@@ -260,13 +258,13 @@ def _build_club_busy_intervals(
                 if busy_range is None:
                     continue
                 start_minutes, end_minutes = busy_range
-                entry: dict[str, str] = {
+                entry: dict[str, Any] = {
                     "date": check_date.isoformat(),
                     "start": minutes_to_time(start_minutes),
                     "end": minutes_to_time(end_minutes),
                     "kind": legacy_kind(availability),
                     "availability": availability.value,
-                    "calendar_event": event.name,
+                    "calendar_event": event.name, **interval_resource_fields(club_name, event.location),
                 }
                 if reason:
                     entry["reason"] = reason

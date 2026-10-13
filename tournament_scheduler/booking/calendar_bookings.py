@@ -9,9 +9,24 @@ every other tournament.
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any, Iterable, Mapping
 
+from tournament_scheduler.booking.assessment_candidates import (
+    RELATION_PROXIMATE_DATE_SHIFT,
+    RELATION_SAME_DATE_OVERLAP,
+    RELATION_SAME_DATE_TIME_SHIFT,
+    assessment_candidate,
+    source_supports_negative_absence,
+)
+from tournament_scheduler.booking.ice_resources import COVERAGE_PARTIAL
+from tournament_scheduler.booking.interval_facts import (
+    _event_fingerprint_payload,
+    _parse_hhmm,
+    event_covers_tournament_interval,
+    event_fingerprint,
+    tournament_occupancy_interval_facts,
+)
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.pipeline.source_integrity import fabricated_interval_signal
 
@@ -74,9 +89,6 @@ ASSESSMENT_UNMATCHED = "unmatched"
 ASSESSMENT_PRESUMED_UNSCHEDULED = "presumed_unscheduled"
 ASSESSMENT_NOT_CHECKABLE = "not_checkable"
 
-RELATION_SAME_DATE_OVERLAP = "same_date_overlap"
-RELATION_SAME_DATE_TIME_SHIFT = "same_date_time_shift"
-RELATION_PROXIMATE_DATE_SHIFT = "proximate_date_shift"
 
 _ASSESSMENT_UNRESOLVED = {
     ASSESSMENT_COMPETING_CANDIDATES,
@@ -90,7 +102,6 @@ _ASSESSMENT_RELATION_RANK = {
     RELATION_SAME_DATE_TIME_SHIFT: 1,
     RELATION_PROXIMATE_DATE_SHIFT: 2,
 }
-_AGE_TOKEN_RE = re.compile(r"\bU\s?(\d{1,2})\b", re.IGNORECASE)
 BOOKING_CONFIRMED_BOOKED = "confirmed_booked"
 BOOKING_CONFIRMED_NOT_BOOKED = "confirmed_not_booked"
 BOOKING_AMBIGUOUS = "ambiguous"
@@ -156,22 +167,8 @@ _ABSENCE_ONLY_NEGATIVE_REASONS = frozenset(
 )
 
 
-def event_fingerprint(event: Mapping[str, Any]) -> str:
-    """Return the stable identity for one normalized calendar interval."""
-
-    payload = _event_fingerprint_payload(event)
-    return stable_payload_sha256(payload)
 
 
-def _event_fingerprint_payload(event: Mapping[str, Any]) -> dict[str, str]:
-    return {
-        "club": str(event.get("club") or ""),
-        "date": str(event.get("date") or ""),
-        "start": str(event.get("start") or ""),
-        "end": str(event.get("end") or ""),
-        "calendar_event": str(event.get("calendar_event") or event.get("title") or ""),
-        "availability": str(event.get("availability") or ""),
-    }
 
 
 def club_calendar_fingerprint(problem: Mapping[str, Any] | None, club: str) -> str:
@@ -628,19 +625,8 @@ def _tournaments_by_id(plan: Mapping[str, Any] | None) -> dict[str, Mapping[str,
     }
 
 
-def _parse_hhmm(value: Any) -> int | None:
-    try:
-        hour, minute = (int(part) for part in str(value or "").split(":", 1))
-    except (TypeError, ValueError):
-        return None
-    if not (0 <= hour <= 23 and 0 <= minute <= 59):
-        return None
-    return hour * 60 + minute
 
 
-def _format_hhmm(minutes: int) -> str:
-    value = datetime(2000, 1, 1) + timedelta(minutes=minutes)
-    return value.strftime("%H:%M")
 
 
 def _game_round_count(tournament: Mapping[str, Any]) -> int:
@@ -654,63 +640,8 @@ def _game_round_count(tournament: Mapping[str, Any]) -> int:
     return max(rounds, default=0)
 
 
-def tournament_occupancy_interval_facts(
-    tournament: Mapping[str, Any],
-    problem: Mapping[str, Any] | None,
-) -> dict[str, str]:
-    """Return the canonical occupied interval facts for one tournament.
-
-    A host-confirmed per-tournament override projected into the problem replaces
-    the age-group default, so ``confirm-calendar-booking`` coverage and the
-    arena-interval verifier describe the same booked window.
-    """
-
-    # Local import breaks the season.state <-> calendar_bookings import
-    # cycle; the projection helper itself is the single key definition.
-    from tournament_scheduler.season.ice_time_overrides import overrides_from_problem
-
-    age_group = str(tournament.get("age_group") or "")
-    start_time = str(tournament.get("start_time") or "")
-    override = overrides_from_problem(problem).get(str(tournament.get("id") or ""))
-    duration = 0
-    if override:
-        duration = int(override)
-    else:
-        ice_time = (problem or {}).get("ice_time_minutes") or {}
-        if isinstance(ice_time, Mapping):
-            try:
-                duration = int((ice_time.get(age_group) or 0) or 0)
-            except (TypeError, ValueError):
-                duration = 0
-    start_minutes = _parse_hhmm(start_time)
-    end_time = _format_hhmm(start_minutes + duration) if start_minutes is not None and duration > 0 else ""
-    return {
-        "date": str(tournament.get("date") or ""),
-        "start_time": start_time,
-        "duration_minutes": str(duration),
-        "end_time": end_time,
-        "age_group": age_group,
-        "round_count": str(_game_round_count(tournament)),
-    }
 
 
-def event_covers_tournament_interval(
-    event: Mapping[str, Any],
-    tournament: Mapping[str, Any],
-    problem: Mapping[str, Any] | None,
-) -> bool:
-    """Return whether the scraped event covers the canonical occupied interval."""
-
-    interval = tournament_occupancy_interval_facts(tournament, problem)
-    if str(event.get("date") or "") != interval["date"]:
-        return False
-    event_start = _parse_hhmm(event.get("start"))
-    event_end = _parse_hhmm(event.get("end"))
-    tournament_start = _parse_hhmm(interval["start_time"])
-    tournament_end = _parse_hhmm(interval["end_time"])
-    if None in (event_start, event_end, tournament_start, tournament_end):
-        return False
-    return event_start <= tournament_start and tournament_end <= event_end
 
 
 def _association_stale_reasons(
@@ -1880,167 +1811,16 @@ def association_findings(
 # ---------------------------------------------------------------------------
 
 
-def _assessment_parse_date(value: Any):
-    try:
-        return datetime.strptime(str(value or ""), "%Y-%m-%d").date()
-    except (TypeError, ValueError):
-        return None
 
 
-def _assessment_age_tokens(value: Any) -> set[str]:
-    return {f"U{match}" for match in _AGE_TOKEN_RE.findall(str(value or ""))}
 
 
-def _assessment_overlaps(
-    tournament: Mapping[str, Any],
-    event: Mapping[str, Any],
-    problem: Mapping[str, Any] | None,
-) -> bool:
-    interval = tournament_occupancy_interval_facts(tournament, problem)
-    if str(event.get("date") or "") != interval["date"]:
-        return False
-    tournament_span = _parse_hhmm(interval["start_time"]), _parse_hhmm(interval["end_time"])
-    event_span = _parse_hhmm(event.get("start")), _parse_hhmm(event.get("end"))
-    if None in tournament_span or None in event_span:
-        return False
-    return tournament_span[0] < event_span[1] and event_span[0] < tournament_span[1]
 
 
-def _assessment_candidate(
-    tournament: Mapping[str, Any],
-    event: Mapping[str, Any],
-    *,
-    problem: Mapping[str, Any] | None,
-    date_window_days: int,
-) -> dict[str, Any] | None:
-    """Return one deterministic, bounded event<->tournament candidate row.
-
-    The candidate set deliberately includes non-overlapping same-day and
-    nearby-date possibilities so a changed slot never hides a booking.  It does
-    **not** decide the semantic match: every row carries the evidence and
-    counterevidence a harness/operator needs to adjudicate it.
-    """
-
-    if str(event.get("club") or "") != str(tournament.get("host_club") or ""):
-        return None
-    event_arena = str(event.get("arena") or event.get("location") or "").strip()
-    tournament_arena = str(tournament.get("arena") or "").strip()
-    # An arena mismatch is counterevidence, not a reason to drop the event: a
-    # genuinely moved booking may have changed venue as well as date/time, and
-    # hiding it would leave a stale canonical row looking unmatched.
-    arena_mismatch = bool(
-        event_arena and tournament_arena and event_arena.lower() != tournament_arena.lower()
-    )
-    event_date = _assessment_parse_date(event.get("date"))
-    tournament_date = _assessment_parse_date(tournament.get("date"))
-    if event_date is None or tournament_date is None:
-        return None
-    date_delta_days = (event_date - tournament_date).days
-    if abs(date_delta_days) > date_window_days:
-        return None
-
-    covers = event_covers_tournament_interval(event, tournament, problem)
-    overlaps = _assessment_overlaps(tournament, event, problem)
-    if date_delta_days == 0:
-        relation = RELATION_SAME_DATE_OVERLAP if overlaps else RELATION_SAME_DATE_TIME_SHIFT
-    else:
-        relation = RELATION_PROXIMATE_DATE_SHIFT
-
-    age_group = str(tournament.get("age_group") or "")
-    age_tokens = _assessment_age_tokens(event.get("calendar_event") or event.get("title"))
-    age_group_conflict = bool(age_tokens) and bool(age_group) and age_group.upper() not in age_tokens
-
-    evidence: list[str] = []
-    counterevidence: list[str] = []
-    if relation == RELATION_SAME_DATE_OVERLAP:
-        evidence.append("same_date_interval_overlap")
-    if covers:
-        evidence.append("event_covers_canonical_interval")
-    if age_tokens and age_group and not age_group_conflict:
-        evidence.append("event_title_age_group_matches")
-    if date_delta_days == 0:
-        evidence.append("same_calendar_date")
-    else:
-        counterevidence.append("event_date_differs_from_canonical")
-    if not covers:
-        counterevidence.append("canonical_slot_not_covered")
-    if age_group_conflict:
-        counterevidence.append("event_title_age_group_differs")
-    if arena_mismatch:
-        counterevidence.append("event_arena_differs_from_canonical")
-
-    return {
-        "event_fingerprint": str(event.get("fingerprint") or event_fingerprint(event)),
-        "club": str(event.get("club") or ""),
-        "date": str(event.get("date") or ""),
-        "start": str(event.get("start") or ""),
-        "end": str(event.get("end") or ""),
-        "title": str(event.get("calendar_event") or event.get("title") or ""),
-        "availability": str(event.get("availability") or ""),
-        "relation": relation,
-        "date_delta_days": date_delta_days,
-        "covers_current_interval": bool(covers),
-        "overlaps_current_interval": bool(overlaps),
-        "age_group_conflict": age_group_conflict,
-        "arena_mismatch": arena_mismatch,
-        "evidence": sorted(evidence),
-        "counterevidence": sorted(counterevidence),
-    }
 
 
-def _date_window_covered(
-    *,
-    tournament_date: Any,
-    source: Mapping[str, Any],
-    date_window_days: int,
-) -> bool:
-    center = _assessment_parse_date(tournament_date)
-    if center is None:
-        return False
-    window_start = center - timedelta(days=max(0, int(date_window_days)))
-    window_end = center + timedelta(days=max(0, int(date_window_days)))
-    # The navigated/observed window is the scraper's actual coverage claim.
-    # ``event_observed_window`` is merely the first/last event date and would
-    # let two sparse events bracket an unobserved gap, so it must never prove
-    # that the intervening period was actually observed.
-    observed = source.get("observed_window") or {}
-    if not isinstance(observed, Mapping):
-        return False
-    observed_start = _assessment_parse_date(observed.get("start"))
-    observed_end = _assessment_parse_date(observed.get("end"))
-    if observed_start is None or observed_end is None:
-        return False
-    return observed_start <= window_start and observed_end >= window_end
 
 
-def _source_supports_negative_absence(
-    *,
-    tournament: Mapping[str, Any],
-    source: Mapping[str, Any] | None,
-    date_window_days: int,
-) -> tuple[bool, list[str]]:
-    if not source:
-        return False, ["source_missing"]
-    reasons: list[str] = []
-    if source.get("source_trust") != "trusted":
-        reasons.append("source_not_trusted")
-    if source.get("source_integrity") != "complete":
-        reasons.append("source_integrity_not_complete")
-    if not source.get("coverage_proven"):
-        reasons.append("source_coverage_not_proven")
-    try:
-        event_count = int(source.get("event_count") or 0)
-    except (TypeError, ValueError):
-        event_count = 0
-    if event_count <= 0:
-        reasons.append("no_other_events_in_source")
-    if not _date_window_covered(
-        tournament_date=tournament.get("date"),
-        source=source,
-        date_window_days=date_window_days,
-    ):
-        reasons.append("tournament_window_not_covered")
-    return not reasons, reasons
 
 
 def _assessment_tournament_row(
@@ -2065,7 +1845,7 @@ def _assessment_tournament_row(
         else []
     )
     has_manual_authority = manual is not None and not manual_stale_reasons
-    source_supports_absence, absence_blockers = _source_supports_negative_absence(
+    source_supports_absence, absence_blockers = source_supports_negative_absence(
         tournament=tournament,
         source=source,
         date_window_days=date_window_days,
@@ -2100,10 +1880,17 @@ def _assessment_tournament_row(
         # Only conflicting/observation candidates remain.  If the source is
         # complete for this tournament's window, non-actionable observations at
         # the wrong arena/age group do not block a negative finding for the
-        # canonical booking; otherwise keep the row ambiguous.
+        # canonical booking; otherwise keep the row ambiguous. Partial use of
+        # the required resource footprint during the interval is different: the
+        # hall is genuinely occupied, so it is never silently read as absence.
+        partial_resource_overlap = any(
+            candidate.get("resource_coverage") == COVERAGE_PARTIAL
+            and candidate.get("overlaps_current_interval")
+            for candidate in candidates
+        )
         classification = (
             ASSESSMENT_PRESUMED_UNSCHEDULED
-            if source_supports_absence
+            if source_supports_absence and not partial_resource_overlap
             else ASSESSMENT_AMBIGUOUS
         )
 
@@ -2318,7 +2105,7 @@ def booking_assessment(
         club = str(tournament.get("host_club") or "")
         candidates: list[dict[str, Any]] = []
         for event in events_by_club.get(club, []):
-            candidate = _assessment_candidate(
+            candidate = assessment_candidate(
                 tournament,
                 event,
                 problem=problem,
@@ -2335,6 +2122,7 @@ def booking_assessment(
                     candidate["source_positive_evidence_usable"]
                     and not candidate["age_group_conflict"]
                     and not candidate["arena_mismatch"]
+                    and candidate["resource_coverage"] != COVERAGE_PARTIAL
                 )
                 candidates.append(candidate)
                 candidates_by_event.setdefault(candidate["event_fingerprint"], []).append(
