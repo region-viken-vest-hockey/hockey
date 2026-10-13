@@ -291,9 +291,6 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 /* Cancelled */
 .cancelled-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(244,63,94,.1); color: var(--rose); border: 1px solid rgba(244,63,94,.2); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: var(--radius-sm); margin-bottom: 8px; }
 .manual-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(245,158,11,.12); color: var(--amber); border: 1px solid rgba(245,158,11,.3); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: var(--radius-sm); margin-bottom: 8px; }
-.approval-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(34,197,94,.12); color: var(--green, #22c55e); border: 1px solid rgba(34,197,94,.3); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: var(--radius-sm); margin-bottom: 8px; }
-.approval-badge--locked { background: rgba(34,197,94,.2); }
-.approval-badge--stale { background: rgba(245,158,11,.14); color: var(--amber); border-color: rgba(245,158,11,.35); }
 .guest-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(129,140,248,.14); color: #818cf8; border: 1px solid rgba(129,140,248,.35); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: var(--radius-sm); margin-bottom: 8px; }
 .tournament-card.cancelled { border-left-color: rgba(244,63,94,.3); opacity: .88; }
 
@@ -384,26 +381,18 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 .tournament-card.manual { border-left: 3px solid rgba(245, 158, 11, .5); }
 .tournament-card.manual::before { background: var(--amber); }
 .booking-badge { display:inline-flex; align-items:center; gap:4px; margin:0 0 8px 8px; padding:4px 8px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; border:1px solid var(--border-dim); color:var(--text-muted); }
-.booking-badge--confirmed_booked, .booking-badge--manually_booked { color:#22c55e; border-color:rgba(34,197,94,.45); }
-.booking-badge--confirmed_not_booked, .booking-badge--manually_not_booked, .booking-badge--not_checkable { color:var(--text-muted); text-decoration:line-through; }
-.booking-badge--ambiguous, .booking-badge--stale { color:var(--amber); border-color:rgba(245,158,11,.55); }
 .followup-badge { display:inline-flex; align-items:center; gap:4px; margin:0 0 8px 8px; padding:4px 8px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; background:rgba(245,158,11,.14); color:var(--amber); border:1px solid rgba(245,158,11,.55); }
-/* One operational booking badge per card; the detailed evidence lives in
-   .booking-details inside the expanded card. */
+/* One public booking badge per card (booked/locked or not confirmed); the
+   detailed evidence lives in .booking-details inside the expanded card. */
 .booking-badge--booked { color:#22c55e; border-color:rgba(34,197,94,.45); }
-.booking-badge--action_required, .booking-badge--changed_slot_review { color:var(--amber); border-color:rgba(245,158,11,.55); }
-.booking-badge--presumed_unscheduled { color:#f97316; border-color:rgba(249,115,22,.55); }
-.booking-badge--not_booked, .booking-badge--unknown { color:var(--text-muted); }
-.booking-badge--review { box-shadow:0 0 0 1px rgba(245,158,11,.55); }
+.booking-badge--not_booked { color:var(--text-muted); }
 .booking-details { border:1px solid var(--border-dim); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:10px; background:var(--bg); }
 .booking-details-head { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); margin:0 0 6px; }
 .booking-details ul { margin:0; padding-left:16px; }
 .booking-details li { font-size:12px; line-height:1.5; color:var(--text-secondary); }
 .heatmap-booking-item { display:inline-block; margin:0 1px; padding:1px 3px; border-radius:3px; }
-.heatmap-booking-not_booked, .heatmap-booking-unknown { opacity:.55; }
+.heatmap-booking-not_booked { opacity:.55; }
 .heatmap-booking-booked { outline:2px solid #22c55e; outline-offset:0; }
-.heatmap-booking-action_required, .heatmap-booking-changed_slot_review { outline:2px solid var(--amber); outline-offset:0; }
-.heatmap-booking-presumed_unscheduled { outline:2px solid #f97316; outline-offset:0; }
 .heatmap-booking-legend { display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--text-muted); border:1px solid var(--border-dim); border-radius:999px; padding:2px 6px; }
 
 /* Grouped manual work items and their candidate-weekend evidence. */

@@ -247,21 +247,6 @@ function buildBookingDetails(t) {
     rows.map(function (row) { return '<li>' + row + '</li>'; }).join('') + '</ul></div>';
 }
 
-// Ordinary approval/provenance must not compete with the single operational
-// booking badge on a booked/locked card. Placement approval stays available
-// through the approval filter and the expandable details; a stale approval is
-// actionable and semantically distinct, so it remains visible.
-function approvalBadgeHtml(t, operational) {
-  t = t || {};
-  if (t.ap === 'stale_approval') {
-    return '<div class="approval-badge approval-badge--stale"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>GODKJENNING UTGÅR</div>';
-  }
-  if (t.ap === 'approved' && operational !== 'booked') {
-    return '<div class="approval-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>GODKJENT</div>';
-  }
-  return '';
-}
-
 function render() {
   var ageSel = document.getElementById('filterAge');
   var arenaSel = document.getElementById('filterArena');
@@ -300,11 +285,7 @@ function render() {
     if (approval === 'approved' && t.ap !== 'approved') continue;
     if (approval === 'stale' && t.ap !== 'stale_approval') continue;
     if (approval === 'not_approved' && t.ap === 'approved') continue;
-    var bookingOperational = operationalStateOf(t);
-    if (booking === 'needs_attention' && !t.ba) continue;
-    if (booking === 'stale' && t.bs !== 'stale' && t.bs !== 'ambiguous') continue;
-    if ((booking === 'changed_slot_review' || booking === 'presumed_unscheduled') && bookingOperational !== booking) continue;
-    if (booking && booking !== 'needs_attention' && booking !== 'stale' && booking !== 'changed_slot_review' && booking !== 'presumed_unscheduled' && (t.bs || 'unknown') !== booking) continue;
+    if (booking && publicBookingStateOf(t) !== booking) continue;
 
     visible++;
     if (!timeline) continue;
@@ -340,14 +321,10 @@ function render() {
       if (t.gs.f) guestParts.push(t.gs.f === 1 ? '1 gjesteplass fylt' : t.gs.f + ' gjesteplasser fylt');
       guestBadge = '<div class="guest-badge">' + guestParts.join(' \u00b7 ') + '</div>';
     }
-    var operational = operationalStateOf(t);
-    var operationalBadge = operational
-      ? '<div class="booking-badge booking-badge--' + operational + (t.ba ? ' booking-badge--review' : '') + '">' + operationalStateLabel(t, operational) + '</div>'
-      : '';
-    var approvalBadge = approvalBadgeHtml(t, operational);
+    var publicBooking = publicBookingStateOf(t);
+    var bookingBadge = '<div class="booking-badge booking-badge--' + publicBooking + '">' + publicBookingStateLabel(publicBooking) + '</div>';
     html += '<div class="tournament-card' + cancelledClass + manualClass + '" onclick="this.classList.toggle(\'expanded\')">' +
-      approvalBadge +
-      operationalBadge +
+      bookingBadge +
       guestBadge +
       cancelledBadge +
       '<div class="tournament-card-header">' +
