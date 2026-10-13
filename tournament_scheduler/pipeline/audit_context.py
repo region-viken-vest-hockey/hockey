@@ -416,7 +416,7 @@ def _collect_plan_audit_facts(
         utilisation_examples.append(utilisation_row)
         if utilisation_row["underfilled"]:
             underfilled_by_age[age_group] += 1
-        if registered_count_by_age_group and not tournament.get("cancelled"):
+        if registered_count_by_age_group:
             eligible_registered_count = max(
                 0,
                 registered_count_by_age_group.get(age_group, 0)
@@ -436,12 +436,12 @@ def _collect_plan_audit_facts(
             # A reservation's byes are intentional, matching the verifier.
             bye_round_count = 0 if has_open_guest_slots(tournament) else len(bye_rounds)
             if shape_violation(shape, team_count, bye_round_count):
-                blocking_byes.append({**utilisation_row, "required_team_count": shape.effective_team_count})
+                if not tournament.get("cancelled"):
+                    blocking_byes.append({**utilisation_row, "required_team_count": shape.effective_team_count})
             elif shape.input_constrained and team_count == shape.effective_team_count:
                 input_constrained_shape_examples.append({**utilisation_row, **shape.as_dict()})
         elif not tournament.get("cancelled") and (team_count % 2 == 1 or bye_rounds):
-            # No registered-pool evidence available this run -- fall back to
-            # the unconditional previous check (audit evidence only).
+            # No registered-pool evidence this run -- fall back to the unconditional check.
             blocking_byes.append({**utilisation_row, "required_team_count": None})
 
     host_missing: list[dict[str, Any]] = []
