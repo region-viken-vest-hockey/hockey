@@ -50,6 +50,21 @@ planner `apply`, mutating `normalize-placements`, automatic rescrape,
 canonical state is inconsistent it fails closed and the operator must fix it
 through a proper canonical mutation, never by hand-editing canonical JSON.
 
+When the change is presentation-only (renderer, template or CSS, with no intended
+season-state change), replace the export step above with:
+
+```bash
+scripts/rvv-miniputt season export --season <season> --presentation-only
+```
+
+The command prints a JSON report (`status`, `canonical_revision_before` /
+`canonical_revision_after`, `canonical_schedule_or_decisions_changed`,
+`artifact_parity`, `export_fingerprint`, `semantic_audit`). Only `status: PASS`
+(exit 0) is a clean regeneration. `FAIL` (exit 1) means the revision moved, the
+export was stale, or the new renderer does not faithfully project canonical
+facts; `NOT_CHECKABLE` (exit 2) means parity could not be verified. Report the
+revisions and parity result to the operator; do not publish from this report.
+
 ## 3. Prove the replacement delta
 
 ```bash

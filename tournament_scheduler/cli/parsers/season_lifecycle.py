@@ -28,6 +28,14 @@ def add_season_lifecycle_parsers(season_sub: argparse._SubParsersAction) -> None
     season_export.add_argument("--flat", dest="timestamped_export", action="store_false", help="Write directly into --export-dir")
     season_export.set_defaults(timestamped_export=True)
     season_export.add_argument("--json", action="store_true", help="Print Stage 4 export checkpoint as JSON")
+    season_export.add_argument(
+        "--presentation-only",
+        action="store_true",
+        help=(
+            "Prove a renderer-only regeneration: export once, require the canonical revision to be "
+            "unchanged, and print the parity-bound JSON report. Never publishes or replans."
+        ),
+    )
 
     season_status = season_sub.add_parser("status", help="Show canonical season state metadata")
     season_status.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
