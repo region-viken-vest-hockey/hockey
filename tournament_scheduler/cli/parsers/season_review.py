@@ -62,6 +62,11 @@ def add_season_review_parsers(season_sub: argparse._SubParsersAction) -> None:
     season_refresh.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_refresh.add_argument("--input", default="input.xlsx", help="Canonical input workbook with configured sources")
     season_refresh.add_argument("--work-dir", default=None, help="Optional work directory for the scrape checkpoint/cache")
+    season_refresh.add_argument(
+        "--club",
+        default=None,
+        help="Refresh only this canonical club's configured calendar source(s)",
+    )
     season_refresh.add_argument("--actor", default=None, help="Operator identity for provenance")
     season_refresh.add_argument("--note", default="", help="Refresh note for decisions history")
     season_refresh.add_argument("--dry-run", action="store_true", help="Preview the evidence refresh without writing canonical state")
