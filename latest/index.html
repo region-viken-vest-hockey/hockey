@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="season-revision" content="699156df10e3e75b610eec311cfa38d151d8a5186955e16a3f4b0ccfff1f922d">
+<meta name="season-revision" content="4c54761b2040299818ed893b7081e662bb9b249ce19ac891ba175a75bf89d7cb">
 <title>Sesongplan 2026-2027 — RVV Hockey</title>
 <style>
 :root {
@@ -299,9 +299,6 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 /* Cancelled */
 .cancelled-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(244,63,94,.1); color: var(--rose); border: 1px solid rgba(244,63,94,.2); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: var(--radius-sm); margin-bottom: 8px; }
 .manual-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(245,158,11,.12); color: var(--amber); border: 1px solid rgba(245,158,11,.3); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: var(--radius-sm); margin-bottom: 8px; }
-.approval-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(34,197,94,.12); color: var(--green, #22c55e); border: 1px solid rgba(34,197,94,.3); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: var(--radius-sm); margin-bottom: 8px; }
-.approval-badge--locked { background: rgba(34,197,94,.2); }
-.approval-badge--stale { background: rgba(245,158,11,.14); color: var(--amber); border-color: rgba(245,158,11,.35); }
 .guest-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(129,140,248,.14); color: #818cf8; border: 1px solid rgba(129,140,248,.35); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: var(--radius-sm); margin-bottom: 8px; }
 .tournament-card.cancelled { border-left-color: rgba(244,63,94,.3); opacity: .88; }
 
@@ -366,7 +363,8 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 
 @media (max-width: 768px) {
   .app { padding: 16px 12px 48px; }
-  .navbar { height: auto; padding: 8px 12px; }
+  .navbar { height: auto; flex-wrap: wrap; row-gap: 4px; padding: 8px 12px; }
+  .navbar .brand { margin-right: 8px; }
   .header-actions { justify-content: flex-start; }
   .header-main { flex-direction: column; align-items: flex-start; }
   .header-right { width: 100%; align-items: flex-start; }
@@ -375,7 +373,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
   .header-metrics { justify-content: flex-start; }
   .header-actions .export-links { justify-content: flex-start; }
   .filters { flex-direction: column; }
-  .filter-select, .filter-input { min-width: 100%; }
+  .filter-select, .filter-input { width: 100%; min-width: 0; max-width: 100%; }
   .timeline { padding-left: 24px; }
   .tournament-card { padding: 14px; }
   .tournament-card::before { left: -18px; width: 10px; height: 10px; }
@@ -392,26 +390,13 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 .tournament-card.manual { border-left: 3px solid rgba(245, 158, 11, .5); }
 .tournament-card.manual::before { background: var(--amber); }
 .booking-badge { display:inline-flex; align-items:center; gap:4px; margin:0 0 8px 8px; padding:4px 8px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; border:1px solid var(--border-dim); color:var(--text-muted); }
-.booking-badge--confirmed_booked, .booking-badge--manually_booked { color:#22c55e; border-color:rgba(34,197,94,.45); }
-.booking-badge--confirmed_not_booked, .booking-badge--manually_not_booked, .booking-badge--not_checkable { color:var(--text-muted); text-decoration:line-through; }
-.booking-badge--ambiguous, .booking-badge--stale { color:var(--amber); border-color:rgba(245,158,11,.55); }
 .followup-badge { display:inline-flex; align-items:center; gap:4px; margin:0 0 8px 8px; padding:4px 8px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; background:rgba(245,158,11,.14); color:var(--amber); border:1px solid rgba(245,158,11,.55); }
-/* One operational booking badge per card; the detailed evidence lives in
-   .booking-details inside the expanded card. */
+/* One public booking badge per card (booked/locked or not confirmed). */
 .booking-badge--booked { color:#22c55e; border-color:rgba(34,197,94,.45); }
-.booking-badge--action_required, .booking-badge--changed_slot_review { color:var(--amber); border-color:rgba(245,158,11,.55); }
-.booking-badge--presumed_unscheduled { color:#f97316; border-color:rgba(249,115,22,.55); }
-.booking-badge--not_booked, .booking-badge--unknown { color:var(--text-muted); }
-.booking-badge--review { box-shadow:0 0 0 1px rgba(245,158,11,.55); }
-.booking-details { border:1px solid var(--border-dim); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:10px; background:var(--bg); }
-.booking-details-head { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); margin:0 0 6px; }
-.booking-details ul { margin:0; padding-left:16px; }
-.booking-details li { font-size:12px; line-height:1.5; color:var(--text-secondary); }
+.booking-badge--not_booked { color:var(--text-muted); }
 .heatmap-booking-item { display:inline-block; margin:0 1px; padding:1px 3px; border-radius:3px; }
-.heatmap-booking-not_booked, .heatmap-booking-unknown { opacity:.55; }
+.heatmap-booking-not_booked { opacity:.55; }
 .heatmap-booking-booked { outline:2px solid #22c55e; outline-offset:0; }
-.heatmap-booking-action_required, .heatmap-booking-changed_slot_review { outline:2px solid var(--amber); outline-offset:0; }
-.heatmap-booking-presumed_unscheduled { outline:2px solid #f97316; outline-offset:0; }
 .heatmap-booking-legend { display:inline-flex; align-items:center; gap:4px; font-size:11px; color:var(--text-muted); border:1px solid var(--border-dim); border-radius:999px; padding:2px 6px; }
 
 /* Grouped manual work items and their candidate-weekend evidence. */
@@ -517,14 +502,10 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
     <option value="">Alle (U7 + JU8 + U8 + U9 + JU10 + U10 + U11 + JU12 + U12)</option>
     <option value="U7">U7</option><option value="JU8">JU8</option><option value="U8">U8</option><option value="U9">U9</option><option value="JU10">JU10</option><option value="U10">U10</option><option value="U11">U11</option><option value="JU12">JU12</option><option value="U12">U12</option>
   </select>
-  <select id="filterTeam" class="filter-select">
-    <option value="">Alle lag</option>
-  </select>
   <select id="filterArena" class="filter-select">
     <option value="">Alle arenaer</option>
   </select>
   <select id="filterApproval" class="filter-select"><option value="">Alle godkjenninger</option><option value="approved">Kun godkjente</option><option value="stale">Kun utdaterte</option><option value="not_approved">Ikke godkjente</option></select>
-  <select id="filterBooking" class="filter-select"><option value="">Alle bookingstatuser</option><option value="needs_attention">Må følges opp</option><option value="confirmed_booked">Booket bekreftet</option><option value="manually_booked">Manuelt booket</option><option value="changed_slot_review">Endret tid må vurderes</option><option value="presumed_unscheduled">Trolig ikke satt opp</option><option value="confirmed_not_booked">Ikke booket</option><option value="manually_not_booked">Manuelt ikke booket</option><option value="unknown">Ikke kontrollert</option><option value="stale">Utdatert/uklar</option></select>
   <input type="text" id="filterSearch" class="filter-input" placeholder="Søk etter lag…">
   <button type="button" id="filterClear" class="filter-clear">Nullstill filtre</button>
 </div>
@@ -554,7 +535,7 @@ const HEATMAP = {"2026-W41": {"Frisk Asker": [{"age_group": "U10", "tournament_i
 const HEATMAP_WEEKS = ["2026-W41", "2026-W42", "2026-W44", "2026-W45", "2026-W46", "2026-W47", "2026-W48", "2026-W49", "2026-W50", "2026-W51", "2027-W01", "2027-W02", "2027-W03", "2027-W04", "2027-W05", "2027-W06", "2027-W07", "2027-W09", "2027-W10"];
 const HEATMAP_CLUBS = ["Frisk Asker", "Holmen", "Jar", "Jutul", "Kongsberg", "Ringerike", "Sandefjord Penguins", "Skien", "Tønsberg"];
 const HEATMAP_CLUB_COLORS_BY_THEME = {"dark": {"Frisk Asker": {"bg": "#1a3a5c", "text": "#64b5f6"}, "Holmen": {"bg": "#1b3a1b", "text": "#81c784"}, "Jar": {"bg": "#3a2e0a", "text": "#ffd54f"}, "Jutul": {"bg": "#2a1a3a", "text": "#ba68c8"}, "Kongsberg": {"bg": "#3a1a1a", "text": "#e57373"}, "Ringerike": {"bg": "#0a2a3a", "text": "#4dd0e1"}, "Sandefjord Penguins": {"bg": "#3a3a0a", "text": "#fff176"}, "Skien": {"bg": "#1a3a2a", "text": "#aed581"}, "Tønsberg": {"bg": "#3a1a0a", "text": "#ff8a65"}}, "light": {"Frisk Asker": {"bg": "#dbeafe", "text": "#1d4ed8"}, "Holmen": {"bg": "#dcfce7", "text": "#15803d"}, "Jar": {"bg": "#fef3c7", "text": "#b45309"}, "Jutul": {"bg": "#ede9fe", "text": "#6d28d9"}, "Kongsberg": {"bg": "#ffe4e6", "text": "#be123c"}, "Ringerike": {"bg": "#cffafe", "text": "#0e7490"}, "Sandefjord Penguins": {"bg": "#fef9c3", "text": "#a16207"}, "Skien": {"bg": "#ecfccb", "text": "#4d7c0f"}, "Tønsberg": {"bg": "#ffedd5", "text": "#c2410c"}}};
-const CLUB_STATS = {"Skien": {"hosted": 8, "away": 32, "teams": 6, "travel_km": 3546, "team_list": ["Skien (Skien, JU10)", "Skien (Skien, U9)", "Skien (Skien, JU8)", "Skien (Skien, JU12)", "Skien (Skien, U8)", "Skien (Skien, U11)"]}, "Jutul": {"hosted": 18, "away": 85, "teams": 19, "travel_km": 3032, "team_list": ["Jutul Grønn (Jutul, U10)", "Jutul Grønn (Jutul, U12)", "Jutul Rød (Jutul, U9)", "Jutul Hvit (Jutul, U10)", "Jutul Hvit (Jutul, U8)", "Jutul Grønn (Jutul, U8)", "Jutul Hvit (Jutul, U9)", "Jutul Kittens", "Jutul Rød (Jutul, U10)", "Jutul Grønn (Jutul, U11)", "Jutul Rød (Jutul, U12)", "Jutul/Jar Kittens", "Jutul Gul", "Jutul Rød (Jutul, U8)", "Jutul Grønn (Jutul, U9)", "Jutul Rød (Jutul, U7)", "Jutul Grønn (Jutul, U7)", "Jutul Hvit (Jutul, U7)", "Jutul Rød (Jutul, U11)"]}, "Tønsberg": {"hosted": 17, "away": 58, "teams": 10, "travel_km": 5236, "team_list": ["Tønsberg Grå (Tønsberg, U12)", "Tønsberg Grå (Tønsberg, U11)", "Tønsberg Hvit (Tønsberg, U11)", "Tønsberg (Tønsberg, U10)", "Tønsberg (Tønsberg, U8)", "Tønsberg Rød (Tønsberg, U11)", "Tønsberg Rød (Tønsberg, U12)", "Tønsberg (Tønsberg, U9)", "Tønsberg Hvit (Tønsberg, U12)", "Tønsberg (Tønsberg, U7)"]}, "Ringerike": {"hosted": 22, "away": 76, "teams": 14, "travel_km": 5465, "team_list": ["Ringerike 1 (Ringerike, U10)", "Ringerike 1 (Ringerike, U12)", "Ringerike 2 (Ringerike, U12)", "Ringerike 1 (Ringerike, U9)", "Ringerike 2 (Ringerike, U10)", "Ringerike 2 (Ringerike, U8)", "Ringerike 3", "Ringerike Gul", "Ringerike 2 (Ringerike, JU12)", "Ringerike 1 (Ringerike, JU12)", "Ringerike Svart", "Ringerike 1 (Ringerike, JU10)", "Ringerike 1 (Ringerike, U8)", "Ringerike 4"]}, "Frisk Asker": {"hosted": 35, "away": 110, "teams": 30, "travel_km": 5761, "team_list": ["Frisk Asker 1 (Frisk Asker, U10)", "Frisk Asker 3 (Frisk Asker, U10)", "Frisk Asker 1 (Frisk Asker, U12)", "Frisk Asker Orange (Frisk Asker, JU10)", "Frisk Asker Svart (Frisk Asker, JU10)", "Frisk Asker 2 (Frisk Asker, U12)", "Frisk Asker 1 (Frisk Asker, U9)", "Frisk Asker 4 (Frisk Asker, U9)", "Frisk Asker 2 (Frisk Asker, U10)", "Frisk Asker 1 (Frisk Asker, U8)", "Frisk Asker 3 (Frisk Asker, U8)", "Frisk Asker 2 (Frisk Asker, U9)", "Frisk Asker", "Frisk Asker 3 (Frisk Asker, U12)", "Frisk Asker 3 (Frisk Asker, U9)", "Frisk Asker Orange (Frisk Asker, JU12)", "Frisk Asker 2 (Frisk Asker, U8)", "Frisk Asker Svart (Frisk Asker, JU12)", "Frisk Asker 4 (Frisk Asker, U11)", "Frisk Asker 1 (Frisk Asker, U11)", "Frisk Asker 5 (Frisk Asker, U8)", "Frisk Asker 2 (Frisk Asker, U11)", "Frisk Asker 4 (Frisk Asker, U10)", "Frisk Asker 5 (Frisk Asker, U10)", "Frisk Asker 4 (Frisk Asker, U8)", "Frisk Asker 6", "Frisk Asker 3 (Frisk Asker, U11)", "Frisk Asker 3 (Frisk Asker, U7)", "Frisk Asker 1 (Frisk Asker, U7)", "Frisk Asker 2 (Frisk Asker, U7)"]}, "Sandefjord Penguins": {"hosted": 5, "away": 20, "teams": 4, "travel_km": 1992, "team_list": ["Sandefjord (Sandefjord Penguins, U11)", "Sandefjord (Sandefjord Penguins, U9)", "Sandefjord (Sandefjord Penguins, U8)", "Sandefjord (Sandefjord Penguins, U7)"]}, "Kongsberg": {"hosted": 8, "away": 30, "teams": 5, "travel_km": 2161, "team_list": ["Kongsberg (Kongsberg, U12)", "Kongsberg (Kongsberg, U11)", "Kongsberg (Kongsberg, U9)", "Kongsberg (Kongsberg, U10)", "Kongsberg (Kongsberg, U8)"]}, "Holmen": {"hosted": 21, "away": 74, "teams": 18, "travel_km": 2914, "team_list": ["Holmen Hockey Blå (Holmen, U10)", "Holmen Hockey Hvit (Holmen, U12)", "Holmen Hockey Rød (Holmen, U12)", "Holmen Hockey Hvit (Holmen, U9)", "Holmen Hockey Rød (Holmen, U9)", "Holmen Hockey Hvit (Holmen, U10)", "Holmen Hockey Hvit (Holmen, U8)", "Holmen Hockey Rød (Holmen, U10)", "Holmen Hockey Rød (Holmen, U11)", "Holmen Hockey Sort (Holmen, U9)", "Holmen Hockey Rød (Holmen, U8)", "Holmen Hockey Hvit (Holmen, U11)", "Holmen Hockey Sort (Holmen, U10)", "Holmen Hockey Sort (Holmen, U8)", "Holmen Hockey Blå (Holmen, U8)", "Holmen Hockey Rød (Holmen, U7)", "Holmen Hockey Sort (Holmen, U7)", "Holmen Hockey Hvit (Holmen, U7)"]}, "Jar": {"hosted": 35, "away": 109, "teams": 34, "travel_km": 6899, "team_list": ["Jar Hvit (Jar, U10)", "Jar Blå (Jar, U12)", "Jar Blå (Jar, JU10)", "Jar Hvit (Jar, JU10)", "Jar Rød (Jar, U11)", "Jar Hvit (Jar, U11)", "Jar Grønn (Jar, U10)", "Jar Blå (Jar, U8)", "Jar Blå (Jar, U9)", "Jar Hvit (Jar, U9)", "Jar", "Jar Blå (Jar, U10)", "Jar Blå (Jar, U11)", "Jar Hvit (Jar, U12)", "Jar Hvit (Jar, U8)", "Jar Svart (Jar, U8)", "Jar Gul (Jar, U11)", "Jar Rød (Jar, U12)", "Jar Rød (Jar, U8)", "Jar Svart (Jar, U11)", "Jar Rød (Jar, JU10)", "Jar Svart (Jar, U10)", "Jar Gul (Jar, U10)", "Jar Rød (Jar, U10)", "Jar Rød (Jar, U9)", "Jar Grønn (Jar, U11)", "Jar Svart (Jar, U12)", "Jar Rød (Jar, U7)", "Jar Svart (Jar, U7)", "Jar Oransje", "Jar Hvit (Jar, U7)", "Jar Lilla", "Jar Grønn (Jar, U7)", "Jar Blå (Jar, U7)"]}};
+const CLUB_STATS = {"Tønsberg": {"hosted": 17, "away": 58, "teams": 10, "travel_km": 5236, "team_list": ["Tønsberg Grå (Tønsberg, U12)", "Tønsberg Grå (Tønsberg, U11)", "Tønsberg Hvit (Tønsberg, U11)", "Tønsberg (Tønsberg, U10)", "Tønsberg (Tønsberg, U8)", "Tønsberg Rød (Tønsberg, U11)", "Tønsberg Rød (Tønsberg, U12)", "Tønsberg (Tønsberg, U9)", "Tønsberg Hvit (Tønsberg, U12)", "Tønsberg (Tønsberg, U7)"]}, "Kongsberg": {"hosted": 8, "away": 30, "teams": 5, "travel_km": 2161, "team_list": ["Kongsberg (Kongsberg, U12)", "Kongsberg (Kongsberg, U11)", "Kongsberg (Kongsberg, U9)", "Kongsberg (Kongsberg, U10)", "Kongsberg (Kongsberg, U8)"]}, "Skien": {"hosted": 8, "away": 32, "teams": 6, "travel_km": 3546, "team_list": ["Skien (Skien, JU10)", "Skien (Skien, U9)", "Skien (Skien, JU8)", "Skien (Skien, JU12)", "Skien (Skien, U8)", "Skien (Skien, U11)"]}, "Ringerike": {"hosted": 22, "away": 76, "teams": 14, "travel_km": 5465, "team_list": ["Ringerike 1 (Ringerike, U10)", "Ringerike 1 (Ringerike, U12)", "Ringerike 2 (Ringerike, U12)", "Ringerike 1 (Ringerike, U9)", "Ringerike 2 (Ringerike, U10)", "Ringerike 2 (Ringerike, U8)", "Ringerike 3", "Ringerike Gul", "Ringerike 2 (Ringerike, JU12)", "Ringerike 1 (Ringerike, JU12)", "Ringerike Svart", "Ringerike 1 (Ringerike, JU10)", "Ringerike 1 (Ringerike, U8)", "Ringerike 4"]}, "Sandefjord Penguins": {"hosted": 5, "away": 20, "teams": 4, "travel_km": 1992, "team_list": ["Sandefjord (Sandefjord Penguins, U11)", "Sandefjord (Sandefjord Penguins, U9)", "Sandefjord (Sandefjord Penguins, U8)", "Sandefjord (Sandefjord Penguins, U7)"]}, "Jutul": {"hosted": 18, "away": 85, "teams": 19, "travel_km": 3032, "team_list": ["Jutul Grønn (Jutul, U10)", "Jutul Grønn (Jutul, U12)", "Jutul Rød (Jutul, U9)", "Jutul Hvit (Jutul, U10)", "Jutul Hvit (Jutul, U8)", "Jutul Grønn (Jutul, U8)", "Jutul Hvit (Jutul, U9)", "Jutul Kittens", "Jutul Rød (Jutul, U10)", "Jutul Grønn (Jutul, U11)", "Jutul Rød (Jutul, U12)", "Jutul/Jar Kittens", "Jutul Gul", "Jutul Rød (Jutul, U8)", "Jutul Grønn (Jutul, U9)", "Jutul Rød (Jutul, U7)", "Jutul Grønn (Jutul, U7)", "Jutul Hvit (Jutul, U7)", "Jutul Rød (Jutul, U11)"]}, "Frisk Asker": {"hosted": 35, "away": 110, "teams": 30, "travel_km": 5761, "team_list": ["Frisk Asker 1 (Frisk Asker, U10)", "Frisk Asker 3 (Frisk Asker, U10)", "Frisk Asker 1 (Frisk Asker, U12)", "Frisk Asker Orange (Frisk Asker, JU10)", "Frisk Asker Svart (Frisk Asker, JU10)", "Frisk Asker 2 (Frisk Asker, U12)", "Frisk Asker 1 (Frisk Asker, U9)", "Frisk Asker 4 (Frisk Asker, U9)", "Frisk Asker 2 (Frisk Asker, U10)", "Frisk Asker 1 (Frisk Asker, U8)", "Frisk Asker 3 (Frisk Asker, U8)", "Frisk Asker 2 (Frisk Asker, U9)", "Frisk Asker", "Frisk Asker 3 (Frisk Asker, U12)", "Frisk Asker 3 (Frisk Asker, U9)", "Frisk Asker Orange (Frisk Asker, JU12)", "Frisk Asker 2 (Frisk Asker, U8)", "Frisk Asker Svart (Frisk Asker, JU12)", "Frisk Asker 4 (Frisk Asker, U11)", "Frisk Asker 1 (Frisk Asker, U11)", "Frisk Asker 5 (Frisk Asker, U8)", "Frisk Asker 2 (Frisk Asker, U11)", "Frisk Asker 4 (Frisk Asker, U10)", "Frisk Asker 5 (Frisk Asker, U10)", "Frisk Asker 4 (Frisk Asker, U8)", "Frisk Asker 6", "Frisk Asker 3 (Frisk Asker, U11)", "Frisk Asker 3 (Frisk Asker, U7)", "Frisk Asker 1 (Frisk Asker, U7)", "Frisk Asker 2 (Frisk Asker, U7)"]}, "Holmen": {"hosted": 21, "away": 74, "teams": 18, "travel_km": 2914, "team_list": ["Holmen Hockey Blå (Holmen, U10)", "Holmen Hockey Hvit (Holmen, U12)", "Holmen Hockey Rød (Holmen, U12)", "Holmen Hockey Hvit (Holmen, U9)", "Holmen Hockey Rød (Holmen, U9)", "Holmen Hockey Hvit (Holmen, U10)", "Holmen Hockey Hvit (Holmen, U8)", "Holmen Hockey Rød (Holmen, U10)", "Holmen Hockey Rød (Holmen, U11)", "Holmen Hockey Sort (Holmen, U9)", "Holmen Hockey Rød (Holmen, U8)", "Holmen Hockey Hvit (Holmen, U11)", "Holmen Hockey Sort (Holmen, U10)", "Holmen Hockey Sort (Holmen, U8)", "Holmen Hockey Blå (Holmen, U8)", "Holmen Hockey Rød (Holmen, U7)", "Holmen Hockey Sort (Holmen, U7)", "Holmen Hockey Hvit (Holmen, U7)"]}, "Jar": {"hosted": 35, "away": 109, "teams": 34, "travel_km": 6899, "team_list": ["Jar Hvit (Jar, U10)", "Jar Blå (Jar, U12)", "Jar Blå (Jar, JU10)", "Jar Hvit (Jar, JU10)", "Jar Rød (Jar, U11)", "Jar Hvit (Jar, U11)", "Jar Grønn (Jar, U10)", "Jar Blå (Jar, U8)", "Jar Blå (Jar, U9)", "Jar Hvit (Jar, U9)", "Jar", "Jar Blå (Jar, U10)", "Jar Blå (Jar, U11)", "Jar Hvit (Jar, U12)", "Jar Hvit (Jar, U8)", "Jar Svart (Jar, U8)", "Jar Gul (Jar, U11)", "Jar Rød (Jar, U12)", "Jar Rød (Jar, U8)", "Jar Svart (Jar, U11)", "Jar Rød (Jar, JU10)", "Jar Svart (Jar, U10)", "Jar Gul (Jar, U10)", "Jar Rød (Jar, U10)", "Jar Rød (Jar, U9)", "Jar Grønn (Jar, U11)", "Jar Svart (Jar, U12)", "Jar Rød (Jar, U7)", "Jar Svart (Jar, U7)", "Jar Oransje", "Jar Hvit (Jar, U7)", "Jar Lilla", "Jar Grønn (Jar, U7)", "Jar Blå (Jar, U7)"]}};
 const ALL_CLUBS = ["Frisk Asker", "Holmen", "Jar", "Jutul", "Kongsberg", "Ringerike", "Sandefjord Penguins", "Skien", "Tønsberg"];
 
 // Shared helpers
@@ -698,34 +679,17 @@ function operationalStateOf(t) {
   return '';
 }
 
-// Manual confirmation is a compact qualifier on the one booked badge, not a
-// second operational state. The full authority/source label stays in the
-// expandable booking details. Self-contained so the shipped helper can be
-// evaluated in isolation by the presentation tests.
-function isManualConfirmedBooking(t) {
-  if (!t) return false;
-  var authority = t.bauth;
-  if (authority === 'manual_club_confirmation' || authority === 'manual_club_confirmation_interpretation') return true;
-  // Legacy/hand-built payloads may carry the manual projection without the
-  // typed authority field; a manually-booked record is still manual.
-  return t.bs === 'manually_booked';
+// Public booking projection: the published plan states only whether a slot is
+// booked/locked or not yet confirmed. Every internal operational state
+// (action required, changed slot, presumed unscheduled, unknown, stale,
+// rejected, unmatched) collapses to not_booked. Manual authority and the
+// detailed evidence stay in the expandable booking details.
+function publicBookingStateOf(t) {
+  return operationalStateOf(t) === 'booked' ? 'booked' : 'not_booked';
 }
 
-function operationalStateLabel(t, state) {
-  t = t || {};
-  if (state === 'booked') return isManualConfirmedBooking(t) ? 'BOOKET · LÅST (M)' : 'BOOKET · LÅST';
-  if (state === 'changed_slot_review') return 'ENDRET TID · MÅ VURDERES';
-  if (state === 'presumed_unscheduled') return 'TROLIG IKKE SATT OPP';
-  if (state === 'unknown') return 'UKJENT BOOKING';
-  if (state === 'action_required') {
-    // An explicit rejection or an invalidated confirmation needs a rebooking,
-    // not the generic manual-placement wording.
-    if (t.bs === 'manually_not_booked' || t.bs === 'confirmed_not_booked') return 'AVVIST · MÅ BOOKES PÅ NYTT';
-    if (t.bs === 'stale') return 'MÅ RE-BEKREFTES';
-    return (t.rhc && !t.mb) ? 'KREVER VERTSSBEKREFTELSE' : 'MÅ BOOKES MANUELT';
-  }
-  if (state === 'not_booked') return 'IKKE BEKREFTET';
-  return '';
+function publicBookingStateLabel(state) {
+  return state === 'booked' ? 'BOOKET · LÅST' : 'IKKE BEKREFTET';
 }
 
 // Raw detailed evidence label. Drill-down provenance only -- never a competing
@@ -759,23 +723,11 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-// The heatmap legend is the operational state set, so a weaker detailed
-// status can never appear next to an operationally booked slot.
-var OPERATIONAL_HEATMAP_LEGEND = [
+// The heatmap uses the same two-state public projection as the season-plan cards.
+var PUBLIC_HEATMAP_LEGEND = [
   ['booked', 'booket · låst'],
-  ['action_required', 'må følges opp'],
-  ['changed_slot_review', 'endret tid · må vurderes'],
-  ['presumed_unscheduled', 'trolig ikke satt opp'],
-  ['not_booked', 'ikke bekreftet'],
-  ['unknown', 'ukjent']
+  ['not_booked', 'ikke bekreftet']
 ];
-
-function heatmapOperationalClass(state) {
-  for (var i = 0; i < OPERATIONAL_HEATMAP_LEGEND.length; i++) {
-    if (OPERATIONAL_HEATMAP_LEGEND[i][0] === state) return state;
-  }
-  return 'unknown';
-}
 
 // Render calendar heatmap
 (function() {
@@ -797,17 +749,10 @@ function heatmapOperationalClass(state) {
   });
   function heatmapState(item) {
     var card = cardById[item.tournament_id];
-    return (card ? operationalStateOf(card) : item.operational_state) || 'unknown';
+    return publicBookingStateOf(card || {obs: item.operational_state});
   }
   function heatmapTitle(item) {
-    var card = cardById[item.tournament_id];
-    var state = heatmapState(item);
-    var title = (item.age_group || '') + ' – ' + (operationalStateLabel(card, state) || state);
-    var details = [];
-    if (item.booking_status && item.booking_status !== 'unknown') details.push(bookingStatusLabel(item.booking_status));
-    if (item.needs_attention) details.push('må følges opp');
-    if (details.length) title += ' · ' + details.join(' · ');
-    return title;
+    return (item.age_group || '') + ' – ' + publicBookingStateLabel(heatmapState(item));
   }
 
   const currentTheme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
@@ -838,9 +783,9 @@ function heatmapOperationalClass(state) {
     span.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:' + c.bg + ';border:1px solid ' + c.text + '"></span>' + escapeHtml(club);
     legend.appendChild(span);
   });
-  OPERATIONAL_HEATMAP_LEGEND.forEach(function(item) {
+  PUBLIC_HEATMAP_LEGEND.forEach(function(item) {
     const span = document.createElement('span');
-    span.className = 'heatmap-booking-legend heatmap-booking-' + heatmapOperationalClass(item[0]);
+    span.className = 'heatmap-booking-legend heatmap-booking-' + item[0];
     span.textContent = item[1];
     legend.appendChild(span);
   });
@@ -882,7 +827,7 @@ function heatmapOperationalClass(state) {
         });
         const label = items.map(function(item) {
           const state = heatmapState(item);
-          return '<span class="heatmap-booking-item heatmap-booking-' + heatmapOperationalClass(state) + '" title="' + escapeHtml(heatmapTitle(item)) + '">' + escapeHtml(item.age_group || '') + '</span>';
+          return '<span class="heatmap-booking-item heatmap-booking-' + state + '" title="' + escapeHtml(heatmapTitle(item)) + '">' + escapeHtml(item.age_group || '') + '</span>';
         }).join('');
         bodyHtml += '<td style="background:' + c.bg + ';border:1px solid ' + c.text + ';padding:3px 4px;text-align:center;font-size:10px;color:' + c.text + ';font-weight:600;white-space:nowrap">' + label + '</td>';
       } else {
@@ -1075,102 +1020,6 @@ function buildMatchHTML(matches, byes) {
   }).join('');
 }
 
-function bookingAuthorityLabel(authority) {
-  var labels = {
-    manual_club_confirmation: 'manuell klubbekreftelse',
-    manual_club_confirmation_interpretation: 'manuell klubbekreftelse (tolket)',
-    calendar_event_association: 'kalendermatch'
-  };
-  return labels[authority] || authority;
-}
-
-function manualQueueReasonLabel(code) {
-  var labels = {
-    explicit_rejection: 'avvist av vert — må bookes på nytt',
-    reconfirmation_required: 'bekreftelsen er utdatert etter endret tid — må bekreftes på nytt',
-    manual_placement: 'manuell plassering — istid må bekreftes/bookes',
-    host_confirmation_required: 'vertsstyrt tidsrom — må bekreftes av vertsklubben'
-  };
-  return labels[code] || code;
-}
-
-function manualQueueActionLabel(action) {
-  var labels = {
-    book_or_reconfirm: 'registrer en bekreftet booking (booking-set) eller en gyldig kalenderkobling'
-  };
-  return labels[action] || action;
-}
-
-function buildBookingDetails(t) {
-  var state = operationalStateOf(t);
-  var rows = [];
-  var stateText = {
-    booked: 'Booket og låst — bekreftelsen er beskyttet mot automatisk flytting.',
-    action_required: 'Krever handling: manuell booking eller re-bekreftelse.',
-    changed_slot_review: 'Kalenderen viser en plausibel booking på annen tid enn kanonisk plan; dette er et forslag, ikke en flytting.',
-    presumed_unscheduled: 'Komplett, tillitsklarert kalenderdekning for vinduet viser ingen plausibel match. Turneringen er ikke kansellert automatisk.',
-    unknown: 'Booking kan ikke avklares fra tilgjengelig kalenderbevis.',
-    not_booked: 'Ikke bekreftet. Manglende kalenderbevis er ikke en avvisning.'
-  };
-  if (state && stateText[state]) rows.push('<strong>Bookingstatus:</strong> ' + stateText[state]);
-  if (t.bs) rows.push('<strong>Detaljert status:</strong> ' + escapeHtml(bookingStatusLabel(t.bs)) + (t.bscope === 'club_wide_interpretation' ? ' · SKJØNNSVURDERT' : ''));
-  if (t.bauth) rows.push('<strong>Autoritet:</strong> ' + escapeHtml(bookingAuthorityLabel(t.bauth)));
-  if (t.bac) rows.push('<strong>Kalenderavstemming:</strong> ' + escapeHtml(bookingStatusLabel(t.bac)));
-  if (t.bci) rows.push('<strong>Kanonisk planlagt tid:</strong> ' + escapeHtml(t.bci.d) + ' ' + escapeHtml(t.bci.s) + '–' + escapeHtml(t.bci.e));
-  if (t.boi) rows.push('<strong>Siste observerte kalendertid:</strong> ' + escapeHtml(t.boi.d) + ' ' + escapeHtml(t.boi.s) + '–' + escapeHtml(t.boi.e) + (t.boi.t ? ' · ' + escapeHtml(t.boi.t) : '') + (t.boi.a ? '' : ' · ikke handlingsbar'));
-  if (t.bne) rows.push('<strong>Negativt kalenderbevis:</strong> komplett kildevindu uten plausibel match' + (t.bne.c !== undefined && t.bne.c !== null ? ' (' + escapeHtml(t.bne.c) + ' hendelser i kilden)' : ''));
-  if (t.bscope === 'club_wide_interpretation') rows.push('<strong>Kildeomfang:</strong> tolkning av klubbdekkende bekreftelse, ikke en egen per-turnering-kilde.');
-  if (t.mb) rows.push('<strong>Manuell booking:</strong> ' + escapeHtml(t.mb));
-  if (t.rhc) rows.push('<strong>Vertsbekreftelse:</strong> ' + escapeHtml(t.hcr || 'må bekreftes av vertsklubben'));
-  if (t.bfu && t.bfu.length) {
-    var followUpLabels = {
-      manual_booking_stated_date_differs_from_canonical: 'kilden oppgir avvikende dato',
-      manual_booking_stated_start_differs_from_canonical: 'kilden oppgir avvikende starttid',
-      manual_booking_stated_end_differs_from_canonical: 'kilden oppgir avvikende sluttid',
-      calendar_negative_conflicts_with_manual_booking: 'kalenderen motsier den manuelle bekreftelsen',
-      calendar_association_conflicts_with_manual_rejection: 'kalenderen motsier den manuelle avvisningen',
-      calendar_booking_association_stale: 'kalenderkoblingen er utdatert',
-      confirmed_booking_without_valid_association: 'bekreftet booking mangler gyldig kalenderkobling',
-      absence_only_negative_booking_requires_review: 'manglende kalenderfunn krever gjennomgang'
-    };
-    var text = t.bfu.map(function (reason) { return escapeHtml(followUpLabels[reason] || reason); }).join('; ');
-    if (t.bsi) text += ' (kilden oppgir ' + escapeHtml(t.bsi.s) + '–' + escapeHtml(t.bsi.e) + ', kanonisk tid er uendret)';
-    rows.push('<strong>Må følges opp:</strong> ' + text);
-  }
-  if (t.bq) {
-    if (t.bq.r) rows.push('<strong>Manuell kø:</strong> ' + escapeHtml(manualQueueReasonLabel(t.bq.r)));
-    if (t.bq.o) rows.push('<strong>Ansvarlig:</strong> ' + escapeHtml(t.bq.o));
-    if (t.bq.alt && t.bq.alt.length) {
-      // Calendar observations, not confirmed/available slots. The public
-      // payload deliberately omits event titles (they can contain private
-      // details); the full titles remain in the private operator report.
-      var altText = t.bq.alt.map(function (item) {
-        return escapeHtml(item.d + ' ' + item.s + '–' + item.e);
-      }).join('; ');
-      rows.push('<strong>Kalenderobservasjoner (må bekreftes — ikke ledige tider):</strong> ' + altText);
-    }
-    if (t.bq.ac) rows.push('<strong>Neste handling:</strong> ' + escapeHtml(manualQueueActionLabel(t.bq.ac)));
-  }
-  if (!rows.length) return '';
-  return '<div class="booking-details"><p class="booking-details-head">Bookingdetaljer</p><ul>' +
-    rows.map(function (row) { return '<li>' + row + '</li>'; }).join('') + '</ul></div>';
-}
-
-// Ordinary approval/provenance must not compete with the single operational
-// booking badge on a booked/locked card. Placement approval stays available
-// through the approval filter and the expandable details; a stale approval is
-// actionable and semantically distinct, so it remains visible.
-function approvalBadgeHtml(t, operational) {
-  t = t || {};
-  if (t.ap === 'stale_approval') {
-    return '<div class="approval-badge approval-badge--stale"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>GODKJENNING UTGÅR</div>';
-  }
-  if (t.ap === 'approved' && operational !== 'booked') {
-    return '<div class="approval-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>GODKJENT</div>';
-  }
-  return '';
-}
-
 function render() {
   var ageSel = document.getElementById('filterAge');
   var arenaSel = document.getElementById('filterArena');
@@ -1209,11 +1058,9 @@ function render() {
     if (approval === 'approved' && t.ap !== 'approved') continue;
     if (approval === 'stale' && t.ap !== 'stale_approval') continue;
     if (approval === 'not_approved' && t.ap === 'approved') continue;
-    var bookingOperational = operationalStateOf(t);
-    if (booking === 'needs_attention' && !t.ba) continue;
-    if (booking === 'stale' && t.bs !== 'stale' && t.bs !== 'ambiguous') continue;
-    if ((booking === 'changed_slot_review' || booking === 'presumed_unscheduled') && bookingOperational !== booking) continue;
-    if (booking && booking !== 'needs_attention' && booking !== 'stale' && booking !== 'changed_slot_review' && booking !== 'presumed_unscheduled' && (t.bs || 'unknown') !== booking) continue;
+    // Cancelled rows carry no public booking status, so any booking filter
+    // excludes them; they remain visible only when no booking filter is set.
+    if (booking && (t.cx || publicBookingStateOf(t) !== booking)) continue;
 
     visible++;
     if (!timeline) continue;
@@ -1249,14 +1096,13 @@ function render() {
       if (t.gs.f) guestParts.push(t.gs.f === 1 ? '1 gjesteplass fylt' : t.gs.f + ' gjesteplasser fylt');
       guestBadge = '<div class="guest-badge">' + guestParts.join(' \u00b7 ') + '</div>';
     }
-    var operational = operationalStateOf(t);
-    var operationalBadge = operational
-      ? '<div class="booking-badge booking-badge--' + operational + (t.ba ? ' booking-badge--review' : '') + '">' + operationalStateLabel(t, operational) + '</div>'
-      : '';
-    var approvalBadge = approvalBadgeHtml(t, operational);
+    // Cancelled cards keep their cancellation presentation only; an active
+    // tournament always gets exactly one public booking badge.
+    var publicBooking = publicBookingStateOf(t);
+    var bookingBadge = t.cx ? ''
+      : '<div class="booking-badge booking-badge--' + publicBooking + '">' + publicBookingStateLabel(publicBooking) + '</div>';
     html += '<div class="tournament-card' + cancelledClass + manualClass + '" onclick="this.classList.toggle(\'expanded\')">' +
-      approvalBadge +
-      operationalBadge +
+      bookingBadge +
       guestBadge +
       cancelledBadge +
       '<div class="tournament-card-header">' +
@@ -1272,7 +1118,6 @@ function render() {
         '<div class="tournament-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>' +
       '</div>' +
       '<div class="matches"><div class="matches-inner">' +
-        buildBookingDetails(t) +
         '<div class="matches-header"><h4>Kamper per runde</h4><span class="count">' + t.m.length + ' stk</span></div>' +
         buildMatchHTML(t.m, t.b) +
       '</div></div></div>';
