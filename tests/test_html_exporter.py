@@ -803,82 +803,65 @@ class TestBookingStatusRendering:
         for name, got, expected in json.loads(completed.stdout):
             assert got == expected, f"{name}: expected {expected!r}, got {got!r}"
 
-    def test_booking_details_render_manual_queue_work_item(self):
-        """The shipped template renders the manual-queue reason, source and action."""
+    def test_public_cards_never_render_booking_details(self):
+        """Operator booking evidence, queues and follow-up never reach the public card."""
 
-        node = shutil.which("node")
-        if node is None:
-            pytest.fail("node is required to execute the shipped template fallback")
-
-        source = _SCHEDULE_TEMPLATE.read_text(encoding="utf-8")
-        start = source.index("function bookingAuthorityLabel")
-        end = source.index("\nfunction render()", start)
-        script = _shared_operational_helpers_js() + source[start:end] + """
-var item = {
-  obs: 'action_required',
-  bs: 'manually_not_booked',
-  ba: true,
-  bq: {
-    r: 'explicit_rejection',
-    o: 'Holmen',
-    ac: 'book_or_reconfirm',
-    cw: 'accepted_booking_assertion_or_valid_calendar_association',
-    alt: [{d: '2025-11-01', s: '14:00', e: '16:00', t: 'Private club name'}]
-  }
-};
-console.log(buildBookingDetails(item));
-"""
-        completed = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
-        rendered = completed.stdout
-        assert "Manuell kø:" in rendered
-        assert "avvist av vert" in rendered
-        assert "Ansvarlig:" in rendered
-        assert "Holmen" in rendered
-        assert "2025-11-01 14:00" in rendered
-        # A hand-built/legacy payload title must never be rendered publicly.
-        assert "Private club name" not in rendered
-        assert "Kalenderobservasjoner" in rendered
-        assert "Neste handling:" in rendered
-        assert "booking-set" in rendered
-
-    def test_booking_details_escapes_markup_like_values(self):
-        """Markup-like host/calendar text must render as inert text, not HTML."""
-
-        node = shutil.which("node")
-        if node is None:
-            pytest.fail("node is required to execute the shipped template fallback")
-
-        source = _SCHEDULE_TEMPLATE.read_text(encoding="utf-8")
-        start = source.index("function bookingAuthorityLabel")
-        end = source.index("\nfunction render()", start)
-        script = _shared_operational_helpers_js() + source[start:end] + """
-var item = {
-  obs: 'action_required',
-  bs: 'manually_not_booked',
-  ba: true,
-  mb: '<img src=x onerror=alert(1)>',
-  hcr: '</li><script>alert(2)</script>',
-  rhc: true,
-  bq: {
-    r: 'explicit_rejection',
-    o: '<img src=x onerror=alert(3)>',
-    ac: 'book_or_reconfirm',
-    cw: 'accepted_booking_assertion_or_valid_calendar_association',
-    alt: [{d: '<b>2025-11-01</b>', s: '14:00', e: '16:00', t: '<b>evil</b>'}]
-  }
-};
-console.log(buildBookingDetails(item));
-"""
-        completed = subprocess.run([node, "-e", script], capture_output=True, text=True, check=True)
-        rendered = completed.stdout
-        assert "<img" not in rendered
-        assert "<script" not in rendered
-        assert "<b>" not in rendered
-        assert "&lt;img" in rendered
-        assert "&lt;script" in rendered
-        # Interval values are escaped too; the omitted title never renders.
-        assert "&lt;b&gt;2025-11-01&lt;/b&gt;" in rendered
-        assert "evil" not in rendered
+        internal_markers = (
+            "Bookingdetaljer",
+            "booking-details",
+            "Autoritet:",
+            "Kalenderavstemming:",
+            "Kanonisk planlagt tid:",
+            "Siste observerte kalendertid:",
+            "Negativt kalenderbevis:",
+            "Må følges opp:",
+            "Manuell kø:",
+            "Ansvarlig:",
+            "Neste handling:",
+            "Kalenderobservasjoner",
+            "Vertsbekreftelse:",
+            "booking-set",
+            "avvist av vert",
+            "Køansvarlig-testklubb",  # manual-queue owner set on the rejected case below
+            "Private club name",
+        )
+        cases = {
+            "booked": self._booked_card(),
+            "unconfirmed": self._booked_card(obs="not_booked", bs="unknown", bauth=None),
+            "stale_conflicting": self._booked_card(
+                obs="changed_slot_review",
+                bs="unknown",
+                bac="proposed_changed_slot",
+                bauth=None,
+                ba=True,
+                bci={"d": "2026-10-05", "s": "10:00", "e": "11:00"},
+                boi={"d": "2026-10-05", "s": "12:00", "e": "13:00", "t": "Private club name", "a": True},
+                bfu=["calendar_booking_association_stale"],
+            ),
+            "manually_confirmed_with_follow_up": self._booked_card(
+                bs="manually_booked",
+                bauth="manual_club_confirmation",
+                mb="provisional",
+                bfu=["manual_booking_stated_end_differs_from_canonical"],
+                bsi={"s": "10:00", "e": "10:45"},
+            ),
+            "rejected_manual_queue": self._booked_card(
+                obs="action_required",
+                bs="manually_not_booked",
+                ba=True,
+                bq={
+                    "r": "explicit_rejection",
+                    "o": "Køansvarlig-testklubb",
+                    "ac": "book_or_reconfirm",
+                    "alt": [{"d": "2025-11-01", "s": "14:00", "e": "16:00", "t": "Private club name"}],
+                },
+            ),
+        }
+        for name, card in cases.items():
+            rendered = _render_schedule_cards([card])
+            assert rendered.count('class="booking-badge') == 1, name
+            for marker in internal_markers:
+                assert marker not in rendered, f"{name}: {marker!r} leaked into public card"
 
     def _booked_card(self, **overrides) -> dict:
         card = {
@@ -945,9 +928,9 @@ console.log(buildBookingDetails(item));
         assert "(M)" not in manual
         assert 'class="approval-badge' not in manual
         assert "GODKJENT" not in manual
-        # The full authority remains inspectable in the expanded booking details.
-        assert "Autoritet:" in manual
-        assert "manuell klubbekreftelse" in manual
+        # Authority is operator evidence; it is not rendered on the public card.
+        assert "Autoritet:" not in manual
+        assert "manuell klubbekreftelse" not in manual
 
     def test_cancelled_card_keeps_cancellation_only_without_booking_badge(self):
         """A cancelled card must not also carry a public booking status."""
@@ -1005,7 +988,7 @@ console.log(buildBookingDetails(item));
             "UKJENT BOOKING",
             "GODKJENNING UTGÅR",
         ):
-            assert internal not in card.split('<div class="booking-details">')[0], internal
+            assert internal not in card, internal
 
     def test_heatmap_marks_manual_authority_with_the_same_booked_label(self):
         """The heatmap tooltip shares the card's two-state public label."""

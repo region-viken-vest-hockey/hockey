@@ -3080,10 +3080,9 @@ def test_export_renders_one_operational_badge_with_details(tmp_path):
     assert '"obs": "booked"' in html
     assert '"obl": true' in html
     assert html.count("booking-badge booking-badge--") == 1
-    # The follow-up discrepancy is present, but as expandable booking details
-    # rather than a second competing top-level badge.
-    assert "buildBookingDetails" in html
-    assert "booking-details-head" in html
-    assert "manual_booking_stated_end_differs_from_canonical" in html
+    # The follow-up discrepancy is operator evidence and is not published.
+    assert "buildBookingDetails" not in html
+    assert "booking-details-head" not in html
+    assert "manual_booking_stated_end_differs_from_canonical" not in html
     assert "MÅ FØLGES OPP" not in html
     assert '<div class="manual-badge"' not in html
