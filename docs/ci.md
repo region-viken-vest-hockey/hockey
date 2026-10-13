@@ -6,13 +6,15 @@ evidence of test/reproducibility health on every PR and push to
 before changes are trusted or merged, not just a local "hundreds of tests
 passed" claim in a commit message.
 
-## Required-fast tier: `.github/workflows/ci.yml`
+## Required-fast tier
 
-Triggers on every pull request and every push to `main`. Every job here is
-designed to run in low single-digit minutes and makes **no live external
-calendar/network call** — all fixtures are synthetic or in-memory, so the
-whole tier is safe to require as a merge gate without flaking on a real
-club's calendar site being slow or down.
+`.github/workflows/ci.yml` runs the full fast tier when its code, test,
+workflow, or documentation path filters match. The small
+`.github/workflows/tracked-path-portability.yml` companion runs on every pull
+request and every push to `main`, including data-only changes. Every job in
+this tier makes **no live external calendar/network call** — all fixtures are
+synthetic or in-memory, so the tier is safe to require as a merge gate without
+flaking on a real club's calendar site being slow or down.
 
 The canonical local verification entrypoint is `scripts/check` (or `make
 check`, which delegates to it). With no arguments it runs the default
@@ -23,6 +25,7 @@ without duplicating the underlying command sequence in workflow YAML. See
 
 | Job (status check name)                          | What it covers |
 |----------------------------------------------------|----------------|
+| `Tracked path portability`                          | The always-on companion workflow runs `scripts/check tracked-paths` to inspect the complete Git index and reject paths that collide after NFC normalization and case folding, independently of the runner filesystem. |
 | `Python dependency lock freshness`                  | `scripts/check dependency-lock` — recreates `requirements.lock` from `pyproject.toml` with pip-tools and fails if the committed hash-checked lock would change. |
 | `Python quick test suite`                           | `scripts/check quick` — the default `pytest` run (excludes `slow`, `integration`, `harness` and `live`-marked tests), covering the full fast unit/component suite. |
 | `Operator manifest & escalation tests`              | `scripts/check operator` — `test_run_manifest.py`, `test_capability_result.py`, `test_escalation.py`, `test_operator_run.py` specifically, as their own visible check. |
@@ -156,7 +159,7 @@ block merging.
 
 ## Local pre-push gate and sandboxed harnesses
 
-A global pre-push hook runs `scripts/check lint` on every push, which takes about a minute. It does not run the full PR gate. The full quick PR tier, `make check` (dependency lock, lint, file length, quick tests, rules report, CLI contracts, secret scan), belongs to PR creation and CI, not to each push. The rules report is the expensive phase, about two and a half minutes. Run `make check` locally before opening a PR. Run `git push` in the foreground, because the lint gate still runs in the push. Never background it.
+A global pre-push hook runs `scripts/check lint` on every push, which takes about a minute. It does not run the full PR gate. The full quick PR tier, `make check` (dependency lock, lint, file length, tracked-path portability, quick tests, rules report, CLI contracts, secret scan), belongs to PR creation and CI, not to each push. The rules report is the expensive phase, about two and a half minutes. Run `make check` locally before opening a PR. Run `git push` in the foreground, because the lint gate still runs in the push. Never background it.
 
 - **Network:** the `dependency-lock` phase needs `pypi.org` and `files.pythonhosted.org`. Pushes and PR creation need `github.com`. Declare these hosts in the harness's network allowlist for the push command. Do not work around the hook.
 - **Caches:** the hook defaults `PIP_TOOLS_CACHE_DIR`, `PIP_CACHE_DIR` and `MISE_CACHE_DIR` to a writable scratch directory when they are unset. A sandbox that mounts the home cache read-only needs nothing more. Set them yourself only to choose a different location.
