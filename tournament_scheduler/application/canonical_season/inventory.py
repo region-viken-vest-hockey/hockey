@@ -16,7 +16,15 @@ import os
 from pathlib import Path
 from typing import Any, Mapping
 
+from tournament_scheduler.infrastructure.canonical_season_layout import (
+    DECISIONS_PARTITIONS,
+    LAYOUT_PARTITIONED,
+    MANIFEST_FILE_NAME,
+    MONOLITHIC_DECISIONS_FILE_NAME,
+    SCHEDULE_FILE_NAME,
+)
 from tournament_scheduler.infrastructure.canonical_season_store import (
+    CanonicalSeasonStore,
     DEFAULT_SEASON_ROOT,
     SeasonStateError,
     decisions_path,
@@ -58,14 +66,29 @@ def _largest_files(path: Path, limit: int = 10) -> list[dict[str, Any]]:
     return files[:limit]
 
 
+def _canonical_files(season: str, *, root: str | os.PathLike[str]) -> list[tuple[str, Path]]:
+    """The physical canonical files of one season, in whichever layout it uses."""
+
+    directory = season_dir(season, root=root)
+    export_context = ("export_context.json", Path(root) / season / "export_context.json")
+    if CanonicalSeasonStore(root).layout(season) == LAYOUT_PARTITIONED:
+        return [
+            (MANIFEST_FILE_NAME, directory / MANIFEST_FILE_NAME),
+            (SCHEDULE_FILE_NAME, schedule_path(season, root=root)),
+            *((partition.path, directory / partition.path) for partition in DECISIONS_PARTITIONS),
+            export_context,
+        ]
+    return [
+        (SCHEDULE_FILE_NAME, schedule_path(season, root=root)),
+        (MONOLITHIC_DECISIONS_FILE_NAME, decisions_path(season, root=root)),
+        export_context,
+    ]
+
+
 def _season_inventory(season: str, *, root: str | os.PathLike[str]) -> dict[str, Any]:
     directory = season_dir(season, root=root)
     files: dict[str, Any] = {}
-    for name, path in (
-        ("schedule.json", schedule_path(season, root=root)),
-        ("decisions.json", decisions_path(season, root=root)),
-        ("export_context.json", Path(root) / season / "export_context.json"),
-    ):
+    for name, path in _canonical_files(season, root=root):
         size = _file_bytes(path)
         files[name] = {"path": str(path), "bytes": size} if size is not None else {"path": str(path), "bytes": None, "missing": True}
 

@@ -216,15 +216,12 @@ def promote(
     # Promotion replaces the whole canonical season. A sealed published season
     # may only be replaced after an explicit ``season reopen-planning``; even
     # ``--force`` must not silently bypass the published operational baseline.
-    if service.store.decisions_path(resolved_season).exists():
+    if service.store.has_decisions(resolved_season):
         existing = service.load(resolved_season)
         assert_season_allows_global_regeneration(
             existing.decisions, operation="season promote"
         )
-    if (
-        service.store.schedule_path(resolved_season).exists()
-        or service.store.decisions_path(resolved_season).exists()
-    ) and not force:
+    if service.store.has_state(resolved_season) and not force:
         raise SeasonStateError(
             f"Canonical season state already exists for {resolved_season}; "
             "use --force only for deliberate replacement"
