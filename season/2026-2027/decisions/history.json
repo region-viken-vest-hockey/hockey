@@ -11651,6 +11651,7 @@
         "after_fingerprint": "f3b800f87b7aa2c64b8c6f65e5886b823747866ab2caff2519aa99a1d6fb3127",
         "before_canonical_revision": "b611be4e478e103e03c4ead1699e2fc11cb2f425184e434dde00a5d7452b2f42",
         "before_fingerprint": "f6bc589fda09826c9f1454048f1d0937ffaf2ab9be92aa1308189a646ad3cda2",
+        "change_request_outcome": "manual_follow_up_required",
         "new_placement": {
           "arena": "Baerum ishall",
           "date": "2027-02-21",

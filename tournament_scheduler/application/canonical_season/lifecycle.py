@@ -79,6 +79,8 @@ def _commit(
 def _commit_history_only(
     service,
     snapshot: CanonicalSeasonSnapshot,
+    *,
+    expected_revision: str | None = None,
 ) -> CanonicalSeasonSnapshot:
     """Persist a history-only change without semantic migration or revision recompute.
 
@@ -104,7 +106,7 @@ def _commit_history_only(
             "Refusing canonical commit: it would undo an accepted change: " + messages
         )
     committed = snapshot.with_decisions(decisions)
-    service.store.write(committed)
+    service.store.write(committed, expected_revision=expected_revision)
     return committed
 
 
