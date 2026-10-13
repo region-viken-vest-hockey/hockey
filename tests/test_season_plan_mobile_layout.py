@@ -2,11 +2,13 @@
 
 Layout is checked in a real browser because overflow depends on rendered
 widths (flex/grid sizing, select intrinsic widths, nowrap navbar items).
-The test is skipped only when Playwright or its Chromium build is missing.
+Locally the test is skipped when Chromium cannot launch. Under CI (``CI`` set)
+a missing browser fails the test, so the regression cannot pass silently.
 """
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -93,6 +95,8 @@ def chromium():
         try:
             browser = playwright.chromium.launch()
         except Exception as exc:  # missing browser binary or sandbox limits
+            if os.environ.get("CI"):
+                pytest.fail(f"Chromium must be installed in CI for the season plan layout check: {exc}")
             pytest.skip(f"Chromium unavailable for season plan layout check: {exc}")
         yield browser
         browser.close()

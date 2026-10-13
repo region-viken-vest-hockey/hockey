@@ -132,6 +132,9 @@ jobs:
       - name: Compile Python sources
         run: python -m compileall -q tournament_scheduler tests
 
+      - name: Install Chromium for browser layout tests
+        run: python -m playwright install --with-deps chromium
+
       - name: Run fast test suite without coverage
         run: scripts/check quick
 
