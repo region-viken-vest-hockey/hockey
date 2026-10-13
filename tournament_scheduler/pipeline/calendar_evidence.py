@@ -13,26 +13,34 @@ from typing import Any
 def calendar_evidence_coverage(
     calendar_evidence_summary: dict[str, Any] | None,
     *,
-    external_conflict_count: int,
+    external_conflicts: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Explicit calendar-coverage boundary for manual external-conflict placements.
+    """Per-placement calendar-coverage boundary for manual external-conflict placements.
 
-    Zero scanned sources means calendar evidence was *not checked*; it must not
-    read as "checked, no conflict found" (issue #679). Only a scanned source set
-    can ever support a negative conflict finding. Kept to two fields so the
-    bounded audit context stays under its serialized-size budget; the prompt
-    policy explains what the status means.
+    A placement is verified only when at least one calendar source was scanned
+    *and* its own host club's calendar is ``"known"`` -- the same fail-closed rule
+    the planner applies (``club_calendar_status`` missing or non-``known`` means
+    unknown). A global scan count is not enough: one unrelated scanned calendar
+    must not cover a placement whose host calendar was blocked or never scanned
+    (issue #679). Absence of evidence is never reported as a clear calendar check.
+    Kept to a count and a club list so the bounded audit context stays under its
+    serialized-size budget; the prompt policy explains what the fields mean.
     """
     summary = calendar_evidence_summary if isinstance(calendar_evidence_summary, dict) else {}
     try:
         sources_scanned = max(0, int(summary.get("sources_scanned") or 0))
     except (TypeError, ValueError):
         sources_scanned = 0
-    not_scanned = sources_scanned == 0
-    return {
-        "calendar": "not_scanned" if not_scanned else "scanned",
-        "unverified_placements": external_conflict_count if not_scanned else 0,
-    }
+    club_status = summary.get("club_calendar_status")
+    club_status = club_status if isinstance(club_status, dict) else {}
+    unverified_rows = [
+        item
+        for item in external_conflicts
+        if isinstance(item, dict)
+        and not (sources_scanned and club_status.get(str(item.get("host_club") or "")) == "known")
+    ]
+    unverified_clubs = sorted({str(item.get("host_club") or "") for item in unverified_rows})
+    return {"unverified_placements": len(unverified_rows), "unverified_clubs": unverified_clubs}
 
 
 def summarize_scraping_checkpoint(scraping_checkpoint: dict[str, Any] | None) -> dict[str, Any]:

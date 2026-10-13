@@ -901,12 +901,10 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
     calendar_evidence_summary = (evidence_bundle or {}).get("source_summary") or {}
     if not calendar_evidence_summary:
         calendar_evidence_summary = summarize_scraping_checkpoint(scraping_checkpoint)
-    external_conflict_count = (
-        len(plan_dict.get("unresolved_external_conflicts") or []) if isinstance(plan_dict, dict) else 0
-    )
+    external_conflicts = plan_dict.get("unresolved_external_conflicts") if isinstance(plan_dict, dict) else None
     evidence_coverage = calendar_evidence_coverage(
         calendar_evidence_summary,
-        external_conflict_count=external_conflict_count,
+        external_conflicts=list(external_conflicts or []),
     )
     verification_context = (
         export_checkpoint.get("verification_context")

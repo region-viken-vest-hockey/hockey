@@ -30,12 +30,12 @@ def audit_policy_lines(context: dict[str, Any]) -> list[str]:
         "must be `FAIL` -- never `REVIEW_REQUIRED` or `PASS` -- regardless of any other score "
         "or `production_ready` label.",
         "",
-        "Evidence-coverage policy (issue #679): if `evidence_coverage.calendar` "
-        "is `not_scanned` and `evidence_coverage.unverified_placements` is "
-        "greater than zero, the external-conflict placements were NOT checked against calendar "
-        "evidence. The overall status must not be `PASS`, and checklist item 4 must report the "
-        "gap explicitly as unverified -- never as a clear calendar check. Do not infer a negative "
-        "calendar finding from the absence of scanned sources.",
+        "Evidence-coverage policy (issue #679): if `evidence_coverage.unverified_placements` is "
+        "greater than zero, those external-conflict placements have no known host-calendar "
+        "evidence for their own club (`evidence_coverage.unverified_clubs`). The overall status "
+        "must not be `PASS`, and checklist item 4 must report them explicitly as unverified -- "
+        "never as a clear calendar check. Do not infer a negative calendar finding from an "
+        "unrelated scanned source or from the absence of scanned sources.",
         "",
         "Soft policy (issue #327): a team's participation count coming in under its nominal "
         "target is not automatically a defect. Check each shortfall's `category` in "
