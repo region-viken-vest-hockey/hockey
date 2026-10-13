@@ -80,6 +80,7 @@ Quick/PR tier phases:
   dependency-lock    verify requirements.lock is fresh from pyproject.toml
   lint               ruff check . (pyflakes + pycodestyle-error rules only)
   file-length        ratcheted file-size guard (scripts/check_file_length.py)
+  tracked-paths      reject case/Unicode-normalization collisions in Git paths
   quick              fast pytest suite (excludes slow/integration/harness/live)
   operator           operator manifest/escalation control-path tests
   reproducibility    deterministic planner reproducibility fixture
@@ -135,6 +136,9 @@ run_named_phase() {
       ;;
     file-length)
       run_phase "File-length growth ratchet" "$PYTHON_CMD" scripts/check_file_length.py
+      ;;
+    tracked-paths)
+      run_phase "Tracked-path collisions" "$PYTHON_CMD" scripts/check_tracked_paths.py
       ;;
     quick)
       run_phase "Fast Python test suite" "$PYTHON_CMD" -m pytest --no-cov -q
@@ -223,7 +227,7 @@ run_named_phase() {
 }
 
 run_all() {
-  local phases=(dependency-lock lint file-length quick operator reproducibility cli-smoke cli-contracts rules-report rule-catalog architecture-docs)
+  local phases=(dependency-lock lint file-length tracked-paths quick operator reproducibility cli-smoke cli-contracts rules-report rule-catalog architecture-docs)
   for named_phase in "${phases[@]}"; do
     run_named_phase "$named_phase"
   done
@@ -235,7 +239,7 @@ run_all() {
 }
 
 run_full() {
-  local phases=(lint full-tests rules-report rule-catalog architecture-docs)
+  local phases=(lint tracked-paths full-tests rules-report rule-catalog architecture-docs)
   for named_phase in "${phases[@]}"; do
     if [[ "$named_phase" == "full-tests" ]]; then
       RVV_CHECK_SKIP_RULES_REPORT_DUP=1 run_named_phase "$named_phase"

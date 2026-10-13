@@ -23,6 +23,7 @@ without duplicating the underlying command sequence in workflow YAML. See
 
 | Job (status check name)                          | What it covers |
 |----------------------------------------------------|----------------|
+| `Tracked path portability`                          | `scripts/check tracked-paths` — inspects the complete Git index and rejects paths that collide after NFC normalization and case folding, independently of the runner filesystem. |
 | `Python dependency lock freshness`                  | `scripts/check dependency-lock` — recreates `requirements.lock` from `pyproject.toml` with pip-tools and fails if the committed hash-checked lock would change. |
 | `Python quick test suite`                           | `scripts/check quick` — the default `pytest` run (excludes `slow`, `integration`, `harness` and `live`-marked tests), covering the full fast unit/component suite. |
 | `Operator manifest & escalation tests`              | `scripts/check operator` — `test_run_manifest.py`, `test_capability_result.py`, `test_escalation.py`, `test_operator_run.py` specifically, as their own visible check. |
@@ -156,7 +157,7 @@ block merging.
 
 ## Local pre-push gate and sandboxed harnesses
 
-A global pre-push hook runs `scripts/check lint` on every push, which takes about a minute. It does not run the full PR gate. The full quick PR tier, `make check` (dependency lock, lint, file length, quick tests, rules report, CLI contracts, secret scan), belongs to PR creation and CI, not to each push. The rules report is the expensive phase, about two and a half minutes. Run `make check` locally before opening a PR. Run `git push` in the foreground, because the lint gate still runs in the push. Never background it.
+A global pre-push hook runs `scripts/check lint` on every push, which takes about a minute. It does not run the full PR gate. The full quick PR tier, `make check` (dependency lock, lint, file length, tracked-path portability, quick tests, rules report, CLI contracts, secret scan), belongs to PR creation and CI, not to each push. The rules report is the expensive phase, about two and a half minutes. Run `make check` locally before opening a PR. Run `git push` in the foreground, because the lint gate still runs in the push. Never background it.
 
 - **Network:** the `dependency-lock` phase needs `pypi.org` and `files.pythonhosted.org`. Pushes and PR creation need `github.com`. Declare these hosts in the harness's network allowlist for the push command. Do not work around the hook.
 - **Caches:** the hook defaults `PIP_TOOLS_CACHE_DIR`, `PIP_CACHE_DIR` and `MISE_CACHE_DIR` to a writable scratch directory when they are unset. A sandbox that mounts the home cache read-only needs nothing more. Set them yourself only to choose a different location.
