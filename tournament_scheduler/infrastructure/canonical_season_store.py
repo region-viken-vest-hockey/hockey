@@ -558,21 +558,17 @@ class CanonicalSeasonStore:
         """The physical layout (``monolithic`` or ``partitioned``) the season uses today."""
         return detect_layout(self.directory(season))
 
-    def decisions_source(self, season: str) -> Path:
-        """The file that records the season's decisions: ``decisions.json`` or the partition manifest."""
-        if self.layout(season) == LAYOUT_PARTITIONED:
-            return self.directory(season) / MANIFEST_FILE_NAME
-        return self.decisions_path(season)
-
     def decisions_bytes(self, season: str) -> bytes:
-        """The complete decisions as bytes, for a byte-exact compaction backup.
+        """The exact on-disk ``decisions.json`` bytes, for a byte-exact compaction backup.
 
-        A monolithic season returns the exact ``decisions.json`` bytes. A partitioned
-        season has no single file, so it returns the canonical serialization of the
-        assembled decisions, which round-trips to the same revision.
+        A partitioned season has no single decisions file, and a byte-exact backup of
+        its physical state is not yet defined, so it is refused rather than synthesized.
         """
         if self.layout(season) == LAYOUT_PARTITIONED:
-            return json_bytes(self.load(season).decisions)
+            raise SeasonStateError(
+                f"Season {season} uses the partitioned layout, which has no byte-exact decisions "
+                "file to back up; history compaction is not yet supported for partitioned seasons"
+            )
         try:
             return self.decisions_path(season).read_bytes()
         except OSError as exc:

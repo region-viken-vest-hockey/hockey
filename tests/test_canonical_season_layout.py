@@ -198,27 +198,78 @@ def test_partitions_own_disjoint_decisions_keys() -> None:
         seen |= partition.keys
 
 
-def test_failed_migration_proof_restores_the_monolithic_layout(tmp_path: Path, monkeypatch) -> None:
+def _assert_monolithic_unchanged(root: Path, before: CanonicalSeasonSnapshot) -> None:
+    store = CanonicalSeasonStore(root)
+    assert store.layout(SEASON) == LAYOUT_MONOLITHIC
+    restored = store.load(SEASON)
+    assert restored.decisions == before.decisions
+    assert restored.schedule == before.schedule
+
+
+def test_decode_failure_after_encoding_never_installs_the_partitioned_layout(tmp_path: Path, monkeypatch) -> None:
+    root = tmp_path / "season"
+    before = _write_monolithic(root)
+
+    def broken_decode(files, season):
+        raise RuntimeError("decoder bug")
+
+    monkeypatch.setattr(migration_module, "decode_files", broken_decode)
+
+    with pytest.raises(RuntimeError, match="decoder bug"):
+        migrate_season_to_partitioned(SEASON, root=root)
+
+    _assert_monolithic_unchanged(root, before)
+
+
+def test_revision_drift_in_the_staged_proof_refuses_before_install(tmp_path: Path, monkeypatch) -> None:
     root = tmp_path / "season"
     before = _write_monolithic(root)
     real_revision = migration_module.canonical_state_revision
     calls = {"count": 0}
 
     def drifting_revision(schedule, decisions):
-        # The first call computes the pre-migration revision; the post-migration proof sees a different one.
+        # The first call computes the source revision; the staged proof sees a different one.
         calls["count"] += 1
         return real_revision(schedule, decisions) if calls["count"] == 1 else "rev-drifted"
 
     monkeypatch.setattr(migration_module, "canonical_state_revision", drifting_revision)
 
+    with pytest.raises(SeasonStateError, match="nothing was installed"):
+        migrate_season_to_partitioned(SEASON, root=root)
+
+    _assert_monolithic_unchanged(root, before)
+
+
+def test_installed_layout_that_fails_to_load_is_rolled_back(tmp_path: Path, monkeypatch) -> None:
+    root = tmp_path / "season"
+    before = _write_monolithic(root)
+    real_load = CanonicalSeasonStore.load
+    calls = {"count": 0}
+
+    def load_fails_after_install(self, season):
+        # Call 1 is the migration's source read; call 2 is the post-install verification.
+        calls["count"] += 1
+        if calls["count"] == 2:
+            raise SeasonStateError("installed partition unreadable")
+        return real_load(self, season)
+
+    monkeypatch.setattr(CanonicalSeasonStore, "load", load_fails_after_install)
+
     with pytest.raises(SeasonStateError, match="restored"):
         migrate_season_to_partitioned(SEASON, root=root)
 
+    _assert_monolithic_unchanged(root, before)
+
+
+def test_partitioned_season_refuses_byte_exact_compaction_backup(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write_monolithic(root)
     store = CanonicalSeasonStore(root)
-    assert store.layout(SEASON) == LAYOUT_MONOLITHIC
-    restored = store.load(SEASON)
-    assert restored.decisions == before.decisions
-    assert restored.schedule == before.schedule
+    assert store.decisions_bytes(SEASON).startswith(b"{")
+    migrate_season_to_partitioned(SEASON, root=root)
+
+    with pytest.raises(SeasonStateError, match="not yet supported"):
+        store.decisions_bytes(SEASON)
 
 
 PRODUCTION_ROOT = Path(__file__).resolve().parents[1] / "tournament_scheduler"

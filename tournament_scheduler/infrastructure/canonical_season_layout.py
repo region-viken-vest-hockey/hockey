@@ -192,37 +192,41 @@ def encode_layout(
     return files
 
 
-def _read_verified(season_directory: Path, entry: Mapping[str, Any]) -> Any:
-    name = str(entry.get("name") or "")
-    path_text = str(entry.get("path") or "")
-    expected_path = (
-        SCHEDULE_FILE_NAME if name == SCHEDULE_PARTITION_NAME
-        else (_PARTITION_BY_NAME[name].path if name in _PARTITION_BY_NAME else None)
-    )
-    if expected_path is None or path_text != expected_path:
-        raise SeasonStateError(f"Unknown canonical partition in manifest: {name!r} at {path_text!r}")
-    path = season_directory / path_text
-    try:
-        data = path.read_bytes()
-    except OSError as exc:
-        raise SeasonStateError(f"Canonical partition {name} is unreadable: {exc}") from exc
-    if _sha256(data) != str(entry.get("sha256") or ""):
-        raise SeasonStateError(f"Canonical partition {name} failed its integrity check")
+def _parse_json(data: bytes, name: str) -> Any:
     try:
         return json.loads(data.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise SeasonStateError(f"Invalid JSON in canonical partition {name}: {exc}") from exc
 
 
-def decode_layout(season_directory: Path, season: str) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Assemble ``(schedule, decisions)`` from a partitioned season and verify one revision.
+def _verified_partition(files: Mapping[str, bytes], entry: Mapping[str, Any]) -> Any:
+    name = str(entry.get("name") or "")
+    path_text = str(entry.get("path") or "")
+    expected_path = SCHEDULE_FILE_NAME if name == SCHEDULE_PARTITION_NAME else (
+        _PARTITION_BY_NAME[name].path if name in _PARTITION_BY_NAME else None
+    )
+    if expected_path is None or path_text != expected_path:
+        raise SeasonStateError(f"Unknown canonical partition in manifest: {name!r} at {path_text!r}")
+    data = files.get(path_text)
+    if data is None:
+        raise SeasonStateError(f"Canonical partition {name} is missing")
+    if _sha256(data) != str(entry.get("sha256") or ""):
+        raise SeasonStateError(f"Canonical partition {name} failed its integrity check")
+    return _parse_json(data, name)
 
-    Every partition is hash-checked, and the assembled aggregate must reproduce the
-    revision and schedule fingerprint recorded by the manifest, so a torn or mixed
-    set of partitions is refused instead of read.
+
+def decode_files(files: Mapping[str, bytes], season: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Assemble ``(schedule, decisions)`` from in-memory partition bytes and verify one revision.
+
+    This is the single decoder. The store uses it on disk and the migration uses
+    it on staged bytes before anything is installed.
     """
 
-    manifest = load_json(season_directory / MANIFEST_FILE_NAME)
+    if MANIFEST_FILE_NAME not in files:
+        raise SeasonStateError(f"Canonical manifest is missing for {season}")
+    manifest = _parse_json(files[MANIFEST_FILE_NAME], MANIFEST_FILE_NAME)
+    if not isinstance(manifest, dict):
+        raise SeasonStateError("Canonical manifest is not an object")
     if int(manifest.get("layout_version", 0) or 0) != PARTITIONED_LAYOUT_VERSION:
         raise SeasonStateError(f"Unsupported canonical layout_version: {manifest.get('layout_version')!r}")
     if str(manifest.get("season") or "") != season:
@@ -235,10 +239,10 @@ def decode_layout(season_directory: Path, season: str) -> tuple[dict[str, Any], 
     if len(by_name) != len(entries) or set(by_name) != expected:
         raise SeasonStateError("Canonical manifest partitions do not match the layout")
 
-    schedule = validate_schedule_payload(_read_verified(season_directory, by_name[SCHEDULE_PARTITION_NAME]))
+    schedule = validate_schedule_payload(_verified_partition(files, by_name[SCHEDULE_PARTITION_NAME]))
     decisions: dict[str, Any] = {}
     for partition in DECISIONS_PARTITIONS:
-        part = _read_verified(season_directory, by_name[partition.name])
+        part = _verified_partition(files, by_name[partition.name])
         if not isinstance(part, dict) or not set(part) <= partition.keys:
             raise SeasonStateError(f"Canonical partition {partition.name} holds keys it does not own")
         overlap = set(part) & set(decisions)
@@ -254,6 +258,24 @@ def decode_layout(season_directory: Path, season: str) -> tuple[dict[str, Any], 
     return schedule, decisions
 
 
+def decode_layout(season_directory: Path, season: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Read a partitioned season from disk and decode it through :func:`decode_files`.
+
+    Only the known partition paths are read, so a manifest cannot direct the reader
+    to any other file.
+    """
+
+    names = (MANIFEST_FILE_NAME, SCHEDULE_FILE_NAME, *(partition.path for partition in DECISIONS_PARTITIONS))
+    files: dict[str, bytes] = {}
+    for name in names:
+        if (season_directory / name).exists():
+            try:
+                files[name] = (season_directory / name).read_bytes()
+            except OSError as exc:
+                raise SeasonStateError(f"Canonical file {name} is unreadable: {exc}") from exc
+    return decode_files(files, season)
+
+
 __all__ = [
     "DECISIONS_PARTITIONS",
     "DECISIONS_SCHEMA_VERSION",
@@ -265,6 +287,7 @@ __all__ = [
     "SCHEDULE_FILE_NAME",
     "SEASON_STATE_SCHEMA_VERSION",
     "SeasonStateError",
+    "decode_files",
     "decode_layout",
     "detect_layout",
     "encode_layout",

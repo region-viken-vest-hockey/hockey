@@ -358,7 +358,7 @@ def compact_history(
         decisions_bytes=original_bytes,
         source_canonical_revision=stored_revision,
         schedule_fingerprint=str(schedule.get("fingerprint") or before_fingerprint),
-        original_path=str(service.store.decisions_source(season)),
+        original_path=str(service.store.decisions_path(season)),
         actor=_operator_identity(actor),
         note=note or "",
         created_at=_now_iso(),
