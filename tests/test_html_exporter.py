@@ -348,10 +348,11 @@ class TestBookingStatusRendering:
         embedded = {row["id"]: row for row in _embedded_tournaments(html)}
         assert embedded["t-booked"]["bs"] == "confirmed_booked"
         assert embedded["t-missing"]["ba"] is True
-        assert 'id="filterBooking"' in html
+        # The booking-status filter is not rendered; the cards and heatmap
+        # still carry the booking state.
+        assert 'id="filterBooking"' not in html
         assert '<option value="confirmed_booked">' not in html
-        assert '<option value="booked">Booket · låst</option>' in html
-        assert '<option value="not_booked">Ikke bekreftet</option>' in html
+        assert '<option value="booked">Booket · låst</option>' not in html
         # The heatmap exposes only operational states, never the weaker raw
         # detailed status, and shares the cards' legend vocabulary.
         assert "heatmap-booking-booked" in html
@@ -1025,12 +1026,13 @@ class TestBookingStatusRendering:
 
 
 class TestTeamFilter:
-    """The season schedule exposes exact team filtering for club review."""
+    """Team identity is filtered through the club and age selects, not a separate team select."""
 
-    def test_schedule_has_team_filter(self, tmp_path):
+    def test_schedule_has_no_separate_team_filter(self, tmp_path):
         html = _export_schedule_html(_make_multi_kongsberg_plan(), tmp_path)
-        assert 'id="filterTeam"' in html
-        assert "Alle lag" in html
+        assert 'id="filterTeam"' not in html
+        assert 'id="filterClub"' in html
+        assert 'id="filterAge"' in html
 
     def test_serializes_exact_participant_identities_for_same_club_same_age_group(self, tmp_path):
         html = _export_schedule_html(_make_multi_kongsberg_plan(), tmp_path)
