@@ -131,16 +131,6 @@ class HtmlExporter:
         approval_counts = approval_status.get("counts") if isinstance(approval_status, dict) else None
         approval_count_html = ""
         approval_filter_html = ""
-        booking_filter_html = ""
-        booking_counts = booking_status.get("counts") if isinstance(booking_status, dict) else None
-        if booking_counts:
-            booking_filter_html = (
-                '<select id="filterBooking" class="filter-select">'
-                '<option value="">Alle bookingstatuser</option>'
-                '<option value="booked">Booket · låst</option>'
-                '<option value="not_booked">Ikke bekreftet</option>'
-                '</select>'
-            )
         if approval_counts:
             approved = int(approval_counts.get("approved") or 0)
             stale = int(approval_counts.get("stale") or 0)
@@ -322,7 +312,6 @@ class HtmlExporter:
             page_age_groups: list[str],
             page_approval_count: str = "",
             page_approval_filter: str = "",
-            page_booking_filter: str = "",
         ) -> str:
             page_age_group_options = "".join(
                 f'<option value="{ag}">{ag}</option>'
@@ -433,7 +422,6 @@ class HtmlExporter:
                 "$TOURNAMENTS_JSON$": page_tournaments_json,
                 "$APPROVAL_COUNT$": page_approval_count,
                 "$APPROVAL_FILTER$": page_approval_filter,
-                "$BOOKING_FILTER$": page_booking_filter,
             }
 
             html = PAGE_TEMPLATE
@@ -458,7 +446,6 @@ class HtmlExporter:
             page_age_groups=display_age_groups,
             page_approval_count=approval_count_html,
             page_approval_filter=approval_filter_html,
-            page_booking_filter=booking_filter_html,
         )
         report_html = _render_page(
             page_title="Regler",
