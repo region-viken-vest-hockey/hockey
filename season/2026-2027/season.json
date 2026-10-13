@@ -1,0 +1,33 @@
+{
+  "canonical_state_revision": "cfb5b08e9b486ed807b56d47fa1c4d00a20af1c734a380e127f52d15395fb4d3",
+  "layout_version": 2,
+  "partitions": [
+    {
+      "name": "schedule",
+      "path": "schedule.json",
+      "sha256": "53821a8628eca8239121bffbc24948a815b12a901ed3aa22c934e13117ba335e"
+    },
+    {
+      "name": "operations",
+      "path": "decisions/operations.json",
+      "sha256": "0c84b4850608e2ea0f6a662ec81fd8a43bb83be544970ccbbe6dc266a9f17609"
+    },
+    {
+      "name": "history",
+      "path": "decisions/history.json",
+      "sha256": "79aefc804663759ef1aed58ff72825ff5f27c5544c06b219b36594013f9b7f66"
+    },
+    {
+      "name": "booking_evidence",
+      "path": "decisions/booking_evidence.json",
+      "sha256": "a700783734ec96393ed30948234dcf6d2b011c181d55d94bb09bb1be52b668ed"
+    },
+    {
+      "name": "protections",
+      "path": "decisions/protections.json",
+      "sha256": "3918876f20685522bf122079ced041395b1f296fc6a08b94c94336b1088a2e9f"
+    }
+  ],
+  "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+  "season": "2026-2027"
+}
