@@ -949,6 +949,17 @@ console.log(buildBookingDetails(item));
         assert "Autoritet:" in manual
         assert "manuell klubbekreftelse" in manual
 
+    def test_cancelled_card_keeps_cancellation_only_without_booking_badge(self):
+        """A cancelled card must not also carry a public booking status."""
+
+        cancelled = _render_schedule_cards(
+            [self._booked_card(cx=True, cr="Arena stengt", obs="not_booked", bs="unknown", bauth=None)]
+        )
+        assert "AVLYST" in cancelled
+        assert 'class="booking-badge' not in cancelled
+        assert "IKKE BEKREFTET" not in cancelled
+        assert "BOOKET · LÅST" not in cancelled
+
     def test_stale_approval_does_not_render_a_public_approval_badge(self):
         """Approval state is operator-facing; the public card keeps one booking badge."""
 

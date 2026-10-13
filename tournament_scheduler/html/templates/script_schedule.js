@@ -285,7 +285,9 @@ function render() {
     if (approval === 'approved' && t.ap !== 'approved') continue;
     if (approval === 'stale' && t.ap !== 'stale_approval') continue;
     if (approval === 'not_approved' && t.ap === 'approved') continue;
-    if (booking && publicBookingStateOf(t) !== booking) continue;
+    // Cancelled rows carry no public booking status, so any booking filter
+    // excludes them; they remain visible only when no booking filter is set.
+    if (booking && (t.cx || publicBookingStateOf(t) !== booking)) continue;
 
     visible++;
     if (!timeline) continue;
@@ -321,8 +323,11 @@ function render() {
       if (t.gs.f) guestParts.push(t.gs.f === 1 ? '1 gjesteplass fylt' : t.gs.f + ' gjesteplasser fylt');
       guestBadge = '<div class="guest-badge">' + guestParts.join(' \u00b7 ') + '</div>';
     }
+    // Cancelled cards keep their cancellation presentation only; an active
+    // tournament always gets exactly one public booking badge.
     var publicBooking = publicBookingStateOf(t);
-    var bookingBadge = '<div class="booking-badge booking-badge--' + publicBooking + '">' + publicBookingStateLabel(publicBooking) + '</div>';
+    var bookingBadge = t.cx ? ''
+      : '<div class="booking-badge booking-badge--' + publicBooking + '">' + publicBookingStateLabel(publicBooking) + '</div>';
     html += '<div class="tournament-card' + cancelledClass + manualClass + '" onclick="this.classList.toggle(\'expanded\')">' +
       bookingBadge +
       guestBadge +
