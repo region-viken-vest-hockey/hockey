@@ -558,3 +558,52 @@ def test_context_plan_comes_from_the_exported_projection_not_a_stale_planning_st
     assert summary["tournament_count"] == 2
     assert summary["guest_reservation_summary"]["reserved_tournament_count"] == 1
     assert summary["guest_reservation_summary"]["open_slots"] == 1
+
+
+def test_cancelled_tournaments_do_not_produce_blocking_bye_findings():
+    from tournament_scheduler.pipeline.audit_context import _collect_plan_audit_facts
+
+    teams = [{"club": club, "label": f"{club} 1", "age_group": "JU8"} for club in ("Alfa", "Bravo", "Charlie")]
+    common = {
+        "date": "2026-11-21",
+        "age_group": "JU8",
+        "arena": "Hall",
+        "host_club": "Alfa",
+        "start_time": "10:00",
+        "teams": teams,
+        "games": [],
+    }
+    plan = {
+        "tournaments": [
+            {**common, "id": "live-odd-roster"},
+            {**common, "id": "cancelled-odd-roster", "cancelled": True, "cancellation_reason": "retired"},
+        ]
+    }
+
+    facts = _collect_plan_audit_facts(plan_dict=plan, config_checkpoint=None, verification_problem=None)
+
+    assert [row["id"] for row in facts["blocking_byes"]] == ["live-odd-roster"]
+
+
+def test_cancelled_tournament_keeps_registered_pool_shape_evidence_without_blocking():
+    from tournament_scheduler.pipeline.audit_context import _collect_plan_audit_facts
+
+    teams = [{"club": club, "label": f"{club} 1", "age_group": "U10"} for club in ("Alfa", "Bravo", "Charlie", "Delta")]
+    config = {
+        "teams": teams,
+        "ice_time_minutes": {"U10": 120},
+        "rounds_per_tournament": {"U10": 3},
+        "parallel_games": {"U10": 3},
+    }
+    common = {"date": "2026-10-10", "age_group": "U10", "arena": "Hall", "host_club": "Alfa", "start_time": "10:00", "games": []}
+    plan = {
+        "tournaments": [
+            {**common, "id": "live-short-roster", "teams": teams[:3]},
+            {**common, "id": "cancelled-four-teams", "teams": teams[:4], "cancelled": True, "cancellation_reason": "ice"},
+        ]
+    }
+
+    facts = _collect_plan_audit_facts(plan_dict=plan, config_checkpoint=config, verification_problem=None)
+
+    assert [row["id"] for row in facts["blocking_byes"]] == ["live-short-roster"]
+    assert [row["id"] for row in facts["input_constrained_shape_examples"]] == ["cancelled-four-teams"]
