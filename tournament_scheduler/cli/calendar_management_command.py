@@ -32,6 +32,7 @@ def _cmd_season_refresh_calendars(args: argparse.Namespace) -> int:
         actor=args.actor,
         note=args.note,
         dry_run=args.dry_run,
+        club=args.club,
         allow_missing_sources=args.allow_missing_sources,
         allow_source_policy_change=args.accept_source_policy_change,
     )
@@ -53,8 +54,9 @@ def _cmd_season_refresh_calendars(args: argparse.Namespace) -> int:
     else:
         action = "Previewed" if result.get("dry_run") else "Refreshed"
         marker = "[yellow]○[/yellow]" if result.get("dry_run") else "[green]✓[/green]"
+        target = f" / {result['target_club']}" if result.get("target_club") else ""
         _console.print(
-            f"{marker} {action} calendar evidence for {args.season}: "
+            f"{marker} {action} calendar evidence for {args.season}{target}: "
             f"{str(result.get('previous_calendar_fingerprint') or '')[:12]} → "
             f"{str(result.get('calendar_fingerprint') or '')[:12]}"
         )
@@ -63,6 +65,22 @@ def _cmd_season_refresh_calendars(args: argparse.Namespace) -> int:
             f"blocked: {len(result.get('blocked_sources') or [])}, "
             f"verification_ok: {result.get('verification_ok')}"
         )
+        impact = result.get("verification_impact") or {}
+        consequences = result.get("canonical_state_consequences") or {}
+        if impact:
+            _console.print(
+                "  verification: "
+                f"{impact.get('before_violation_count')} → "
+                f"{impact.get('after_violation_count')} violation(s)"
+            )
+        if consequences:
+            _console.print(
+                "  consequences: "
+                f"commit={consequences.get('will_commit')}, "
+                f"revision={consequences.get('will_advance_revision')}, "
+                f"export_stale={consequences.get('will_mark_export_stale')}, "
+                "placements_unchanged=True"
+            )
         if result.get("canonical_state_revision"):
             _console.print(f"  revision: {str(result.get('canonical_state_revision'))[:12]}")
         for club, entry in ((result.get("planned_tournament_reconciliation") or {}).get("clubs") or {}).items():

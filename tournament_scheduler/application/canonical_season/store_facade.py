@@ -476,7 +476,7 @@ def refresh_calendars(
     work_dir: str | os.PathLike[str] | None = None,
     actor: str | None = None,
     note: str = "",
-    dry_run: bool = False,
+    dry_run: bool = False, club: str | None = None,
     allow_missing_sources: bool = False,
     allow_source_policy_change: bool = False,
 ) -> dict[str, Any]:
@@ -487,7 +487,7 @@ def refresh_calendars(
         actor=actor,
         note=note,
         dry_run=dry_run,
-        allow_missing_sources=allow_missing_sources,
+        club=club, allow_missing_sources=allow_missing_sources,
         allow_source_policy_change=allow_source_policy_change,
     )
 

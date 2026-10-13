@@ -12,6 +12,19 @@ Fallback only if needed:
 python3 -m tournament_scheduler.cli.rvv_cli calendars <user-args>
 ```
 
+Refresh one club's canonical calendar evidence without contacting other clubs:
+
+```bash
+scripts/rvv-miniputt season refresh-calendars --season 2026-2027 --club Kongsberg --dry-run
+scripts/rvv-miniputt season refresh-calendars --season 2026-2027 --club Kongsberg
+```
+
+Review the dry-run evidence, verification and reconciliation consequences before
+committing. The scoped operation preserves other clubs' canonical evidence and
+promoted source policy. `--accept-source-policy-change` accepts drift only for
+the selected club; `--allow-missing-sources` retains the existing explicit
+fail-safe override for a blocked/missing selected source.
+
 After any refresh, run the source-health capability before trusting the result:
 
 ```bash

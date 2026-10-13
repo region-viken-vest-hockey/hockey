@@ -9,10 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
-from tournament_scheduler.booking.calendar_bookings import (
-    BOOKING_CONFIRMED_BOOKED,
-    booking_assessment,
-)
+from tournament_scheduler.booking.calendar_bookings import booking_assessment
 from tournament_scheduler.season.state import (
     canonical_state_revision,
     schedule_fingerprint,
@@ -33,18 +30,17 @@ from ..shared import (
     _parse_iso_date_for_move,
 )
 
-from .assessment import _classify_club_calendar_bookings
-from .common import (
-    _AUTO_REFRESH_RECONCILE_CLUBS,
-    _CALENDAR_PROBLEM_KEYS,
-    _calendar_problem_payload,
-    _calendar_source_summaries,
+from .common import _AUTO_REFRESH_RECONCILE_CLUBS, _calendar_problem_payload
+from .scoped_refresh import (
+    classify_refresh_reconciliation,
+    merge_refresh_problem,
+    merge_refresh_source_evidence,
+    prepare_refresh_config,
+    refresh_impact_summary,
+    resolve_target_club,
 )
-from .source_policy import (
-    _source_policy_changes,
-    _source_policy_from_evidence,
-    _source_policy_snapshot,
-)
+from .source_policy import _source_policy_from_evidence
+
 
 def refresh_calendars(
     service,
@@ -55,6 +51,7 @@ def refresh_calendars(
     actor: str | None = None,
     note: str = "",
     dry_run: bool = False,
+    club: str | None = None,
     allow_missing_sources: bool = False,
     allow_source_policy_change: bool = False,
 ) -> dict[str, Any]:
@@ -97,6 +94,7 @@ def refresh_calendars(
     before_schedule_fingerprint = schedule_fingerprint(plan)
     before_revision = canonical_state_revision(schedule, decisions)
     fetched_at = _now_iso()
+    target_club = resolve_target_club(club)
     current_evidence = context.get("calendar_evidence")
     if not isinstance(current_evidence, Mapping):
         current_evidence = None
@@ -122,8 +120,9 @@ def refresh_calendars(
         ):
             if key in problem:
                 config[key] = copy.deepcopy(problem[key])
-        current_policy = _source_policy_snapshot(config)
-        source_policy_changes = _source_policy_changes(promoted_policy, current_policy)
+        current_policy, source_policy_changes = prepare_refresh_config(
+            config, promoted_policy, target_club
+        )
         if source_policy_changes and not allow_source_policy_change:
             return {
                 "refused": True,
@@ -166,6 +165,7 @@ def refresh_calendars(
         result = {
             "season": season,
             "dry_run": bool(dry_run),
+            "target_club": target_club,
             "refused": True,
             "schedule_fingerprint": before_schedule_fingerprint,
             "previous_calendar_fingerprint": before_fingerprint,
@@ -186,12 +186,16 @@ def refresh_calendars(
     rebuilt_problem = scrape_result["rebuilt_problem"]
     current_policy = scrape_result["source_policy"]
     source_policy_changes = scrape_result["source_policy_changes"]
-    new_problem = copy.deepcopy(problem)
-    for key in _CALENDAR_PROBLEM_KEYS:
-        new_problem[key] = copy.deepcopy(rebuilt_problem.get(key))
+    new_problem = merge_refresh_problem(problem, rebuilt_problem, target_club)
     after_calendar = _calendar_problem_payload(new_problem)
     after_fingerprint = stable_payload_sha256(after_calendar)
-    source_summaries = _calendar_source_summaries(scrape, fetched_at=fetched_at)
+    source_summaries, blocked_sources, empty_sources = merge_refresh_source_evidence(
+        scrape=scrape,
+        current_evidence=current_evidence,
+        promoted_policy=promoted_policy,
+        target_club=target_club,
+        fetched_at=fetched_at,
+    )
 
     previous_snapshot = {
         "schema_version": 1,
@@ -211,12 +215,13 @@ def refresh_calendars(
         "note": note or "",
         "input_path": str(input_path),
         "dry_run": bool(dry_run),
+        "refresh_scope": {"club": target_club},
         "previous_calendar_fingerprint": before_fingerprint,
         "calendar_fingerprint": after_fingerprint,
         "stage2_fingerprint": stable_payload_sha256(scrape),
         "source_count": len(source_summaries),
-        "blocked_sources": list(scrape.get("blocked") or []),
-        "empty_sources": list(scrape.get("empty_sources") or []),
+        "blocked_sources": blocked_sources,
+        "empty_sources": empty_sources,
         "sources": source_summaries,
         "source_policy": current_policy,
         "source_policy_fingerprint": stable_payload_sha256(current_policy),
@@ -244,82 +249,57 @@ def refresh_calendars(
     preview_schedule["verification_context"] = preview_context
     preview_schedule["updated_at"] = fetched_at
 
+    before_resolved_problem = _resolve_plan_problem(schedule, None, decisions)
+    verification_before = verify_candidate(plan, before_resolved_problem)
     resolved_problem = _resolve_plan_problem(preview_schedule, None, decisions)
     verification = verify_candidate(plan, resolved_problem)
     findings_before = list_findings(season, root=service.store.root)
 
-    # #467: reconcile the freshly scraped Kongsberg/Ringerike calendars against
-    # tournaments placed at those clubs during planning. Read-only classification
-    # against the just-fetched evidence -- it must never itself write booking
-    # decisions or approvals, only surface what the fresh scrape shows so a
-    # stale-cache placement mismatch cannot hide inside a "refresh succeeded"
-    # result.
-    planned_tournament_reconciliation: dict[str, Any] = {"clubs": {}}
-    for reconcile_club in _AUTO_REFRESH_RECONCILE_CLUBS:
-        hosted = [
-            tournament
-            for tournament in plan.get("tournaments", []) or []
-            if str(tournament.get("host_club") or "") == reconcile_club
-        ]
-        if not hosted:
-            continue
-        classified_rows, _unused_records = _classify_club_calendar_bookings(
+    reconcile_scope = (target_club,) if target_club else _AUTO_REFRESH_RECONCILE_CLUBS
+    planned_tournament_reconciliation, reconcile_clubs_present = (
+        classify_refresh_reconciliation(
+            clubs=reconcile_scope,
             plan=plan,
             resolved_problem=resolved_problem,
             decisions=decisions,
-            club=reconcile_club,
             actor=actor,
             note=note,
             now=fetched_at,
             source_revision=before_revision,
         )
-        # A row needs review when: the calendar classification alone is not
-        # confirmed_booked; it is confirmed_booked but conflicts with an active
-        # manual booking assertion (#454) -- a valid association coexisting
-        # with a later "not booked" assertion must never look green; or it is
-        # confirmed_booked from a *pre-existing* association while this club's
-        # calendar status has degraded to source_review_required/untrusted --
-        # the booking authority still stands, but the degraded source is its
-        # own separate concern that must not be silently absorbed into a green
-        # row.
-        requires_review = [
-            row
-            for row in classified_rows
-            if row["status"] != BOOKING_CONFIRMED_BOOKED
-            or row.get("manual_conflict")
-            or row.get("source_integrity_concern")
-        ]
-        planned_tournament_reconciliation["clubs"][reconcile_club] = {
-            "classified": classified_rows,
-            "count": len(classified_rows),
-            "requires_review_count": len(requires_review),
-        }
-    # The persisted evidence keeps only the deterministic per-club
-    # classification. The booking_assessment() crosswalk below explicitly
-    # binds itself to one exact canonical_state_revision (#467 P2 review): if
-    # it were embedded here, the very act of persisting it would change the
-    # canonical revision computed from this content, immediately
-    # invalidating its own binding. Compute and return it separately (see
-    # below) against whichever revision is actually current once this call
-    # returns, instead of baking a stale/circular one into schedule.json.
-    evidence_record["planned_tournament_reconciliation"] = copy.deepcopy(planned_tournament_reconciliation)
-    reconcile_clubs_present = list(planned_tournament_reconciliation["clubs"].keys())
+    )
+    # Persist classification, but return the revision-bound assessment separately
+    # because embedding it would change the revision to which it binds itself.
+    evidence_record["planned_tournament_reconciliation"] = copy.deepcopy(
+        planned_tournament_reconciliation
+    )
 
     result = {
         "season": season,
         "dry_run": bool(dry_run),
+        "target_club": target_club,
         "changed": before_fingerprint != after_fingerprint,
         "schedule_fingerprint": before_schedule_fingerprint,
         "previous_calendar_fingerprint": before_fingerprint,
         "calendar_fingerprint": after_fingerprint,
         "source_count": len(source_summaries),
-        "blocked_sources": list(scrape.get("blocked") or []),
-        "empty_sources": list(scrape.get("empty_sources") or []),
+        "blocked_sources": blocked_sources,
+        "empty_sources": empty_sources,
         "sources": source_summaries,
         "source_policy_fingerprint": evidence_record["source_policy_fingerprint"],
         "previous_source_policy_fingerprint": promoted_policy_fingerprint,
         "source_policy_changes": source_policy_changes,
         "previous_snapshot": evidence_record["previous_snapshot"],
+        **refresh_impact_summary(
+            problem=problem,
+            new_problem=new_problem,
+            target_club=target_club,
+            before_fingerprint=before_fingerprint,
+            after_fingerprint=after_fingerprint,
+            verification_before=verification_before,
+            verification_after=verification,
+            dry_run=dry_run,
+        ),
         "verification_ok": bool(verification.get("ok")),
         "verification_violations": list(verification.get("violations") or []),
         "manual_external_conflict_placements": list(
@@ -374,7 +354,8 @@ def refresh_calendars(
             "calendar_fingerprint": after_fingerprint,
             "stage2_fingerprint": evidence_record["stage2_fingerprint"],
             "source_count": len(source_summaries),
-            "blocked_sources": list(scrape.get("blocked") or []),
+            "blocked_sources": blocked_sources,
+            "target_club": target_club,
             "source_policy_fingerprint": evidence_record["source_policy_fingerprint"],
             "source_policy_changes": source_policy_changes,
             "previous_snapshot": evidence_record["previous_snapshot"],

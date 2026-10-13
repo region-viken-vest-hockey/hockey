@@ -162,6 +162,235 @@ def test_refresh_calendars_dry_run_does_not_mutate_schedule_or_decisions(tmp_pat
     assert (root / "2026-2027" / "decisions.json").read_bytes() == before_decisions_bytes
 
 
+def test_scoped_refresh_scrapes_and_replaces_only_requested_club(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from tournament_scheduler.pipeline import stage1_config, stage2_scraping
+
+    root = _promote(tmp_path, host_club="Kongsberg")
+    configured_sources = [
+        {"name": "Kongsberg", "type": "outlook", "url": "https://example.test/kongsberg"},
+        {"name": "Ringerike", "type": "ical", "url": "https://example.test/ringerike"},
+    ]
+    scraped_source_names: list[list[str]] = []
+    generation = 0
+
+    def fake_stage1_run(input_path, state, *, strict=True):
+        state.write_stage(StageName.CONFIG, {"teams": []}, status=StageStatus.DONE)
+        return {}
+
+    def fake_effective_config(state, *, input_path=None):
+        return {"sources": [dict(source) for source in configured_sources]}
+
+    def fake_stage2_run(config, state, start_date, end_date, **kwargs):
+        nonlocal generation
+        generation += 1
+        names = [source["name"] for source in config["sources"]]
+        scraped_source_names.append(names)
+        events_by_club = {
+            name: [
+                {
+                    "date": "12.09.2026",
+                    "name": f"{name} evidence {generation}",
+                    "datetime": f"2026-09-{12 + generation:02d}T10:00:00",
+                    "duration_hours": 2.0,
+                }
+            ]
+            for name in names
+        }
+        return {
+            "sources": [
+                {
+                    **source,
+                    "events": events_by_club[source["name"]],
+                    "event_count": 1,
+                    "blocked": False,
+                    "scrape_timestamp": f"2026-08-0{generation}T12:00:00+00:00",
+                }
+                for source in config["sources"]
+            ],
+            "events_by_club": events_by_club,
+            "club_calendar_status": {name: "known" for name in names},
+            "blocked": [],
+            "empty_sources": [],
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+        }
+
+    monkeypatch.setattr(stage1_config, "run", fake_stage1_run)
+    monkeypatch.setattr(stage1_config, "load_effective_config", fake_effective_config)
+    monkeypatch.setattr(stage2_scraping, "run", fake_stage2_run)
+
+    refresh_calendars(season="2026-2027", root=root, actor="tester")
+    before = load_schedule("2026-2027", root=root)
+    before_problem = before["verification_context"]["problem"]
+    before_evidence = before["verification_context"]["calendar_evidence"]
+    ringerike_problem = {
+        key: json.loads(json.dumps(value.get("Ringerike")))
+        for key, value in _calendar_payload(before_problem).items()
+        if key != "unclassified_calendar_events" and isinstance(value, dict)
+    }
+    ringerike_summary = next(
+        dict(source) for source in before_evidence["sources"] if source["name"] == "Ringerike"
+    )
+    ringerike_policy = next(
+        dict(source)
+        for source in before_evidence["source_policy"]["sources"]
+        if source["name"] == "Ringerike"
+    )
+
+    # An unrelated current-workbook change must neither be contacted nor count
+    # as source-policy drift during the Kongsberg-only refresh.
+    configured_sources[1]["url"] = "https://example.test/unrelated-current-drift"
+    preview = refresh_calendars(
+        season="2026-2027", root=root, club="kongsberg", dry_run=True
+    )
+    assert preview["target_club"] == "Kongsberg"
+    assert preview.get("refused") is not True
+    assert preview["evidence_summary"]["club"] == "Kongsberg"
+    assert preview["verification_impact"]["after_violation_count"] >= 0
+    assert preview["canonical_state_consequences"] == {
+        "will_commit": False,
+        "will_advance_revision": False,
+        "will_mark_export_stale": False,
+        "will_require_fresh_audit": False,
+        "schedule_placements_unchanged": True,
+        "unrelated_club_evidence_preserved": True,
+    }
+    reconciliation = preview["planned_tournament_reconciliation"]
+    assert reconciliation["clubs"]["Kongsberg"]["count"] == 1
+    assert reconciliation["assessment"]["clubs"] == ["Kongsberg"]
+
+    result = refresh_calendars(season="2026-2027", root=root, club="Kongsberg", actor="tester")
+    assert scraped_source_names == [
+        ["Kongsberg", "Ringerike"],
+        ["Kongsberg"],
+        ["Kongsberg"],
+    ]
+    assert result["source_policy_changes"] == []
+    after = load_schedule("2026-2027", root=root)
+    after_problem = after["verification_context"]["problem"]
+    after_evidence = after["verification_context"]["calendar_evidence"]
+    assert {
+        key: value.get("Ringerike")
+        for key, value in _calendar_payload(after_problem).items()
+        if key != "unclassified_calendar_events" and isinstance(value, dict)
+    } == ringerike_problem
+    assert next(
+        source for source in after_evidence["sources"] if source["name"] == "Ringerike"
+    ) == ringerike_summary
+    assert next(
+        source
+        for source in after_evidence["source_policy"]["sources"]
+        if source["name"] == "Ringerike"
+    ) == ringerike_policy
+
+
+def test_scoped_refresh_refuses_only_target_source_policy_drift(
+    tmp_path: Path, monkeypatch
+) -> None:
+    root = _promote(tmp_path)
+    sources = [
+        {"name": "Kongsberg", "type": "outlook", "url": "https://example.test/old"},
+        {"name": "Ringerike", "type": "ical", "url": "https://example.test/ringerike"},
+    ]
+    _patch_refresh_inputs(
+        monkeypatch,
+        busy=False,
+        sources=sources,
+        source_name="Kongsberg",
+        club="Kongsberg",
+    )
+    refresh_calendars(season="2026-2027", root=root, actor="tester")
+
+    sources[0]["url"] = "https://example.test/new"
+    preview = refresh_calendars(
+        season="2026-2027", root=root, club="Kongsberg", dry_run=True
+    )
+    assert preview["refused"] is True
+    assert preview["target_club"] == "Kongsberg"
+    assert preview["source_policy_changes"][0]["fields"]["url"]["after"] == (
+        "https://example.test/new"
+    )
+    with pytest.raises(SeasonStateError, match="source policy changed"):
+        refresh_calendars(season="2026-2027", root=root, club="Kongsberg")
+    accepted = refresh_calendars(
+        season="2026-2027",
+        root=root,
+        club="Kongsberg",
+        allow_source_policy_change=True,
+        actor="tester",
+    )
+    assert accepted["source_policy_changes"] == preview["source_policy_changes"]
+    policy = load_schedule("2026-2027", root=root)["verification_context"][
+        "calendar_evidence"
+    ]["source_policy"]
+    urls = {source["name"]: source["url"] for source in policy["sources"]}
+    assert urls == {
+        "Kongsberg": "https://example.test/new",
+        "Ringerike": "https://example.test/ringerike",
+    }
+
+
+def test_scoped_refresh_keeps_missing_source_safety_explicit(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from tournament_scheduler.pipeline import stage2_scraping
+
+    root = _promote(tmp_path)
+    _patch_refresh_inputs(
+        monkeypatch,
+        busy=False,
+        sources=[
+            {"name": "Kongsberg", "type": "outlook", "url": "https://example.test/k"},
+            {"name": "Ringerike", "type": "ical", "url": "https://example.test/r"},
+        ],
+        source_name="Kongsberg",
+        club="Kongsberg",
+    )
+    refresh_calendars(season="2026-2027", root=root, actor="tester")
+    calls: list[tuple[list[str], bool, bool]] = []
+
+    def blocked_stage2(config, state, start_date, end_date, **kwargs):
+        names = [source["name"] for source in config["sources"]]
+        calls.append((names, kwargs["strict"], kwargs["allow_missing_sources"]))
+        if kwargs["strict"]:
+            raise RuntimeError("target source blocked")
+        return {
+            "sources": [
+                {
+                    **config["sources"][0],
+                    "events": [],
+                    "event_count": 0,
+                    "blocked": True,
+                    "scrape_timestamp": "2026-08-02T12:00:00+00:00",
+                }
+            ],
+            "events_by_club": {"Kongsberg": []},
+            "club_calendar_status": {"Kongsberg": "unknown"},
+            "blocked": ["Kongsberg"],
+            "empty_sources": ["Kongsberg"],
+        }
+
+    monkeypatch.setattr(stage2_scraping, "run", blocked_stage2)
+    with pytest.raises(RuntimeError, match="target source blocked"):
+        refresh_calendars(season="2026-2027", root=root, club="Kongsberg")
+
+    result = refresh_calendars(
+        season="2026-2027",
+        root=root,
+        club="Kongsberg",
+        allow_missing_sources=True,
+        actor="tester",
+    )
+    assert calls == [
+        (["Kongsberg"], True, False),
+        (["Kongsberg"], False, True),
+    ]
+    assert result["blocked_sources"] == ["Kongsberg"]
+    assert result["target_club"] == "Kongsberg"
+
+
 def test_refresh_calendars_updates_only_evidence_and_marks_export_stale(tmp_path: Path, monkeypatch) -> None:
     root = _promote(tmp_path)
     _patch_refresh_inputs(monkeypatch, busy=False)

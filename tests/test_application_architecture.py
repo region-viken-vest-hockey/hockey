@@ -83,6 +83,7 @@ def test_canonical_season_facade_delegates_to_focused_modules():
     assert {
         "source_policy.py",
         "refresh.py",
+        "scoped_refresh.py",
         "assessment.py",
         "reconciliation.py",
         "associations.py",
