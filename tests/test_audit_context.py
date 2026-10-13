@@ -558,3 +558,28 @@ def test_context_plan_comes_from_the_exported_projection_not_a_stale_planning_st
     assert summary["tournament_count"] == 2
     assert summary["guest_reservation_summary"]["reserved_tournament_count"] == 1
     assert summary["guest_reservation_summary"]["open_slots"] == 1
+
+
+def test_cancelled_tournaments_do_not_produce_blocking_bye_findings():
+    from tournament_scheduler.pipeline.audit_context import _collect_plan_audit_facts
+
+    teams = [{"club": club, "label": f"{club} 1", "age_group": "JU8"} for club in ("Alfa", "Bravo", "Charlie")]
+    common = {
+        "date": "2026-11-21",
+        "age_group": "JU8",
+        "arena": "Hall",
+        "host_club": "Alfa",
+        "start_time": "10:00",
+        "teams": teams,
+        "games": [],
+    }
+    plan = {
+        "tournaments": [
+            {**common, "id": "live-odd-roster"},
+            {**common, "id": "cancelled-odd-roster", "cancelled": True, "cancellation_reason": "retired"},
+        ]
+    }
+
+    facts = _collect_plan_audit_facts(plan_dict=plan, config_checkpoint=None, verification_problem=None)
+
+    assert [row["id"] for row in facts["blocking_byes"]] == ["live-odd-roster"]

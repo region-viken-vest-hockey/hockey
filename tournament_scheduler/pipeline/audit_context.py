@@ -416,7 +416,7 @@ def _collect_plan_audit_facts(
         utilisation_examples.append(utilisation_row)
         if utilisation_row["underfilled"]:
             underfilled_by_age[age_group] += 1
-        if registered_count_by_age_group:
+        if registered_count_by_age_group and not tournament.get("cancelled"):
             eligible_registered_count = max(
                 0,
                 registered_count_by_age_group.get(age_group, 0)
@@ -439,7 +439,7 @@ def _collect_plan_audit_facts(
                 blocking_byes.append({**utilisation_row, "required_team_count": shape.effective_team_count})
             elif shape.input_constrained and team_count == shape.effective_team_count:
                 input_constrained_shape_examples.append({**utilisation_row, **shape.as_dict()})
-        elif team_count % 2 == 1 or bye_rounds:
+        elif not tournament.get("cancelled") and (team_count % 2 == 1 or bye_rounds):
             # No registered-pool evidence available this run -- fall back to
             # the unconditional previous check (audit evidence only).
             blocking_byes.append({**utilisation_row, "required_team_count": None})
