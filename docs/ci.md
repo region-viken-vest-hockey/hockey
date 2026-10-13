@@ -6,13 +6,15 @@ evidence of test/reproducibility health on every PR and push to
 before changes are trusted or merged, not just a local "hundreds of tests
 passed" claim in a commit message.
 
-## Required-fast tier: `.github/workflows/ci.yml`
+## Required-fast tier
 
-Triggers on every pull request and every push to `main`. Every job here is
-designed to run in low single-digit minutes and makes **no live external
-calendar/network call** — all fixtures are synthetic or in-memory, so the
-whole tier is safe to require as a merge gate without flaking on a real
-club's calendar site being slow or down.
+`.github/workflows/ci.yml` runs the full fast tier when its code, test,
+workflow, or documentation path filters match. The small
+`.github/workflows/tracked-path-portability.yml` companion runs on every pull
+request and every push to `main`, including data-only changes. Every job in
+this tier makes **no live external calendar/network call** — all fixtures are
+synthetic or in-memory, so the tier is safe to require as a merge gate without
+flaking on a real club's calendar site being slow or down.
 
 The canonical local verification entrypoint is `scripts/check` (or `make
 check`, which delegates to it). With no arguments it runs the default
@@ -23,7 +25,7 @@ without duplicating the underlying command sequence in workflow YAML. See
 
 | Job (status check name)                          | What it covers |
 |----------------------------------------------------|----------------|
-| `Tracked path portability`                          | `scripts/check tracked-paths` — inspects the complete Git index and rejects paths that collide after NFC normalization and case folding, independently of the runner filesystem. |
+| `Tracked path portability`                          | The always-on companion workflow runs `scripts/check tracked-paths` to inspect the complete Git index and reject paths that collide after NFC normalization and case folding, independently of the runner filesystem. |
 | `Python dependency lock freshness`                  | `scripts/check dependency-lock` — recreates `requirements.lock` from `pyproject.toml` with pip-tools and fails if the committed hash-checked lock would change. |
 | `Python quick test suite`                           | `scripts/check quick` — the default `pytest` run (excludes `slow`, `integration`, `harness` and `live`-marked tests), covering the full fast unit/component suite. |
 | `Operator manifest & escalation tests`              | `scripts/check operator` — `test_run_manifest.py`, `test_capability_result.py`, `test_escalation.py`, `test_operator_run.py` specifically, as their own visible check. |
