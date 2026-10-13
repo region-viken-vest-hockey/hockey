@@ -607,3 +607,59 @@ def test_cancelled_tournament_keeps_registered_pool_shape_evidence_without_block
 
     assert [row["id"] for row in facts["blocking_byes"]] == ["live-short-roster"]
     assert [row["id"] for row in facts["input_constrained_shape_examples"]] == ["cancelled-four-teams"]
+
+
+def _write_plan_with_external_conflicts(work_dir, *, count: int) -> None:
+    PipelineState(work_dir).write_stage(
+        StageName.PLANNING,
+        {
+            "plan": {
+                "tournaments": [],
+                "unresolved_external_conflicts": [
+                    {"tournament_id": f"t{i}", "host_club": "Jar", "age_group": "U10", "date": "2026-11-01"}
+                    for i in range(count)
+                ],
+            }
+        },
+        status=StageStatus.DONE,
+    )
+
+
+def test_zero_scanned_sources_with_external_conflicts_is_an_explicit_coverage_gap(tmp_path):
+    _write_plan_with_external_conflicts(tmp_path, count=10)
+    _write_export(tmp_path, fingerprint="fp-1")
+    (tmp_path / "export" / "evidence_bundle.json").write_text(
+        json.dumps({"source_summary": {"sources_scanned": 0, "blocked_sources": []}}), encoding="utf-8"
+    )
+
+    context = build_audit_context(work_dir=tmp_path)
+
+    coverage = context["evidence_coverage"]
+    assert coverage == {
+        "calendar": "not_scanned",
+        "unverified_placements": 10,
+    }
+
+
+def test_scanned_sources_with_external_conflicts_have_no_coverage_warning(tmp_path):
+    _write_plan_with_external_conflicts(tmp_path, count=2)
+    _write_export(tmp_path, fingerprint="fp-1")
+
+    context = build_audit_context(work_dir=tmp_path)
+
+    coverage = context["evidence_coverage"]
+    assert coverage["calendar"] == "scanned"
+    assert coverage["unverified_placements"] == 0
+
+
+def test_zero_scanned_sources_without_external_conflicts_is_not_a_warning(tmp_path):
+    _write_export(tmp_path, fingerprint="fp-1")
+    (tmp_path / "export" / "evidence_bundle.json").write_text(
+        json.dumps({"source_summary": {"sources_scanned": 0, "blocked_sources": []}}), encoding="utf-8"
+    )
+
+    context = build_audit_context(work_dir=tmp_path)
+
+    coverage = context["evidence_coverage"]
+    assert coverage["calendar"] == "not_scanned"
+    assert coverage["unverified_placements"] == 0

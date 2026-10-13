@@ -23,6 +23,7 @@ import json
 from typing import Any
 
 from ..pipeline.audit_result import build_audit_id, now_iso, validate_audit_result
+from .audit_policy import audit_policy_lines
 
 # The judge backends exposed by ``llm_judge`` take a single prompt string, so
 # interactive tool-call retrieval is not available. Instead the harness runs a
@@ -51,35 +52,7 @@ def build_audit_prompt(context: dict[str, Any], *, evidence_appendix: str | None
         "outliers across the whole season, and report possible missing planner rules with "
         "concrete examples.",
         "",
-        "Do not assume the schedule is correct merely because deterministic verification "
-        "passed. The scheduler and its deterministic verifier may share a logic defect, or "
-        "may simply be missing a rule. Explain anything that does not make operational sense.",
-        "",
-        "Hard policy: pause/bye teams are invalid in every age group. If "
-        "`plan_audit_summary.tournament_utilisation_summary.tournaments_with_byes_or_invalid_no_bye_roster` "
-        "is greater than zero, or you independently find any odd-sized/byed tournament, the overall "
-        "status must be `FAIL` -- never `REVIEW_REQUIRED` or `PASS`. Repeated even-roster but "
-        "low-utilisation tournaments should still be reported as planning-quality findings.",
-        "",
-        "Hard policy: a tournament with more than "
-        f"{context.get('hard_max_club_teams_per_tournament', 3)} teams from the same club is "
-        "an invalid plan, not a quality concern. If "
-        "`plan_audit_summary.same_club_per_tournament_summary.tournaments_over_hard_max` is "
-        "greater than zero, or you independently find such a tournament, the overall status "
-        "must be `FAIL` -- never `REVIEW_REQUIRED` or `PASS` -- regardless of any other score "
-        "or `production_ready` label.",
-        "",
-        "Soft policy (issue #327): a team's participation count coming in under its nominal "
-        "target is not automatically a defect. Check each shortfall's `category` in "
-        "`plan_audit_summary.unresolved_participation_shortfalls` against "
-        "`plan_audit_summary.club_participation_fairness` -- a "
-        "`participation_under_target_club_share_ok` shortfall means the team's club already "
-        "received its fair proportional share of participation slots with sibling teams "
-        "rotated evenly (spread <=1), and is not by itself grounds for `REVIEW_REQUIRED`. Still "
-        "scrutinize a club materially below its `target_share` without such evidence, or any "
-        "shortfall where `sibling_spread` is greater than 1 -- those indicate a genuine "
-        "fairness gap worth flagging.",
-        "",
+        *audit_policy_lines(context),
         "Audit mission:",
         json.dumps(context.get("audit_mission"), ensure_ascii=False, indent=2),
         "",
@@ -108,6 +81,9 @@ def build_audit_prompt(context: dict[str, Any], *, evidence_appendix: str | None
         "",
         "Persisted source/calendar evidence (do not perform fresh live scraping):",
         json.dumps(context.get("calendar_evidence_summary"), ensure_ascii=False, indent=2),
+        "",
+        "Calendar evidence coverage (distinguishes not-scanned from checked-and-clear):",
+        json.dumps(context.get("evidence_coverage"), ensure_ascii=False, indent=2),
         "",
         "Selected-plan audit summary (use this for tournament duration, host participation, "
         "per-team daily participation and same-club participant-count cross-checks):",

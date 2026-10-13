@@ -36,6 +36,7 @@ from ..planning.contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
 from tournament_scheduler.participation.targets import INTRA_CLUB_DISTRIBUTION
 from tournament_scheduler.participation.withdrawals import withdrawn_team_count_for_tournament
 from . import audit_evidence
+from .calendar_evidence import calendar_evidence_coverage, summarize_scraping_checkpoint
 from .audit_result import current_export_fingerprint, current_run_id
 from .fingerprints import stable_payload_sha256
 from .state import PipelineState, StageName
@@ -191,57 +192,6 @@ def _bound_lists(payload: dict[str, Any] | None, *, cap: int | None = None) -> d
 def _bound_verify_result(verify_result: dict[str, Any] | None) -> dict[str, Any]:
     """Return a size-bounded view of the deterministic verify result."""
     return _bound_lists(verify_result)
-
-
-def _summarize_scraping_checkpoint(scraping_checkpoint: dict[str, Any] | None) -> dict[str, Any]:
-    """Small source/calendar inventory for the semantic audit.
-
-    The audit must not perform fresh scraping, but it should be able to see
-    whether persisted calendar evidence was present and usable.  Keep this to
-    counts/status/provenance rather than embedding thousands of raw events.
-    """
-    if not isinstance(scraping_checkpoint, dict):
-        return {}
-
-    sources = scraping_checkpoint.get("sources") or []
-    per_source: list[dict[str, Any]] = []
-    for source in sources if isinstance(sources, list) else []:
-        if not isinstance(source, dict):
-            continue
-        per_source.append(
-            {
-                "name": source.get("name"),
-                "type": source.get("type"),
-                "event_count": source.get("event_count", len(source.get("events") or [])),
-                "blocked": bool(source.get("blocked")),
-                "block_reason": source.get("block_reason"),
-                "from_cache": bool(source.get("from_cache")),
-                "cache_age_hours": source.get("cache_age_hours"),
-                "llm_fallback": bool(source.get("llm_fallback")),
-            }
-        )
-
-    events_by_club = scraping_checkpoint.get("events_by_club") or {}
-    event_counts_by_club = {
-        str(club): len(events or [])
-        for club, events in events_by_club.items()
-        if isinstance(events_by_club, dict)
-    }
-
-    return {
-        "sources_scanned": len(sources) if isinstance(sources, list) else 0,
-        "blocked_sources": list(scraping_checkpoint.get("blocked") or []),
-        "empty_sources": list(scraping_checkpoint.get("empty_sources") or []),
-        "cached_sources": list(scraping_checkpoint.get("cached") or []),
-        "club_calendar_status": dict(scraping_checkpoint.get("club_calendar_status") or {}),
-        "event_counts_by_club": event_counts_by_club,
-        "event_expectation_warnings": list(scraping_checkpoint.get("event_expectation_warnings") or []),
-        "window": {
-            "start_date": scraping_checkpoint.get("start_date"),
-            "end_date": scraping_checkpoint.get("end_date"),
-        },
-        "per_source": per_source,
-    }
 
 
 def _team_key(team: dict[str, Any]) -> str:
@@ -950,7 +900,14 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
 
     calendar_evidence_summary = (evidence_bundle or {}).get("source_summary") or {}
     if not calendar_evidence_summary:
-        calendar_evidence_summary = _summarize_scraping_checkpoint(scraping_checkpoint)
+        calendar_evidence_summary = summarize_scraping_checkpoint(scraping_checkpoint)
+    external_conflict_count = (
+        len(plan_dict.get("unresolved_external_conflicts") or []) if isinstance(plan_dict, dict) else 0
+    )
+    evidence_coverage = calendar_evidence_coverage(
+        calendar_evidence_summary,
+        external_conflict_count=external_conflict_count,
+    )
     verification_context = (
         export_checkpoint.get("verification_context")
         if isinstance(export_checkpoint, dict)
@@ -1019,6 +976,7 @@ def _assemble_raw_audit_evidence(*, work_dir: "str | Path") -> dict[str, Any]:
         "approval_status": approval_status,
         "publication_readiness": publication_readiness,
         "calendar_evidence_summary": calendar_evidence_summary,
+        "evidence_coverage": evidence_coverage,
         "plan_audit_facts": plan_audit_facts,
         "plan_audit_summary": plan_audit_summary,
         "export_consistency_summary": export_consistency_summary,
@@ -1065,6 +1023,7 @@ def build_audit_context(
         "approval_status": _bound_lists(raw["approval_status"]),
         "publication_readiness": raw["publication_readiness"],
         "calendar_evidence_summary": raw["calendar_evidence_summary"],
+        "evidence_coverage": raw["evidence_coverage"],
         "plan_audit_summary": raw["plan_audit_summary"],
         "export_consistency_summary": raw["export_consistency_summary"],
         "checklist_evidence_guide": _build_checklist_evidence_guide(evidence_overview=evidence_overview),
