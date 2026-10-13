@@ -76,7 +76,7 @@ Canonical state revision: `cfb5b08e9b486ed807b56d47fa1c4d00a20af1c734a380e127f52
 | `unknown:move:rvv-0080:37126fbddd65c2464dd396cb0a2ca1526cccc5cfc598ba104c76a674b1fc15fa:251` | niclasl | moved to morning gap; frees Sunday slot elsewhere for a longer tournament | rvv-0080 | move | resolved |
 | `unknown:move:rvv-0058:e4802450169584c444229db2464cd0a18c071c0fbf96744d5d524f8ca4edef7a:252` | niclasl | moved into Sunday afternoon gap (13:50-17:00, freed by rvv-0080 relocating to a Saturday morning) | rvv-0058 | move | resolved |
 | `unknown:move:rvv-0122:bc90d48c2cf9c314ff9315623decacc19fac7332df46cecf01332aef215bb1e7:253` | niclasl | moved off the figure-skating-blocked 2027-01-30 into the last free Sunday afternoon gap this season | rvv-0122 | move | resolved |
-| `unknown:move:rvv-0153:b611be4e478e103e03c4ead1699e2fc11cb2f425184e434dde00a5d7452b2f42:256` | niclasl | UNRESOLVED: no compliant slot found this season. Reverted off figure-skating-blocked/past-close 2027-01-30 slot to this known BSK-Sunday conflict as the least-broken parking spot. Needs manual host follow-up. | rvv-0153 | move | resolved |
+| `unknown:move:rvv-0153:b611be4e478e103e03c4ead1699e2fc11cb2f425184e434dde00a5d7452b2f42:256` | niclasl | UNRESOLVED: no compliant slot found this season. Reverted off figure-skating-blocked/past-close 2027-01-30 slot to this known BSK-Sunday conflict as the least-broken parking spot. Needs manual host follow-up. | rvv-0153 | move | needs_action |
 | `unknown:move:rvv-0184:52ea8cda6ec53f888243ec1732ffaa6cbba8fdf42520baee2cdc1cd60ff133bc:271` | niclasl | Kongsberg host: JU16 kamp 16:15 conflict on 20 Feb; host suggested Miniputt start 13:00, adopted | rvv-0184 | move | resolved |
 | `unknown:move:rvv-0162:6d6c293a65d94285b128114698c253411e32d2562290922dceb43fb212ca51ea:272` | niclasl | Kongsberg host: U15 kamp 14:45 conflict on 14 Mar; host suggested Miniputt start 12:30, adopted | rvv-0162 | move | resolved |
 | `unknown:move:rvv-0013:0112c870333e6bee9cf8082a49bb60bacb13ec8209335b689f808a5fea40b77d:274` | niclasl | Skien reports 10 Oct 2026 unbookable; moved past Christmas to first legal open slot found (17 Jan 2027, 12:00), superseding earlier revert-to-Oct-10 decision | rvv-0013 | move | resolved |
@@ -1146,7 +1146,7 @@ Canonical state revision: `cfb5b08e9b486ed807b56d47fa1c4d00a20af1c734a380e127f52
 
 ### `unknown:move:rvv-0153:b611be4e478e103e03c4ead1699e2fc11cb2f425184e434dde00a5d7452b2f42:256`
 
-- Status: **resolved**
+- Status: **needs_action**
 - Created/received: unknown
 - Source/actor: niclasl
 - Type(s): move

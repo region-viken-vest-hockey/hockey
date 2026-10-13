@@ -16,7 +16,14 @@ from tournament_scheduler.pipeline.season_changes_view import (
     status_label,
     write_html,
 )
-from tournament_scheduler.application.canonical_season.store_facade import change_request_ledger
+from tournament_scheduler.application.canonical_season.change_request_outcomes import (
+    set_change_request_outcome,
+)
+from tournament_scheduler.application.canonical_season.store_facade import (
+    change_request_ledger,
+    load_decisions,
+    load_schedule,
+)
 
 
 SEASON = "2026-2027"
@@ -162,6 +169,72 @@ def test_change_request_ledger_groups_constraints_moves_and_withdrawals(tmp_path
     assert withdrawal["status"] == "needs_action"
     assert withdrawal["withdrawals"][0]["team"]["club"] == "Ringerike"
     assert "Ringerike:R1:JU8" in withdrawal["affected_teams"]
+
+
+def test_structured_outcome_marks_unresolved_legacy_move_as_needing_action(
+    tmp_path: Path,
+) -> None:
+    completed = {
+        "event": "move",
+        "at": "2026-09-26T19:00:00+00:00",
+        "actor": "operator",
+        "tournament_id": "rvv-0152",
+        "note": "Moved to the requested slot",
+        "details": {
+            "before_canonical_revision": "a" * 64,
+            "old_placement": {"date": "2027-01-30"},
+            "new_placement": {"date": "2027-02-20"},
+        },
+    }
+    unresolved = {
+        "event": "move",
+        "at": "2026-09-26T20:26:06+00:00",
+        "actor": "operator",
+        "tournament_id": "rvv-0153",
+        "note": "A temporary placement that still needs manual host follow-up",
+        "details": {
+            "before_canonical_revision": "b" * 64,
+            "old_placement": {"date": "2027-01-30"},
+            "new_placement": {"date": "2027-02-21"},
+        },
+    }
+    _write_state(
+        tmp_path,
+        decisions={"history": [completed, unresolved], "calendar_booking_associations": []},
+    )
+    before_ledger = change_request_ledger(SEASON, root=tmp_path)
+    before_schedule = load_schedule(SEASON, root=tmp_path)
+    before_bookings = load_decisions(SEASON, root=tmp_path)["calendar_booking_associations"]
+
+    result = set_change_request_outcome(
+        season=SEASON,
+        history_index=1,
+        event="move",
+        tournament_id="rvv-0153",
+        before_canonical_revision="b" * 64,
+        outcome="manual_follow_up_required",
+        expected_revision=before_ledger["canonical_state_revision"],
+        root=tmp_path,
+    )
+
+    ledger = change_request_ledger(SEASON, root=tmp_path)
+    by_tournament = {item["affected_tournaments"][0]: item for item in ledger["requests"]}
+
+    # Legacy accepted mutations remain completed unless durable structured
+    # evidence explicitly records that manual follow-up is still required.
+    assert result["changed"] is True
+    assert result["canonical_state_revision"] == before_ledger["canonical_state_revision"]
+    assert by_tournament["rvv-0152"]["status"] == "resolved"
+    assert by_tournament["rvv-0153"]["status"] == "needs_action"
+    assert ledger["unresolved_count"] == 1
+    unresolved_row = next(
+        line
+        for line in render_change_log_markdown(ledger).splitlines()
+        if "rvv-0153" in line and "manual host follow-up" in line
+    )
+    assert unresolved_row.endswith("| needs_action |")
+    assert load_schedule(SEASON, root=tmp_path) == before_schedule
+    assert load_decisions(SEASON, root=tmp_path)["calendar_booking_associations"] == before_bookings
 
 
 def test_uncorrelated_legacy_history_uses_separate_unknown_buckets(tmp_path: Path) -> None:

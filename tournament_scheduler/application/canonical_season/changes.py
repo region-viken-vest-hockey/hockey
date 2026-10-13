@@ -1,4 +1,12 @@
-"""Read-only canonical season change-request ledger projection."""
+"""Read-only canonical season change-request ledger projection.
+
+Mutation history may carry ``details.change_request_outcome`` as durable
+request-lifecycle evidence.  ``completed`` means the mutation completed its
+request; ``manual_follow_up_required`` means the accepted mutation deliberately
+left the request unresolved.  Legacy mutations without this field retain the
+historical completed fallback.  An unrecognised explicit value fails closed as
+requiring action rather than being presented as resolved.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +14,10 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Mapping
 
+from tournament_scheduler.application.canonical_season.change_request_outcomes import (
+    combine_status,
+    mutation_request_status,
+)
 from tournament_scheduler.season.state import canonical_state_revision
 from tournament_scheduler.season.request_constraints import ACTIVE as REQUEST_CONSTRAINT_ACTIVE
 
@@ -46,42 +58,6 @@ def _roster(tournament: Mapping[str, Any] | None) -> list[dict[str, Any]]:
         for team in tournament.get("teams", []) or []
         if isinstance(team, Mapping)
     ]
-
-
-def _status_rank(status: str) -> int:
-    order = {
-        "needs_action": 0,
-        "partially_resolved": 1,
-        "active": 2,
-        "resolved": 3,
-        "superseded": 4,
-        "released": 5,
-        "unknown": 6,
-    }
-    return order.get(status, 99)
-
-
-def _combine_status(statuses: list[str]) -> str:
-    values = {status for status in statuses if status}
-    if not values:
-        return "unknown"
-    if "needs_action" in values and (values - {"needs_action"}):
-        return "partially_resolved"
-    if "needs_action" in values:
-        return "needs_action"
-    if "active" in values and "resolved" in values:
-        return "partially_resolved"
-    if "active" in values:
-        return "active"
-    if "resolved" in values:
-        return "resolved"
-    if values == {"released"}:
-        return "released"
-    if values == {"superseded"}:
-        return "superseded"
-    if "released" in values and "superseded" in values:
-        return "released"
-    return sorted(values, key=_status_rank)[0]
 
 
 def _request_bucket(
@@ -180,6 +156,7 @@ def _mutation_from_history(
         "tournament_id": event.get("tournament_id") or None,
         "request_id": None if request_id == UNKNOWN_REQUEST_ID else request_id,
         "request_id_inferred": bool(inferred_request_id),
+        "change_request_outcome": details.get("change_request_outcome"),
         "details": {},
     }
     name = mutation["event"]
@@ -363,6 +340,9 @@ def change_request_ledger(service, season: str) -> dict[str, Any]:
                 _add_unique(bucket, "affected_tournaments", operation.get("tournament_id"))
         mutation = _mutation_from_history(event, request_id=request_id, inferred_request_id=inferred)
         bucket["mutations"].append(mutation)
+        mutation_status = mutation_request_status(event)
+        if mutation_status is not None:
+            bucket["statuses"].append(mutation_status)
 
     for bucket in requests.values():
         for tournament_id in list(bucket["affected_tournaments"]):
@@ -375,7 +355,7 @@ def change_request_ledger(service, season: str) -> dict[str, Any]:
         bucket["sources"].sort()
         bucket["actors"].sort()
         bucket["types"].sort()
-        bucket["status"] = _combine_status(bucket.pop("statuses", []))
+        bucket["status"] = combine_status(bucket.pop("statuses", []))
         if bucket["status"] == "unknown" and bucket["mutations"]:
             bucket["status"] = "resolved"
         if bucket["mutations"]:
