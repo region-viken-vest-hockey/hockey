@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "audit_id": "7a5f2d1cc99d00e9",
+  "generated_at": "2026-10-13T13:09:21+02:00",
+  "run_id": "legacy",
+  "export_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+  "audit_context_fingerprint": "a8eea10031dda3ce430598f8709199d58ee6a8b0f3732e6742e8375542288d50",
+  "status": "REVIEW_REQUIRED",
+  "operator_assessment": {
+    "operator_summary": "Presentation-only regeneration of the 2026-2027 export is clean: canonical revision unchanged, artifact parity PASS, publication scope ELIGIBLE with an empty delta against the last publication, and deterministic verify ok with 0 violations. The verdict is REVIEW_REQUIRED, not PASS, because of pre-existing season-wide planning debt (137 participation shortfalls, 16 hosting imbalances, 9 unresolved placements, 10 manual external-conflict placements with no calendar evidence scanned) and one cancelled-tournament duration evidence defect.",
+    "key_tradeoffs": [],
+    "remaining_actions": [
+      {
+        "title": "Verify ice for 10 manual external-conflict placements",
+        "summary": "Calendar evidence scanned 0 sources for this export. Verify the Frisk Asker and Sandefjord placements against calendars or booking evidence.",
+        "category": "calendar_evidence"
+      },
+      {
+        "title": "Fix evidence treatment of cancelled rvv-0016",
+        "summary": "tournament_duration reports rvv-0016 with duration=None although it is cancelled. Correct the evidence owner so cancelled tournaments are excluded, as #678 did for blocking_byes.",
+        "category": "evidence_layer"
+      }
+    ],
+    "limitations": [
+      "Calendar evidence was not scanned in this audit context (sources_scanned=0), so item 4 is not verified against ice calendars.",
+      "Audit evidence was read through bounded operator queries, not every one of the 1153 evidence records."
+    ]
+  },
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "137 unresolved participation_shortfalls across 10 clubs (JU8, JU10, JU12, U8, U9, U10, U11, U12). Deterministic verify reports ok=true with 0 violations. Per the publication-scope diff against the last publication (2026-10-06T1102), no tournament was added, removed, or changed, so these shortfalls are season-wide planning debt, not part of the public delta.",
+      "severity": "major",
+      "confidence": "high"
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "16 hosting_balance imbalances and 9 unresolved tournament placements (U10, U11, U12, U9 cases; excluded-date, fixed external conflict, or no participant host slot). unresolved_hosting_obligations is 0. Hosting responsibility is unchanged against the last publication.",
+      "severity": "major",
+      "confidence": "high"
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "blocking_byes now matches 0 records; the earlier critical findings on cancelled rvv-0054 and rvv-0016 are no longer present. One unresolved tournament_duration record remains for rvv-0016 (JU12 2026-11-22 Kongsberghallen, duration=None, 0 games). rvv-0016 is in the cancelled list excluded from the Spond export, so this looks like an evidence-layer defect on a cancelled tournament rather than a live placement defect. 5 input-constrained JU8/JU12 shapes remain visible as known planning limits.",
+      "severity": "minor",
+      "confidence": "medium"
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "10 manual external-conflict placements (Frisk Asker 7: rvv-0095, rvv-0121, rvv-0155, rvv-0157, rvv-0179, rvv-0048, rvv-0128; Sandefjord Penguins 3: rvv-0024, rvv-0037, rvv-0102). Calendar evidence scanned 0 sources, so ice availability for these placements is not verified from calendar evidence. None of these placements is new in the public delta. Calendar verification remains a visible gap.",
+      "severity": "major",
+      "confidence": "high"
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "host_participation records: 0. No host-club participation finding.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt én gang per dag?",
+      "finding": "duplicate_team_days count is 0.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "same_club_participants: 14 informational records across 3 clubs, none unresolved. same_club_participants_hard_max matches 0 records; the hard maximum of 3 teams per tournament is not exceeded.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "All export consistency checks match the plan: csv_games 2331 rows (2308 game rows plus 23 pause rows), csv_overview 183, csv_team_counts 142, xlsx overview 183 across 198 sheets, iCal 183 events. The HTML/XLSX/Spond artifact parity report is PASS with 0 mismatches against canonical revision 4c54761b2040299818ed893b7081e662bb9b249ce19ac891ba175a75bf89d7cb.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?",
+      "finding": "verify_violations: 0. waived_violations: 0. operator_waivers: 0. No unexplained material problem was found in this presentation-only regeneration. Canonical season state was not changed (canonical_revision_before equals canonical_revision_after). The open items above are pre-existing planning debt or the cancelled-tournament evidence defect in item 3.",
+      "severity": "info",
+      "confidence": "medium"
+    }
+  ],
+  "potential_missing_rule": [],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+  "publication_gate_status": "operator_review_required"
+}
