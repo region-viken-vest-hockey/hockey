@@ -195,7 +195,7 @@ tournament_scheduler/rules/catalog.py	1740
 tournament_scheduler/rules/operational_rules.py	312
 tournament_scheduler/repair/search_neighborhood.py	563
 tournament_scheduler/season/accepted_baseline.py	341
-tournament_scheduler/season/maintenance.py	772
+tournament_scheduler/season/maintenance.py	646
 tournament_scheduler/application/canonical_season/store_facade.py	1512
 tournament_scheduler/serialization/season_plan.py	304
 tournament_scheduler/spond/spond_import.py	312

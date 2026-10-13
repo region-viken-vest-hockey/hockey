@@ -140,7 +140,6 @@ _NON_SCHEDULING_DIAGNOSTIC_PREFIXES = (
 # being emitted must be removed here.
 _GRANDFATHERED_UNREGISTERED_CODES = frozenset(
     {
-        "change_protection_violation",
         "fewer_distinct_opponent_clubs",
         "fewer_unique_opponents",
         "hard_violations",
@@ -306,6 +305,54 @@ def test_manual_external_conflict_placements_has_one_calendar_interval_owner() -
 
     _, other = _attributable_blockers(verification, "t2")
     assert other == []
+
+
+def test_change_protection_violation_has_one_accepted_change_protection_owner() -> None:
+    # A protection is the durable intent of one accepted maintenance change. It is
+    # not a baseline approval lock (canonical_*_preserved) nor a semantic request,
+    # and one code cannot be split across the two canonical lock rules, so it has
+    # its own stable owner. The owner is a mutation-refusal verifier, not a finding.
+    from tournament_scheduler.season.change_protections import CHANGE_PROTECTIONS_KEY, protection_violations
+
+    code = "change_protection_violation"
+    owner = "accepted_change_protection"
+    assert _all_emitted_codes_by_module()[code] == {"tournament_scheduler/season/change_protections.py"}
+    assert {entry.id for entry in catalog.RULE_CATALOG if code in entry.verifier_codes} == {owner}
+    assert {entry.id for entry in catalog.RULE_CATALOG if code in entry.finding_codes} == set()
+    assert catalog.rule_id_for_verifier_code(code) == owner
+    assert catalog.rule_id_for_finding_code(code) is None
+    entry = catalog.CATALOG_BY_ID[owner]
+    assert entry.classification == catalog.HARD_CONSTRAINT
+    assert entry.waivable is False
+    assert code not in _GRANDFATHERED_UNREGISTERED_CODES
+
+    plan = {"tournaments": [{"id": "t1", "age_group": "U10", "teams": []}]}
+    decisions = {
+        CHANGE_PROTECTIONS_KEY: [
+            {
+                "id": "p1",
+                "kind": "must_participate",
+                "status": "active",
+                "request_id": "r1",
+                "tournament_id": "t1",
+                "team": {"club": "Club A", "label": "A1", "age_group": "U10"},
+            }
+        ]
+    }
+    violations = protection_violations(plan, decisions)
+    assert [violation["code"] for violation in violations] == [code]
+    catalog.annotate_violations(violations)
+    assert violations[0]["rule_id"] == owner
+
+    # The season audit must run this owner (not report the rule as incomplete),
+    # and surface its violation as hard evidence for the same rule.
+    from tournament_scheduler.season.audit_owners import CHANGE_PROTECTION_OWNER, _audit_owner_evidence
+
+    audit_violations, _findings, covered, incomplete = _audit_owner_evidence(plan, {}, decisions)
+    assert CHANGE_PROTECTION_OWNER == entry.verifier_owner
+    assert CHANGE_PROTECTION_OWNER in covered
+    assert "accepted_change_protection" not in incomplete
+    assert [violation["code"] for violation in audit_violations if violation["code"] == code] == [code]
 
 
 _TOURNAMENT_IDENTITY_CODES = (
