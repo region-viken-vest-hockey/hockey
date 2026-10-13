@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 
 import tournament_scheduler.infrastructure.canonical_season_migration as migration_module
+import tournament_scheduler.infrastructure.canonical_season_store as store_module
 from tournament_scheduler.infrastructure.canonical_season_layout import (
     DECISIONS_PARTITIONS,
     LAYOUT_MONOLITHIC,
@@ -240,20 +241,17 @@ def test_revision_drift_in_the_staged_proof_refuses_before_install(tmp_path: Pat
     _assert_monolithic_unchanged(root, before)
 
 
-def test_installed_layout_that_fails_to_load_is_rolled_back(tmp_path: Path, monkeypatch) -> None:
+def test_unreadable_installed_layout_is_rolled_back_without_reading_it(tmp_path: Path, monkeypatch) -> None:
+    """Every read of the installed partitioned layout fails; the restore must still succeed."""
+
     root = tmp_path / "season"
     before = _write_monolithic(root)
-    real_load = CanonicalSeasonStore.load
-    calls = {"count": 0}
 
-    def load_fails_after_install(self, season):
-        # Call 1 is the migration's source read; call 2 is the post-install verification.
-        calls["count"] += 1
-        if calls["count"] == 2:
-            raise SeasonStateError("installed partition unreadable")
-        return real_load(self, season)
+    def unreadable(season_directory, season):
+        raise SeasonStateError("installed partition is corrupt")
 
-    monkeypatch.setattr(CanonicalSeasonStore, "load", load_fails_after_install)
+    monkeypatch.setattr(store_module, "decode_layout", unreadable)
+    monkeypatch.setattr(migration_module, "decode_layout", unreadable)
 
     with pytest.raises(SeasonStateError, match="restored"):
         migrate_season_to_partitioned(SEASON, root=root)
