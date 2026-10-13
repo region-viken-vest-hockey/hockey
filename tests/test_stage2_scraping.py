@@ -750,6 +750,173 @@ class TestEventsToDict:
         assert "datetime" in dicts[0]
 
 
+class TestEventDeduplication:
+    """Stage 2 must deduplicate source occurrences before any consumer sees them."""
+
+    def test_brp_exigo_collapses_repeated_order_ids(self, tmp_path):
+        """Repeated Skien BRP/Exigo rows for one orderId enter evidence once."""
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources([
+            {
+                "name": "Skien",
+                "type": "brp_exigo",
+                "url": "https://skienfritidspark.brp.exigo.no/ishallen",
+            },
+        ])
+        event = CalendarEvent(
+            date="05.09.2026",
+            name="Skien fritidspark KF",
+            datetime=datetime(2026, 9, 5, 9, 0),
+            duration_hours=10.0,
+            location="Ishockey - bane 1",
+            source_event_id="1131048",
+        )
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_brp_exigo_scraper",
+            return_value=([event, event, event], ""),
+        ) as mock_brp:
+            result = run(
+                cfg, state,
+                datetime(2026, 9, 1), datetime(2026, 12, 1),
+                strict=False,
+            )
+
+        mock_brp.assert_called_once()
+        src = result["sources"][0]
+        assert src["event_count"] == 1
+        assert src["events"][0]["source_event_id"] == "1131048"
+
+    def test_brp_exigo_keeps_distinct_order_ids_separate(self, tmp_path):
+        """Different Skien orderIds are different bookings even with equal facts."""
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources([
+            {
+                "name": "Skien",
+                "type": "brp_exigo",
+                "url": "https://skienfritidspark.brp.exigo.no/ishallen",
+            },
+        ])
+        base = dict(
+            date="05.09.2026",
+            name="Skien fritidspark KF",
+            datetime=datetime(2026, 9, 5, 9, 0),
+            duration_hours=10.0,
+            location="Ishockey - bane 1",
+        )
+        events = [
+            CalendarEvent(source_event_id="1131048", **base),
+            CalendarEvent(source_event_id="1131049", **base),
+        ]
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_brp_exigo_scraper",
+            return_value=(events, ""),
+        ):
+            result = run(
+                cfg, state,
+                datetime(2026, 9, 1), datetime(2026, 12, 1),
+                strict=False,
+            )
+
+        src = result["sources"][0]
+        assert src["event_count"] == 2
+        assert {e["source_event_id"] for e in src["events"]} == {"1131048", "1131049"}
+
+    def test_same_title_distinct_intervals_stay_separate(self, tmp_path):
+        """Same-title events at different times are real separate blocks."""
+        state = PipelineState(tmp_path / "pipeline")
+        cfg = _make_config_with_sources([
+            {"name": "Kongsberg", "type": SOURCE_OUTLOOK, "url": "https://example.com"},
+        ])
+        events = [
+            CalendarEvent(
+                date="01.11.2026",
+                name="Serierunde U12",
+                datetime=datetime(2026, 11, 1, 9, 0),
+                duration_hours=2.0,
+                location="Kongsbergen Ishall",
+            ),
+            CalendarEvent(
+                date="01.11.2026",
+                name="Serierunde U12",
+                datetime=datetime(2026, 11, 1, 17, 0),
+                duration_hours=2.0,
+                location="Kongsbergen Ishall",
+            ),
+        ]
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_outlook_scraper",
+            return_value=(events, ""),
+        ):
+            result = run(
+                cfg, state,
+                datetime(2026, 10, 1), datetime(2026, 12, 31),
+                strict=False,
+            )
+
+        src = result["sources"][0]
+        assert src["event_count"] == 2
+        assert {e["datetime"] for e in src["events"]} == {
+            "2026-11-01T09:00:00",
+            "2026-11-01T17:00:00",
+        }
+
+    def test_cached_duplicate_rows_are_normalized_before_merge(self, tmp_path):
+        """A cache written with duplicate rows is collapsed when served."""
+        work_dir = tmp_path / "pipeline"
+        state = PipelineState(work_dir)
+        cfg = _make_config_with_sources([
+            {"name": "Kongsberg", "type": SOURCE_OUTLOOK, "url": "https://example.com"},
+        ])
+        row = {
+            "date": "01.11.2026",
+            "name": "Serierunde U12",
+            "datetime": "2026-11-01T15:00:00",
+            "duration_hours": 2.0,
+            "location": "Kongsbergen Ishall",
+        }
+        ts = datetime.now().isoformat()
+        # Written raw on purpose: _events_to_dicts would already deduplicate.
+        ScrapedDataCache(work_dir=work_dir).write({
+            "_meta": {
+                "updated_at": ts,
+                "ttl_hours": 6,
+                "start_date": cfg["start_date"],
+                "end_date": cfg["end_date"],
+            },
+            "sources": {
+                "Kongsberg": {
+                    "name": "Kongsberg",
+                    "url": "https://example.com",
+                    "scrape_timestamp": ts,
+                    "ttl_hours": 6,
+                    "event_count": 2,
+                    "blocked": False,
+                    "events": [dict(row), dict(row)],
+                },
+            },
+            "source_count": 1,
+            "total_events": 2,
+        })
+
+        with patch(
+            "tournament_scheduler.pipeline.stage2_scraping._run_outlook_scraper",
+        ) as mock_scraper:
+            result = run(
+                cfg, state,
+                datetime(2025, 9, 1), datetime(2025, 12, 1),
+                strict=False,
+            )
+
+        mock_scraper.assert_not_called()
+        src = result["sources"][0]
+        assert src["from_cache"] is True
+        assert src["event_count"] == 1
+        assert src["events"][0]["name"] == "Serierunde U12"
+
+
 class TestCheckpointDateRangeFields:
     """Stage 2 checkpoint must expose start_date, end_date, and per-source fields."""
 

@@ -47,7 +47,7 @@ from .scraper_bookup import _run_bookup_scraper
 from .scraper_brp_exigo import _run_brp_exigo_scraper
 from .scraper_credentialed import _try_credentialed_scrape
 from .fixed_allocation_source import run_fixed_allocation_source
-from .scraper_event_helpers import _events_to_dicts, _group_events_by_club, _group_club_calendar_status
+from .scraper_event_helpers import _events_to_dicts, _group_events_by_club, _group_club_calendar_status, deduplicate_serialized_events
 from .source_integrity import (
     club_coverage_proven,
     club_integrity_status,
@@ -60,6 +60,7 @@ from .scraper_outlook import _run_outlook_scraper
 from .scraper_recovery import _blocked_sources_warning, _empty_sources_warning, _recovery_hint_for_source
 from .scraper_styledcalendar import _run_styledcalendar_scraper
 from .scraper_sportello import _run_sportello_scraper
+
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -462,7 +463,7 @@ def run(
             and not cache.is_stale(name)
             and cache.is_config_match(name, url, _source_type_for_match, _location_filter_for_match)
         ):
-            _cached_events = entry.get("events", [])
+            _cached_events = deduplicate_serialized_events(entry.get("events", []))
             _scraped_at = entry.get("scrape_timestamp", "")
             _cache_age_hours = None
             if _scraped_at:
@@ -477,7 +478,7 @@ def run(
                 url=source_cfg.get("url", entry.get("url", "")),
                 source_type=source_cfg.get("type", SOURCE_OUTLOOK).lower(),
                 events=_cached_events,
-                event_count=entry.get("event_count", len(_cached_events)),
+                event_count=len(_cached_events),
                 blocked=False,
                 block_reason="",
                 llm_fallback=False,
@@ -530,7 +531,6 @@ def run(
                 blocked.append({"name": source_cfg.get("name", "?"), **source_result})
             if source_result.get("empty_calendar"):
                 empty_sources.append({"name": source_cfg.get("name", "?"), **source_result})
-
     event_expectation_warnings = _apply_event_count_expectations(
         source_results,
         config=config,
@@ -687,7 +687,7 @@ def _scrape_source(
             club_name=club_for_source_name(name),
             source_arena=_source_identity_arena(source_cfg),
         )
-        result["event_count"] = len(events)
+        result["event_count"] = len(result["events"])
         return result
 
     # --- Run the deterministic scraper ---
@@ -835,7 +835,7 @@ def _scrape_source(
         club_name=club_for_source_name(name),
         source_arena=_source_identity_arena(source_cfg),
     )
-    result["event_count"] = len(events)
+    result["event_count"] = len(result["events"])
     return result
 
 

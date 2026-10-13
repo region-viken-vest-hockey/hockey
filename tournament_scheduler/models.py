@@ -5,16 +5,7 @@ from datetime import datetime, date, timedelta
 from typing import Collection, List, Dict, Set, Optional, Tuple
 import uuid
 
-
-@dataclass
-class CalendarEvent:
-    """Represents a calendar event with scheduling information."""
-
-    date: str  # Format: DD.MM.YYYY
-    name: str
-    datetime: datetime
-    duration_hours: float = 0.0
-    location: str = ""  # Raw LOCATION field from the source calendar
+from .calendar_event import CalendarEvent
 
 
 @dataclass

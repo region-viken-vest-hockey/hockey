@@ -19,6 +19,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from .scraper_event_helpers import deduplicate_serialized_events
+
 
 CACHE_DIR = "cache"
 CACHE_FILE = "scraped_data.json"
@@ -124,7 +126,14 @@ class ScrapedDataCache:
             if source_result.get("from_cache"):
                 existing = cache.get("sources", {}).get(name)
                 if existing:
-                    sources_data[name] = existing
+                    normalized = dict(existing)
+                    normalized["events"] = deduplicate_serialized_events(
+                        event
+                        for event in existing.get("events", [])
+                        if isinstance(event, dict)
+                    )
+                    normalized["event_count"] = len(normalized["events"])
+                    sources_data[name] = normalized
                     continue
 
             url: str = source_result.get("url", "")

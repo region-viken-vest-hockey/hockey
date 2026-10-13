@@ -8,7 +8,8 @@ per-source results to RVV club names.
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Iterable, Mapping
+import unicodedata
 
 from ..clubs.registry import club_for_source_name
 from ..models import CalendarEvent
@@ -38,12 +39,54 @@ def _classify_frisk_asker_resource_label(location: str) -> str | None:
     return None
 
 
+def _normalized_identity_text(value: Any) -> str:
+    """Normalize non-material source formatting for event identity."""
+
+    return " ".join(unicodedata.normalize("NFKC", str(value or "")).split()).casefold()
+
+
+def _serialized_event_identity(event: Mapping[str, Any]) -> tuple[str, ...]:
+    """Return one deterministic source-occurrence identity.
+
+    A stable upstream ID is the strongest discriminator when present, but the
+    material interval and venue facts remain part of the identity: two rows
+    with a reused ID but different booked intervals/resources must not be
+    collapsed. Sources without IDs fall back to those facts plus the title.
+    """
+
+    source_event_id = _normalized_identity_text(event.get("source_event_id"))
+    return (
+        source_event_id,
+        _normalized_identity_text(event.get("date")),
+        _normalized_identity_text(event.get("datetime")),
+        _normalized_identity_text(event.get("duration_hours")),
+        _normalized_identity_text(event.get("name")),
+        _normalized_identity_text(event.get("location")),
+        _normalized_identity_text(event.get("arena")),
+        "all-day" if bool(event.get("all_day")) else "timed",
+    )
+
+
+def deduplicate_serialized_events(events: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Keep the first copy of each normalized physical/source event."""
+
+    unique: list[dict[str, Any]] = []
+    seen: set[tuple[str, ...]] = set()
+    for event in events:
+        identity = _serialized_event_identity(event)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        unique.append(dict(event))
+    return unique
+
+
 def _events_to_dicts(
     events: list[CalendarEvent],
     club_name: str | None = None,
     source_arena: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Serialise :class:`CalendarEvent` objects to plain dicts for JSON output."""
+    """Serialise and deduplicate source events at the Stage 2 boundary."""
     result = []
     for e in events:
         d: dict[str, Any] = {
@@ -60,6 +103,8 @@ def _events_to_dicts(
             d["all_day"] = True
         if e.location:
             d["location"] = e.location
+        if getattr(e, "source_event_id", ""):
+            d["source_event_id"] = e.source_event_id
         if source_arena:
             d["arena"] = source_arena
         if club_name == "Frisk Asker" and source_arena == "Askerhallen" and e.location:
@@ -67,7 +112,7 @@ def _events_to_dicts(
             if resource_label:
                 d["resource_label_classification"] = resource_label
         result.append(d)
-    return result
+    return deduplicate_serialized_events(result)
 
 
 def _event_date_from_dict(event: dict[str, Any]) -> date | None:

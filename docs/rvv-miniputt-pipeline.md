@@ -35,6 +35,7 @@ Validate and normalize `input.xlsx`. Invalid identities/date windows/configurati
 ### Stage 2 — source/calendar evidence
 
 Collect configured calendar evidence, cache provenance and classify blocked/empty/suspicious sources. Browser recovery is optional and harness-neutral. If a source genuinely needs browser navigation, use the shared `scrape-llm` procedure: the browser-capable session extracts only the needed data, then returns it through repository `recovery-inject` and `scrape-merge` so Stage 2 validates it.
+Stage 2 deduplicates source occurrences before persistence and association while semantic ambiguity remains in the existing proposal/signoff flow.
 
 ### Stage 3 — planning
 

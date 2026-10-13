@@ -114,6 +114,7 @@ class CalendarCache:
                     datetime=datetime.fromisoformat(event_data['datetime']),
                     duration_hours=event_data['duration_hours'],
                     location=event_data.get('location', ''),
+                    source_event_id=event_data.get('source_event_id', ''),
                 )
                 if event_data.get('all_day'):
                     event.all_day = True
@@ -161,6 +162,8 @@ class CalendarCache:
             }
             if event.location:
                 event_data['location'] = event.location
+            if event.source_event_id:
+                event_data['source_event_id'] = event.source_event_id
             if bool(getattr(event, 'all_day', False)):
                 event_data['all_day'] = True
             events_data.append(event_data)

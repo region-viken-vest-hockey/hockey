@@ -53,10 +53,17 @@ def _run_brp_exigo_scraper(
         events.extend(_parse_brp_exigo_day(page_content, current))
         current += timedelta(days=1)
 
-    seen: set[tuple[str, str, str, str]] = set()
+    seen: set[tuple[str, str, str, float, str, str]] = set()
     unique: list[CalendarEvent] = []
     for event in events:
-        key = (event.date, event.datetime.strftime("%H:%M"), event.name, event.location)
+        key = (
+            event.source_event_id,
+            event.date,
+            event.datetime.isoformat(),
+            event.duration_hours,
+            event.name,
+            event.location,
+        )
         if key not in seen:
             seen.add(key)
             unique.append(event)
@@ -121,6 +128,7 @@ def _parse_brp_exigo_day(page_content: str, day: datetime) -> list[CalendarEvent
             location = ""
 
         event_dt = day.replace(hour=sh, minute=sm)
+        upstream_id = item.get("orderId") or item.get("id")
         events.append(
             CalendarEvent(
                 date=day.strftime("%d.%m.%Y"),
@@ -128,6 +136,7 @@ def _parse_brp_exigo_day(page_content: str, day: datetime) -> list[CalendarEvent
                 datetime=event_dt,
                 duration_hours=duration,
                 location=location,
+                source_event_id=str(upstream_id or ""),
             )
         )
 
