@@ -9,6 +9,8 @@ from tournament_scheduler.application.canonical_season.presentation_regeneration
     run_presentation_only_regeneration,
 )
 from tournament_scheduler.application.canonical_season.store_facade import SeasonStateError
+from tournament_scheduler.pipeline.stage4_export import run
+from tournament_scheduler.pipeline.state import PipelineState
 from tournament_scheduler.pipeline.export_parity import STATUS_FAIL, STATUS_PASS
 from tournament_scheduler.publication.export_lifecycle import write_draft_manifest
 
@@ -146,6 +148,25 @@ def test_export_failure_is_reported_without_claiming_success(tmp_path):
     assert report["status"] == STATUS_FAIL
     assert "export_failed" in _reason_codes(report)
     assert report["artifact_parity"]["status"] == "NOT_RUN"
+
+
+def test_real_stage4_strict_failure_is_reported_as_export_failed(tmp_path):
+    # A planless checkpoint makes the real Stage 4 exporter raise Stage4Error in
+    # strict mode, the same path a renderer or artifact failure takes.
+    def real_failing_export():
+        return run({"plan": {}}, PipelineState(str(tmp_path / "pipeline")), export_dir=str(tmp_path / "export"), strict=True)
+
+    report = run_presentation_only_regeneration(
+        season="2026-2027",
+        read_canonical_revision=_revisions(REVISION, REVISION),
+        export=real_failing_export,
+    )
+
+    assert report["status"] == STATUS_FAIL
+    assert report["canonical_revision_unchanged"] is True
+    export_failures = [reason for reason in report["reasons"] if reason["code"] == "export_failed"]
+    assert export_failures and "Stage4Error" in export_failures[0]["message"]
+    assert report["publication"] == {"performed": False, "authorized": False}
 
 
 def test_harness_procedures_require_presentation_only_proof_and_never_imply_publication():

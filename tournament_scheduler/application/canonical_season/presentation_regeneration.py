@@ -22,8 +22,15 @@ from tournament_scheduler.pipeline.export_parity import (
     verify_export_parity,
 )
 from tournament_scheduler.pipeline.export_parity.verify import DEFAULT_BASENAME
+from tournament_scheduler.pipeline.stage4_export_errors import Stage4Error
+from tournament_scheduler.publication.projection_guard import ExportProjectionError
 
 from .store_facade import SeasonStateError
+
+# Failures an export is expected to raise for a bad canonical or renderer state.
+# They become a FAIL report rather than a traceback, so the harness always gets
+# the bounded JSON result.
+_EXPECTED_EXPORT_FAILURES = (SeasonStateError, Stage4Error, ExportProjectionError, OSError)
 
 PRESENTATION_REGENERATION_SCHEMA_VERSION = 1
 
@@ -55,8 +62,8 @@ def run_presentation_only_regeneration(
     result: dict[str, Any] = {}
     try:
         result = export() or {}
-    except SeasonStateError as exc:
-        reasons.append(_reason("export_failed", str(exc)))
+    except _EXPECTED_EXPORT_FAILURES as exc:
+        reasons.append(_reason("export_failed", f"{type(exc).__name__}: {exc}"))
 
     revision_after = str(read_canonical_revision() or "")
     export_revision = str(result.get("canonical_revision") or "")
