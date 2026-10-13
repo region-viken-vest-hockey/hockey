@@ -156,7 +156,7 @@ tournament_scheduler/repair/host_team_missing.py	835
 tournament_scheduler/hosting/balance_repair.py	579
 tournament_scheduler/hosting/coverage.py	414
 tournament_scheduler/html/renderers/rules_table.py	344
-tournament_scheduler/infrastructure/canonical_season_store.py	674
+tournament_scheduler/infrastructure/canonical_season_store.py	643
 tournament_scheduler/repair/intra_club_distribution.py	1046
 tournament_scheduler/llm_judge/audit.py	429
 tournament_scheduler/repair/movable_capacity.py	571

@@ -333,7 +333,7 @@ def compact_history(
         if nothing_to_compact:
             report["backup"] = None
         else:
-            original_bytes = _read_original_decisions_bytes(service, season)
+            original_bytes = service.store.decisions_bytes(season)
             report["backup"] = {
                 "dry_run": True,
                 "backup_id": compaction_backup_id(original_bytes),
@@ -352,7 +352,7 @@ def compact_history(
     # Durable byte-for-byte backup of the complete original, created and
     # verified *before* the compacted state is installed, so a failed swap
     # always leaves the original active state plus a safe immutable backup.
-    original_bytes = _read_original_decisions_bytes(service, season)
+    original_bytes = service.store.decisions_bytes(season)
     backup_manifest = create_compaction_backup(
         season=season,
         decisions_bytes=original_bytes,
@@ -389,16 +389,6 @@ def compact_history(
         )
     report["committed"] = True
     return report
-
-
-def _read_original_decisions_bytes(service, season: str) -> bytes:
-    """Return the exact on-disk bytes of ``decisions.json`` before compaction."""
-
-    path = service.store.decisions_path(season)
-    try:
-        return path.read_bytes()
-    except OSError as exc:
-        raise SeasonStateError(f"Cannot read canonical decisions for backup: {exc}") from exc
 
 
 def history_inventory(

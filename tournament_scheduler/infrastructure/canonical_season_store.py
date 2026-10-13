@@ -29,7 +29,6 @@ write.
 
 from __future__ import annotations
 
-import json
 import os
 import shutil
 import tempfile
@@ -38,6 +37,26 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Iterator, Mapping
 
+from tournament_scheduler.infrastructure.canonical_season_evidence import (
+    _carry_forward_evidence,
+    _write_extra_evidence,
+)
+from tournament_scheduler.infrastructure.canonical_season_layout import (
+    DECISIONS_SCHEMA_VERSION,
+    LAYOUT_PARTITIONED,
+    MANIFEST_FILE_NAME,
+    MONOLITHIC_DECISIONS_FILE_NAME,
+    SCHEDULE_FILE_NAME,
+    SEASON_STATE_SCHEMA_VERSION,
+    SeasonStateError,
+    decode_layout,
+    detect_layout,
+    encode_layout,
+    json_bytes,
+    load_json,
+    validate_decisions_payload,
+    validate_schedule_payload,
+)
 from tournament_scheduler.season.state import canonical_state_revision
 
 try:  # pragma: no cover - platform dependent
@@ -45,17 +64,11 @@ try:  # pragma: no cover - platform dependent
 except ImportError:  # pragma: no cover - Windows
     fcntl = None  # type: ignore[assignment]
 
-SEASON_STATE_SCHEMA_VERSION = 1
-DECISIONS_SCHEMA_VERSION = 1
 DEFAULT_SEASON_ROOT = Path("season")
 # Durable auxiliary canonical-season artifacts (for example the content-addressed
-# move-evidence archive) that live alongside the two canonical files and must
+# move-evidence archive) that live alongside the canonical files and must
 # survive the atomic directory swap rather than being dropped by it.
 EVIDENCE_DIR_NAME = "evidence"
-
-
-class SeasonStateError(RuntimeError):
-    """Raised when canonical season state cannot be read or written safely."""
 
 
 class CanonicalCommitDurabilityError(SeasonStateError):
@@ -132,19 +145,6 @@ def load_export_context(
         return _load_export_context_unlocked(season, root=root)
 
 
-def _json_bytes(payload: Mapping[str, Any]) -> bytes:
-    return (json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
-
-
-def load_json(path: Path) -> dict[str, Any]:
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError as exc:
-        raise SeasonStateError(f"Canonical season file not found: {path}") from exc
-    except json.JSONDecodeError as exc:
-        raise SeasonStateError(f"Invalid JSON in canonical season file {path}: {exc}") from exc
-
-
 def season_id_from_plan(plan_dict: dict[str, Any]) -> str:
     start = str(plan_dict.get("start_date") or "")
     end = str(plan_dict.get("end_date") or "")
@@ -164,13 +164,10 @@ def _load_schedule_unlocked(season: str, *, root: str | os.PathLike[str] = DEFAU
     Callers must already hold the season lock (see :func:`_season_read_lock`).
     """
 
-    payload = load_json(schedule_path(season, root=root))
-    version = int(payload.get("schema_version", 0) or 0)
-    if version != SEASON_STATE_SCHEMA_VERSION:
-        raise SeasonStateError(f"Unsupported schedule schema_version: {version!r}")
-    if not isinstance(payload.get("plan"), dict):
-        raise SeasonStateError("Canonical schedule is missing its plan payload")
-    return payload
+    directory = season_dir(season, root=root)
+    if detect_layout(directory) == LAYOUT_PARTITIONED:
+        return decode_layout(directory, season)[0]
+    return validate_schedule_payload(load_json(schedule_path(season, root=root)))
 
 
 def load_schedule(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
@@ -184,93 +181,24 @@ def _load_decisions_unlocked(season: str, *, root: str | os.PathLike[str] = DEFA
     Callers must already hold the season lock (see :func:`_season_read_lock`).
     """
 
-    payload = load_json(decisions_path(season, root=root))
-    version = int(payload.get("schema_version", 0) or 0)
-    if version != DECISIONS_SCHEMA_VERSION:
-        raise SeasonStateError(f"Unsupported decisions schema_version: {version!r}")
-    if not isinstance(payload.get("decisions"), dict):
-        raise SeasonStateError("Canonical decisions file is missing its decisions object")
-    return payload
+    directory = season_dir(season, root=root)
+    if detect_layout(directory) == LAYOUT_PARTITIONED:
+        return decode_layout(directory, season)[1]
+    return validate_decisions_payload(load_json(decisions_path(season, root=root)))
+
+
+def _load_payloads_unlocked(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Read ``(schedule, decisions)`` as one aggregate; the caller holds the season lock."""
+
+    directory = season_dir(season, root=root)
+    if detect_layout(directory) == LAYOUT_PARTITIONED:
+        return decode_layout(directory, season)
+    return _load_schedule_unlocked(season, root=root), _load_decisions_unlocked(season, root=root)
 
 
 def load_decisions(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
     with _season_read_lock(season, root=root):
         return _load_decisions_unlocked(season, root=root)
-
-
-def _carry_forward_evidence(existing_evidence: Path, staging_evidence: Path) -> list[Path]:
-    """Carry retained evidence forward into the staged tree without bulk copying.
-
-    Retained evidence is content-addressed and strictly create-once (never
-    modified in place), so its files are immutable and safe to hardlink.
-    Hardlinks avoid re-reading and re-copying the retained bytes on every
-    canonical mutation. When hardlinks are unavailable (for example a
-    cross-device staging directory or a filesystem without link support) each
-    file is copied instead, so evidence is never dropped. Returns the files that
-    were actually copied and therefore still need their contents fsynced
-    (hardlinked files are already durable on disk).
-    """
-
-    copied: list[Path] = []
-    for src in sorted(existing_evidence.rglob("*")):
-        if src.is_symlink() or not src.is_file():
-            continue
-        relative = src.relative_to(existing_evidence)
-        dst = staging_evidence / relative
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            os.link(src, dst)
-        except OSError:
-            shutil.copy2(src, dst)
-            copied.append(dst)
-    return copied
-
-
-def _write_extra_evidence(
-    staging: Path, extra_evidence: Mapping[str, bytes]
-) -> list[Path]:
-    """Write caller-supplied evidence files into the staged season tree.
-
-    Keys are paths relative to the season directory. Files are written with the
-    same stage+fsync+replace discipline as the canonical files, inside the same
-    locked swap as ``schedule.json``/``decisions.json``, so a reference to a
-    newly archived artifact and the artifact itself are never installed
-    separately. An already carried-forward file is only accepted when its bytes
-    are identical, so a hardlinked active file is never truncated. Returns the
-    newly written files.
-    """
-
-    written: list[Path] = []
-    for relative_path, content in extra_evidence.items():
-        relative = Path(relative_path)
-        if relative.is_absolute() or ".." in relative.parts:
-            raise SeasonStateError(
-                f"Refusing canonical commit: illegal evidence path {relative_path!r}"
-            )
-        target = staging / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if target.exists():
-            if target.read_bytes() == content:
-                continue
-            raise SeasonStateError(
-                "Refusing canonical commit: staged evidence "
-                f"{relative_path} already exists with different content"
-            )
-        staging_fd, staging_name = tempfile.mkstemp(
-            prefix=f".{target.name}.", suffix=".tmp", dir=target.parent
-        )
-        os.close(staging_fd)
-        temp = Path(staging_name)
-        try:
-            temp.write_bytes(content)
-            with temp.open("rb") as handle:
-                os.fsync(handle.fileno())
-            os.replace(temp, target)
-        finally:
-            if temp.exists():
-                temp.unlink(missing_ok=True)
-        written.append(target)
-    return written
 
 
 def _discard_previous_state(backup: Path) -> None:
@@ -408,6 +336,7 @@ def _write_season_state_atomic(
     export_context: dict[str, Any] | None = None,
     extra_evidence: Mapping[str, bytes] | None = None,
     expected_revision: str | None = None,
+    layout: str | None = None,
 ) -> None:
     """Install the canonical season-state files under the swap/recovery lock.
 
@@ -427,6 +356,7 @@ def _write_season_state_atomic(
             export_context=export_context,
             extra_evidence=extra_evidence,
             expected_revision=expected_revision,
+            layout=layout,
         )
 
 
@@ -439,6 +369,7 @@ def _write_season_state_locked(
     export_context: dict[str, Any] | None = None,
     extra_evidence: Mapping[str, bytes] | None = None,
     expected_revision: str | None = None,
+    layout: str | None = None,
 ) -> None:
     """Install the canonical season-state files as one crash-durable boundary.
 
@@ -466,16 +397,16 @@ def _write_season_state_locked(
     backup = parent / f".{season_directory.name}.backup"
     try:
         _recover_interrupted_swap(season_directory, backup)
+        # Mutations keep the season's current physical layout; only an explicit
+        # layout (the migration path) changes it.
+        target_layout = layout or detect_layout(season_directory)
 
         if expected_revision is not None:
             # The compare-and-swap check must run inside the write lock so a
             # concurrent refresh/reconciliation between the caller's read and
             # this write cannot be silently overwritten (which would clear a
             # freshness latch it just armed).
-            current_decisions = _load_decisions_unlocked(
-                season_directory.name, root=season_directory.parent
-            )
-            current_schedule = _load_schedule_unlocked(
+            current_schedule, current_decisions = _load_payloads_unlocked(
                 season_directory.name, root=season_directory.parent
             )
             current_revision = canonical_state_revision(
@@ -487,11 +418,15 @@ def _write_season_state_locked(
                     current_revision=str(current_revision or ""),
                 )
 
-        (staging / "schedule.json").write_bytes(_json_bytes(schedule_payload))
-        (staging / "decisions.json").write_bytes(_json_bytes(decisions_payload))
-        staged_files = [staging / "schedule.json", staging / "decisions.json"]
+        staged_files: list[Path] = []
+        for relative, data in encode_layout(
+            season_directory.name, schedule_payload, decisions_payload, target_layout
+        ).items():
+            (staging / relative).parent.mkdir(parents=True, exist_ok=True)
+            (staging / relative).write_bytes(data)
+            staged_files.append(staging / relative)
         if export_context is not None:
-            (staging / "export_context.json").write_bytes(_json_bytes(export_context))
+            (staging / "export_context.json").write_bytes(json_bytes(export_context))
             staged_files.append(staging / "export_context.json")
 
         # Durable auxiliary artifacts (the content-addressed evidence archive)
@@ -619,13 +554,41 @@ class CanonicalSeasonStore:
     def load_export_context(self, season: str) -> dict[str, Any] | None:
         return load_export_context(season, root=self.root)
 
+    def layout(self, season: str) -> str:
+        """The physical layout (``monolithic`` or ``partitioned``) the season uses today."""
+        return detect_layout(self.directory(season))
+
+    def decisions_bytes(self, season: str) -> bytes:
+        """The exact on-disk ``decisions.json`` bytes, for a byte-exact compaction backup.
+
+        A partitioned season has no single decisions file, and a byte-exact backup of
+        its physical state is not yet defined, so it is refused rather than synthesized.
+        """
+        if self.layout(season) == LAYOUT_PARTITIONED:
+            raise SeasonStateError(
+                f"Season {season} uses the partitioned layout, which has no byte-exact decisions "
+                "file to back up; history compaction is not yet supported for partitioned seasons"
+            )
+        try:
+            return self.decisions_path(season).read_bytes()
+        except OSError as exc:
+            raise SeasonStateError(f"Cannot read canonical decisions for backup: {exc}") from exc
+
+    def has_decisions(self, season: str) -> bool:
+        """True when durable decisions exist in either layout."""
+        directory = self.directory(season)
+        return (directory / MANIFEST_FILE_NAME).is_file() or (directory / MONOLITHIC_DECISIONS_FILE_NAME).exists()
+
+    def has_state(self, season: str) -> bool:
+        """True when any canonical schedule or decisions file exists in either layout."""
+        return self.has_decisions(season) or (self.directory(season) / SCHEDULE_FILE_NAME).exists()
+
     def load(self, season: str) -> CanonicalSeasonSnapshot:
         # Read all three files under one lock acquisition so a concurrent writer
         # can never produce a torn snapshot (for example an old schedule with new
         # decisions). The unlocked helpers must only be called while holding it.
         with _season_read_lock(season, root=self.root):
-            schedule = _load_schedule_unlocked(season, root=self.root)
-            decisions = _load_decisions_unlocked(season, root=self.root)
+            schedule, decisions = _load_payloads_unlocked(season, root=self.root)
             export_context = _load_export_context_unlocked(season, root=self.root)
         return CanonicalSeasonSnapshot(
             season=season,
@@ -641,6 +604,7 @@ class CanonicalSeasonStore:
         require_absent: bool = False,
         extra_evidence: Mapping[str, bytes] | None = None,
         expected_revision: str | None = None,
+        layout: str | None = None,
     ) -> None:
         _write_season_state_atomic(
             self.directory(snapshot.season),
@@ -650,6 +614,7 @@ class CanonicalSeasonStore:
             export_context=snapshot.export_context,
             extra_evidence=extra_evidence,
             expected_revision=expected_revision,
+            layout=layout,
         )
 
 
