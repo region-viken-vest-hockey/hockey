@@ -607,3 +607,84 @@ def test_cancelled_tournament_keeps_registered_pool_shape_evidence_without_block
 
     assert [row["id"] for row in facts["blocking_byes"]] == ["live-short-roster"]
     assert [row["id"] for row in facts["input_constrained_shape_examples"]] == ["cancelled-four-teams"]
+
+
+def _write_plan_with_external_conflicts(work_dir, *, host_clubs: list[str]) -> None:
+    PipelineState(work_dir).write_stage(
+        StageName.PLANNING,
+        {
+            "plan": {
+                "tournaments": [],
+                "unresolved_external_conflicts": [
+                    {"tournament_id": f"t{i}", "host_club": club, "age_group": "U10", "date": "2026-11-01"}
+                    for i, club in enumerate(host_clubs)
+                ],
+            }
+        },
+        status=StageStatus.DONE,
+    )
+
+
+def _write_source_summary(work_dir, source_summary: dict) -> None:
+    export_dir = work_dir / "export"
+    export_dir.mkdir(exist_ok=True)
+    (export_dir / "evidence_bundle.json").write_text(
+        json.dumps({"source_summary": source_summary}), encoding="utf-8"
+    )
+
+
+def test_zero_scanned_sources_leaves_every_external_conflict_unverified(tmp_path):
+    _write_plan_with_external_conflicts(tmp_path, host_clubs=["Jar"] * 10)
+    _write_export(tmp_path, fingerprint="fp-1")
+    _write_source_summary(tmp_path, {"sources_scanned": 0, "blocked_sources": [], "club_calendar_status": {}})
+
+    context = build_audit_context(work_dir=tmp_path)
+
+    assert context["evidence_coverage"] == {"unverified_placements": 10, "unverified_clubs": ["Jar"]}
+
+
+def test_unrelated_scanned_source_does_not_verify_an_affected_placement(tmp_path):
+    # Holmen scanned fine, but the placement's own host club Jar is blocked.
+    _write_plan_with_external_conflicts(tmp_path, host_clubs=["Jar"])
+    _write_export(tmp_path, fingerprint="fp-1")
+    _write_source_summary(
+        tmp_path,
+        {"sources_scanned": 1, "blocked_sources": ["Jar"], "club_calendar_status": {"Holmen": "known", "Jar": "blocked"}},
+    )
+
+    context = build_audit_context(work_dir=tmp_path)
+
+    assert context["evidence_coverage"] == {"unverified_placements": 1, "unverified_clubs": ["Jar"]}
+
+
+def test_placement_with_unrecorded_host_calendar_status_stays_unverified(tmp_path):
+    # A host club absent from club_calendar_status is unknown, never known.
+    _write_plan_with_external_conflicts(tmp_path, host_clubs=["Jar"])
+    _write_export(tmp_path, fingerprint="fp-1")
+    _write_source_summary(tmp_path, {"sources_scanned": 2, "blocked_sources": [], "club_calendar_status": {"Holmen": "known"}})
+
+    context = build_audit_context(work_dir=tmp_path)
+
+    assert context["evidence_coverage"]["unverified_placements"] == 1
+
+
+def test_placement_verified_when_its_own_host_calendar_is_known(tmp_path):
+    _write_plan_with_external_conflicts(tmp_path, host_clubs=["Jar", "Jar", "Holmen"])
+    _write_export(tmp_path, fingerprint="fp-1")
+    _write_source_summary(
+        tmp_path,
+        {"sources_scanned": 2, "blocked_sources": [], "club_calendar_status": {"Jar": "known", "Holmen": "blocked"}},
+    )
+
+    context = build_audit_context(work_dir=tmp_path)
+
+    assert context["evidence_coverage"] == {"unverified_placements": 1, "unverified_clubs": ["Holmen"]}
+
+
+def test_zero_scanned_sources_without_external_conflicts_reports_nothing_unverified(tmp_path):
+    _write_export(tmp_path, fingerprint="fp-1")
+    _write_source_summary(tmp_path, {"sources_scanned": 0, "blocked_sources": []})
+
+    context = build_audit_context(work_dir=tmp_path)
+
+    assert context["evidence_coverage"] == {"unverified_placements": 0, "unverified_clubs": []}

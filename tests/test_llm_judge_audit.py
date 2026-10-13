@@ -163,3 +163,12 @@ class TestRunHeadlessAudit:
         assert result["audit_metrics"]["evidence_rounds"] == 1
         assert result["audit_metrics"]["evidence_queries"][0]["category"] == "participation_shortfalls"
         assert result["audit_metrics"]["evidence_bytes_returned"] > 0
+
+
+def test_prompt_forbids_pass_when_external_conflicts_lack_calendar_coverage():
+    context = _context()
+    context["evidence_coverage"] = {"unverified_placements": 10, "unverified_clubs": ["Jar"]}
+    prompt = build_audit_prompt(context)
+    assert "Evidence-coverage policy (issue #679)" in prompt
+    assert "never as a clear calendar check" in prompt
+    assert '"unverified_placements": 10' in prompt
