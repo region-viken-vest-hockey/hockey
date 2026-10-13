@@ -1,4 +1,4 @@
-"""Physical layouts for one canonical season (issue #649).
+"""Physical layouts for one canonical season.
 
 One logical canonical season is ``schedule`` + ``decisions`` (plus the separate
 ``export_context``). It is stored in one of two physical layouts that encode the

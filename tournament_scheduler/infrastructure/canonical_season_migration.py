@@ -1,4 +1,4 @@
-"""Explicit migration of one canonical season to the partitioned layout (issue #649).
+"""Explicit migration of one canonical season to the partitioned layout.
 
 Ordinary mutations keep a season's current layout. Only this repository-owned
 path changes it. The migration reads the monolithic aggregate, writes the same

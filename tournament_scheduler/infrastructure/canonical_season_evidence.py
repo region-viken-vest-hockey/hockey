@@ -1,4 +1,4 @@
-"""Retained-evidence carry-forward for the canonical season directory swap (issue #649).
+"""Retained-evidence carry-forward for the canonical season directory swap.
 
 Immutable, content-addressed evidence is carried into each staged season tree by
 hardlink (with a copy fallback) so a mutation never drops evidence referenced by

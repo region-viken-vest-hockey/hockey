@@ -1,4 +1,4 @@
-"""Partitioned canonical season layout and its repository-owned migration (issue #649).
+"""Partitioned canonical season layout and its repository-owned migration.
 
 The partitioned layout must present one logical aggregate: the same effective
 facts, one canonical revision, integrity-checked partitions, and atomic
