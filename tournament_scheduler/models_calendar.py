@@ -1,8 +1,36 @@
 """Calendar event model: one source booking as scraped, checkpointed and planned against."""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
+import math
 from typing import Any, Mapping, Tuple
+
+
+# Float hours are a compatibility input used by existing source adapters. Values
+# this close to a whole minute differ only by binary representation noise; any
+# larger fractional remainder is genuine sub-minute data and is truncated so
+# normalized occupancy never expands beyond source evidence.
+_FLOAT_MINUTE_NOISE = 1e-9
+
+
+def minute_duration_from_hours(duration_hours: float) -> int:
+    """Normalize compatibility float hours to non-expanding minute precision.
+
+    Calendar evidence is represented at whole-minute precision. A value within
+    ``_FLOAT_MINUTE_NOISE`` of a whole minute is snapped to that minute to undo
+    binary float noise (for example a source 11:15-12:55 interval). Genuine
+    sub-minute remainders are truncated and therefore never expand occupancy.
+    """
+    try:
+        raw_minutes = float(duration_hours) * 60
+    except (TypeError, ValueError):
+        return 0
+    if not math.isfinite(raw_minutes) or raw_minutes <= 0:
+        return 0
+    nearest_minute = round(raw_minutes)
+    if abs(raw_minutes - nearest_minute) <= _FLOAT_MINUTE_NOISE:
+        return nearest_minute
+    return math.floor(raw_minutes)
 
 
 @dataclass(frozen=True)
@@ -26,6 +54,25 @@ class CalendarEvent:
     # several resources. Empty for sources that do not report resources.
     resources: Tuple[SourceResource, ...] = ()
     order_id: str = ""
+    # Canonical normalized duration. ``duration_hours`` remains as a
+    # compatibility input/output for existing adapters, but consumers should
+    # use this integer or ``end_datetime`` instead of reinterpreting the float.
+    duration_minutes: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.duration_minutes is None:
+            normalized_minutes = minute_duration_from_hours(self.duration_hours)
+        else:
+            if isinstance(self.duration_minutes, bool) or int(self.duration_minutes) != self.duration_minutes:
+                raise ValueError("duration_minutes must be a whole number")
+            normalized_minutes = max(0, int(self.duration_minutes))
+        self.duration_minutes = normalized_minutes
+        self.duration_hours = normalized_minutes / 60
+
+    @property
+    def end_datetime(self) -> datetime:
+        """Return the exact normalized minute-precision event end."""
+        return self.datetime + timedelta(minutes=self.duration_minutes)
 
     @classmethod
     def from_source_dict(cls, data: Mapping[str, Any]) -> "CalendarEvent":
@@ -37,6 +84,7 @@ class CalendarEvent:
             datetime=datetime.fromisoformat(data["datetime"]),
             duration_hours=data.get("duration_hours", 0.0),
             location=data.get("location", ""),
+            duration_minutes=data.get("duration_minutes"),
             **source_identity_from_dict(data),
         )
 

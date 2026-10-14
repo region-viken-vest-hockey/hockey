@@ -4,6 +4,7 @@ from datetime import date, datetime, timezone
 
 from tournament_scheduler.models import CalendarEvent
 from tournament_scheduler.utils.slot_finder import (
+    _event_busy_range_on_date,
     find_available_slots,
     format_time,
     minutes_to_time,
@@ -153,6 +154,11 @@ class TestFindAvailableSlots:
             latest_start="23:30",
         )
         assert slots == []
+
+    def test_float_noise_does_not_shorten_exact_minute_busy_range(self):
+        event = _event(11, 15, (12 + 55 / 60) - (11 + 15 / 60))
+
+        assert _event_busy_range_on_date(event, CHECK_DATE) == (11 * 60 + 15, 12 * 60 + 55)
 
     def test_timezone_aware_event_is_compared_with_matching_day_bounds(self):
         events = [

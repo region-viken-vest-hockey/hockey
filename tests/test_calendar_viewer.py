@@ -63,6 +63,28 @@ class TestCalendarViewer:
         assert "ingen lag er registrert" not in html
         assert "Sesongplanen publiseres når planleggingsarbeidet er ferdig." in html
 
+    def test_generate_html_preserves_exact_minute_event_end(self, tmp_path):
+        _write_cache(tmp_path, "Skien")
+        cache_path = tmp_path / ".pipeline" / "cache" / "scraped_data.json"
+        cache = json.loads(cache_path.read_text(encoding="utf-8"))
+        event = cache["sources"]["Skien"]["events"][0]
+        event.update(
+            {
+                "name": "JU12 11:15-12:55",
+                "datetime": "2026-11-15T11:15:00",
+                "duration_hours": (12 + 55 / 60) - (11 + 15 / 60),
+                "duration_minutes": 100,
+            }
+        )
+        event["date"] = "15.11.2026"
+        cache_path.write_text(json.dumps(cache), encoding="utf-8")
+
+        html_path = Path(generate_html(work_dir=str(tmp_path / ".pipeline"), export_dir=str(tmp_path / "export")))
+        html = html_path.read_text(encoding="utf-8")
+
+        assert "11:15-12:55" in html
+        assert "11:15-12:54" not in html
+
     def test_generate_html_keeps_long_club_names_visible(self, tmp_path):
         source_name = "Sandefjord Penguins and Development Academy for Long Calendar Names"
         _write_cache(tmp_path, source_name)

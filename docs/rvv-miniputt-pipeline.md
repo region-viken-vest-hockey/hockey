@@ -34,7 +34,7 @@ Validate and normalize `input.xlsx`. Invalid identities/date windows/configurati
 
 ### Stage 2 — source/calendar evidence
 
-Collect configured calendar evidence, cache provenance and classify blocked/empty/suspicious sources. Browser recovery is optional and harness-neutral. If a source genuinely needs browser navigation, use the shared `scrape-llm` procedure: the browser-capable session extracts only the needed data, then returns it through repository `recovery-inject` and `scrape-merge` so Stage 2 validates it.
+Collect configured calendar evidence, cache provenance and classify blocked/empty/suspicious sources. Normalized calendar occupancy uses whole-minute duration as its canonical precision: exact source minute boundaries survive scrape/checkpoint/cache/projection unchanged, binary float-hour noise is snapped only at a whole-minute boundary, and a genuine sub-minute remainder is truncated rather than expanding unsupported occupancy. `duration_hours` remains a compatibility field; interval consumers use the normalized integer minutes/end timestamp. Browser recovery is optional and harness-neutral. If a source genuinely needs browser navigation, use the shared `scrape-llm` procedure: the browser-capable session extracts only the needed data, then returns it through repository `recovery-inject` and `scrape-merge` so Stage 2 validates it.
 
 ### Stage 3 — planning
 

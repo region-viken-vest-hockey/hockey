@@ -16,6 +16,7 @@ from __future__ import annotations
 from datetime import date, datetime, time, timedelta
 from typing import List, Optional, Tuple
 
+from tournament_scheduler.models_calendar import minute_duration_from_hours
 from tournament_scheduler.utils.date_parser import DateParser
 
 
@@ -55,7 +56,10 @@ def _event_busy_range_on_date(event, check_date: date) -> Optional[Tuple[int, in
     booking from 23:00 to 02:00 blocks 23:00-24:00 on its start date and
     00:00-02:00 on the following date.
     """
-    if getattr(event, "duration_hours", 0) <= 0 or not hasattr(event.datetime, "hour"):
+    duration_minutes = getattr(event, "duration_minutes", None)
+    if duration_minutes is None:
+        duration_minutes = minute_duration_from_hours(getattr(event, "duration_hours", 0))
+    if duration_minutes <= 0 or not hasattr(event.datetime, "hour"):
         return None
     parsed = DateParser.parse(event.date)
     if not parsed:
@@ -63,7 +67,7 @@ def _event_busy_range_on_date(event, check_date: date) -> Optional[Tuple[int, in
     event_start = event.datetime
     if not isinstance(event_start, datetime):
         event_start = datetime.combine(parsed.date(), time(event.datetime.hour, event.datetime.minute))
-    event_end = event_start + timedelta(minutes=int(event.duration_hours * 60))
+    event_end = event_start + timedelta(minutes=duration_minutes)
     day_start = datetime.combine(check_date, time.min)
     if event_start.tzinfo is not None and event_start.utcoffset() is not None:
         # Calendar feeds can produce timezone-aware datetimes, while the

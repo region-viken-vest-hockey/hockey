@@ -55,6 +55,19 @@ def test_booking_spanning_both_resources_is_one_event_with_all_labels():
     assert events[0].location == "Ishockey - bane 1 + Ishockey - bane 2"
 
 
+def test_exact_minute_source_interval_survives_decimal_hour_normalization():
+    page = _page(
+        _BANES,
+        [_item(1, 1192286, 362, "JU12", time_range="11:15-12:55")],
+    )
+
+    event = _parse_brp_exigo_day(page, datetime(2026, 11, 15))[0]
+
+    assert event.datetime == datetime(2026, 11, 15, 11, 15)
+    assert event.duration_minutes == 100
+    assert event.end_datetime == datetime(2026, 11, 15, 12, 55)
+
+
 def test_single_resource_booking_keeps_its_primary_label():
     page = _page(_BANES, [_item(1, 1, 363, "Hockeyskole")])
 

@@ -4,6 +4,7 @@ from datetime import date, time, timedelta
 from typing import List, Tuple
 from tournament_scheduler.interfaces import ConflictChecker
 from tournament_scheduler.models import ConflictContext, ConflictResult
+from tournament_scheduler.models_calendar import minute_duration_from_hours
 from tournament_scheduler.utils.date_parser import DateParser
 from tournament_scheduler.utils.rich_output import TournamentOutput
 from tournament_scheduler.utils.slot_finder import find_available_slots
@@ -137,7 +138,10 @@ class TimeSlotChecker(ConflictChecker):
         time_ranges = []
         for event in sorted(events_today, key=lambda e: e.datetime):
             start_str = event.datetime.strftime('%H:%M')
-            end_time = event.datetime + timedelta(hours=event.duration_hours)
+            duration_minutes = getattr(event, "duration_minutes", None)
+            if duration_minutes is None:
+                duration_minutes = minute_duration_from_hours(event.duration_hours)
+            end_time = event.datetime + timedelta(minutes=duration_minutes)
             end_str = end_time.strftime('%H:%M')
             time_ranges.append(f"{start_str}-{end_str}")
 
