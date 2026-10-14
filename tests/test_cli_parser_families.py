@@ -156,6 +156,27 @@ def test_season_families_keep_required_identifiers_and_defaults(parser):
         parser.parse_args(["season", "move", "--season", "s"])
 
 
+def test_season_work_dir_defaults_are_concrete_and_consistent(parser):
+    season_parsers = _choices(_choices(parser)["season"])
+    work_dir_defaults = {
+        name: action.default
+        for name, command_parser in season_parsers.items()
+        for action in command_parser._actions
+        if "--work-dir" in action.option_strings
+    }
+
+    assert work_dir_defaults
+    assert set(work_dir_defaults.values()) == {".pipeline"}
+
+    args = parser.parse_args(["season", "refresh-calendars", "--season", "s", "--dry-run"])
+    assert args.work_dir == ".pipeline"
+
+    args = parser.parse_args(
+        ["season", "refresh-calendars", "--season", "s", "--dry-run", "--work-dir", "custom-work"]
+    )
+    assert args.work_dir == "custom-work"
+
+
 def test_stage3_family(parser):
     args = parser.parse_args(["stage3", "status", "--json"])
     assert (args.work_dir, args.json) == (".pipeline", True)
