@@ -173,17 +173,17 @@ def set_manual_booking_assertion(
         # exact accepted facts from the projected canonical evidence; the planning
         # verifier stays strict for proposals, and genuine playing shortfalls or
         # overlaps remain hard blockers.
+        booking_authority = BOOKING_AUTHORITY_MANUAL
+        if source_scope == "club_wide_interpretation":
+            booking_authority = BOOKING_AUTHORITY_MANUAL_INTERPRETATION
+        source_reference = reference or note
         classified = reclassify_accepted_source_interval(
             verification_problem,
             updated_schedule["plan"],
             list(verification.get("violations") or []),
             tournament_id=tournament_id,
             accepted_interval=(source_interval_alignment or {}).get("accepted_source_interval"),
-            authority=(
-                BOOKING_AUTHORITY_MANUAL_INTERPRETATION
-                if source_scope == "club_wide_interpretation"
-                else BOOKING_AUTHORITY_MANUAL
-            ),
+            authority=booking_authority,
         )
         booking_feasibility_warnings = classified["accepted_exceptions"]
         if booking_feasibility_warnings:
@@ -202,13 +202,10 @@ def set_manual_booking_assertion(
                 service,
                 snapshot=snapshot,
                 tournament=tournament,
-                authority=(
-                    BOOKING_AUTHORITY_MANUAL_INTERPRETATION
-                    if source_scope == "club_wide_interpretation"
-                    else BOOKING_AUTHORITY_MANUAL
-                ),
-                reference=reference or note,
+                authority=booking_authority,
+                reference=source_reference,
                 source_assertion_id=linked_source_id,
+                source_evidence_id=None,
                 proposed_interval=(source_interval_alignment or {}).get("accepted_source_interval"),
                 blockers=blockers,
                 actor=resolved_actor,
@@ -221,6 +218,10 @@ def set_manual_booking_assertion(
             updated_decisions_for_interval,
             tournament_id=tournament_id,
             proposed_interval=(source_interval_alignment or {}).get("accepted_source_interval"),
+            authority=booking_authority,
+            reference=source_reference,
+            source_assertion_id=linked_source_id,
+            source_evidence_id=None,
             actor=resolved_actor,
             now=now,
         )

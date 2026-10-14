@@ -41,6 +41,7 @@ def _record_rejected_booking_evidence(
     authority: str,
     reference: str,
     source_assertion_id: str | None,
+    source_evidence_id: str | None,
     proposed_interval: Mapping[str, Any] | None,
     blockers: list[dict[str, Any]],
     actor: str,
@@ -76,6 +77,7 @@ def _record_rejected_booking_evidence(
             rejected_at=now,
             rejected_by=actor,
             canonical_state_revision=source_revision,
+            source_evidence_id=source_evidence_id,
         )
     )
     updated[REJECTED_BOOKING_EVIDENCE_KEY] = records
@@ -91,6 +93,7 @@ def _record_rejected_booking_evidence(
             "authority": authority,
             "reference": reference,
             "source_assertion_id": source_assertion_id or "",
+            "source_evidence_id": source_evidence_id or "",
             "proposed_interval": dict(proposed_interval or {}),
             "conflicts": [str(blocker.get("code") or "") for blocker in blockers],
         },

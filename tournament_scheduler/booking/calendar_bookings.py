@@ -962,6 +962,7 @@ def new_rejected_booking_evidence_record(
     rejected_at: str,
     rejected_by: str,
     canonical_state_revision: str,
+    source_evidence_id: str | None = None,
 ) -> dict[str, Any]:
     """Build one durable unresolved rejected-booking-evidence record.
 
@@ -984,6 +985,7 @@ def new_rejected_booking_evidence_record(
         "age_group": str(tournament.get("age_group") or ""),
         "authority": authority,
         "source_assertion_id": str(source_assertion_id or "") or None,
+        "source_evidence_id": str(source_evidence_id or "") or None,
         "reference": str(reference or ""),
         "proposed_interval": dict(proposed_interval or {}),
         "conflicts": [

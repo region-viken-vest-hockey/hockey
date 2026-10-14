@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import re
 from typing import Any, Mapping
 
 from tournament_scheduler.booking.calendar_bookings import (
@@ -50,17 +49,11 @@ from ..shared import (
 
 from .common import _event_interval, _record_rejected_booking_evidence
 from .validation import (
+    calendar_event_age_tokens as _calendar_event_age_tokens,
     reconciliation_policy_blockers,
     resolve_matching_rejected_booking_evidence,
     validate_calendar_event_authority,
 )
-
-_CALENDAR_EVENT_AGE_TOKEN_RE = re.compile(r"\b(J?U\d{1,2})\b", re.IGNORECASE)
-
-def _calendar_event_age_tokens(title: str) -> set[str]:
-    """Extract age-group tokens (``U10``, ``JU12``, ...) from a calendar title."""
-
-    return {match.upper() for match in _CALENDAR_EVENT_AGE_TOKEN_RE.findall(str(title or ""))}
 
 def _auto_associate_own_calendar_event(
     *,
@@ -392,6 +385,7 @@ def confirm_calendar_booking(
         assoc["booking_feasibility_warnings"] = warning_codes
         evidence["booking_feasibility_warnings"] = warning_codes
     blockers = hard_blockers + unresolved_blockers + policy_blockers
+    event_reference = str(event.get("calendar_event") or event.get("title") or "calendar event")
     if blockers:
         messages = "; ".join(str(blocker.get("message") or blocker.get("code")) for blocker in blockers)
         _record_rejected_booking_evidence(
@@ -399,8 +393,9 @@ def confirm_calendar_booking(
             snapshot=snapshot,
             tournament=tournament,
             authority=BOOKING_AUTHORITY_CALENDAR,
-            reference=str(event.get("calendar_event") or event.get("title") or "calendar event"),
+            reference=event_reference,
             source_assertion_id=None,
+            source_evidence_id=event_fingerprint,
             proposed_interval=(interval_alignment or {}).get("accepted_calendar_interval"),
             blockers=blockers,
             actor=resolved_actor,
@@ -414,6 +409,10 @@ def confirm_calendar_booking(
         updated,
         tournament_id=tournament_id,
         proposed_interval=(interval_alignment or {}).get("accepted_calendar_interval"),
+        authority=BOOKING_AUTHORITY_CALENDAR,
+        reference=event_reference,
+        source_assertion_id=None,
+        source_evidence_id=event_fingerprint,
         actor=resolved_actor,
         now=checked_at,
     )

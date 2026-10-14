@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Mapping, NoReturn
 
 from tournament_scheduler.booking.calendar_bookings import (
@@ -21,6 +22,14 @@ from tournament_scheduler.infrastructure.canonical_season_store import SeasonSta
 
 from ..shared import _now_iso, _operator_identity
 from .common import _event_interval, _record_rejected_booking_evidence
+
+_CALENDAR_EVENT_AGE_TOKEN_RE = re.compile(r"\b(J?U\d{1,2})\b", re.IGNORECASE)
+
+
+def calendar_event_age_tokens(title: str) -> set[str]:
+    """Extract age-group tokens (``U10``, ``JU12``, ...) from a calendar title."""
+
+    return {match.upper() for match in _CALENDAR_EVENT_AGE_TOKEN_RE.findall(str(title or ""))}
 
 
 def manual_assertion_matches_existing(
@@ -83,6 +92,10 @@ def resolve_matching_rejected_booking_evidence(
     *,
     tournament_id: str,
     proposed_interval: Mapping[str, Any] | None,
+    authority: str,
+    reference: str,
+    source_assertion_id: str | None,
+    source_evidence_id: str | None,
     actor: str,
     now: str,
 ) -> None:
@@ -98,6 +111,12 @@ def resolve_matching_rejected_booking_evidence(
             str(record.get("status") or "") == REJECTED_BOOKING_UNRESOLVED
             and str(record.get("tournament_id") or "") == tournament_id
             and dict(record.get("proposed_interval") or {}) == accepted_interval
+            and str(record.get("authority") or "") == authority
+            and str(record.get("reference") or "") == reference
+            and str(record.get("source_assertion_id") or "")
+            == str(source_assertion_id or "")
+            and str(record.get("source_evidence_id") or "")
+            == str(source_evidence_id or "")
         ):
             record.update(
                 {
@@ -146,6 +165,7 @@ def validate_calendar_event_authority(
             authority=BOOKING_AUTHORITY_CALENDAR,
             reference=str(event.get("calendar_event") or event.get("title") or "calendar event"),
             source_assertion_id=None,
+            source_evidence_id=event_fingerprint,
             proposed_interval=proposed_interval,
             blockers=[{"code": code, "message": message, "tournament_id": tournament_id}],
             actor=resolved_actor,

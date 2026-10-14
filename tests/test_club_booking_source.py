@@ -478,6 +478,55 @@ def test_moved_day_unavailable_team_rejects_atomically_then_resolves_on_retry(tm
     assert resolved["resolution"] == "accepted_exact_source_interval_after_retry"
 
 
+def test_same_interval_from_another_source_does_not_resolve_rejected_fact(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
+    problem = _host_a_problem([])
+    source = _source_set(root)["source"]
+    added = add_request_constraint(
+        season="2026-2027",
+        root=root,
+        type="team_unavailable",
+        request_id="source-specific-retry",
+        teams=[{"club": "B", "label": "B1", "age_group": "U10"}],
+        date_from="2026-09-19",
+        actor="tester",
+    )
+    with pytest.raises(SeasonStateError, match="unavailable"):
+        _interpretation(
+            root,
+            source_id=source["id"],
+            problem=problem,
+            stated_date="2026-09-19",
+            stated_start="12:30",
+            stated_end="14:20",
+        )
+    release_request_constraints(
+        season="2026-2027",
+        root=root,
+        constraint_ids=[added["constraint"]["id"]],
+        actor="tester",
+        note="request released",
+    )
+
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        source_scope="tournament",
+        reference="email:different-source",
+        stated_date="2026-09-19",
+        stated_start="12:30",
+        stated_end="14:20",
+        actor="tester",
+        problem=problem,
+    )
+
+    rejected = load_decisions("2026-2027", root=root)[REJECTED_BOOKING_EVIDENCE_KEY][-1]
+    assert rejected["status"] == "unresolved"
+    assert rejected["source_assertion_id"] == source["id"]
+
+
 def test_wrong_calendar_owner_retains_exact_rejected_source_fact(tmp_path):
     """Wrong-owner evidence is traceable but cannot move, approve or reconcile."""
 
@@ -514,6 +563,7 @@ def test_wrong_calendar_owner_retains_exact_rejected_source_fact(tmp_path):
     assert not decisions.get("tournament_booking_evidence")
     rejected = decisions[REJECTED_BOOKING_EVIDENCE_KEY][-1]
     assert rejected["authority"] == "calendar_event_association"
+    assert rejected["source_evidence_id"] == event_fingerprint({**event, "club": "B"})
     assert rejected["proposed_interval"] == {
         "date": "2026-09-13",
         "start_time": "12:30",
