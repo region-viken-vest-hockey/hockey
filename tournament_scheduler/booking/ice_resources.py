@@ -5,8 +5,8 @@ resources (for example Skien's ``Bane 1`` and ``Bane 2``). A booking occupies
 one or more of those resources. Two bookings on different resources at the
 same time are two real occupancies, never duplicate copies of one event.
 
-Resource detail is modelled only for clubs that declare a tournament footprint
-in ``MINIPUTT_RESOURCE_FOOTPRINTS``. Other clubs keep resource-agnostic
+Resource detail is modelled only for clubs whose validated club profile
+declares a miniputt tournament footprint. Other clubs keep resource-agnostic
 evidence, for example Frisk Asker, whose resource labels are audit metadata
 only. The source scraper keeps a booking's resources as structured
 ``CalendarEvent.resources``; the joined LOCATION label is display text only.
@@ -18,18 +18,8 @@ import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from tournament_scheduler.clubs.profiles import get_club_profile
 from tournament_scheduler.models_calendar import SourceResource
-
-# Labels the footprint table names, e.g. "Bane 1" -> "bane-1". Club names map to
-# the labels a miniputt tournament occupies at that club's arena.
-MINIPUTT_RESOURCE_FOOTPRINTS: dict[str, tuple[str, ...]] = {
-    # Skien's BRP/Exigo calendar books the hockey ice as two resources. A
-    # miniputt tournament needs the whole rink, so both banes; a booking on one
-    # resource alone is partial occupancy and blocks the rink. Operator-confirmed
-    # (docs/adr/0007-skien-miniputt-needs-full-ice-rink.md). The footprint shapes
-    # evidence and actionability and never discards an observed booking.
-    "Skien": ("Bane 1", "Bane 2"),
-}
 
 _BANE_LABEL_RE = re.compile(r"\bbane\s*(\d+)\b", re.IGNORECASE)
 
@@ -51,10 +41,41 @@ def resource_ids_in_text(text: Any) -> frozenset[str]:
 def tournament_resource_footprint(club: str) -> frozenset[str]:
     """Return the resource ids a miniputt tournament hosted by *club* requires.
 
-    Empty when the club declares no footprint.
+    Empty when the club has no profile or declares no footprint. The profile's
+    evidence-backed requirement is the single source used by planning and
+    booking reconciliation.
     """
 
-    return frozenset().union(*(resource_ids_in_text(label) for label in MINIPUTT_RESOURCE_FOOTPRINTS.get(club, ())))
+    profile = get_club_profile(club)
+    venue = profile.venue_for_arena() if profile else None
+    requirement = venue.requirement_for("miniputt") if venue else None
+    return requirement.resource_ids if requirement else frozenset()
+
+
+def resource_ids_for_club(club: str, resources: Iterable[SourceResource]) -> frozenset[str]:
+    """Resolve source resource labels against *club*'s configured resources."""
+
+    profile = get_club_profile(club)
+    venue = profile.venue_for_arena() if profile else None
+    if venue is None:
+        return frozenset()
+    normalized_labels = {
+        str(label).casefold().strip(): resource.id
+        for resource in venue.resources
+        for label in resource.labels
+    }
+    resolved: set[str] = set()
+    for source_resource in resources:
+        label = source_resource.label.casefold().strip()
+        if label in normalized_labels:
+            resolved.add(normalized_labels[label])
+            continue
+        # Source labels may add a hall/category prefix while retaining the
+        # configured resource label. Match the longest configured label first.
+        matches = [resource_id for configured, resource_id in normalized_labels.items() if configured in label]
+        if len(set(matches)) == 1:
+            resolved.add(matches[0])
+    return frozenset(resolved)
 
 
 def interval_resource_fields(club: str, resources: Iterable[SourceResource]) -> dict[str, list[str]]:
@@ -67,7 +88,7 @@ def interval_resource_fields(club: str, resources: Iterable[SourceResource]) -> 
 
     if not tournament_resource_footprint(club):
         return {}
-    ids = sorted(frozenset().union(*(resource_ids_in_text(res.label) for res in resources)))
+    ids = sorted(resource_ids_for_club(club, resources))
     return {"resources": ids} if ids else {}
 
 
@@ -76,6 +97,19 @@ def event_resource_ids(event: Mapping[str, Any]) -> frozenset[str]:
 
     labels: Iterable[Any] = event.get("resources") or ()
     return frozenset(str(label) for label in labels)
+
+
+def event_affects_tournament_footprint(club: str, event: Mapping[str, Any]) -> bool:
+    """Whether an event occupies any resource needed by a club's tournament.
+
+    Missing resource detail stays conservative and affects the tournament.
+    Clubs without a footprint keep generic behavior. A source event carrying
+    only known disjoint resources does not block the configured surface.
+    """
+
+    required = tournament_resource_footprint(club)
+    occupied = event_resource_ids(event)
+    return not required or not occupied or bool(required & occupied)
 
 
 def footprint_coverage(

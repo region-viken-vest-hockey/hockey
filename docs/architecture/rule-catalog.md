@@ -179,7 +179,8 @@ candidate regresses a higher-priority operational obligation.
 | Rule ID | Tier | Meaning | Canonical owner | Verifier / measurement | Tests |
 |---|---|---|---|---|---|
 | `calendar_source_trust` | soft (3) | A per-club calendar is only trustworthy when the configured source produced usable evidence this run. A 'known' status does not prove every candidate time is free; an untrusted calendar yields manual placement, never a silent pass. | `tournament_scheduler.pipeline.source_health` | `tournament_scheduler.booking.calendar_availability` | `tests/test_source_health.py`, `tests/test_calendar_availability.py` |
-| `calendar_interval_classification` | soft (3) | A host's calendar interval is classified fixed_busy (hard external conflict), movable_busy (host-controlled, requires host confirmation) or unclassified. The classification is policy evidence, not a scheduling rule in itself. A promoted season may also carry an explicit event-to-tournament booking association overlay that makes one fixed event non-conflicting only for the associated tournament while that event still covers the tournament's current canonical occupied interval. | `tournament_scheduler.booking.calendar_availability / tournament_scheduler.booking.calendar_bookings` | `tournament_scheduler.planning.contract.external_calendar_conflict` | `tests/test_calendar_availability.py`, `tests/test_movable_capacity_repair.py`, `tests/test_approval_lifecycle.py` |
+| `club_venue_profile` | soft (3) | Durable club-specific venue resource footprints and internal-allocation availability are validated, evidence-backed repository profiles shared by planning, conflict checking and booking reconciliation; a club without a profile keeps generic behavior. | `tournament_scheduler.clubs.profiles` | `tournament_scheduler.booking.ice_resources / tournament_scheduler.booking.calendar_availability` | `tests/test_club_profiles.py`, `tests/test_ice_resource_assessment.py`, `tests/test_sandefjord_allocation.py` |
+| `calendar_interval_classification` | soft (3) | A host's calendar interval is classified fixed_busy (hard external conflict), movable_busy (host-controlled, requires host confirmation), club_controlled_available (profile-authorized internal allocation, not scraper-proven free), or unclassified. The classification is policy evidence, not a scheduling rule in itself. A promoted season may also carry an explicit event-to-tournament booking association overlay that makes one fixed event non-conflicting only for the associated tournament while that event still covers the tournament's current canonical occupied interval. | `tournament_scheduler.booking.calendar_availability / tournament_scheduler.booking.calendar_bookings` | `tournament_scheduler.planning.contract.external_calendar_conflict` | `tests/test_calendar_availability.py`, `tests/test_movable_capacity_repair.py`, `tests/test_approval_lifecycle.py` |
 | `club_pool_classification` | soft (3) | For each club x age group x scope, the registered teams' aggregate target/actual is classified as complete / intra_club_distribution / minor\|material_club_pool_shortfall / single_team_deviation / over_target. The classification is the single source of truth for whether a residual is a genuine player-pool shortage. | `tournament_scheduler.participation.targets` | — | `tests/test_participation_targets.py` |
 | `search_coverage_evidence` | soft (3) | A bounded repair/search result records what was actually tried: option_available, search_incomplete, bounded_search_exhausted, proven_infeasible or inapplicable, bound to a search capability/version. Zero options means only that this search found none, never proof of global infeasibility. | `tournament_scheduler.repair.capability` | — | `tests/test_search_neighborhood_repair.py` |
 | `approval_lifecycle` | soft (3) | Operator approvals/locks live in decisions.json separately from schedule facts. A changed placement fingerprint becomes a stale approval whose lock is dropped; a participant-locked approval also stales when its roster/game structure changes. An approval whose tournament is gone becomes orphaned. Both require re-review. | `tournament_scheduler.season.baseline_overlay` | — | `tests/test_approval_lifecycle.py`, `tests/test_canonical_baseline.py` |
@@ -1141,17 +1142,31 @@ candidate regresses a higher-priority operational obligation.
 **Tests:** `tests/test_source_health.py`, `tests/test_calendar_availability.py`  
 **Precedence:** precedes — · depends on —
 
+### `club_venue_profile`
+
+`Fact / evidence semantic` · status `active` · operator-waivable: yes  
+**Priority tier:** soft (3)  
+**Meaning:** Durable club-specific venue resource footprints and internal-allocation availability are validated, evidence-backed repository profiles shared by planning, conflict checking and booking reconciliation; a club without a profile keeps generic behavior.  
+**Canonical owner:** `tournament_scheduler.clubs.profiles`  
+**Input / fact source:** tournament_scheduler/club_profiles/*.json  
+**Verifier / measurement:** `tournament_scheduler.booking.ice_resources / tournament_scheduler.booking.calendar_availability`  
+**Codes:** verifier — · finding — · score —  
+**Providers:** mutation — · search —  
+**Evidence / report:** `booking assessment resource_coverage`, `verify_candidate.club_controlled_available_allocations_used`  
+**Tests:** `tests/test_club_profiles.py`, `tests/test_ice_resource_assessment.py`, `tests/test_sandefjord_allocation.py`  
+**Precedence:** precedes — · depends on —
+
 ### `calendar_interval_classification`
 
 `Fact / evidence semantic` · status `active` · operator-waivable: yes  
 **Priority tier:** soft (3)  
-**Meaning:** A host's calendar interval is classified fixed_busy (hard external conflict), movable_busy (host-controlled, requires host confirmation) or unclassified. The classification is policy evidence, not a scheduling rule in itself. A promoted season may also carry an explicit event-to-tournament booking association overlay that makes one fixed event non-conflicting only for the associated tournament while that event still covers the tournament's current canonical occupied interval.  
+**Meaning:** A host's calendar interval is classified fixed_busy (hard external conflict), movable_busy (host-controlled, requires host confirmation), club_controlled_available (profile-authorized internal allocation, not scraper-proven free), or unclassified. The classification is policy evidence, not a scheduling rule in itself. A promoted season may also carry an explicit event-to-tournament booking association overlay that makes one fixed event non-conflicting only for the associated tournament while that event still covers the tournament's current canonical occupied interval.  
 **Canonical owner:** `tournament_scheduler.booking.calendar_availability / tournament_scheduler.booking.calendar_bookings`  
-**Input / fact source:** configured/stage-2 calendar intervals + decisions.json calendar_booking_associations  
+**Input / fact source:** configured club profiles + stage-2 calendar intervals + decisions.json calendar_booking_associations  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.external_calendar_conflict`  
 **Codes:** verifier — · finding `external_calendar_conflicts`, `manual_external_conflict_placements`, `movable_host_confirmation_required`, `movable_capacity_opportunity`, `duplicate_calendar_booking_association`, `stale_calendar_booking_association` · score —  
 **Providers:** mutation `movable_capacity_repair`, `CanonicalSeasonService.confirm_calendar_booking` · search —  
-**Evidence / report:** `movable_allocations_used`, `manual_external_conflict_placements`, `calendar_booking_associations`  
+**Evidence / report:** `movable_allocations_used`, `club_controlled_available_allocations_used`, `manual_external_conflict_placements`, `calendar_booking_associations`  
 **Tests:** `tests/test_calendar_availability.py`, `tests/test_movable_capacity_repair.py`, `tests/test_approval_lifecycle.py`  
 **Precedence:** precedes — · depends on —
 

@@ -1152,18 +1152,40 @@ _EVIDENCE: tuple[RuleEntry, ...] = (
         finding_codes=("manual_calendar_placements",),
     ),
     RuleEntry(
+        id="club_venue_profile",
+        classification=FACT_EVIDENCE_SEMANTIC,
+        meaning=(
+            "Durable club-specific venue resource footprints and internal-allocation availability "
+            "are validated, evidence-backed repository profiles shared by planning, conflict checking "
+            "and booking reconciliation; a club without a profile keeps generic behavior."
+        ),
+        canonical_owner="tournament_scheduler.clubs.profiles",
+        input_source="tournament_scheduler/club_profiles/*.json",
+        verifier_owner="tournament_scheduler.booking.ice_resources / tournament_scheduler.booking.calendar_availability",
+        evidence_projection=(
+            "booking assessment resource_coverage",
+            "verify_candidate.club_controlled_available_allocations_used",
+        ),
+        tests=(
+            "tests/test_club_profiles.py",
+            "tests/test_ice_resource_assessment.py",
+            "tests/test_sandefjord_allocation.py",
+        ),
+    ),
+    RuleEntry(
         id="calendar_interval_classification",
         classification=FACT_EVIDENCE_SEMANTIC,
         meaning=(
             "A host's calendar interval is classified fixed_busy (hard external conflict), "
-            "movable_busy (host-controlled, requires host confirmation) or unclassified. The "
+            "movable_busy (host-controlled, requires host confirmation), club_controlled_available "
+            "(profile-authorized internal allocation, not scraper-proven free), or unclassified. The "
             "classification is policy evidence, not a scheduling rule in itself. A promoted season may also carry an explicit event-to-tournament booking association overlay that makes one fixed event non-conflicting only for the associated tournament while that event still covers the tournament's current canonical occupied interval."
         ),
         canonical_owner="tournament_scheduler.booking.calendar_availability / tournament_scheduler.booking.calendar_bookings",
-        input_source="configured/stage-2 calendar intervals + decisions.json calendar_booking_associations",
+        input_source="configured club profiles + stage-2 calendar intervals + decisions.json calendar_booking_associations",
         verifier_owner="tournament_scheduler.planning.contract.external_calendar_conflict",
         mutation_providers=("movable_capacity_repair", "CanonicalSeasonService.confirm_calendar_booking"),
-        evidence_projection=("movable_allocations_used", "manual_external_conflict_placements", "calendar_booking_associations"),
+        evidence_projection=("movable_allocations_used", "club_controlled_available_allocations_used", "manual_external_conflict_placements", "calendar_booking_associations"),
         tests=("tests/test_calendar_availability.py", "tests/test_movable_capacity_repair.py", "tests/test_approval_lifecycle.py"),
         finding_codes=(
             "external_calendar_conflicts",

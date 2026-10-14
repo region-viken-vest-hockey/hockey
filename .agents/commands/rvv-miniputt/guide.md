@@ -12,7 +12,8 @@ At the start of a new session or after context loss, first follow `.agents/comma
 2. Prefer the canonical `season` workflow once `season/<season>/schedule.json` exists. Do not treat ordinary club feedback such as booking approval, a requested move, or bounded replanning as a request to regenerate the season from scratch. Before applying a club-requested move or participant change, inspect `season protections` and `season constraints`, and assign a stable `--request-id`; accepted requests are durable constraints, not disposable optimization hints.
 3. Ask only for missing arguments that materially affect the command.
 4. Load the matching shared procedure from `.agents/commands/rvv-miniputt/` and execute the repository-local command it specifies.
-5. Summarize the result and, when useful, suggest the next canonical RVV action.
+5. When the request or returned evidence names a club, canonicalize the club through the registry and lazy-load only its matching structured profile under `tournament_scheduler/club_profiles/` when present. Apply profile facts before evaluating availability, resource compatibility, booking evidence, reconciliation, or planning/repair candidates. Absence of a profile means generic behavior; never maintain a separate prompt/runbook exception list.
+6. Summarize the result and, when useful, suggest the next canonical RVV action.
 
 ## Lazy-loaded operation routing
 

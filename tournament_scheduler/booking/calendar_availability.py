@@ -11,6 +11,9 @@ Calendar evidence is not a binary "busy/free" fact. A scraped interval can be:
     example is Kongsberg's ``Åpen ishall``). It is a *candidate* placement
     opportunity for that host, not a hard conflict -- but using it carries
     an explicit host-confirmation requirement.
+``club_controlled_available``
+    A configured interval the club has authority to allocate internally. It is
+    usable planning capacity, but it is not scraper-proven free time.
 ``free``
     Verified free interval.
 ``unknown``
@@ -33,12 +36,17 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Iterable, Mapping, Optional, Tuple
 
+from tournament_scheduler.booking.club_profile_availability import (
+    CLUB_CONTROLLED_AVAILABLE as CLUB_CONTROLLED_AVAILABLE_VALUE,
+)
+
 
 class CalendarAvailability(str, Enum):
     """Semantic availability classification for one calendar interval."""
 
     FIXED_BUSY = "fixed_busy"
     MOVABLE_BUSY = "movable_busy"
+    CLUB_CONTROLLED_AVAILABLE = CLUB_CONTROLLED_AVAILABLE_VALUE
     FREE = "free"
     UNKNOWN = "unknown"
 
@@ -61,6 +69,7 @@ CLASSIFICATION_SOURCE_INFERRED = "inferred"
 LEGACY_KIND_BY_AVAILABILITY: dict[CalendarAvailability, str] = {
     CalendarAvailability.FIXED_BUSY: "external",
     CalendarAvailability.MOVABLE_BUSY: "club_controlled",
+    CalendarAvailability.CLUB_CONTROLLED_AVAILABLE: "club_controlled_available",
     CalendarAvailability.FREE: "free",
     CalendarAvailability.UNKNOWN: "unknown",
 }
@@ -132,6 +141,8 @@ def interval_availability(entry: Mapping[str, Any]) -> CalendarAvailability:
     kind = str(entry.get("kind", "external"))
     if kind == "club_controlled":
         return CalendarAvailability.MOVABLE_BUSY
+    if kind == "club_controlled_available":
+        return CalendarAvailability.CLUB_CONTROLLED_AVAILABLE
     if kind == "free":
         return CalendarAvailability.FREE
     if kind == "unknown":

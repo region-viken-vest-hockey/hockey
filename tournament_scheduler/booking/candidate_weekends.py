@@ -30,26 +30,34 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any, Callable, Dict, Hashable, List, Mapping, Optional, Sequence, Set, Tuple
 
-from tournament_scheduler.booking.calendar_availability import (
-    CLASSIFICATION_SOURCE_INFERRED,
-    classify_club_event_detailed,
+from tournament_scheduler.booking.candidate_weekend_availability import (
+    AVAILABILITY_CLUB_CONTROLLED,
+    AVAILABILITY_FREE,
+    AVAILABILITY_MOVABLE,
+    AVAILABILITY_UNKNOWN,
+    classify_candidate_availability,
 )
+
+__all__ = [
+    "AVAILABILITY_CLUB_CONTROLLED",
+    "AVAILABILITY_FREE",
+    "AVAILABILITY_MOVABLE",
+    "AVAILABILITY_UNKNOWN",
+    "CandidateWeekend",
+    "enumerate_candidate_weekends",
+    "season_weekend_dates",
+]
 from tournament_scheduler.planning.contract import (
     _parse_date,
     external_calendar_conflict,
     movable_calendar_opportunity,
 )
 
-# Availability labels surfaced to the operator. ``unknown`` mirrors the
-# ambiguous scraped-event case: it is an honest fact, never assumed free.
-AVAILABILITY_FREE = "free"
-AVAILABILITY_MOVABLE = "movable_busy"
-AVAILABILITY_UNKNOWN = "unknown"
-
 # Ranking preference (lower is better). Mirrors the issue's suggestion order:
-# verified free ice + current roster first, then host-controlled movable ice,
-# then the same with a hard-valid replacement roster, and ambiguous capacity
-# last (because it always needs host confirmation).
+# verified free ice + current roster first, then host-controlled movable ice
+# and club-profile-authorized internal allocation, then the same with a
+# hard-valid replacement roster, and ambiguous capacity last (because it
+# always needs host confirmation).
 _RANK_FREE_CURRENT = 0
 _RANK_MOVABLE_CURRENT = 1
 _RANK_FREE_ALTERNATE = 2
@@ -92,7 +100,7 @@ class CandidateWeekend:
         alternate = self.roster_source == "alternate"
         if self.availability == AVAILABILITY_FREE:
             return _RANK_FREE_ALTERNATE if alternate else _RANK_FREE_CURRENT
-        if self.availability == AVAILABILITY_MOVABLE:
+        if self.availability in {AVAILABILITY_CLUB_CONTROLLED, AVAILABILITY_MOVABLE}:
             return _RANK_MOVABLE_ALTERNATE if alternate else _RANK_MOVABLE_CURRENT
         return _RANK_UNKNOWN_ALTERNATE if alternate else _RANK_UNKNOWN_CURRENT
 
@@ -174,7 +182,7 @@ def enumerate_candidate_weekends(
         Ordered start times to fall back to when ``preferred_start_time``
         overlaps a fixed booking on a date. Defaults to just the preferred
         start, so a date is rejected as ``fixed_busy`` only when no reported
-        start fits.
+        start time fits.
     occupancy:
         ``date_iso -> team keys already playing that date``. Usually derived
         from the candidate's already-built tournaments. Absent/empty means no
@@ -220,8 +228,13 @@ def enumerate_candidate_weekends(
         movable = movable_calendar_opportunity(
             busy_intervals, host_club, candidate_date, start_time, duration_minutes
         )
-        availability, requires_confirmation, event_title, source = _availability(
-            calendar_known, movable, host_club
+        availability, requires_confirmation, event_title, source = classify_candidate_availability(
+            calendar_known,
+            movable,
+            host_club,
+            candidate_date,
+            start_time,
+            duration_minutes,
         )
 
         conflicts = _conflicts(team_keys, occupancy.get(date_iso))
@@ -299,30 +312,6 @@ def _calendar_known(problem: Mapping[str, Any], host_club: str) -> bool:
     if not statuses:
         return False
     return statuses.get(host_club) == "known"
-
-
-def _availability(
-    calendar_known: bool,
-    movable: Optional[Mapping[str, Any]],
-    host_club: str,
-) -> Tuple[str, bool, str, str]:
-    """Classify one date's ice for the host at a concrete interval.
-
-    Returns ``(availability, requires_host_confirmation, calendar_event,
-    classification_source)``. ``movable`` is the raw overlapping interval, if
-    any. An untrusted calendar is reported as explicit ``unknown`` capacity
-    that needs host confirmation rather than silently looking free.
-    """
-    if movable is not None:
-        event_title = str(movable.get("calendar_event") or "")
-        source = str(movable.get("classification_source") or "")
-        if source == CLASSIFICATION_SOURCE_INFERRED:
-            return AVAILABILITY_MOVABLE, True, event_title, source
-        _, _, derived = classify_club_event_detailed(host_club, event_title)
-        return AVAILABILITY_MOVABLE, True, event_title, source or derived
-    if not calendar_known:
-        return AVAILABILITY_UNKNOWN, True, "", "unknown"
-    return AVAILABILITY_FREE, False, "", "trusted_calendar"
 
 
 def _conflicts(team_keys: Set[Hashable], occupied: Optional[Set[Hashable]]) -> List[Hashable]:

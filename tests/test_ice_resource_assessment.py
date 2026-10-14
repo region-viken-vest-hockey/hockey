@@ -8,7 +8,7 @@ not competing candidates and not duplicates to collapse.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from tournament_scheduler.booking.calendar_bookings import booking_assessment
 from tournament_scheduler.booking.ice_resources import (
@@ -20,6 +20,7 @@ from tournament_scheduler.booking.ice_resources import (
 from tournament_scheduler.booking.interval_facts import event_fingerprint
 from tournament_scheduler.models_calendar import CalendarEvent, SourceResource
 from tournament_scheduler.pipeline.scraper_event_helpers import _events_to_dicts
+from tournament_scheduler.planning.contract import external_calendar_conflict
 from tournament_scheduler.pipeline.stage3_helpers import _build_club_busy_intervals
 
 BOTH = ["bane-1", "bane-2"]
@@ -133,6 +134,26 @@ def test_footprint_coverage_distinguishes_covers_partial_and_disjoint():
     assert footprint_coverage(required, frozenset({"bane-1"})) == "partial"
     assert footprint_coverage(required, frozenset({"bane-3"})) == "disjoint"
     assert footprint_coverage(required, frozenset()) is None
+
+
+def test_planning_conflict_uses_same_profile_footprint_as_reconciliation():
+    intervals = {
+        "Skien": [
+            _event("10:00", "12:00", resources=BANE_1, title="Bane 1 occupancy"),
+            _event("10:00", "12:00", resources=["bane-3"], title="Other resource"),
+        ]
+    }
+
+    # One occupied half makes the complete miniputt footprint unavailable.
+    assert external_calendar_conflict(intervals, "Skien", date(2026, 9, 12), "10:00", 120)
+    # A disjoint source resource does not block either required rink half.
+    assert not external_calendar_conflict(
+        {"Skien": [intervals["Skien"][1]]},
+        "Skien",
+        date(2026, 9, 12),
+        "10:00",
+        120,
+    )
 
 
 def test_single_resource_bookings_on_both_banes_are_not_competing():
