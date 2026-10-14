@@ -31,6 +31,7 @@ from ..shared import (
 )
 
 from .common import _AUTO_REFRESH_RECONCILE_CLUBS, _calendar_problem_payload
+from .fingerprints import calendar_evidence_fingerprint, stage2_evidence_fingerprint
 from .scoped_refresh import (
     classify_refresh_reconciliation,
     merge_refresh_problem,
@@ -90,7 +91,6 @@ def refresh_calendars(
     start = _parse_iso_date_for_move(str(problem.get("start_date") or plan.get("start_date")), "start_date")
     end = _parse_iso_date_for_move(str(problem.get("end_date") or plan.get("end_date")), "end_date")
     before_calendar = _calendar_problem_payload(problem)
-    before_fingerprint = stable_payload_sha256(before_calendar)
     before_schedule_fingerprint = schedule_fingerprint(plan)
     before_revision = canonical_state_revision(schedule, decisions)
     fetched_at = _now_iso()
@@ -100,6 +100,7 @@ def refresh_calendars(
         current_evidence = None
     promoted_policy = _source_policy_from_evidence(current_evidence)
     promoted_policy_fingerprint = stable_payload_sha256(promoted_policy) if promoted_policy is not None else None
+    before_fingerprint = calendar_evidence_fingerprint(problem, promoted_policy)
 
     def _scrape_in(workspace: Path) -> dict[str, Any]:
         state = PipelineState(workspace)
@@ -188,7 +189,7 @@ def refresh_calendars(
     source_policy_changes = scrape_result["source_policy_changes"]
     new_problem = merge_refresh_problem(problem, rebuilt_problem, target_club)
     after_calendar = _calendar_problem_payload(new_problem)
-    after_fingerprint = stable_payload_sha256(after_calendar)
+    after_fingerprint = calendar_evidence_fingerprint(new_problem, current_policy)
     source_summaries, blocked_sources, empty_sources = merge_refresh_source_evidence(
         scrape=scrape,
         current_evidence=current_evidence,
@@ -218,7 +219,7 @@ def refresh_calendars(
         "refresh_scope": {"club": target_club},
         "previous_calendar_fingerprint": before_fingerprint,
         "calendar_fingerprint": after_fingerprint,
-        "stage2_fingerprint": stable_payload_sha256(scrape),
+        "stage2_fingerprint": stage2_evidence_fingerprint(scrape),
         "source_count": len(source_summaries),
         "blocked_sources": blocked_sources,
         "empty_sources": empty_sources,

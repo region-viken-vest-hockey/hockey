@@ -16,8 +16,6 @@ from tournament_scheduler.booking.calendar_bookings import (
     manual_assertion_stale_reasons,
     new_rejected_booking_evidence_record,
 )
-from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
-
 from ..shared import (
     APPROVED_STATUS,
     _append_decision_history,
@@ -103,28 +101,22 @@ def _calendar_problem_payload(problem: Mapping[str, Any] | None) -> dict[str, An
     return {key: copy.deepcopy((problem or {}).get(key)) for key in _CALENDAR_PROBLEM_KEYS}
 
 def _calendar_source_summaries(scrape: Mapping[str, Any], *, fetched_at: str) -> list[dict[str, Any]]:
+    from .fingerprints import source_evidence_fingerprint
+
     summaries: list[dict[str, Any]] = []
     for source in scrape.get("sources") or []:
         if not isinstance(source, Mapping):
             continue
-        payload = {
-            "name": source.get("name"),
-            "url": source.get("url"),
-            "type": source.get("type"),
-            "events": source.get("events") or [],
-            "blocked": bool(source.get("blocked")),
-            "event_count": int(source.get("event_count") or len(source.get("events") or [])),
-            "integrity": source.get("integrity"),
-        }
+        event_count = int(source.get("event_count") or len(source.get("events") or []))
         summaries.append(
             {
                 "name": str(source.get("name") or ""),
                 "type": str(source.get("type") or ""),
                 "url": str(source.get("url") or ""),
-                "event_count": payload["event_count"],
-                "blocked": payload["blocked"],
+                "event_count": event_count,
+                "blocked": bool(source.get("blocked")),
                 "fetched_at": str(source.get("scrape_timestamp") or fetched_at),
-                "fingerprint": stable_payload_sha256(payload),
+                "fingerprint": source_evidence_fingerprint(source),
             }
         )
     return sorted(summaries, key=lambda item: (item["name"], item["type"], item["url"]))

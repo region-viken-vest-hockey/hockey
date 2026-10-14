@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import dataclasses
 import json
 from pathlib import Path
@@ -484,6 +485,49 @@ def _calendar_payload(problem: dict) -> dict:
             "unclassified_calendar_events",
         )
     }
+
+
+def test_repeated_dry_runs_have_stable_fingerprints_for_reordered_events(
+    tmp_path: Path, monkeypatch
+) -> None:
+    root = _promote(tmp_path)
+    events = [
+        {
+            "date": "12.09.2026",
+            "name": "Booking B",
+            "datetime": "2026-09-12T10:00:00",
+            "duration_hours": 2.0,
+            "location": "Rink 2",
+        },
+        {
+            "date": "12.09.2026",
+            "name": "Booking A",
+            "datetime": "2026-09-12T10:00:00",
+            "duration_hours": 1.0,
+            "location": "Rink 1",
+        },
+    ]
+    _patch_refresh_inputs(monkeypatch, busy=True, events_override=events)
+    first = refresh_calendars(
+        season="2026-2027", root=root, input_path="input.xlsx", dry_run=True
+    )
+
+    _patch_refresh_inputs(monkeypatch, busy=True, events_override=list(reversed(events)))
+    second = refresh_calendars(
+        season="2026-2027", root=root, input_path="input.xlsx", dry_run=True
+    )
+
+    assert second["calendar_fingerprint"] == first["calendar_fingerprint"]
+    assert second["sources"][0]["fingerprint"] == first["sources"][0]["fingerprint"]
+
+    changed = copy.deepcopy(events)
+    changed[0]["name"] = "Materially changed booking"
+    _patch_refresh_inputs(monkeypatch, busy=True, events_override=changed)
+    third = refresh_calendars(
+        season="2026-2027", root=root, input_path="input.xlsx", dry_run=True
+    )
+    assert third["calendar_fingerprint"] != first["calendar_fingerprint"]
+    assert third["sources"][0]["fingerprint"] != first["sources"][0]["fingerprint"]
 
 
 def test_refresh_records_source_policy_and_is_idempotent_for_unchanged_config(
