@@ -9,6 +9,7 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "tournament_scheduler"
 PLANNING_DIR = PACKAGE_ROOT / "planning"
 
 PLANNING_MODULES = {
+    "club_profile_contract",
     "contract",
     "contract_distribution",
     "date_policy",

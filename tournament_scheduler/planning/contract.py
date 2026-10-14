@@ -37,7 +37,6 @@ from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.booking.calendar_availability import (
     CLASSIFICATION_SOURCE_INFERRED,
     CalendarAvailability,
-    club_controlled_available_policy,
     interval_availability,
     unclassified_intervals,
 )
@@ -45,7 +44,11 @@ from tournament_scheduler.booking.calendar_bookings import (
     associated_tournament_for_event,
     event_fingerprint,
 )
-from tournament_scheduler.booking.ice_resources import event_affects_tournament_footprint
+from tournament_scheduler.planning.club_profile_contract import (
+    filter_intervals_by_footprint,
+    classify_profile_allocation,
+    collect_profile_allocations_used,
+)
 from tournament_scheduler.season.baseline_overlay import (
     locked_dates as _canonical_locked_dates,
     pinned_tournament_ids as _canonical_pinned_tournament_ids,
@@ -99,7 +102,6 @@ HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT = 3
 # ---------------------------------------------------------------------------
 # planning_problem.json
 # ---------------------------------------------------------------------------
-
 
 def build_planning_problem(
     config: Dict[str, Any],
@@ -308,11 +310,9 @@ def build_planning_problem(
         "operator_waivers": [dict(waiver) for waiver in (waivers or [])],
     }
 
-
 # ---------------------------------------------------------------------------
 # candidate.json
 # ---------------------------------------------------------------------------
-
 
 def candidate_from_plan_dict(
     plan_dict: Dict[str, Any],
@@ -325,7 +325,6 @@ def candidate_from_plan_dict(
     candidate["schema_version"] = CANDIDATE_SCHEMA_VERSION
     candidate["source"] = {"planner": source, "version": planner_version}
     return candidate
-
 
 def extract_candidate(data: Dict[str, Any]) -> Dict[str, Any]:
     """Return the candidate payload from *data*, whatever shape it was loaded in.
@@ -348,7 +347,6 @@ def extract_candidate(data: Dict[str, Any]) -> Dict[str, Any]:
     candidate.setdefault("schema_version", CANDIDATE_SCHEMA_VERSION)
     return candidate
 
-
 def candidate_content_fingerprint(candidate: Mapping[str, Any]) -> str:
     """Canonical content fingerprint for one candidate envelope.
 
@@ -365,11 +363,9 @@ def candidate_content_fingerprint(candidate: Mapping[str, Any]) -> str:
     payload = json.dumps(normalized, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
-
 # ---------------------------------------------------------------------------
 # verification
 # ---------------------------------------------------------------------------
-
 
 def _parse_date(value: Any) -> Optional[date]:
     if not value:
@@ -381,9 +377,7 @@ def _parse_date(value: Any) -> Optional[date]:
     except ValueError:
         return None
 
-
 TeamIdentity = Tuple[str, str, str]
-
 
 def _time_to_minutes(value: str) -> int:
     """Parse an ``HH:MM`` clock string into minutes since midnight.
@@ -395,7 +389,6 @@ def _time_to_minutes(value: str) -> int:
     """
     hour, minute = (int(part) for part in value.split(":", 1))
     return hour * 60 + minute
-
 
 def _busy_windows_for_availability(
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
@@ -413,15 +406,9 @@ def _busy_windows_for_availability(
     ``club_calendar_status`` is ``"known"`` before treating the absence of
     entries as evidence of availability.
     """
-    if not club_busy_intervals or not club:
-        return []
-    date_str = on_date.isoformat()
+    filtered = filter_intervals_by_footprint(club_busy_intervals, club, on_date)
     windows: List[Tuple[int, int]] = []
-    for entry in club_busy_intervals.get(club, []):
-        if entry.get("date") != date_str:
-            continue
-        if not event_affects_tournament_footprint(str(club), entry):
-            continue
+    for entry in filtered:
         if availability is not None and interval_availability(entry) != availability:
             continue
         try:
@@ -429,7 +416,6 @@ def _busy_windows_for_availability(
         except (KeyError, ValueError):
             continue
     return windows
-
 
 def fixed_busy_windows(
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
@@ -440,7 +426,6 @@ def fixed_busy_windows(
     return _busy_windows_for_availability(
         club_busy_intervals, club, on_date, availability=CalendarAvailability.FIXED_BUSY
     )
-
 
 def _fixed_busy_windows_for_tournament(
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
@@ -454,12 +439,9 @@ def _fixed_busy_windows_for_tournament(
 
     if not club_busy_intervals or not club:
         return []
+    filtered = filter_intervals_by_footprint(club_busy_intervals, club, on_date)
     windows: List[Tuple[int, int]] = []
-    for entry in club_busy_intervals.get(club, []):
-        if entry.get("date") != on_date.isoformat():
-            continue
-        if not event_affects_tournament_footprint(str(club), entry):
-            continue
+    for entry in filtered:
         if interval_availability(entry) != CalendarAvailability.FIXED_BUSY:
             continue
         event = {**entry, "club": club, "fingerprint": event_fingerprint({**entry, "club": club})}
@@ -471,7 +453,6 @@ def _fixed_busy_windows_for_tournament(
             continue
     return windows
 
-
 def movable_busy_windows(
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
     club: Optional[str],
@@ -481,7 +462,6 @@ def movable_busy_windows(
     return _busy_windows_for_availability(
         club_busy_intervals, club, on_date, availability=CalendarAvailability.MOVABLE_BUSY
     )
-
 
 def _overlaps_any(windows: List[Tuple[int, int]], start_time: Optional[str], duration_minutes: int) -> bool:
     if not start_time or duration_minutes <= 0:
@@ -495,7 +475,6 @@ def _overlaps_any(windows: List[Tuple[int, int]], start_time: Optional[str], dur
         if new_start < busy_end and busy_start < new_end:
             return True
     return False
-
 
 def external_busy_windows(
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
@@ -536,7 +515,6 @@ def external_busy_windows(
         return windows
     return _busy_windows_for_availability(club_busy_intervals, club, on_date, availability=availability)
 
-
 def external_calendar_conflict(
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
     club: Optional[str],
@@ -570,7 +548,6 @@ def external_calendar_conflict(
     )
     return _overlaps_any(windows, start_time, duration_minutes)
 
-
 def movable_calendar_opportunity(
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
     club: Optional[str],
@@ -594,11 +571,8 @@ def movable_calendar_opportunity(
     except ValueError:
         return None
     new_end = new_start + duration_minutes
-    for entry in club_busy_intervals.get(club, []) if club_busy_intervals else []:
-        if entry.get("date") != on_date.isoformat():
-            continue
-        if not event_affects_tournament_footprint(str(club), entry):
-            continue
+    filtered = filter_intervals_by_footprint(club_busy_intervals, club, on_date)
+    for entry in filtered:
         if interval_availability(entry) != CalendarAvailability.MOVABLE_BUSY:
             continue
         try:
@@ -609,7 +583,6 @@ def movable_calendar_opportunity(
         if new_start < busy_end and busy_start < new_end:
             return dict(entry)
     return None
-
 
 def club_controlled_allocation_conflict(
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
@@ -625,7 +598,6 @@ def club_controlled_allocation_conflict(
         )
         is not None
     )
-
 
 def apply_calendar_interpretations(
     club_busy_intervals: Optional[Dict[str, List[Dict[str, str]]]],
@@ -690,7 +662,6 @@ def apply_calendar_interpretations(
                 )
     return merged
 
-
 def _team_identity(team: Dict[str, Any]) -> TeamIdentity:
     """Return a (club, label, age_group) identity for *team*.
 
@@ -704,13 +675,11 @@ def _team_identity(team: Dict[str, Any]) -> TeamIdentity:
     """
     return (team.get("club", ""), team.get("label", ""), team.get("age_group", ""))
 
-
 def _display_label(identity: TeamIdentity, duplicate_labels: "set[str]") -> str:
     club, label, age_group = identity
     if label in duplicate_labels:
         return f"{label} ({club}, {age_group})"
     return label
-
 
 def _duplicate_labels(tournaments: Iterable[Dict[str, Any]]) -> "set[str]":
     seen: Dict[str, set[TeamIdentity]] = {}
@@ -719,7 +688,6 @@ def _duplicate_labels(tournaments: Iterable[Dict[str, Any]]) -> "set[str]":
             identity = _team_identity(team)
             seen.setdefault(identity[1], set()).add(identity)
     return {label for label, identities in seen.items() if len(identities) > 1}
-
 
 def _participation_search_evidence(
     problem: Optional[Mapping[str, Any]],
@@ -736,7 +704,6 @@ def _participation_search_evidence(
         return None
     evidence = problem.get("participation_search_evidence")
     return evidence if isinstance(evidence, Mapping) else None
-
 
 def verify_candidate(
     candidate: Dict[str, Any],
@@ -1149,22 +1116,16 @@ def verify_candidate(
                         "requires_host_confirmation": True,
                     }
                 )
-            elif (controlled := club_controlled_available_policy(
-                interval.host_club,
-                interval.start.date(),
-                interval.start.strftime("%H:%M"),
-                duration_minutes,
-            )) is not None:
-                club_controlled_available_allocations_used.append(
-                    {
-                        "tournament_id": interval.tournament_id,
-                        "host_club": interval.host_club,
-                        "age_group": interval.age_group,
-                        "date": interval.date,
-                        "interval": interval.interval_label,
-                        **controlled,
-                    }
+            # Club-controlled available allocations are collected via the
+            # shared helper to keep profile logic in one place.
+            club_controlled_available_allocations_used.extend(
+                collect_profile_allocations_used(
+                    tournament_obj,
+                    ice_time_minutes,
+                    ice_time_overrides,
+                    problem,
                 )
+            )
     except (KeyError, ValueError) as exc:
         _violate("arena_interval_check_failed", f"Could not evaluate arena interval conflicts: {exc}")
 
@@ -1612,11 +1573,9 @@ def verify_candidate(
         "orphaned_approvals": orphaned_approvals,
     }
 
-
 # ---------------------------------------------------------------------------
 # scoring
 # ---------------------------------------------------------------------------
-
 
 def score_candidate(
     candidate: Dict[str, Any],
