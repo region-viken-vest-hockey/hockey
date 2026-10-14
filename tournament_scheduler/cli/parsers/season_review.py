@@ -61,7 +61,11 @@ def add_season_review_parsers(season_sub: argparse._SubParsersAction) -> None:
     season_refresh.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
     season_refresh.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_refresh.add_argument("--input", default="input.xlsx", help="Canonical input workbook with configured sources")
-    season_refresh.add_argument("--work-dir", default=None, help="Optional work directory for the scrape checkpoint/cache")
+    season_refresh.add_argument(
+        "--work-dir",
+        default=".pipeline",
+        help="Pipeline work directory for the scrape checkpoint/cache (default: .pipeline)",
+    )
     season_refresh.add_argument(
         "--club",
         default=None,
