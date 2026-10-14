@@ -1,8 +1,9 @@
 """Regression test for #704: BRP event message survives full evidence path."""
 
 from datetime import datetime
+from unittest.mock import MagicMock
 
-from tournament_scheduler.pipeline.scraper_brp_exigo import _parse_brp_exigo_day
+from tournament_scheduler.pipeline.scraper_brp_exigo import _parse_brp_exigo_day_strict
 from tournament_scheduler.pipeline.stage3_helpers import _build_club_busy_intervals
 from tournament_scheduler.booking.calendar_bookings import iter_events
 from tournament_scheduler.booking.interval_facts import event_fingerprint
@@ -48,7 +49,7 @@ def test_brp_event_message_survives_full_evidence_path(tmp_path):
                 362,
                 "Skien Ishockeyklubb",
                 time_range="11:15-13:35",
-                message="JU10: Skien, Jar Blå, Frisk Asker Orange, Jar hvit, Frisk Asker Svart",
+                message="",  # Empty in initial page load
             ),
             _item(
                 1,
@@ -56,13 +57,28 @@ def test_brp_event_message_survives_full_evidence_path(tmp_path):
                 363,
                 "Skien Ishockeyklubb",
                 time_range="11:15-13:35",
-                message="JU10: Skien, Jar Blå, Frisk Asker Orange, Jar hvit, Frisk Asker Svart",
+                message="",  # Empty in initial page load
             ),
         ],
     )
-    events = _parse_brp_exigo_day(page, datetime(2027, 1, 24))
 
-    # 1. Scraper preserves message in CalendarEvent.name
+    # Mock the server action response
+    mock_session = MagicMock()
+    mock_response = MagicMock()
+    # Next.js flight response format: 0:... 1:[["message1"],["message2"]]
+    mock_response.text = '0:{"a":"$@1","f":"","b":"kNYIBfnUcAko1ZiTgS_-W"}\n1:[["JU10: Skien, Jar Blå, Frisk Asker Orange, Jar hvit, Frisk Asker Svart"],[]]'
+    mock_response.raise_for_status = MagicMock()
+    mock_session.post.return_value = mock_response
+
+    # Parse with message fetching
+    events = _parse_brp_exigo_day_strict(
+        page,
+        datetime(2027, 1, 24),
+        session=mock_session,
+        day_url="https://skienfritidspark.brp.exigo.no/ishallen?date=2027-01-24",
+    )
+
+    # 1. Scraper preserves message in CalendarEvent.name (from server action)
     assert len(events) == 1
     assert events[0].name == "Skien Ishockeyklubb - JU10: Skien, Jar Blå, Frisk Asker Orange, Jar hvit, Frisk Asker Svart 11:15-13:35"
     assert events[0].order_id == "1194498"
@@ -113,6 +129,47 @@ def test_brp_event_message_survives_full_evidence_path(tmp_path):
     assert len(iterated) == 1
     assert iterated[0]["order_id"] == "1194498"
     assert "JU10: Skien, Jar Blå, Frisk Asker Orange, Jar hvit, Frisk Asker Svart" in iterated[0]["calendar_event"]
+
+
+def test_brp_event_message_fallback_when_server_action_fails(tmp_path):
+    """If server action fails, scraper falls back to empty message (no crash)."""
+    page = _page(
+        _BANES,
+        [
+            _item(
+                1,
+                1194498,
+                362,
+                "Skien Ishockeyklubb",
+                time_range="11:15-13:35",
+                message="",
+            ),
+            _item(
+                1,
+                1194498,
+                363,
+                "Skien Ishockeyklubb",
+                time_range="11:15-13:35",
+                message="",
+            ),
+        ],
+    )
+
+    # Mock session that raises on post
+    mock_session = MagicMock()
+    mock_session.post.side_effect = Exception("Network error")
+
+    events = _parse_brp_exigo_day_strict(
+        page,
+        datetime(2027, 1, 24),
+        session=mock_session,
+        day_url="https://skienfritidspark.brp.exigo.no/ishallen?date=2027-01-24",
+    )
+
+    # Should still parse events, just without messages
+    assert len(events) == 1
+    assert events[0].name == "Skien Ishockeyklubb 11:15-13:35"
+    assert events[0].order_id == "1194498"
 
 
 def test_unclassified_intervals_preserve_order_id():

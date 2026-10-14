@@ -202,3 +202,4 @@ tournament_scheduler/spond/spond_import.py	312
 tournament_scheduler/participation/team_schedule_quality.py	1002
 tournament_scheduler/repair/underfilled_roster.py	672
 tournament_scheduler/repair/unplaced_placement.py	1103
+tournament_scheduler/pipeline/scraper_brp_exigo.py	365
