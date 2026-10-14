@@ -146,6 +146,18 @@ def test_single_resource_bookings_on_both_banes_are_not_competing():
     assert all(c["actionable"] is False for c in row["candidates"])
 
 
+def test_disjoint_resource_booking_stays_visible_as_non_actionable_context():
+    other_hall_resource = ["bane-3"]
+    result = _assess([_event("10:00", "12:00", resources=other_hall_resource, title="Skien miniputt")])
+
+    row = _row(result)
+    assert row["candidate_count"] == 1
+    candidate = row["candidates"][0]
+    assert candidate["resource_coverage"] == "disjoint"
+    assert candidate["actionable"] is False
+    assert "event_occupies_other_resources_only" in candidate["counterevidence"]
+
+
 def test_partial_resource_overlap_blocks_presumed_unscheduled():
     result = _assess([_event("10:00", "12:00", resources=BANE_1)])
 

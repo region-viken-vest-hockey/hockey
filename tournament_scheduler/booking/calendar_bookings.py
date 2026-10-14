@@ -19,7 +19,7 @@ from tournament_scheduler.booking.assessment_candidates import (
     assessment_candidate,
     source_supports_negative_absence,
 )
-from tournament_scheduler.booking.ice_resources import COVERAGE_PARTIAL
+from tournament_scheduler.booking.ice_resources import COVERAGE_DISJOINT, COVERAGE_PARTIAL
 from tournament_scheduler.booking.interval_facts import (
     _event_fingerprint_payload,
     _parse_hhmm,
@@ -2128,7 +2128,7 @@ def booking_assessment(
                     and not candidate["season_context_only"]
                     and not candidate["age_group_conflict"]
                     and not candidate["arena_mismatch"]
-                    and candidate["resource_coverage"] != COVERAGE_PARTIAL
+                    and candidate["resource_coverage"] not in {COVERAGE_PARTIAL, COVERAGE_DISJOINT}
                 )
                 candidates.append(candidate)
                 candidates_by_event.setdefault(candidate["event_fingerprint"], []).append(

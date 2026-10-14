@@ -131,16 +131,14 @@ def assessment_candidate(
 
     covers = event_covers_tournament_interval(event, tournament, problem)
     overlaps = _assessment_overlaps(tournament, event, problem)
-    # A tournament that needs a resource footprint can only be booked by an
-    # event that occupies all of it. A booking on other resources only is not
-    # this tournament's booking; one that touches only part of the footprint is
-    # kept visible as partial occupancy, never as a credible match.
+    # The footprint is an unconfirmed assumption (ADR 0007), so it never discards
+    # an observed booking. It only marks a booking as non-actionable context:
+    # partial or disjoint occupancy is listed with counterevidence, and the
+    # harness weighs it.
     resource_coverage = footprint_coverage(
         tournament_resource_footprint(str(tournament.get("host_club") or "")),
         event_resource_ids(event),
     )
-    if resource_coverage == COVERAGE_DISJOINT:
-        return None
     if date_delta_days == 0:
         relation = RELATION_SAME_DATE_OVERLAP if overlaps else RELATION_SAME_DATE_TIME_SHIFT
     else:
@@ -190,6 +188,8 @@ def assessment_candidate(
         evidence.append("event_covers_resource_footprint")
     elif resource_coverage == COVERAGE_PARTIAL:
         counterevidence.append("event_occupies_partial_resource_footprint")
+    elif resource_coverage == COVERAGE_DISJOINT:
+        counterevidence.append("event_occupies_other_resources_only")
 
     return {
         "resource_coverage": resource_coverage,
