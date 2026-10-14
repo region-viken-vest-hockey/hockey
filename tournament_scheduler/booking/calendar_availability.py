@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import unicodedata
 from dataclasses import dataclass
+from datetime import date
 from enum import Enum
 from typing import Any, Iterable, Mapping, Optional, Tuple
 
@@ -148,7 +149,7 @@ def interval_availability(entry: Mapping[str, Any]) -> CalendarAvailability:
 
 def club_controlled_available_policy(
     club: str,
-    on_date: "date",
+    on_date: date,
     start_time: str,
     duration_minutes: int,
 ) -> dict[str, str] | None:
