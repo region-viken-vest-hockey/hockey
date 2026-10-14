@@ -131,10 +131,9 @@ def assessment_candidate(
 
     covers = event_covers_tournament_interval(event, tournament, problem)
     overlaps = _assessment_overlaps(tournament, event, problem)
-    # The footprint is an unconfirmed assumption (ADR 0007), so it never discards
-    # an observed booking. It only marks a booking as non-actionable context:
-    # partial or disjoint occupancy is listed with counterevidence, and the
-    # harness weighs it.
+    # The footprint is operator-confirmed (ADR 0007), but it still never discards
+    # an observed booking. Partial or disjoint occupancy is listed as
+    # non-actionable counterevidence, and the harness weighs it.
     resource_coverage = footprint_coverage(
         tournament_resource_footprint(str(tournament.get("host_club") or "")),
         event_resource_ids(event),
