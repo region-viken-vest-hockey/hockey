@@ -70,9 +70,12 @@ def assessment_candidate(
 ) -> dict[str, Any] | None:
     """Return one deterministic, bounded event<->tournament candidate row.
 
-    The candidate set deliberately includes non-overlapping same-day and
-    nearby-date possibilities so a changed slot never hides a booking.  It does
-    **not** decide the semantic match: every row carries the evidence and
+    Date is not a search boundary. A tournament can move from one end of the
+    season to the other after it was planned, so an event far from the planned
+    date stays a candidate when it carries an age-group match for the same host.
+    Without that identity evidence, only events within ``date_window_days`` are
+    kept. ``date_delta_days`` is evidence for ranking either way. It does **not**
+    decide the semantic match: every row carries the evidence and
     counterevidence a harness/operator needs to adjudicate it.
     """
 
@@ -91,8 +94,6 @@ def assessment_candidate(
     if event_date is None or tournament_date is None:
         return None
     date_delta_days = (event_date - tournament_date).days
-    if abs(date_delta_days) > date_window_days:
-        return None
 
     covers = event_covers_tournament_interval(event, tournament, problem)
     overlaps = _assessment_overlaps(tournament, event, problem)
@@ -114,6 +115,11 @@ def assessment_candidate(
     age_group = str(tournament.get("age_group") or "")
     age_tokens = _assessment_age_tokens(event.get("calendar_event") or event.get("title"))
     age_group_conflict = bool(age_tokens) and bool(age_group) and age_group.upper() not in age_tokens
+    age_group_match = bool(age_tokens) and bool(age_group) and not age_group_conflict
+    # Only identity evidence (an age group that matches) may keep a far-off
+    # event; a generic same-host booking far from the planned date is noise.
+    if abs(date_delta_days) > date_window_days and not age_group_match:
+        return None
 
     evidence: list[str] = []
     counterevidence: list[str] = []

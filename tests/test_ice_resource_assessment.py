@@ -214,3 +214,26 @@ def test_event_with_other_age_group_is_not_a_candidate_for_junior_tournament():
     row = _row(result)
     assert row["candidates"][0]["actionable"] is False
     assert "event_title_age_group_differs" in row["candidates"][0]["counterevidence"]
+
+
+def test_same_host_full_footprint_event_months_away_stays_a_candidate():
+    # A tournament moved from autumn to spring must still find its booking.
+    moved = _event("10:00", "12:00", resources=BOTH, title="Skien Ishockeyklubb - U10")
+    moved["date"] = "2027-03-20"
+
+    row = _row(_assess([moved]))
+
+    assert row["candidate_count"] == 1
+    candidate = row["candidates"][0]
+    assert candidate["date_delta_days"] == 189
+    assert candidate["actionable"] is True
+    assert "event_covers_resource_footprint" in candidate["evidence"]
+    assert row["classification"] == "proposed_changed_slot"
+
+
+def test_far_generic_booking_without_identity_evidence_is_not_a_candidate():
+    # Date alone does not keep a booking: no age match and far from the plan.
+    generic = _event("10:00", "12:00", resources=BOTH, title="Skien Ishockeyklubb")
+    generic["date"] = "2027-03-20"
+
+    assert _row(_assess([generic]))["candidate_count"] == 0

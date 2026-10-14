@@ -77,6 +77,8 @@ STALE = "stale"
 # explicit absence evidence, and even then the result is a non-binding
 # presumed-unscheduled review state rather than a canonical booking decision.
 ASSESSMENT_SCHEMA_VERSION = 1
+# Observed-source window needed around a tournament before absence can be claimed.
+# It does not bound candidate search: a moved booking can sit anywhere in the season.
 DEFAULT_ASSESSMENT_DATE_WINDOW_DAYS = 7
 
 ASSESSMENT_ASSOCIATED = "associated"
