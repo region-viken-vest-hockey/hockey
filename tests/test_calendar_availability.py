@@ -10,11 +10,13 @@ from tournament_scheduler.booking.calendar_availability import (
     classify_club_event,
     classify_club_event_detailed,
     classify_event_name,
-    club_controlled_available_policy,
     host_confirmation_from_evidence,
     interval_availability,
     legacy_kind,
     unclassified_intervals,
+)
+from tournament_scheduler.booking.club_profile_availability import (
+    club_controlled_available_policy,
 )
 
 

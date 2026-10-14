@@ -9,10 +9,11 @@ calendar scrape.
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-from typing import Optional
 
-from tournament_scheduler.booking.calendar_availability import CalendarAvailability
 from tournament_scheduler.clubs.profiles import get_club_profile
+
+
+CLUB_CONTROLLED_AVAILABLE = "club_controlled_available"
 
 
 def club_controlled_available_policy(
@@ -43,7 +44,7 @@ def club_controlled_available_policy(
     if policy is None:
         return None
     return {
-        "availability": CalendarAvailability.CLUB_CONTROLLED_AVAILABLE.value,
+        "availability": CLUB_CONTROLLED_AVAILABLE,
         "authority": policy.authority,
         "planning_semantics": policy.planning_semantics,
         "policy_id": policy.id,

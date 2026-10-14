@@ -9,19 +9,21 @@ host-controlled ``movable_busy`` ice.
 from __future__ import annotations
 
 from datetime import date
+from typing import Any
 
 from tournament_scheduler.booking.calendar_availability import (
-    CalendarAvailability,
+    CLASSIFICATION_SOURCE_INFERRED,
     classify_club_event_detailed,
 )
 from tournament_scheduler.booking.club_profile_availability import (
+    CLUB_CONTROLLED_AVAILABLE,
     club_controlled_available_policy,
 )
 
 
 # Availability labels surfaced to the operator.
 AVAILABILITY_FREE = "free"
-AVAILABILITY_CLUB_CONTROLLED = "club_controlled_available"
+AVAILABILITY_CLUB_CONTROLLED = CLUB_CONTROLLED_AVAILABLE
 AVAILABILITY_MOVABLE = "movable_busy"
 AVAILABILITY_UNKNOWN = "unknown"
 
@@ -47,7 +49,7 @@ def classify_candidate_availability(
     if movable is not None:
         event_title = str(movable.get("calendar_event") or "")
         source = str(movable.get("classification_source") or "")
-        if source == "inferred":
+        if source == CLASSIFICATION_SOURCE_INFERRED:
             return AVAILABILITY_MOVABLE, True, event_title, source
         _, _, derived = classify_club_event_detailed(host_club, event_title)
         return AVAILABILITY_MOVABLE, True, event_title, source or derived
@@ -57,7 +59,7 @@ def classify_candidate_availability(
     )
     if controlled is not None:
         return (
-            CalendarAvailability.CLUB_CONTROLLED_AVAILABLE.value,
+            CLUB_CONTROLLED_AVAILABLE,
             False,
             "",
             f"club_profile:{controlled['policy_id']}",

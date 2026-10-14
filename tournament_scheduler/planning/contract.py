@@ -46,8 +46,7 @@ from tournament_scheduler.booking.calendar_bookings import (
 )
 from tournament_scheduler.planning.club_profile_contract import (
     filter_intervals_by_footprint,
-    classify_profile_allocation,
-    collect_profile_allocations_used,
+    profile_allocation_record,
 )
 from tournament_scheduler.season.baseline_overlay import (
     locked_dates as _canonical_locked_dates,
@@ -1116,16 +1115,10 @@ def verify_candidate(
                         "requires_host_confirmation": True,
                     }
                 )
-            # Club-controlled available allocations are collected via the
-            # shared helper to keep profile logic in one place.
-            club_controlled_available_allocations_used.extend(
-                collect_profile_allocations_used(
-                    tournament_obj,
-                    ice_time_minutes,
-                    ice_time_overrides,
-                    problem,
-                )
-            )
+            else:
+                controlled = profile_allocation_record(interval, duration_minutes)
+                if controlled is not None:
+                    club_controlled_available_allocations_used.append(controlled)
     except (KeyError, ValueError) as exc:
         _violate("arena_interval_check_failed", f"Could not evaluate arena interval conflicts: {exc}")
 

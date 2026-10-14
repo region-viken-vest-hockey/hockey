@@ -30,7 +30,6 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any, Callable, Dict, Hashable, List, Mapping, Optional, Sequence, Set, Tuple
 
-from tournament_scheduler.booking.calendar_availability import CLASSIFICATION_SOURCE_INFERRED
 from tournament_scheduler.booking.candidate_weekend_availability import (
     AVAILABILITY_CLUB_CONTROLLED,
     AVAILABILITY_FREE,
@@ -38,6 +37,16 @@ from tournament_scheduler.booking.candidate_weekend_availability import (
     AVAILABILITY_UNKNOWN,
     classify_candidate_availability,
 )
+
+__all__ = [
+    "AVAILABILITY_CLUB_CONTROLLED",
+    "AVAILABILITY_FREE",
+    "AVAILABILITY_MOVABLE",
+    "AVAILABILITY_UNKNOWN",
+    "CandidateWeekend",
+    "enumerate_candidate_weekends",
+    "season_weekend_dates",
+]
 from tournament_scheduler.planning.contract import (
     _parse_date,
     external_calendar_conflict,

@@ -36,13 +36,17 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Iterable, Mapping, Optional, Tuple
 
+from tournament_scheduler.booking.club_profile_availability import (
+    CLUB_CONTROLLED_AVAILABLE as CLUB_CONTROLLED_AVAILABLE_VALUE,
+)
+
 
 class CalendarAvailability(str, Enum):
     """Semantic availability classification for one calendar interval."""
 
     FIXED_BUSY = "fixed_busy"
     MOVABLE_BUSY = "movable_busy"
-    CLUB_CONTROLLED_AVAILABLE = "club_controlled_available"
+    CLUB_CONTROLLED_AVAILABLE = CLUB_CONTROLLED_AVAILABLE_VALUE
     FREE = "free"
     UNKNOWN = "unknown"
 
@@ -144,11 +148,6 @@ def interval_availability(entry: Mapping[str, Any]) -> CalendarAvailability:
     if kind == "unknown":
         return CalendarAvailability.UNKNOWN
     return CalendarAvailability.FIXED_BUSY
-
-
-from tournament_scheduler.booking.club_profile_availability import (
-    club_controlled_available_policy,
-)
 
 
 def host_confirmation_from_evidence(
