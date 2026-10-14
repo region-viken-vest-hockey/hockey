@@ -39,26 +39,11 @@ from ..shared import (
 
 from .associations import _align_tournament_to_authoritative_interval
 from .common import _record_rejected_booking_evidence
-
-def _manual_assertion_matches_existing(
-    existing: Mapping[str, Any] | None,
-    candidate: Mapping[str, Any],
-    *,
-    reference: str,
-) -> bool:
-    """Return whether a repeat assertion is the same deliberate statement."""
-
-    if existing is None:
-        return False
-    return (
-        str(existing.get("booking_status") or "") == str(candidate.get("booking_status") or "")
-        and str(existing.get("source_scope") or "tournament") == str(candidate.get("source_scope") or "tournament")
-        and dict(existing.get("tournament_facts") or {}) == dict(candidate.get("tournament_facts") or {})
-        and dict(existing.get("asserted_interval") or {}) == dict(candidate.get("asserted_interval") or {})
-        and dict(existing.get("stated_interval") or {}) == dict(candidate.get("stated_interval") or {})
-        and str(existing.get("reference") or "") == reference
-        and str(existing.get("source_assertion_id") or "") == str(candidate.get("source_assertion_id") or "")
-    )
+from .validation import (
+    manual_assertion_matches_existing as _manual_assertion_matches_existing,
+    reconciliation_policy_blockers,
+    resolve_matching_rejected_booking_evidence,
+)
 
 def set_manual_booking_assertion(
     service,
@@ -204,7 +189,13 @@ def set_manual_booking_assertion(
         if booking_feasibility_warnings:
             verification = {**verification, "violations": classified["blocking_violations"]}
         hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
-        blockers = hard_blockers + unresolved_blockers
+        policy_blockers = reconciliation_policy_blockers(
+            baseline_plan=plan,
+            candidate_plan=updated_schedule["plan"],
+            decisions=decisions,
+            tournament_id=tournament_id,
+        )
+        blockers = hard_blockers + unresolved_blockers + policy_blockers
         if blockers:
             messages = "; ".join(str(blocker.get("message") or blocker.get("code")) for blocker in blockers)
             _record_rejected_booking_evidence(
@@ -226,6 +217,13 @@ def set_manual_booking_assertion(
                 dry_run=dry_run,
             )
             raise SeasonStateError(f"Refusing to record booking assertion for {tournament_id}: {messages}")
+        resolve_matching_rejected_booking_evidence(
+            updated_decisions_for_interval,
+            tournament_id=tournament_id,
+            proposed_interval=(source_interval_alignment or {}).get("accepted_source_interval"),
+            actor=resolved_actor,
+            now=now,
+        )
         schedule = updated_schedule
         decisions = updated_decisions_for_interval
         plan = schedule["plan"]

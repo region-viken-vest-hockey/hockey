@@ -97,6 +97,7 @@ def _record_rejected_booking_evidence(
     )
     service._commit(snapshot.with_decisions(updated))
 
+
 def _calendar_problem_payload(problem: Mapping[str, Any] | None) -> dict[str, Any]:
     return {key: copy.deepcopy((problem or {}).get(key)) for key in _CALENDAR_PROBLEM_KEYS}
 

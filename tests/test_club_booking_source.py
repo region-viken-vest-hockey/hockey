@@ -27,11 +27,15 @@ from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.publication.mutation_history import replay_recorded_mutations
 from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
+    add_request_constraint,
     booking_status_report,
     club_booking_sources,
+    confirm_calendar_booking,
     load_decisions,
     load_schedule,
+    move_tournament,
     reconcile_calendar_bookings,
+    release_request_constraints,
     set_club_booking_source,
     set_ice_time_minutes,
     set_manual_booking_assertion,
@@ -400,6 +404,154 @@ def test_source_confirmed_moved_day_double_booked_team_is_rejected_and_evidence_
     assert t1["date"] == "2026-09-12"
     assert decisions["decisions"]["t1"]["status"] == "pending_review"
     assert decisions["decisions"]["t1"]["placement_locked"] is False
+
+
+def test_moved_day_unavailable_team_rejects_atomically_then_resolves_on_retry(tmp_path):
+    """Exact source reality cannot bypass a durable participant request.
+
+    The refused fact remains actionable without changing placement/approval or
+    booking evidence. Once the operator releases the superseded request, the
+    exact same source fact can be retried and resolves its rejected record.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
+    problem = _host_a_problem([])
+    source = _source_set(root)["source"]
+    added = add_request_constraint(
+        season="2026-2027",
+        root=root,
+        type="team_unavailable",
+        request_id="club-unavailable-19-september",
+        teams=[{"club": "B", "label": "B1", "age_group": "U10"}],
+        date_from="2026-09-19",
+        actor="tester",
+    )
+    before_schedule = load_schedule("2026-2027", root=root)
+    before_decisions = load_decisions("2026-2027", root=root)
+
+    with pytest.raises(SeasonStateError, match="unavailable"):
+        _interpretation(
+            root,
+            source_id=source["id"],
+            problem=problem,
+            stated_date="2026-09-19",
+            stated_start="12:30",
+            stated_end="14:20",
+        )
+
+    assert load_schedule("2026-2027", root=root) == before_schedule
+    rejected_decisions = load_decisions("2026-2027", root=root)
+    assert rejected_decisions["decisions"]["t1"] == before_decisions["decisions"]["t1"]
+    assert rejected_decisions.get("tournament_booking_evidence") == before_decisions.get(
+        "tournament_booking_evidence"
+    )
+    rejected = rejected_decisions[REJECTED_BOOKING_EVIDENCE_KEY][-1]
+    assert rejected["status"] == "unresolved"
+    assert rejected["proposed_interval"] == {
+        "date": "2026-09-19",
+        "start_time": "12:30",
+        "duration_minutes": 110,
+        "end_time": "14:20",
+    }
+    assert {item["code"] for item in rejected["conflicts"]} == {"team_unavailable"}
+
+    release_request_constraints(
+        season="2026-2027",
+        root=root,
+        constraint_ids=[added["constraint"]["id"]],
+        actor="tester",
+        note="host and club agreed the new date",
+    )
+    result = _interpretation(
+        root,
+        source_id=source["id"],
+        problem=problem,
+        stated_date="2026-09-19",
+        stated_start="12:30",
+        stated_end="14:20",
+    )
+
+    assert result["changed"] is True
+    assert load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]["date"] == "2026-09-19"
+    resolved = load_decisions("2026-2027", root=root)[REJECTED_BOOKING_EVIDENCE_KEY][-1]
+    assert resolved["status"] == "resolved"
+    assert resolved["resolution"] == "accepted_exact_source_interval_after_retry"
+
+
+def test_wrong_calendar_owner_retains_exact_rejected_source_fact(tmp_path):
+    """Wrong-owner evidence is traceable but cannot move, approve or reconcile."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    event = {
+        "date": "2026-09-13",
+        "start": "12:30",
+        "end": "14:20",
+        "availability": "fixed_busy",
+        "calendar_event": "B booking list",
+    }
+    problem = {
+        **_host_a_problem([]),
+        "club_calendar_status": {"A": "known", "B": "known"},
+        "club_busy_intervals": {"B": [event]},
+    }
+    before_schedule = load_schedule("2026-2027", root=root)
+    before_decision = load_decisions("2026-2027", root=root)["decisions"]["t1"]
+
+    with pytest.raises(SeasonStateError, match="host_mismatch"):
+        confirm_calendar_booking(
+            season="2026-2027",
+            root=root,
+            event_fingerprint=event_fingerprint({**event, "club": "B"}),
+            tournament_id="t1",
+            actor="tester",
+            problem=problem,
+        )
+
+    assert load_schedule("2026-2027", root=root) == before_schedule
+    decisions = load_decisions("2026-2027", root=root)
+    assert decisions["decisions"]["t1"] == before_decision
+    assert not decisions.get("calendar_booking_associations")
+    assert not decisions.get("tournament_booking_evidence")
+    rejected = decisions[REJECTED_BOOKING_EVIDENCE_KEY][-1]
+    assert rejected["authority"] == "calendar_event_association"
+    assert rejected["proposed_interval"] == {
+        "date": "2026-09-13",
+        "start_time": "12:30",
+        "duration_minutes": 110,
+        "end_time": "14:20",
+    }
+    assert {item["code"] for item in rejected["conflicts"]} == {"host_mismatch"}
+
+
+def test_authoritative_interval_cannot_undo_an_accepted_placement_protection(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    move_tournament(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        start_time="11:00",
+        request_id="accepted-move:t1",
+        actor="tester",
+        problem=problem,
+    )
+    source = _source_set(root)["source"]
+    before_schedule = load_schedule("2026-2027", root=root)
+
+    with pytest.raises(SeasonStateError, match="Accepted change protection"):
+        _interpretation(
+            root,
+            source_id=source["id"],
+            problem=problem,
+            stated_start="12:30",
+            stated_end="14:20",
+        )
+
+    assert load_schedule("2026-2027", root=root) == before_schedule
+    rejected = load_decisions("2026-2027", root=root)[REJECTED_BOOKING_EVIDENCE_KEY][-1]
+    assert {item["code"] for item in rejected["conflicts"]} == {
+        "change_protection_violation"
+    }
 
 
 def test_source_confirmed_sub_round_shortfall_records_reality_and_surfaces_finding(tmp_path):
