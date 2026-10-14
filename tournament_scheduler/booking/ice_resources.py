@@ -25,7 +25,8 @@ from tournament_scheduler.models_calendar import SourceResource
 MINIPUTT_RESOURCE_FOOTPRINTS: dict[str, tuple[str, ...]] = {
     # Skien's BRP/Exigo calendar books the hockey ice as two resources. A
     # miniputt tournament is played across the whole surface, so it needs both;
-    # a booking on one resource alone is partial occupancy.
+    # a booking on one resource alone is partial occupancy. Confirmed by the
+    # repository owner on 2026-10-14 (PR #696 review).
     "Skien": ("Bane 1", "Bane 2"),
 }
 
