@@ -37,9 +37,16 @@ Read `AGENTS.md`, `.agents/skills/rvv/SKILL.md`, and this repository's internal 
 8. Never treat bounded-search exhaustion as proof of infeasibility.
 9. Do not ask the operator to choose an internal command, action id, repair family or resume stage. Ask only for a genuinely missing real-world fact or authority that materially blocks the requested outcome.
    - For booking/calendar reconciliation, follow the shared RVV **Booking evidence authority and reconciliation** contract. Read current issue comments and existing accepted decisions before escalating; independently check the actual host source where relevant. Do not treat stale canonical/default duration or published export as evidence against a verified real booking. A booked worksheet/email assertion with a concrete source date/start/end must align the canonical effective interval through the repository-owned booking-set path; never leave a booked badge beside stale/default public times. Distinguish event-level verification from season-wide coverage, and perform routine evidence checks without asking the operator to choose the next internal step.
-10. If the intent changes schedule, roster/participants, placements, guest reservations, or durable decisions, run the appropriate canonical verification and refresh findings after mutations. Do **not** materialize a canonical export during preview, verification, rejection, retry or commit unless the operator/request explicitly asks for review, audit, delivery or publication artifacts.
-11. Publication is a separate authority boundary. **Never publish unless the operator explicitly asks to publish.**
-12. If the repository lacks a canonical capability for the requested intent, do not improvise a state edit. Use the authoritative existing input/workflow when one exists; otherwise report the missing capability clearly so it can be implemented at the correct layer.
+10. For any operation that proposes or applies a consequential change to canonical season state, durable decisions, placements, participants, guest reservations, booking associations, approvals/locks, or other operator-visible state, print a compact **change table** as part of the operator-facing result.
+   - Before mutation, show the proposed delta in a human-reviewable table whenever a preview/dry-run or deterministic proposal exists. Use columns appropriate to the operation, normally including the affected object/tournament, field/aspect, `Before`, `Proposed`, and reason/evidence.
+   - After mutation, print the actual resulting delta using the same shape and call out any difference from the preview. Do not make the operator manually reconstruct before/after state from logs, JSON, prose, or separate commands.
+   - Include every materially affected tournament/team/object, including coupled donor/recipient or swap effects. Do not dump unrelated unchanged state.
+   - For participant changes, show added/removed/replaced teams; for placement changes, show date/start/arena; for booking reconciliation, show canonical/planned placement versus observed/accepted booking evidence; for approvals/locks or durable decisions, show the changed authority/protection state.
+   - If the operation is read-only but compares planned/canonical state with external evidence or a proposed repair, still print the comparison table (for example planned tournament versus calendar event judged to match).
+   - If there is no material delta, print a one-line table or explicit `No changes` result rather than omitting the change view.
+11. If the intent changes schedule, roster/participants, placements, guest reservations, or durable decisions, run the appropriate canonical verification and refresh findings after mutations. Do **not** materialize a canonical export during preview, verification, rejection, retry or commit unless the operator/request explicitly asks for review, audit, delivery or publication artifacts.
+12. Publication is a separate authority boundary. **Never publish unless the operator explicitly asks to publish.**
+13. If the repository lacks a canonical capability for the requested intent, do not improvise a state edit. Use the authoritative existing input/workflow when one exists; otherwise report the missing capability clearly so it can be implemented at the correct layer.
 
 
 ## Publication authority and current-policy reconciliation
@@ -85,6 +92,7 @@ Use `.agents/commands/rvv-miniputt/guide.md` as the routing guide and then load 
 Report the result in operator terms:
 
 - for multi-outcome requests, report each requested outcome separately as `resolved`, `partially resolved`, `unchanged by choice`, or `blocked`, preserving the operator's stated priority;
+- include the operator-facing change/comparison table required by the contract above, with explicit before/proposed/after values where applicable;
 - what changed and why;
 - what was deliberately preserved;
 - meaningful before/after schedule-quality facts where available;
