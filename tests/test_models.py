@@ -28,6 +28,35 @@ class TestModels:
         assert event.date == '17.01.2026'
         assert event.name == 'Test Tournament'
         assert event.duration_hours == 3.5
+        assert event.duration_minutes == 210
+        assert event.end_datetime == datetime(2026, 1, 17, 17, 30)
+
+    def test_calendar_event_normalizes_float_noise_at_exact_minute_boundary(self):
+        """A source interval represented through decimal hours stays exact to the minute."""
+        duration_hours = (12 + 55 / 60) - (11 + 15 / 60)
+
+        event = CalendarEvent(
+            date="15.11.2026",
+            name="JU12",
+            datetime=datetime(2026, 11, 15, 11, 15),
+            duration_hours=duration_hours,
+        )
+
+        assert duration_hours * 60 < 100
+        assert event.duration_minutes == 100
+        assert event.duration_hours == 100 / 60
+        assert event.end_datetime == datetime(2026, 11, 15, 12, 55)
+
+    def test_calendar_event_does_not_expand_genuine_sub_minute_duration(self):
+        event = CalendarEvent(
+            date="15.11.2026",
+            name="Sub-minute source",
+            datetime=datetime(2026, 11, 15, 11, 15),
+            duration_hours=(100 * 60 - 1) / 3600,
+        )
+
+        assert event.duration_minutes == 99
+        assert event.end_datetime == datetime(2026, 11, 15, 12, 54)
 
     def test_tournament_info_creation(self):
         """Test TournamentInfo creation."""

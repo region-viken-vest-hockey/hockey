@@ -5,13 +5,13 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional
-from tournament_scheduler.models_calendar import CalendarEvent, source_identity_from_dict, source_identity_to_dict
+from tournament_scheduler.models_calendar import CalendarEvent, source_identity_to_dict
 from rich.console import Console
 
 console = Console()
 
 # Bump when the cached event shape gains fields that old entries cannot supply.
-CACHE_SCHEMA_VERSION = 2
+CACHE_SCHEMA_VERSION = 3
 
 
 class CalendarCache:
@@ -115,14 +115,7 @@ class CalendarCache:
             # produce different calendars.html evidence.
             events = []
             for event_data in data['events']:
-                event = CalendarEvent(
-                    date=event_data['date'],
-                    name=event_data['name'],
-                    datetime=datetime.fromisoformat(event_data['datetime']),
-                    duration_hours=event_data['duration_hours'],
-                    location=event_data.get('location', ''),
-                    **source_identity_from_dict(event_data),
-                )
+                event = CalendarEvent.from_source_dict(event_data)
                 if event_data.get('all_day'):
                     event.all_day = True
                 events.append(event)
@@ -166,6 +159,7 @@ class CalendarCache:
                 'name': event.name,
                 'datetime': event.datetime.isoformat(),
                 'duration_hours': event.duration_hours,
+                'duration_minutes': event.duration_minutes,
             }
             if event.location:
                 event_data['location'] = event.location

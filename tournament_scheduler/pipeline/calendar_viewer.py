@@ -22,10 +22,10 @@ from typing import Any
 from tournament_scheduler.clubs.registry import CLUB_REGISTRY, CalendarSourceKind, club_for_source_name
 from tournament_scheduler.html.data_computation import timestamp_string
 from tournament_scheduler.html.templates import CALENDAR_VIEWER
+from tournament_scheduler.models_calendar import minute_duration_from_hours
 
 from .cache_manager import ScrapedDataCache
 from .not_started import NOT_STARTED_MESSAGE, render_not_started_html
-
 
 # Colour palette for clubs (distinct, accessible)
 CLUB_COLORS: list[dict[str, str]] = [
@@ -258,15 +258,15 @@ def generate_html(
         if ev.get("all_day"):
             return "Hele dagen"
         dt_str = ev.get("datetime", "")
-        dur = ev.get("duration_hours", 0)
+        duration_minutes = ev.get("duration_minutes", minute_duration_from_hours(ev.get("duration_hours", 0)))
         if not dt_str:
             return ""
         try:
             dt = datetime.fromisoformat(dt_str)
             start = dt.strftime("%H:%M")
-            if dur and dur > 0:
+            if duration_minutes and duration_minutes > 0:
                 from datetime import timedelta
-                end_dt = dt + timedelta(hours=dur)
+                end_dt = dt + timedelta(minutes=duration_minutes)
                 end = end_dt.strftime("%H:%M")
                 return f"{start}-{end}"
             return start

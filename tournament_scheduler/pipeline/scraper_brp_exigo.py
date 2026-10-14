@@ -101,11 +101,10 @@ def _parse_brp_exigo_day(page_content: str, day: datetime) -> list[CalendarEvent
             continue
 
         sh, sm, eh, em = (int(value) for value in time_match.groups())
-        start_decimal = sh + sm / 60.0
-        end_decimal = eh + em / 60.0
-        duration = end_decimal - start_decimal
-        if duration < 0:
-            duration += 24
+        duration_minutes = (eh * 60 + em) - (sh * 60 + sm)
+        if duration_minutes < 0:
+            duration_minutes += 24 * 60
+        duration = duration_minutes / 60
 
         title = str(item.get("title") or "Booking").strip() or "Booking"
         message = str(item.get("message") or "").strip()
@@ -124,6 +123,7 @@ def _parse_brp_exigo_day(page_content: str, day: datetime) -> list[CalendarEvent
                 datetime=event_dt,
                 duration_hours=duration,
                 location=" + ".join(resource.label for resource in resources),
+                duration_minutes=duration_minutes,
                 resources=resources,
                 order_id=group["order_id"],
             )

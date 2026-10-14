@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+from tournament_scheduler.models import CalendarEvent
 from tournament_scheduler.utils.calendar_cache import CalendarCache
 
 
@@ -38,6 +39,26 @@ class TestCacheKeyLocationFilter:
         """None and empty string are both treated as 'no filter'."""
         cache = self._make_cache(tmp_path)
         assert self._key(cache, None) == self._key(cache, "")
+
+
+class TestCalendarCacheMinutePrecision:
+    def test_exact_minute_duration_round_trips_through_cache(self, tmp_path):
+        cache = CalendarCache(work_dir=str(tmp_path))
+        start = datetime(2026, 11, 1)
+        end = datetime(2026, 12, 1)
+        event = CalendarEvent(
+            date="15.11.2026",
+            name="JU12 11:15-12:55",
+            datetime=datetime(2026, 11, 15, 11, 15),
+            duration_hours=(12 + 55 / 60) - (11 + 15 / 60),
+        )
+
+        cache.set("https://example.com/feed", "Skien", start, end, [event])
+        restored = cache.get("https://example.com/feed", "Skien", start, end)
+
+        assert restored is not None
+        assert restored[0].duration_minutes == 100
+        assert restored[0].end_datetime == datetime(2026, 11, 15, 12, 55)
 
 
 class TestCalendarCachePaths:

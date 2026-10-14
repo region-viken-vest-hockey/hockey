@@ -508,18 +508,18 @@ class BrowserWorker:
                 eh, em = (int(x) for x in end_str.replace(".", ":").split(":"))
             except ValueError:
                 continue
-            duration = (eh + em / 60.0) - (sh + sm / 60.0)
-            if duration < 0:
-                duration += 24
+            duration_minutes = (eh * 60 + em) - (sh * 60 + sm)
+            if duration_minutes < 0:
+                duration_minutes += 24 * 60
             day = month_start.replace(day=1)
             events.append({
                 "date": day.strftime("%d.%m.%Y"),
                 "name": f"Booking {m.group()}",
                 "datetime": day.replace(hour=sh, minute=sm).isoformat(),
-                "duration_hours": duration,
+                "duration_hours": duration_minutes / 60,
+                "duration_minutes": duration_minutes,
             })
         return events
-
 
 # ---------------------------------------------------------------------------
 # Main loop

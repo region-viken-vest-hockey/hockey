@@ -194,6 +194,7 @@ def _cache_events(work_dir: str, name: str, url: str, events: list[Any]) -> None
                 "name": e.name,
                 "datetime": e.datetime.isoformat(),
                 "duration_hours": e.duration_hours,
+                "duration_minutes": e.duration_minutes,
             }
             for e in events
         ],

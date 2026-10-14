@@ -52,6 +52,7 @@ def _events_to_dicts(
             "name": e.name,
             "datetime": e.datetime.isoformat(),
             "duration_hours": e.duration_hours,
+            "duration_minutes": e.duration_minutes,
         }
         # iCal date-only DTSTART values are all-day events, not literal
         # midnight bookings. Preserve that distinction in Stage 2/checkpoint

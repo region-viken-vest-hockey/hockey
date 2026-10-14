@@ -8,6 +8,8 @@ not competing candidates and not duplicates to collapse.
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from tournament_scheduler.booking.calendar_bookings import booking_assessment
 from tournament_scheduler.booking.ice_resources import (
     footprint_coverage,
@@ -16,7 +18,8 @@ from tournament_scheduler.booking.ice_resources import (
     tournament_resource_footprint,
 )
 from tournament_scheduler.booking.interval_facts import event_fingerprint
-from tournament_scheduler.models_calendar import SourceResource
+from tournament_scheduler.models_calendar import CalendarEvent, SourceResource
+from tournament_scheduler.pipeline.scraper_event_helpers import _events_to_dicts
 from tournament_scheduler.pipeline.stage3_helpers import _build_club_busy_intervals
 
 BOTH = ["bane-1", "bane-2"]
@@ -285,6 +288,48 @@ def test_nearby_generic_full_footprint_bookings_do_not_contest_exact_match():
     context = [c for c in row["candidates"] if c["season_context_only"]]
     assert len(context) == len(events) - 1
     assert all("event_lacks_identity_evidence" in c["counterevidence"] for c in context)
+
+
+def test_rvv_0050_shaped_exact_minute_source_interval_is_matchable():
+    event = CalendarEvent(
+        date="15.11.2026",
+        name="JU12 11:15-12:55",
+        datetime=datetime(2026, 11, 15, 11, 15),
+        duration_hours=(12 + 55 / 60) - (11 + 15 / 60),
+        resources=(
+            SourceResource(id="362", label="Ishockey - bane 1"),
+            SourceResource(id="363", label="Ishockey - bane 2"),
+        ),
+    )
+    intervals = _build_club_busy_intervals(
+        {"events_by_club": {"Skien": _events_to_dicts([event])}}
+    )["Skien"]
+    tournament = _tournament()
+    tournament.update({"id": "rvv-0050", "date": "2026-11-15", "start_time": "11:15", "age_group": "JU12"})
+    problem = {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "teams": [],
+        "age_groups": ["JU12"],
+        "ice_time_minutes": {"JU12": 100},
+        "rounds_per_tournament": {"JU12": 5},
+        "parallel_games": {"JU12": 2},
+        "club_calendar_status": {"Skien": "known"},
+        "club_busy_intervals": {"Skien": intervals},
+    }
+
+    result = booking_assessment(
+        problem=problem,
+        plan={"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [tournament]},
+        decisions=None,
+        canonical_state_revision="rev-1",
+    )
+
+    assert intervals[0]["start"] == "11:15"
+    assert intervals[0]["end"] == "12:55"
+    row = next(row for row in result["tournaments"] if row["tournament_id"] == "rvv-0050")
+    assert row["classification"] == "proposed_unchanged"
+    assert row["candidates"][0]["actionable"] is True
 
 
 def test_near_exact_interval_with_one_minute_end_defect_stays_a_candidate():
