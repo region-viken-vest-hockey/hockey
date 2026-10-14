@@ -68,15 +68,15 @@ def assessment_candidate(
     problem: Mapping[str, Any] | None,
     date_window_days: int,
 ) -> dict[str, Any] | None:
-    """Return one deterministic, bounded event<->tournament candidate row.
+    """Return one deterministic event<->tournament candidate row.
 
     Date is not a search boundary. A tournament can move from one end of the
-    season to the other after it was planned, so an event far from the planned
-    date stays a candidate when it carries an age-group match for the same host.
-    Without that identity evidence, only events within ``date_window_days`` are
-    kept. ``date_delta_days`` is evidence for ranking either way. It does **not**
-    decide the semantic match: every row carries the evidence and
-    counterevidence a harness/operator needs to adjudicate it.
+    season to the other after it was planned, so every same-host event that is
+    resource-compatible stays visible to the harness, however far from the
+    planned date. ``date_delta_days`` and the age-group title match are evidence
+    for ranking. A far event with no age-group identity evidence is marked
+    ``season_context_only``: it is kept as context, never as an actionable
+    proposal. Nothing here decides the semantic match.
     """
 
     if str(event.get("club") or "") != str(tournament.get("host_club") or ""):
@@ -116,10 +116,10 @@ def assessment_candidate(
     age_tokens = _assessment_age_tokens(event.get("calendar_event") or event.get("title"))
     age_group_conflict = bool(age_tokens) and bool(age_group) and age_group.upper() not in age_tokens
     age_group_match = bool(age_tokens) and bool(age_group) and not age_group_conflict
-    # Only identity evidence (an age group that matches) may keep a far-off
-    # event; a generic same-host booking far from the planned date is noise.
-    if abs(date_delta_days) > date_window_days and not age_group_match:
-        return None
+    # A generic same-host booking far from the planned date is kept as context
+    # only. It is still listed for the harness, but it is not offered as a
+    # proposal unless identity evidence (a matching age group) supports it.
+    season_context_only = abs(date_delta_days) > date_window_days and not age_group_match
 
     evidence: list[str] = []
     counterevidence: list[str] = []
@@ -133,6 +133,8 @@ def assessment_candidate(
         evidence.append("same_calendar_date")
     else:
         counterevidence.append("event_date_differs_from_canonical")
+    if season_context_only:
+        counterevidence.append("event_far_from_canonical_without_age_match")
     if not covers:
         counterevidence.append("canonical_slot_not_covered")
     if age_group_conflict:
@@ -159,6 +161,7 @@ def assessment_candidate(
         "overlaps_current_interval": bool(overlaps),
         "age_group_conflict": age_group_conflict,
         "arena_mismatch": arena_mismatch,
+        "season_context_only": season_context_only,
         "evidence": sorted(evidence),
         "counterevidence": sorted(counterevidence),
     }

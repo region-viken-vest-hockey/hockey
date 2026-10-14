@@ -1856,13 +1856,16 @@ def _assessment_tournament_row(
     # but are not credible competing matches; only actionable candidates may
     # contest or resolve a proposal.
     actionable = [candidate for candidate in candidates if candidate.get("actionable")]
+    # Season-context-only rows are far from the planned date with no identity
+    # evidence. They are listed for the harness but do not contest the row.
+    contesting = [candidate for candidate in candidates if not candidate.get("season_context_only")]
     if has_manual_authority:
         classification = ASSESSMENT_MANUALLY_ASSERTED
     elif associated_event is not None:
         classification = ASSESSMENT_ASSOCIATED
     elif not source_positive_evidence_usable:
         classification = ASSESSMENT_NOT_CHECKABLE
-    elif not candidates:
+    elif not contesting:
         classification = ASSESSMENT_PRESUMED_UNSCHEDULED if source_supports_absence else ASSESSMENT_UNMATCHED
     elif len(actionable) > 1:
         # Several credible events map to the same tournament; the assessment
@@ -1945,7 +1948,7 @@ def _assessment_tournament_row(
         row["absence_evidence_blockers"] = absence_blockers
     if has_manual_authority:
         row["evidence_reason"] = "accepted_manual_authority"
-    elif candidates and source_positive_evidence_usable and not source_trusted:
+    elif contesting and source_positive_evidence_usable and not source_trusted:
         row["evidence_reason"] = "event_evidence_usable"
     elif not source_trusted:
         row["evidence_reason"] = "source_coverage_unproven"
@@ -2122,6 +2125,7 @@ def booking_assessment(
                 candidate["source_positive_evidence_usable"] = club in positive_evidence_usable_clubs
                 candidate["actionable"] = bool(
                     candidate["source_positive_evidence_usable"]
+                    and not candidate["season_context_only"]
                     and not candidate["age_group_conflict"]
                     and not candidate["arena_mismatch"]
                     and candidate["resource_coverage"] != COVERAGE_PARTIAL
@@ -2182,10 +2186,13 @@ def booking_assessment(
         club = str(event.get("club") or "")
         candidate_tournaments: list[dict[str, Any]] = []
         covered_ids: list[str] = []
+        contesting_count = 0
         for tournament_id, candidate in candidates_by_event.get(event_fp, []):
             tournament = tournament_by_id[tournament_id]
             if candidate["covers_current_interval"]:
                 covered_ids.append(tournament_id)
+            if not candidate["season_context_only"]:
+                contesting_count += 1
             candidate_tournaments.append(
                 {
                     "tournament_id": tournament_id,
@@ -2200,6 +2207,7 @@ def booking_assessment(
                     "arena_mismatch": candidate["arena_mismatch"],
                     "source_trusted": candidate["source_trusted"],
                     "actionable": candidate["actionable"],
+                    "season_context_only": candidate["season_context_only"],
                 }
             )
         candidate_tournaments.sort(key=lambda item: (item["date"], item["start_time"], item["tournament_id"]))
@@ -2215,9 +2223,9 @@ def booking_assessment(
                 "candidate_count": len(candidate_tournaments),
                 "candidate_tournaments": candidate_tournaments,
                 "covered_tournament_ids": sorted(covered_ids),
-                "one_to_many": len(candidate_tournaments) > 1,
+                "one_to_many": contesting_count > 1,
                 "group_booking": len(covered_ids) > 1,
-                "unmatched": not candidate_tournaments,
+                "unmatched": contesting_count == 0,
             }
         )
     events_rows.sort(key=lambda row: (row["club"], row["date"], row["start"], row["end"], row["event_fingerprint"]))

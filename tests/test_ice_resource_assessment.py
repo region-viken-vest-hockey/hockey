@@ -231,9 +231,17 @@ def test_same_host_full_footprint_event_months_away_stays_a_candidate():
     assert row["classification"] == "proposed_changed_slot"
 
 
-def test_far_generic_booking_without_identity_evidence_is_not_a_candidate():
-    # Date alone does not keep a booking: no age match and far from the plan.
+def test_far_generic_booking_without_identity_evidence_stays_visible_as_context():
+    # No age token in the title and far from the plan: the harness still sees
+    # it, but it is context only and never an actionable proposal.
     generic = _event("10:00", "12:00", resources=BOTH, title="Skien Ishockeyklubb")
     generic["date"] = "2027-03-20"
 
-    assert _row(_assess([generic]))["candidate_count"] == 0
+    row = _row(_assess([generic]))
+
+    assert row["candidate_count"] == 1
+    candidate = row["candidates"][0]
+    assert candidate["season_context_only"] is True
+    assert candidate["actionable"] is False
+    assert "event_far_from_canonical_without_age_match" in candidate["counterevidence"]
+    assert row["classification"] != "proposed_changed_slot"

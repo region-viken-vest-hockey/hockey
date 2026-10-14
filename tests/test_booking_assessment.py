@@ -256,7 +256,9 @@ def test_unmatched_tournament_without_complete_coverage_is_not_a_negative_claim(
     assert _tournament_row(result, "t1")["classification"] == "unmatched"
     event_row = result["events"][0]
     assert event_row["unmatched"] is True
-    assert event_row["candidate_count"] == 0
+    # Visible as season context for the harness, but it contests nothing.
+    assert event_row["candidate_count"] == 1
+    assert event_row["candidate_tournaments"][0]["season_context_only"] is True
     assert result["sources"]["A"]["trusted_for_negative_claim"] is False
     assert result["counts"]["not_checkable"] == 0
     assert "confirmed_not_booked" not in json.dumps(result)
