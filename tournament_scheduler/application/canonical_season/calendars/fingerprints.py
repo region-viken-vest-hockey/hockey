@@ -94,6 +94,7 @@ def _calendar_semantic_payload(problem: Mapping[str, Any] | None) -> dict[str, A
                         "calendar_event",
                         "reason",
                         "resources",
+                        "order_id",
                     )
                     if key in event
                 }

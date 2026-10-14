@@ -35,6 +35,11 @@ def _event_fingerprint_payload(event: Mapping[str, Any]) -> dict[str, str]:
     resources = sorted(str(label) for label in event.get("resources") or ())
     if resources:
         payload["resources"] = ",".join(resources)
+    # Preserve source booking order_id when present; it distinguishes
+    # same-titled bookings on the same resources from different orders.
+    order_id = str(event.get("order_id") or "")
+    if order_id:
+        payload["order_id"] = order_id
     return payload
 
 

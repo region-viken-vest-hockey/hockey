@@ -262,7 +262,7 @@ def unclassified_intervals(
             if not title or not is_unclassified_event(str(club), title):
                 continue
             row = {"club": str(club)}
-            for key in ("date", "start", "end", "calendar_event", "availability"):
+            for key in ("date", "start", "end", "calendar_event", "availability", "order_id"):
                 value = entry.get(key)
                 if value:
                     row[key] = value
