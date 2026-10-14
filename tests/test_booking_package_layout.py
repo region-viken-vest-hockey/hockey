@@ -11,9 +11,12 @@ BOOKING_DIR = PACKAGE_ROOT / "booking"
 BOOKING_MODULES = {
     "arena_conflict_decision",
     "arena_conflicts",
+    "assessment_candidates",
     "calendar_availability",
     "calendar_bookings",
     "candidate_weekends",
+    "ice_resources",
+    "interval_facts",
     "sandefjord_allocation",
 }
 

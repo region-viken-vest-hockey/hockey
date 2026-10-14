@@ -17,7 +17,7 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import requests
 
-from ..models import CalendarEvent
+from ..models_calendar import CalendarEvent, SourceResource
 
 _RESOURCE_AND_EVENT_RE = re.compile(
     r'\\"resources\\":\[(?P<resources>.*?)\],\\"events\\":\[(?P<events>.*?)\],\\"date\\"',
@@ -92,9 +92,8 @@ def _parse_brp_exigo_day(page_content: str, day: datetime) -> list[CalendarEvent
                 continue
 
     events: list[CalendarEvent] = []
-    for item in raw_events:
-        if not isinstance(item, dict):
-            continue
+    for group in _group_by_booking(raw_events, resource_names):
+        item = group["item"]
 
         time_range = str(item.get("timeRange") or "")
         time_match = _TIME_RANGE_RE.match(time_range)
@@ -114,12 +113,9 @@ def _parse_brp_exigo_day(page_content: str, day: datetime) -> list[CalendarEvent
         if time_range not in event_name:
             event_name = f"{event_name} {time_range}"
 
-        location = ""
-        try:
-            location = resource_names.get(int(item.get("resourceId")), "")
-        except (TypeError, ValueError):
-            location = ""
-
+        # One booking can occupy several resources. The structured resources
+        # are the evidence; the LOCATION label is derived from them for display.
+        resources = tuple(group["resources"])
         event_dt = day.replace(hour=sh, minute=sm)
         events.append(
             CalendarEvent(
@@ -127,11 +123,46 @@ def _parse_brp_exigo_day(page_content: str, day: datetime) -> list[CalendarEvent
                 name=event_name,
                 datetime=event_dt,
                 duration_hours=duration,
-                location=location,
+                location=" + ".join(resource.label for resource in resources),
+                resources=resources,
+                order_id=group["order_id"],
             )
         )
 
     return events
+
+
+def _group_by_booking(raw_events: list, resource_names: dict[int, str]) -> list[dict]:
+    """Group raw rows that are one booking occupying several resources.
+
+    The live payload writes a booking that spans both rinks as one row per
+    resource. Those rows share ``orderId``, time range, title and message, and
+    differ only in ``resourceId``. Each group keeps its order identity and every
+    resource it occupies, in source order.
+    """
+
+    groups: dict[tuple, dict] = {}
+    for item in raw_events:
+        if not isinstance(item, dict):
+            continue
+        order_id = item.get("orderId")
+        if order_id is None:
+            key: tuple = ("id", item.get("id"))
+        else:
+            key = (order_id, item.get("timeRange"), item.get("title"), item.get("message"))
+        group = groups.setdefault(
+            key,
+            {"item": item, "order_id": "" if order_id is None else str(order_id), "resources": []},
+        )
+        resource_id = item.get("resourceId")
+        try:
+            label = resource_names.get(int(resource_id), "")
+        except (TypeError, ValueError):
+            label = ""
+        resource = SourceResource(id=str(resource_id), label=label)
+        if label and resource not in group["resources"]:
+            group["resources"].append(resource)
+    return list(groups.values())
 
 
 def _unescape_next_payload_array(raw_array_contents: str) -> str:

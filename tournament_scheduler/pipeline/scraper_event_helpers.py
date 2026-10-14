@@ -12,6 +12,7 @@ from typing import Any
 
 from ..clubs.registry import club_for_source_name
 from ..models import CalendarEvent
+from ..models_calendar import source_identity_to_dict
 
 # Frisk Asker's configured Teamup source is the Askerhallen calendar. Its
 # LOCATION/resource labels are audit metadata only; they must not reassign
@@ -60,6 +61,7 @@ def _events_to_dicts(
             d["all_day"] = True
         if e.location:
             d["location"] = e.location
+        d.update(source_identity_to_dict(e))
         if source_arena:
             d["arena"] = source_arena
         if club_name == "Frisk Asker" and source_arena == "Askerhallen" and e.location:

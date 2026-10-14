@@ -251,12 +251,14 @@ def test_group_booking_covering_two_tournaments_is_flagged(tmp_path):
 
 def test_unmatched_tournament_without_complete_coverage_is_not_a_negative_claim(tmp_path):
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
-    result = _assess(root, _problem([_event("2026-10-30", "10:00", "12:00")]))
+    result = _assess(root, _problem([_event("2026-10-30", "10:00", "12:00", title="Miniputt U12")]))
 
     assert _tournament_row(result, "t1")["classification"] == "unmatched"
     event_row = result["events"][0]
     assert event_row["unmatched"] is True
-    assert event_row["candidate_count"] == 0
+    # Visible as season context for the harness, but it contests nothing.
+    assert event_row["candidate_count"] == 1
+    assert event_row["candidate_tournaments"][0]["season_context_only"] is True
     assert result["sources"]["A"]["trusted_for_negative_claim"] is False
     assert result["counts"]["not_checkable"] == 0
     assert "confirmed_not_booked" not in json.dumps(result)
@@ -267,7 +269,7 @@ def test_complete_trusted_calendar_absence_is_presumed_unscheduled(tmp_path):
     # The verified navigated window deliberately differs from the source's
     # first/last-event extent so the provenance must report the former.
     problem = _problem(
-        [_event("2026-10-30", "10:00", "12:00")],
+        [_event("2026-10-30", "10:00", "12:00", title="Miniputt U12")],
         complete=True,
         observed_window=("2026-08-01", "2027-06-01"),
     )
@@ -302,7 +304,7 @@ def test_complete_trusted_calendar_absence_is_presumed_unscheduled(tmp_path):
 
 def test_partial_or_uncovered_source_never_presumes_unscheduled(tmp_path):
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
-    problem = _problem([_event("2026-10-30", "10:00", "12:00")], complete=True)
+    problem = _problem([_event("2026-10-30", "10:00", "12:00", title="Miniputt U12")], complete=True)
     problem["club_source_integrity"] = {"A": "partial"}
     assert _tournament_row(_assess(root, problem), "t1")["classification"] == "unmatched"
 
@@ -311,7 +313,7 @@ def test_partial_or_uncovered_source_never_presumes_unscheduled(tmp_path):
     # tournament window. First/last event dates must not be read as continuous
     # coverage: only the navigated/observed window may prove coverage.
     sparse = _problem(
-        [_event("2026-10-30", "10:00", "12:00"), _event("2026-11-15", "10:00", "12:00")],
+        [_event("2026-10-30", "10:00", "12:00", title="Miniputt U12"), _event("2026-11-15", "10:00", "12:00", title="Miniputt U12")],
         complete=True,
         observed_window=("2026-09-10", "2026-09-13"),
     )
@@ -439,7 +441,7 @@ def test_authority_is_reported_separately_from_source_checkability(tmp_path):
     assert row["calendar_source_checkable"] is False
 
 
-def test_date_window_days_is_configurable(tmp_path):
+def test_date_window_days_does_not_bound_candidate_search(tmp_path):
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12")])
     problem = _problem([_event("2026-09-15", "10:00", "12:00")])
     from tournament_scheduler.booking.calendar_bookings import booking_assessment
@@ -455,16 +457,9 @@ def test_date_window_days_is_configurable(tmp_path):
         season="2026-2027",
         date_window_days=1,
     )
-    assert narrow["tournaments"][0]["classification"] == "unmatched"
-    wide = booking_assessment(
-        problem=problem,
-        plan=plan,
-        decisions=decisions,
-        canonical_state_revision="rev",
-        season="2026-2027",
-        date_window_days=7,
-    )
-    assert wide["tournaments"][0]["classification"] == "proposed_changed_slot"
+    # The candidate is kept at any window; the window only gates absence claims.
+    assert narrow["tournaments"][0]["classification"] == "proposed_changed_slot"
+    assert narrow["tournaments"][0]["candidates"][0]["date_delta_days"] == 3
 
 
 def test_wrong_age_title_is_visible_counterevidence(tmp_path):
@@ -645,7 +640,7 @@ def test_source_review_required_partial_without_matching_event_stays_unresolved(
     result = _assess(
         root,
         _problem(
-            [_event("2026-09-20", "10:00", "12:00")],
+            [_event("2026-09-20", "10:00", "12:00", title="Miniputt U12")],
             status="source_review_required",
             integrity="partial",
         ),
