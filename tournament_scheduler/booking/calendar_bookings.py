@@ -1856,8 +1856,8 @@ def _assessment_tournament_row(
     # but are not credible competing matches; only actionable candidates may
     # contest or resolve a proposal.
     actionable = [candidate for candidate in candidates if candidate.get("actionable")]
-    # Season-context-only rows are far from the planned date with no identity
-    # evidence. They are listed for the harness but do not contest the row.
+    # Season-context-only rows lack identity evidence. They are listed for the
+    # harness but do not contest the row.
     contesting = [candidate for candidate in candidates if not candidate.get("season_context_only")]
     if has_manual_authority:
         classification = ASSESSMENT_MANUALLY_ASSERTED

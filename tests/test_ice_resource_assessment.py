@@ -243,5 +243,57 @@ def test_far_generic_booking_without_identity_evidence_stays_visible_as_context(
     candidate = row["candidates"][0]
     assert candidate["season_context_only"] is True
     assert candidate["actionable"] is False
-    assert "event_far_from_canonical_without_age_match" in candidate["counterevidence"]
+    assert "event_lacks_identity_evidence" in candidate["counterevidence"]
+    assert row["classification"] != "proposed_changed_slot"
+
+
+def test_nearby_generic_full_footprint_bookings_do_not_contest_exact_match():
+    # Live Skien shape: one exact-slot full-footprint block plus many other
+    # same-week full-footprint blocks with no age token. Only the exact block
+    # is a plausible association; the rest stay visible as context.
+    exact = _event("10:00", "12:00", resources=BOTH, title="Skien Ishockeyklubb")
+    same_day_other_slots = [
+        _event("13:00", "15:00", resources=BOTH, title="Skien Ishockeyklubb"),
+        _event("16:00", "18:00", resources=BOTH, title="Skien Ishockeyklubb"),
+    ]
+    same_slot_other_days = []
+    for day in ["2026-09-10", "2026-09-14", "2026-09-15"]:
+        other_day = _event("10:00", "12:00", resources=BOTH, title="Skien Ishockeyklubb")
+        other_day["date"] = day
+        same_slot_other_days.append(other_day)
+    events = [exact, *same_day_other_slots, *same_slot_other_days]
+
+    row = _row(_assess(events))
+
+    assert row["classification"] == "proposed_unchanged"
+    assert row["candidate_count"] == len(events)
+    actionable = [c for c in row["candidates"] if c["actionable"]]
+    assert [c["start"] for c in actionable] == ["10:00"]
+    assert [c["date"] for c in actionable] == ["2026-09-12"]
+    context = [c for c in row["candidates"] if c["season_context_only"]]
+    assert len(context) == len(events) - 1
+    assert all("event_lacks_identity_evidence" in c["counterevidence"] for c in context)
+
+
+def test_near_exact_interval_with_one_minute_end_defect_stays_a_candidate():
+    # rvv-0050 shape: the booking ends one minute before the canonical slot.
+    # The defect is counterevidence, not a reason to lose the match.
+    row = _row(_assess([_event("10:00", "11:59", resources=BOTH, title="Skien Ishockeyklubb")]))
+
+    candidate = row["candidates"][0]
+    assert candidate["actionable"] is True
+    assert candidate["season_context_only"] is False
+    assert "event_interval_within_tolerance_of_canonical" in candidate["evidence"]
+    assert "canonical_slot_not_covered" in candidate["counterevidence"]
+    assert row["classification"] == "proposed_changed_slot"
+
+
+def test_interval_outside_tolerance_without_identity_is_context_only():
+    # Same date and footprint, but a 2h-shifted slot with no age token is an
+    # unrelated booking, not the tournament's changed slot.
+    row = _row(_assess([_event("14:00", "16:00", resources=BOTH, title="Skien Ishockeyklubb")]))
+
+    candidate = row["candidates"][0]
+    assert candidate["season_context_only"] is True
+    assert candidate["actionable"] is False
     assert row["classification"] != "proposed_changed_slot"

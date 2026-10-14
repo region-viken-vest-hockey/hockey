@@ -34,6 +34,11 @@ RELATION_PROXIMATE_DATE_SHIFT = "proximate_date_shift"
 
 _AGE_TOKEN_RE = re.compile(r"\b(J?U)\s?(\d{1,2})\b", re.IGNORECASE)
 
+# Start and end minutes an event may differ from the canonical interval and
+# still count as the same booking. Real calendars drift by a minute or two
+# (see #692), so an exact match is too strict to be the only identity signal.
+INTERVAL_IDENTITY_TOLERANCE_MINUTES = 15
+
 
 def _assessment_parse_date(value: Any):
     try:
@@ -61,6 +66,28 @@ def _assessment_overlaps(
     return tournament_span[0] < event_span[1] and event_span[0] < tournament_span[1]
 
 
+def _near_exact_interval(
+    tournament: Mapping[str, Any],
+    event: Mapping[str, Any],
+    problem: Mapping[str, Any] | None,
+) -> bool:
+    """Return whether the event occupies the canonical interval within tolerance."""
+
+    interval = tournament_occupancy_interval_facts(tournament, problem)
+    if str(event.get("date") or "") != interval["date"]:
+        return False
+    event_start, event_end = _parse_hhmm(event.get("start")), _parse_hhmm(event.get("end"))
+    tournament_start = _parse_hhmm(interval["start_time"])
+    tournament_end = _parse_hhmm(interval["end_time"])
+    if None in (event_start, event_end, tournament_start, tournament_end):
+        return False
+    tolerance = INTERVAL_IDENTITY_TOLERANCE_MINUTES
+    return (
+        abs(event_start - tournament_start) <= tolerance
+        and abs(event_end - tournament_end) <= tolerance
+    )
+
+
 def assessment_candidate(
     tournament: Mapping[str, Any],
     event: Mapping[str, Any],
@@ -73,10 +100,17 @@ def assessment_candidate(
     Date is not a search boundary. A tournament can move from one end of the
     season to the other after it was planned, so every same-host event that is
     resource-compatible stays visible to the harness, however far from the
-    planned date. ``date_delta_days`` and the age-group title match are evidence
-    for ranking. A far event with no age-group identity evidence is marked
-    ``season_context_only``: it is kept as context, never as an actionable
-    proposal. Nothing here decides the semantic match.
+    planned date. ``date_delta_days`` is evidence for ranking.
+
+    Plausible association identity is separate from mere occupancy. For a club
+    with a declared resource footprint (Skien), an event is an identity
+    candidate only when it carries an age-group match or occupies the canonical
+    interval within tolerance on the same date. Any other same-host booking,
+    however near in date, is kept as ``season_context_only``: it is listed for
+    the harness but is not actionable and does not contest the tournament.
+    Clubs without a declared footprint keep resource-agnostic evidence, so a
+    same-host booking inside the observation window stays a changed-slot
+    candidate. Nothing here decides the semantic match.
     """
 
     if str(event.get("club") or "") != str(tournament.get("host_club") or ""):
@@ -116,10 +150,19 @@ def assessment_candidate(
     age_tokens = _assessment_age_tokens(event.get("calendar_event") or event.get("title"))
     age_group_conflict = bool(age_tokens) and bool(age_group) and age_group.upper() not in age_tokens
     age_group_match = bool(age_tokens) and bool(age_group) and not age_group_conflict
-    # A generic same-host booking far from the planned date is kept as context
-    # only. It is still listed for the harness, but it is not offered as a
-    # proposal unless identity evidence (a matching age group) supports it.
-    season_context_only = abs(date_delta_days) > date_window_days and not age_group_match
+    near_exact = _near_exact_interval(tournament, event, problem)
+    if tournament_resource_footprint(str(tournament.get("host_club") or "")):
+        # On a footprint-aware hall, a generic booking that only shares host and
+        # footprint is context, not a competitor, however near it sits. It is
+        # listed for the harness, and a matching age group or a near-exact
+        # interval supplies the identity.
+        identity_match = age_group_match or near_exact
+    else:
+        # Resource-agnostic clubs keep the observation-window rule: a far generic
+        # booking is context only, but one inside the window can propose a
+        # changed slot.
+        identity_match = age_group_match or abs(date_delta_days) <= date_window_days
+    season_context_only = not identity_match
 
     evidence: list[str] = []
     counterevidence: list[str] = []
@@ -127,6 +170,8 @@ def assessment_candidate(
         evidence.append("same_date_interval_overlap")
     if covers:
         evidence.append("event_covers_canonical_interval")
+    if near_exact and not covers:
+        evidence.append("event_interval_within_tolerance_of_canonical")
     if age_tokens and age_group and not age_group_conflict:
         evidence.append("event_title_age_group_matches")
     if date_delta_days == 0:
@@ -134,7 +179,7 @@ def assessment_candidate(
     else:
         counterevidence.append("event_date_differs_from_canonical")
     if season_context_only:
-        counterevidence.append("event_far_from_canonical_without_age_match")
+        counterevidence.append("event_lacks_identity_evidence")
     if not covers:
         counterevidence.append("canonical_slot_not_covered")
     if age_group_conflict:
