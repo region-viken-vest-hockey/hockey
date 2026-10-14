@@ -37,6 +37,7 @@ from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.booking.calendar_availability import (
     CLASSIFICATION_SOURCE_INFERRED,
     CalendarAvailability,
+    club_controlled_available_policy,
     interval_availability,
     unclassified_intervals,
 )
@@ -44,6 +45,7 @@ from tournament_scheduler.booking.calendar_bookings import (
     associated_tournament_for_event,
     event_fingerprint,
 )
+from tournament_scheduler.booking.ice_resources import event_affects_tournament_footprint
 from tournament_scheduler.season.baseline_overlay import (
     locked_dates as _canonical_locked_dates,
     pinned_tournament_ids as _canonical_pinned_tournament_ids,
@@ -418,6 +420,8 @@ def _busy_windows_for_availability(
     for entry in club_busy_intervals.get(club, []):
         if entry.get("date") != date_str:
             continue
+        if not event_affects_tournament_footprint(str(club), entry):
+            continue
         if availability is not None and interval_availability(entry) != availability:
             continue
         try:
@@ -453,6 +457,8 @@ def _fixed_busy_windows_for_tournament(
     windows: List[Tuple[int, int]] = []
     for entry in club_busy_intervals.get(club, []):
         if entry.get("date") != on_date.isoformat():
+            continue
+        if not event_affects_tournament_footprint(str(club), entry):
             continue
         if interval_availability(entry) != CalendarAvailability.FIXED_BUSY:
             continue
@@ -590,6 +596,8 @@ def movable_calendar_opportunity(
     new_end = new_start + duration_minutes
     for entry in club_busy_intervals.get(club, []) if club_busy_intervals else []:
         if entry.get("date") != on_date.isoformat():
+            continue
+        if not event_affects_tournament_footprint(str(club), entry):
             continue
         if interval_availability(entry) != CalendarAvailability.MOVABLE_BUSY:
             continue
@@ -756,6 +764,9 @@ def verify_candidate(
     # event and therefore carries an explicit host-confirmation requirement
     # the evidence bundle/audit must show.
     movable_allocations_used: List[Dict[str, Any]] = []
+    # Evidence-backed profile capacity is usable without pretending it is an
+    # ordinary scraper-proven free interval or an existing movable booking.
+    club_controlled_available_allocations_used: List[Dict[str, Any]] = []
     # Non-blocking record of tournaments hosted by a club with no
     # trustworthy calendar evidence this run -- surfaced for manual
     # placement (see hosting/coverage.py's unresolved_hosting_obligations
@@ -962,6 +973,7 @@ def verify_candidate(
             "skipped": skipped,
             "club_controlled_allocations_used": movable_allocations_used,
             "movable_allocations_used": movable_allocations_used,
+            "club_controlled_available_allocations_used": club_controlled_available_allocations_used,
             "calendar_interpretations_used": [],
             "unresolved_hosting_obligations": [],
             "manual_calendar_placements": [],
@@ -1135,6 +1147,22 @@ def verify_candidate(
                         "reason": opportunity.get("reason")
                         or "host-controlled interval may be moved or replaced for an RVV tournament",
                         "requires_host_confirmation": True,
+                    }
+                )
+            elif (controlled := club_controlled_available_policy(
+                interval.host_club,
+                interval.start.date(),
+                interval.start.strftime("%H:%M"),
+                duration_minutes,
+            )) is not None:
+                club_controlled_available_allocations_used.append(
+                    {
+                        "tournament_id": interval.tournament_id,
+                        "host_club": interval.host_club,
+                        "age_group": interval.age_group,
+                        "date": interval.date,
+                        "interval": interval.interval_label,
+                        **controlled,
                     }
                 )
     except (KeyError, ValueError) as exc:
@@ -1554,6 +1582,7 @@ def verify_candidate(
         "skipped": skipped,
         "club_controlled_allocations_used": movable_allocations_used,
         "movable_allocations_used": movable_allocations_used,
+        "club_controlled_available_allocations_used": club_controlled_available_allocations_used,
         # A candidate-borne ``calendar_interpretations`` overlay is reported
         # separately so the audit can tell a controller-inferred movable
         # interval apart from a configured or confirmed-free fact. The full

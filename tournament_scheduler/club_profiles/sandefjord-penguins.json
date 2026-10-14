@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "club": "Sandefjord Penguins",
+  "venues": [
+    {
+      "arena": "Bugården ishall",
+      "resources": [],
+      "tournament_requirements": {}
+    }
+  ],
+  "availability_policies": [
+    {
+      "id": "weekend-ice",
+      "authority": "club_controlled",
+      "planning_semantics": "available_for_internal_allocation",
+      "weekly_windows": [
+        {
+          "weekdays": [5, 6],
+          "start": "15:00",
+          "end": "18:00"
+        }
+      ],
+      "outside_semantics": "fixed_busy",
+      "evidence": {
+        "kind": "source_document",
+        "reference": "https://github.com/region-viken-vest-hockey/hockey/issues/261",
+        "summary": "Sandefjord Penguins' season ice-time plan (ISTIDER PLAN 26-27) assigns the club Saturday and Sunday ice from 15:00 to 18:00 for internal allocation.",
+        "recorded_at": "2026-09-03"
+      }
+    }
+  ]
+}

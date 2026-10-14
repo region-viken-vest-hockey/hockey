@@ -23,16 +23,16 @@ from __future__ import annotations
 from datetime import date, datetime, time, timedelta
 from typing import List
 
+from tournament_scheduler.clubs.profiles import AvailabilityPolicy, get_club_profile
 from tournament_scheduler.models import CalendarEvent
 
-# Canonical club/arena names, matching `clubs.registry.CLUB_REGISTRY`.
+# Compatibility names for existing source and tests. The arena and allocation
+# policy themselves are owned by the validated structured profile.
 SANDEFJORD_CLUB_NAME = "Sandefjord Penguins"
-SANDEFJORD_ARENA = "Bugården ishall"
-
-# Saturday=5, Sunday=6 per `date.weekday()`.
-_ALLOCATED_WEEKDAYS = (5, 6)
-_ALLOCATION_START_HOUR = 15
-_ALLOCATION_END_HOUR = 18
+_SANDEFJORD_PROFILE = get_club_profile(SANDEFJORD_CLUB_NAME)
+if _SANDEFJORD_PROFILE is None or not _SANDEFJORD_PROFILE.availability_policies:
+    raise RuntimeError("Sandefjord's validated club-controlled availability profile is required")
+SANDEFJORD_ARENA = _SANDEFJORD_PROFILE.venue_for_arena().arena
 
 _BUSY_EVENT_NAME = "Sandefjord Penguins fast istid (opptatt utenom tildelt helgevindu)"
 
@@ -41,47 +41,64 @@ def _as_date(value: date | datetime) -> date:
     return value.date() if isinstance(value, datetime) else value
 
 
-def _busy_event(date_str: str, day: date, start_hour: int, duration_hours: float) -> CalendarEvent:
+def _busy_event(date_str: str, day: date, start_minutes: int, duration_minutes: int) -> CalendarEvent:
     return CalendarEvent(
         date=date_str,
         name=_BUSY_EVENT_NAME,
-        datetime=datetime.combine(day, time(start_hour, 0)),
-        duration_hours=duration_hours,
+        datetime=datetime.combine(day, time(start_minutes // 60, start_minutes % 60)),
+        duration_minutes=duration_minutes,
         location=SANDEFJORD_ARENA,
     )
+
+
+def _minutes(value: str) -> int:
+    hour, minute = (int(part) for part in value.split(":", 1))
+    return hour * 60 + minute
+
+
+def _fixed_busy_events_for_policy(
+    start: date | datetime,
+    end: date | datetime,
+    policy: AvailabilityPolicy,
+) -> List[CalendarEvent]:
+    """Materialize a profile policy as conservative busy-complement evidence."""
+
+    start_date = _as_date(start)
+    end_date = _as_date(end)
+    events: List[CalendarEvent] = []
+    current = start_date
+    while current <= end_date:
+        date_str = current.strftime("%d.%m.%Y")
+        windows = sorted(
+            (window for window in policy.windows if current.weekday() in window.weekdays),
+            key=lambda window: window.start,
+        )
+        cursor = 0
+        for window in windows:
+            window_start = _minutes(window.start)
+            window_end = _minutes(window.end)
+            if cursor < window_start:
+                events.append(_busy_event(date_str, current, cursor, window_start - cursor))
+            cursor = max(cursor, window_end)
+        if cursor < 24 * 60:
+            events.append(_busy_event(date_str, current, cursor, 24 * 60 - cursor))
+        current += timedelta(days=1)
+    return events
 
 
 def sandefjord_fixed_busy_events(
     start: date | datetime, end: date | datetime
 ) -> List[CalendarEvent]:
-    """Return synthetic busy events blocking everything outside the fixed window.
+    """Return busy evidence outside Sandefjord's club-controlled windows.
 
-    For every date in ``[start, end]``: weekdays are fully busy (no ice
-    available at all), and Saturday/Sunday are busy except for
-    15:00-18:00 -- the club's fixed allocation. Feeding this into
-    ``events_by_club["Sandefjord Penguins"]`` makes Stage 3's generic slot
-    search only ever place a Sandefjord-hosted tournament inside a valid
-    allocation window, without any Sandefjord-specific logic in the planner
-    or scheduler themselves.
+    The positive window is not scraper-proven ``free`` time. Its authority and
+    ``available_for_internal_allocation`` semantics remain explicit in the club
+    profile; this compatibility projection only supplies its fixed-busy
+    complement to generic slot finding.
     """
-    start_date = _as_date(start)
-    end_date = _as_date(end)
 
-    events: List[CalendarEvent] = []
-    current = start_date
-    while current <= end_date:
-        date_str = current.strftime("%d.%m.%Y")
-        if current.weekday() in _ALLOCATED_WEEKDAYS:
-            events.append(_busy_event(date_str, current, 0, _ALLOCATION_START_HOUR))
-            events.append(
-                _busy_event(
-                    date_str,
-                    current,
-                    _ALLOCATION_END_HOUR,
-                    24 - _ALLOCATION_END_HOUR,
-                )
-            )
-        else:
-            events.append(_busy_event(date_str, current, 0, 24))
-        current += timedelta(days=1)
-    return events
+    return _fixed_busy_events_for_policy(
+        start,
+        end,
+        _SANDEFJORD_PROFILE.availability_policies[0],
+    )

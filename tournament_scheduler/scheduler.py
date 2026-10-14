@@ -8,6 +8,7 @@ from tournament_scheduler.models import (
     ConflictContext,
     CalendarEvent
 )
+from tournament_scheduler.booking.ice_resources import resource_ids_for_club, tournament_resource_footprint
 from tournament_scheduler.clubs.registry import get_club
 from tournament_scheduler.utils.date_parser import DateParser
 from tournament_scheduler.utils.slot_finder import find_available_slots, parse_time, minutes_to_time
@@ -180,6 +181,17 @@ class TournamentScheduler:
             return host_entry.club, preferred_start, end_str
 
         club_events = events_by_club.get(host_entry.club, [])
+        required_resources = tournament_resource_footprint(host_entry.club)
+        if required_resources:
+            # A miniputt surface is unavailable when any required partition is
+            # occupied. Events that explicitly occupy only unrelated resources
+            # do not block it; missing source resource detail stays conservative.
+            club_events = [
+                event
+                for event in club_events
+                if not event.resources
+                or bool(required_resources & resource_ids_for_club(host_entry.club, event.resources))
+            ]
         slots = find_available_slots(
             club_events,
             check_date,

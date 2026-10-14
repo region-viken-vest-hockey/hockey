@@ -114,4 +114,5 @@ ignore = [
 include = ["tournament_scheduler*"]
 
 [tool.setuptools.package-data]
+"tournament_scheduler.club_profiles" = ["*.json"]
 "tournament_scheduler.html.templates" = ["*.html", "*.css", "*.js"]

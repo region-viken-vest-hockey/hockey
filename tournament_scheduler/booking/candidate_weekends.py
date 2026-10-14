@@ -32,7 +32,9 @@ from typing import Any, Callable, Dict, Hashable, List, Mapping, Optional, Seque
 
 from tournament_scheduler.booking.calendar_availability import (
     CLASSIFICATION_SOURCE_INFERRED,
+    CalendarAvailability,
     classify_club_event_detailed,
+    club_controlled_available_policy,
 )
 from tournament_scheduler.planning.contract import (
     _parse_date,
@@ -43,6 +45,7 @@ from tournament_scheduler.planning.contract import (
 # Availability labels surfaced to the operator. ``unknown`` mirrors the
 # ambiguous scraped-event case: it is an honest fact, never assumed free.
 AVAILABILITY_FREE = "free"
+AVAILABILITY_CLUB_CONTROLLED = "club_controlled_available"
 AVAILABILITY_MOVABLE = "movable_busy"
 AVAILABILITY_UNKNOWN = "unknown"
 
@@ -92,7 +95,7 @@ class CandidateWeekend:
         alternate = self.roster_source == "alternate"
         if self.availability == AVAILABILITY_FREE:
             return _RANK_FREE_ALTERNATE if alternate else _RANK_FREE_CURRENT
-        if self.availability == AVAILABILITY_MOVABLE:
+        if self.availability in {AVAILABILITY_CLUB_CONTROLLED, AVAILABILITY_MOVABLE}:
             return _RANK_MOVABLE_ALTERNATE if alternate else _RANK_MOVABLE_CURRENT
         return _RANK_UNKNOWN_ALTERNATE if alternate else _RANK_UNKNOWN_CURRENT
 
@@ -221,7 +224,12 @@ def enumerate_candidate_weekends(
             busy_intervals, host_club, candidate_date, start_time, duration_minutes
         )
         availability, requires_confirmation, event_title, source = _availability(
-            calendar_known, movable, host_club
+            calendar_known,
+            movable,
+            host_club,
+            candidate_date,
+            start_time,
+            duration_minutes,
         )
 
         conflicts = _conflicts(team_keys, occupancy.get(date_iso))
@@ -305,6 +313,9 @@ def _availability(
     calendar_known: bool,
     movable: Optional[Mapping[str, Any]],
     host_club: str,
+    candidate_date: date,
+    start_time: str,
+    duration_minutes: int,
 ) -> Tuple[str, bool, str, str]:
     """Classify one date's ice for the host at a concrete interval.
 
@@ -320,6 +331,16 @@ def _availability(
             return AVAILABILITY_MOVABLE, True, event_title, source
         _, _, derived = classify_club_event_detailed(host_club, event_title)
         return AVAILABILITY_MOVABLE, True, event_title, source or derived
+    controlled = club_controlled_available_policy(
+        host_club, candidate_date, start_time, duration_minutes
+    )
+    if controlled is not None:
+        return (
+            CalendarAvailability.CLUB_CONTROLLED_AVAILABLE.value,
+            False,
+            "",
+            f"club_profile:{controlled['policy_id']}",
+        )
     if not calendar_known:
         return AVAILABILITY_UNKNOWN, True, "", "unknown"
     return AVAILABILITY_FREE, False, "", "trusted_calendar"

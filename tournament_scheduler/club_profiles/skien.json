@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "club": "Skien",
+  "venues": [
+    {
+      "arena": "Skien ishall",
+      "resources": [
+        {
+          "id": "bane-1",
+          "labels": ["Bane 1", "Ishockey - bane 1"]
+        },
+        {
+          "id": "bane-2",
+          "labels": ["Bane 2", "Ishockey - bane 2"]
+        }
+      ],
+      "tournament_requirements": {
+        "miniputt": {
+          "mode": "all_resources",
+          "resource_ids": ["bane-1", "bane-2"],
+          "evidence": {
+            "kind": "operator_decision",
+            "reference": "docs/adr/0007-skien-miniputt-needs-full-ice-rink.md",
+            "summary": "A Skien miniputt tournament requires both separately bookable halves of the hockey surface.",
+            "recorded_at": "2026-10-14"
+          }
+        }
+      }
+    }
+  ],
+  "availability_policies": []
+}

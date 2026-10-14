@@ -27,8 +27,9 @@ availability:
 - If **either** Bane 1 or Bane 2 is occupied, the rink is not available for that
   miniputt tournament.
 
-The footprint `Bane 1` + `Bane 2` is declared in
-`MINIPUTT_RESOURCE_FOOTPRINTS` and is authoritative for Skien. It shapes evidence
+The footprint `Bane 1` + `Bane 2` is declared in the validated structured
+profile `tournament_scheduler/club_profiles/skien.json` and exposed through
+`tournament_scheduler.clubs.profiles`; it is authoritative for Skien. It shapes evidence
 and actionability:
 
 - A calendar event that occupies both banes covers the footprint. It gets

@@ -10,6 +10,7 @@ CLUBS_DIR = PACKAGE_ROOT / "clubs"
 
 CLUBS_MODULES = {
     "distances",
+    "profiles",
     "registry",
 }
 

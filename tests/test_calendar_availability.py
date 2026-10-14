@@ -1,5 +1,7 @@
 """Tests for planner-neutral calendar availability semantics (issue #373)."""
 
+from datetime import date
+
 from tournament_scheduler.booking.calendar_availability import (
     CLASSIFICATION_SOURCE_CONFIGURED,
     CLASSIFICATION_SOURCE_UNCLASSIFIED,
@@ -8,6 +10,7 @@ from tournament_scheduler.booking.calendar_availability import (
     classify_club_event,
     classify_club_event_detailed,
     classify_event_name,
+    club_controlled_available_policy,
     host_confirmation_from_evidence,
     interval_availability,
     legacy_kind,
@@ -19,6 +22,7 @@ def test_enum_covers_the_four_required_classes():
     assert {item.value for item in CalendarAvailability} == {
         "fixed_busy",
         "movable_busy",
+        "club_controlled_available",
         "free",
         "unknown",
     }
@@ -72,6 +76,21 @@ def test_kongsberg_open_ice_is_club_scoped_not_global():
     # The identical phrase must not be movable for a club without the rule.
     other_availability, _ = classify_club_event("Jar", "Åpen ishall")
     assert other_availability == CalendarAvailability.FIXED_BUSY
+
+
+def test_sandefjord_weekend_policy_is_controlled_capacity_not_verified_free():
+    policy = club_controlled_available_policy(
+        "Sandefjord Penguins", date(2026, 9, 5), "15:00", 180
+    )
+
+    assert policy["availability"] == "club_controlled_available"
+    assert policy["authority"] == "club_controlled"
+    assert policy["planning_semantics"] == "available_for_internal_allocation"
+    assert policy["evidence_reference"].endswith("/issues/261")
+    assert club_controlled_available_policy(
+        "Sandefjord Penguins", date(2026, 9, 5), "14:59", 180
+    ) is None
+    assert club_controlled_available_policy("Jar", date(2026, 9, 5), "15:00", 180) is None
 
 
 def test_host_confirmation_from_evidence_formats_event_and_reason():

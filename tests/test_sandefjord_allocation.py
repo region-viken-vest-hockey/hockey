@@ -9,6 +9,7 @@ from tournament_scheduler.booking.sandefjord_allocation import (
     SANDEFJORD_CLUB_NAME,
     sandefjord_fixed_busy_events,
 )
+from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.utils.slot_finder import find_available_slots
 
 
@@ -56,6 +57,50 @@ class TestSandefjordFixedBusyEvents:
             earliest_start="10:00", latest_start="16:00",
         )
         assert slots == []
+
+    def test_planning_verification_reports_profile_authority_not_verified_free(self):
+        teams = [
+            {"club": "Sandefjord Penguins", "label": "Sandefjord 1", "age_group": "U10"},
+            {"club": "Jar", "label": "Jar 1", "age_group": "U10"},
+        ]
+        candidate = {
+            "tournaments": [
+                {
+                    "id": "sandefjord-u10",
+                    "date": "2026-09-05",
+                    "arena": SANDEFJORD_ARENA,
+                    "age_group": "U10",
+                    "host_club": SANDEFJORD_CLUB_NAME,
+                    "start_time": "15:00",
+                    "teams": teams,
+                    "games": [
+                {"home": "Sandefjord 1", "away": "Jar 1", "parallel_slot": 0, "round_number": 1}
+            ],
+                }
+            ]
+        }
+        problem = {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "teams": teams,
+            "age_groups": ["U10"],
+            "clubs": {SANDEFJORD_CLUB_NAME: SANDEFJORD_ARENA, "Jar": "Jar Isforum"},
+            "ice_time_minutes": {"U10": 180},
+            "round_length_minutes": {"U10": 20},
+            "rounds_per_tournament": {"U10": 1},
+            "parallel_games": {"U10": 1},
+            "club_calendar_status": {SANDEFJORD_CLUB_NAME: "known", "Jar": "known"},
+            "club_busy_intervals": {SANDEFJORD_CLUB_NAME: []},
+        }
+
+        result = verify_candidate(candidate, problem)
+
+        used = result["club_controlled_available_allocations_used"]
+        assert len(used) == 1
+        assert used[0]["availability"] == "club_controlled_available"
+        assert used[0]["planning_semantics"] == "available_for_internal_allocation"
+        assert used[0]["evidence_reference"].endswith("/issues/261")
+        assert result["movable_allocations_used"] == []
 
     def test_club_name_matches_registry(self):
         from tournament_scheduler.clubs.registry import CLUB_REGISTRY
