@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import re
 from typing import Any, Mapping
 
 from tournament_scheduler.booking.calendar_bookings import (
@@ -49,13 +48,12 @@ from ..shared import (
 )
 
 from .common import _event_interval, _record_rejected_booking_evidence
-
-_CALENDAR_EVENT_AGE_TOKEN_RE = re.compile(r"\b(J?U\d{1,2})\b", re.IGNORECASE)
-
-def _calendar_event_age_tokens(title: str) -> set[str]:
-    """Extract age-group tokens (``U10``, ``JU12``, ...) from a calendar title."""
-
-    return {match.upper() for match in _CALENDAR_EVENT_AGE_TOKEN_RE.findall(str(title or ""))}
+from .validation import (
+    calendar_event_age_tokens as _calendar_event_age_tokens,
+    reconciliation_policy_blockers,
+    resolve_matching_rejected_booking_evidence,
+    validate_calendar_event_authority,
+)
 
 def _auto_associate_own_calendar_event(
     *,
@@ -292,38 +290,20 @@ def confirm_calendar_booking(
     )
     if original_tournament is None:
         raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
-    # A cancelled tournament is not an active placement. Binding and approving
-    # it here would leave a spurious approval/placement lock that the candidate
-    # verifier (which excludes cancelled tournaments) never sees, but that
-    # ``canonical_locked_tournament_missing`` then reports as a hard violation.
-    # Validate the lifecycle fact before any alignment or decision write, the
-    # same way the other canonical mutation use cases refuse a cancelled target.
     if original_tournament.get("cancelled"):
         raise SeasonStateError(
             f"Tournament {tournament_id} is cancelled and cannot be confirmed as a booking"
         )
-    event_club = str(event.get("club") or "")
-    if not club_calendar_positive_evidence_usable(base_problem, event_club):
-        raise SeasonStateError(
-            "Calendar booking source cannot support positive evidence"
-        )
-    if event_club != str(original_tournament.get("host_club") or ""):
-        raise SeasonStateError("Calendar booking is not compatible with tournament: host_mismatch")
-
-    for record in decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []:
-        if not isinstance(record, Mapping) or record.get("status", "active") != "active":
-            continue
-        if str(record.get("event_fingerprint") or "") != event_fingerprint:
-            continue
-        existing_tournament_id = str(record.get("tournament_id") or "")
-        if existing_tournament_id and existing_tournament_id != tournament_id:
-            raise SeasonStateError(
-                "Calendar event already has an active tournament association; "
-                "release it before rebinding"
-            )
-
-    resolved_actor = _operator_identity(actor)
-    checked_at = _now_iso()
+    resolved_actor, checked_at = validate_calendar_event_authority(
+        service,
+        snapshot=snapshot,
+        problem=base_problem,
+        event=event,
+        event_fingerprint=event_fingerprint,
+        tournament=original_tournament,
+        actor=actor,
+        dry_run=dry_run,
+    )
     updated_schedule, updated, tournament, interval_alignment, override_record = _align_tournament_to_calendar_event(
         schedule=schedule,
         decisions=decisions,
@@ -391,6 +371,12 @@ def confirm_calendar_booking(
     if booking_feasibility_warnings:
         verification = {**verification, "violations": classified["blocking_violations"]}
     hard_blockers, unresolved_blockers = _attributable_blockers(verification, tournament_id)
+    policy_blockers = reconciliation_policy_blockers(
+        baseline_plan=plan,
+        candidate_plan=updated_schedule["plan"],
+        decisions=decisions,
+        tournament_id=tournament_id,
+    )
     # The deviation must stay durably attached to the booking evidence as
     # independent follow-up rather than being silently absorbed. The persisted
     # override already records its `minimum_minutes`.
@@ -398,7 +384,8 @@ def confirm_calendar_booking(
         warning_codes = [str(blocker.get("code") or "") for blocker in booking_feasibility_warnings]
         assoc["booking_feasibility_warnings"] = warning_codes
         evidence["booking_feasibility_warnings"] = warning_codes
-    blockers = hard_blockers + unresolved_blockers
+    blockers = hard_blockers + unresolved_blockers + policy_blockers
+    event_reference = str(event.get("calendar_event") or event.get("title") or "calendar event")
     if blockers:
         messages = "; ".join(str(blocker.get("message") or blocker.get("code")) for blocker in blockers)
         _record_rejected_booking_evidence(
@@ -406,8 +393,9 @@ def confirm_calendar_booking(
             snapshot=snapshot,
             tournament=tournament,
             authority=BOOKING_AUTHORITY_CALENDAR,
-            reference=str(event.get("calendar_event") or event.get("title") or "calendar event"),
+            reference=event_reference,
             source_assertion_id=None,
+            source_evidence_id=event_fingerprint,
             proposed_interval=(interval_alignment or {}).get("accepted_calendar_interval"),
             blockers=blockers,
             actor=resolved_actor,
@@ -417,6 +405,17 @@ def confirm_calendar_booking(
         )
         raise SeasonStateError(f"Refusing to confirm booking for {tournament_id}: {messages}")
 
+    resolve_matching_rejected_booking_evidence(
+        updated,
+        tournament_id=tournament_id,
+        proposed_interval=(interval_alignment or {}).get("accepted_calendar_interval"),
+        authority=BOOKING_AUTHORITY_CALENDAR,
+        reference=event_reference,
+        source_assertion_id=None,
+        source_evidence_id=event_fingerprint,
+        actor=resolved_actor,
+        now=checked_at,
+    )
     approved_at = checked_at
     tournament_fingerprint = approval_fingerprint(tournament)
     placement_fingerprint = approval_placement_fingerprint(tournament)

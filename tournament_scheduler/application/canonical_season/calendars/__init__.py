@@ -8,11 +8,9 @@ from .assessment import (
     calendar_booking_findings,
 )
 from .associations import (
-    _CALENDAR_EVENT_AGE_TOKEN_RE,
     _align_tournament_to_authoritative_interval,
     _align_tournament_to_calendar_event,
     _auto_associate_own_calendar_event,
-    _calendar_event_age_tokens,
     confirm_calendar_booking,
     release_calendar_booking,
 )
@@ -37,6 +35,10 @@ from .manual_assertions import (
 )
 from .reconciliation import reconcile_calendar_bookings
 from .refresh import refresh_calendars
+from .validation import (
+    _CALENDAR_EVENT_AGE_TOKEN_RE,
+    calendar_event_age_tokens as _calendar_event_age_tokens,
+)
 from .source_policy import (
     _SOURCE_POLICY_SCHEMA_VERSION,
     _source_policy_changes,
