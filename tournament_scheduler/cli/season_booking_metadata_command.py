@@ -179,19 +179,22 @@ def _cmd_season_change_protections(args: argparse.Namespace) -> int:
 
 
 def _cmd_season_release_protection(args: argparse.Namespace) -> int:
-    """Handle ``rvv-miniputt season release-protection`` — release protection for a club."""
+    """Handle ``rvv-miniputt season release-protection`` — release superseded accepted-change guards."""
     from ..application.canonical_season.store_facade import release_change_protections
 
-    release_change_protections(
+    result = release_change_protections(
         season=args.season,
-        club=args.club,
         root=args.root,
+        protection_ids=list(args.protection_ids or []) or None,
+        request_id=args.request_id,
+        actor=args.actor,
+        note=args.note,
     )
     if args.json:
         import json as _json
-        print(_json.dumps({"status": "ok"}, ensure_ascii=False, indent=2))
+        print(_json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
     else:
         _console.print(
-            f"[green]✓[/green] Released protection for club {args.club} in season {args.season}"
+            f"[green]✓[/green] Released {len(result['released_protection_ids'])} protection(s) in season {args.season}"
         )
     return 0
