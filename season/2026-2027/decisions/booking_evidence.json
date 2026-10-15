@@ -585,9 +585,12 @@
       "event_fingerprint": "1c5d2fe3969c5991090554c823142a0b21bca99c10c46c5d42dd868ba3dac7e4",
       "id": "calendar_booking:1c5d2fe3969c5991090554c823142a0b21bca99c10c46c5d42dd868ba3dac7e4:rvv-0011",
       "note": "Holmen confirmed this booking via their change sheet",
+      "release_note": "Calendar evidence refreshed; association superseded by live Sportello event",
+      "released_at": "2026-10-15T21:35:46.463135+00:00",
+      "released_by": "Niclas Lindgren",
       "source_revision": "d1d62f043de577e6a0c68ef6ce33a7eadefe1a909c27110e4354672631664495",
       "start": "12:30",
-      "status": "active",
+      "status": "released",
       "title": "Kamp",
       "tournament_facts": {
         "age_group": "U9",
@@ -608,9 +611,12 @@
       "event_fingerprint": "175e011138d8759ea77e438b73a38303c4976d634841bceb2148e5f3ba2e9961",
       "id": "calendar_booking:175e011138d8759ea77e438b73a38303c4976d634841bceb2148e5f3ba2e9961:rvv-0028",
       "note": "Holmen confirmed this booking via their change sheet",
+      "release_note": "Calendar evidence refreshed; association superseded by live Sportello event",
+      "released_at": "2026-10-15T21:35:46.897790+00:00",
+      "released_by": "Niclas Lindgren",
       "source_revision": "d8c1ace12808dab4f35d4a01bf79290af6a2e99c2e912f2689f801fd742e7e20",
       "start": "15:00",
-      "status": "active",
+      "status": "released",
       "title": "Kamp",
       "tournament_facts": {
         "age_group": "U12",
@@ -631,9 +637,12 @@
       "event_fingerprint": "f0c605482660a7194cb4806525bc2656e2f8a6b8eb9858f11fb9d3c775f9eef8",
       "id": "calendar_booking:f0c605482660a7194cb4806525bc2656e2f8a6b8eb9858f11fb9d3c775f9eef8:rvv-0049",
       "note": "Holmen confirmed this booking via their change sheet",
+      "release_note": "Calendar evidence refreshed; association superseded by live Sportello event",
+      "released_at": "2026-10-15T21:35:47.322791+00:00",
+      "released_by": "Niclas Lindgren",
       "source_revision": "1229a83de109f600f0dc64963ba0de07d192f14c58b129729f4f1efb44ed0a63",
       "start": "12:15",
-      "status": "active",
+      "status": "released",
       "title": "Kamp",
       "tournament_facts": {
         "age_group": "U8",
@@ -654,9 +663,12 @@
       "event_fingerprint": "934ff8f723b9068afa3b70a9e84608291b2ef681ac9564a800196c11e83d9c6f",
       "id": "calendar_booking:934ff8f723b9068afa3b70a9e84608291b2ef681ac9564a800196c11e83d9c6f:rvv-0061",
       "note": "Holmen confirmed this booking via their change sheet",
+      "release_note": "Calendar evidence refreshed; association superseded by live Sportello event",
+      "released_at": "2026-10-15T21:35:47.756456+00:00",
+      "released_by": "Niclas Lindgren",
       "source_revision": "7a2bffead4ac43968132541d6a6b567cd9acd05e825ba90603b5f8b7022e8882",
       "start": "13:00",
-      "status": "active",
+      "status": "released",
       "title": "Kamp",
       "tournament_facts": {
         "age_group": "U12",
@@ -677,9 +689,12 @@
       "event_fingerprint": "37130be5c74e9a4536831c0bd5e65c8a1976f23e631506a2c348e37a5d9ad26d",
       "id": "calendar_booking:37130be5c74e9a4536831c0bd5e65c8a1976f23e631506a2c348e37a5d9ad26d:rvv-0150",
       "note": "Holmen host-confirmed booking (changes_and_confirmations/2026-27/Holmen.xlsx): U7 2027-02-20 13:00 is the club's actual allocated/confirmed ice, matched to the scraped Kamp event.",
+      "release_note": "Calendar evidence refreshed; association superseded by live Sportello event",
+      "released_at": "2026-10-15T21:35:48.185379+00:00",
+      "released_by": "Niclas Lindgren",
       "source_revision": "407944d58f93ef59abc371f9ee8af53c008dd79f71d8a35c069167acf27577d7",
       "start": "13:00",
-      "status": "active",
+      "status": "released",
       "title": "Kamp",
       "tournament_facts": {
         "age_group": "U7",
@@ -708,9 +723,12 @@
       "event_fingerprint": "603f6415e7703f06201799b428a5904195356e89a79fd03570af1cea28d76994",
       "id": "calendar_booking:603f6415e7703f06201799b428a5904195356e89a79fd03570af1cea28d76994:rvv-0168",
       "note": "Holmen host-confirmed booking (changes_and_confirmations/2026-27/Holmen.xlsx): U8 2027-02-21 15:00 (Uendret) matches the club's actual allocated ice, matched to the scraped Kamp event.",
+      "release_note": "Calendar evidence refreshed; association superseded by live Sportello event",
+      "released_at": "2026-10-15T21:35:48.620562+00:00",
+      "released_by": "Niclas Lindgren",
       "source_revision": "e68dd60561158df3949547baa518b9985936a2fd574017ab97c5764688ecbb0e",
       "start": "15:00",
-      "status": "active",
+      "status": "released",
       "title": "Kamp",
       "tournament_facts": {
         "age_group": "U8",
@@ -3369,6 +3387,254 @@
         "round_count": "3",
         "start_time": "13:15"
       }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Holmen",
+      "created_at": "2026-10-15T21:35:49.160816+00:00",
+      "created_by": "Niclas Lindgren",
+      "date": "2026-10-11",
+      "end": "15:20",
+      "event_fingerprint": "021e7cec25afc32185f4a3cff2c4bda9d717be2078649a93bcaade691db0d3f9",
+      "id": "calendar_booking:021e7cec25afc32185f4a3cff2c4bda9d717be2078649a93bcaade691db0d3f9:rvv-0011",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "source_revision": "a01310ed79b9af412ddca3a6fd5bcbceef907edf7fb97f5bc77f9ec6f79ade0a",
+      "start": "12:30",
+      "status": "active",
+      "title": "U9 (2018)",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Holmen ishall",
+        "date": "2026-10-11",
+        "host_club": "Holmen",
+        "start_time": "12:30"
+      },
+      "tournament_id": "rvv-0011",
+      "tournament_interval": {
+        "age_group": "U9",
+        "date": "2026-10-11",
+        "duration_minutes": "170",
+        "end_time": "15:20",
+        "round_count": "5",
+        "start_time": "12:30"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Holmen",
+      "created_at": "2026-10-15T21:35:49.882147+00:00",
+      "created_by": "Niclas Lindgren",
+      "date": "2026-10-18",
+      "end": "16:50",
+      "event_fingerprint": "30725263d89c5127bbee722e337019d2186bfaaa53253340bc44c42b883478ad",
+      "id": "calendar_booking:30725263d89c5127bbee722e337019d2186bfaaa53253340bc44c42b883478ad:rvv-0028",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "source_revision": "05f71df3d3450f52cc47aa3b0103d7a871d32daf85998c86e2eb2bc5c1cf9f5a",
+      "start": "15:00",
+      "status": "active",
+      "title": "U12 (2015)",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-10-18",
+        "host_club": "Holmen",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0028",
+      "tournament_interval": {
+        "age_group": "U12",
+        "date": "2026-10-18",
+        "duration_minutes": "110",
+        "end_time": "16:50",
+        "round_count": "3",
+        "start_time": "15:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Holmen",
+      "created_at": "2026-10-15T21:35:50.596275+00:00",
+      "created_by": "Niclas Lindgren",
+      "date": "2026-11-14",
+      "end": "14:50",
+      "event_fingerprint": "b340471dca68e3813895b16369aeec5bed284ce34957deb7b902b509259bf05a",
+      "id": "calendar_booking:b340471dca68e3813895b16369aeec5bed284ce34957deb7b902b509259bf05a:rvv-0049",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "source_revision": "24572a89bee8f9f95de394ebc4b0569133460eaba7c29db20cb18b74e27e210b",
+      "start": "12:15",
+      "status": "active",
+      "title": "U8 (2019)",
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Holmen ishall",
+        "date": "2026-11-14",
+        "host_club": "Holmen",
+        "start_time": "12:15"
+      },
+      "tournament_id": "rvv-0049",
+      "tournament_interval": {
+        "age_group": "U8",
+        "date": "2026-11-14",
+        "duration_minutes": "155",
+        "end_time": "14:50",
+        "round_count": "5",
+        "start_time": "12:15"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Holmen",
+      "created_at": "2026-10-15T21:35:51.347956+00:00",
+      "created_by": "Niclas Lindgren",
+      "date": "2026-11-22",
+      "end": "14:40",
+      "event_fingerprint": "116814d6989fd9ac93f7087964f26fc030ca7edcd4b21675e5138d53e5cb75e6",
+      "id": "calendar_booking:116814d6989fd9ac93f7087964f26fc030ca7edcd4b21675e5138d53e5cb75e6:rvv-0061",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "source_revision": "513fd1212b731cd1e0046b5b7e0fad04d6844e4d766fadcd208ea9419eb768df",
+      "start": "13:00",
+      "status": "active",
+      "title": "U12 (2015)",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-11-22",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0061",
+      "tournament_interval": {
+        "age_group": "U12",
+        "date": "2026-11-22",
+        "duration_minutes": "100",
+        "end_time": "14:40",
+        "round_count": "3",
+        "start_time": "13:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Holmen",
+      "created_at": "2026-10-15T21:35:52.083202+00:00",
+      "created_by": "Niclas Lindgren",
+      "date": "2027-02-20",
+      "end": "15:35",
+      "event_fingerprint": "30edeb05dff4fbac9bf84150901859910f8811768b7356459482e714d7bab039",
+      "id": "calendar_booking:30edeb05dff4fbac9bf84150901859910f8811768b7356459482e714d7bab039:rvv-0150",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "source_revision": "47e635ce9007e0d579c3a4233b498823d44a7242ff5ea09d83c2943cd8f7f086",
+      "start": "13:00",
+      "status": "active",
+      "title": "U7 (2020)",
+      "tournament_facts": {
+        "age_group": "U7",
+        "arena": "Holmen ishall",
+        "date": "2027-02-20",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0150",
+      "tournament_interval": {
+        "age_group": "U7",
+        "date": "2027-02-20",
+        "duration_minutes": "155",
+        "end_time": "15:35",
+        "round_count": "5",
+        "start_time": "13:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Holmen",
+      "created_at": "2026-10-15T21:35:52.943897+00:00",
+      "created_by": "Niclas Lindgren",
+      "date": "2027-02-21",
+      "end": "17:35",
+      "event_fingerprint": "4ad787a33c84e5e6c7af6adfdfec77c5a6ec371d9458e3e3a4227d8616e4ea5c",
+      "id": "calendar_booking:4ad787a33c84e5e6c7af6adfdfec77c5a6ec371d9458e3e3a4227d8616e4ea5c:rvv-0168",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "source_revision": "32940591fcaab5632594aa6bbafc172d5084ce26c5148ebd86fb00c9b0a81270",
+      "start": "15:00",
+      "status": "active",
+      "title": "U8 (2019)",
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Holmen ishall",
+        "date": "2027-02-21",
+        "host_club": "Holmen",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0168",
+      "tournament_interval": {
+        "age_group": "U8",
+        "date": "2027-02-21",
+        "duration_minutes": "155",
+        "end_time": "17:35",
+        "round_count": "5",
+        "start_time": "15:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Holmen",
+      "created_at": "2026-10-15T21:41:16.882396+00:00",
+      "created_by": "Niclas Lindgren",
+      "date": "2026-10-18",
+      "end": "13:50",
+      "event_fingerprint": "35505d1a07f865f9d56824f6268eede5cb1da2b1fb747a08ad35cf39e5e12d1e",
+      "id": "calendar_booking:35505d1a07f865f9d56824f6268eede5cb1da2b1fb747a08ad35cf39e5e12d1e:rvv-0021",
+      "note": "Operator-confirmed host booking interval from live Sportello calendar",
+      "source_revision": "afbc07f9699428b0fe0ed2c492e6eb215d5804c7d6d179e1926541d0c7d3549d",
+      "start": "11:30",
+      "status": "active",
+      "title": "U10 (2017)",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Holmen ishall",
+        "date": "2026-10-18",
+        "host_club": "Holmen",
+        "start_time": "11:30"
+      },
+      "tournament_id": "rvv-0021",
+      "tournament_interval": {
+        "age_group": "U10",
+        "date": "2026-10-18",
+        "duration_minutes": "140",
+        "end_time": "13:50",
+        "round_count": "5",
+        "start_time": "11:30"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Holmen",
+      "created_at": "2026-10-15T22:01:37.464305+00:00",
+      "created_by": "Niclas Lindgren",
+      "date": "2026-11-14",
+      "end": "17:35",
+      "event_fingerprint": "1357ba33c4754777e8074a7450f01c53a362ea53664ef9d675d9b7850e0b7953",
+      "id": "calendar_booking:1357ba33c4754777e8074a7450f01c53a362ea53664ef9d675d9b7850e0b7953:rvv-0082",
+      "note": "Live Holmen calendar U9 (2018) 14.11 15:00–17:35 exact match; rebinding after calendar refresh",
+      "source_revision": "006b6a0f13e0329a54b33ad3d39238350623f3dbe8ca8c541e6e0a5342006b16",
+      "start": "15:00",
+      "status": "active",
+      "title": "U9 (2018)",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Holmen ishall",
+        "date": "2026-11-14",
+        "host_club": "Holmen",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0082",
+      "tournament_interval": {
+        "age_group": "U9",
+        "date": "2026-11-14",
+        "duration_minutes": "155",
+        "end_time": "17:35",
+        "round_count": "5",
+        "start_time": "15:00"
+      }
     }
   ],
   "club_booking_source_assertions": [
@@ -4611,7 +4877,14 @@
         "end": "14:50",
         "start": "12:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Operator-confirmed host booking interval from live Sportello calendar",
+      "superseded_at": "2026-10-15T21:41:16.844622+00:00",
+      "superseded_by": "manual_booking:rvv-0021:2026-10-15T21:41:16.844622+00:00",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U10",
@@ -4751,7 +5024,14 @@
         "end": "14:50",
         "start": "14:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Operator-confirmed host booking interval from live Sportello calendar",
+      "superseded_at": "2026-10-15T21:40:35.081940+00:00",
+      "superseded_by": "manual_booking:rvv-0003:2026-10-15T21:40:35.081940+00:00",
+      "superseded_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U12",
@@ -4793,7 +5073,15 @@
         "end": "14:50",
         "start": "13:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Operator-confirmed host booking interval from live Sportello calendar",
+      "superseded_at": "2026-10-15T21:40:56.059935+00:00",
+      "superseded_by": "manual_booking:rvv-0004:2026-10-15T21:40:56.059935+00:00",
+      "superseded_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U12",
@@ -11085,6 +11373,148 @@
         "start_time": "14:30"
       },
       "tournament_id": "rvv-0146"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-10-15T21:40:35.081940+00:00",
+      "asserted_by": "Niclas Lindgren",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-10-10",
+        "duration_minutes": "110",
+        "end_time": "15:50",
+        "round_count": "3",
+        "start_time": "14:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_feasibility_warnings": [],
+      "booking_status": "booked",
+      "date": "2026-10-10",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0003:2026-10-15T21:40:35.081940+00:00",
+      "note": "Operator-confirmed host booking interval from live Sportello calendar",
+      "reconfirms_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed"
+      ],
+      "reference": "Sportello Holmen ishall calendar https://kalender.sportello.no/booking/11055, live scrape 2026-10-15",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "a925312cb7690f574aa3374789ac15cf07f69747516801b73e60bc3737c9a4fa",
+      "source_scope": "tournament",
+      "start_time": "14:00",
+      "stated_interval": {
+        "date": "2026-10-10",
+        "duration_minutes": "110",
+        "end": "15:50",
+        "start": "14:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0003:2026-09-28T05:58:29.455441+00:00",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-10-10",
+        "host_club": "Holmen",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0003"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-10-15T21:40:56.059935+00:00",
+      "asserted_by": "Niclas Lindgren",
+      "asserted_interval": {
+        "age_group": "U12",
+        "date": "2026-10-10",
+        "duration_minutes": "110",
+        "end_time": "13:50",
+        "round_count": "3",
+        "start_time": "12:00"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_feasibility_warnings": [],
+      "booking_status": "booked",
+      "date": "2026-10-10",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0004:2026-10-15T21:40:56.059935+00:00",
+      "note": "Operator-confirmed host booking interval from live Sportello calendar",
+      "reconfirms_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "Sportello Holmen ishall calendar https://kalender.sportello.no/booking/11055, live scrape 2026-10-15",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "6972e94f555c3549d252ffb6dedeb3445772a16330e53783dd809ea2c8b62811",
+      "source_scope": "tournament",
+      "start_time": "12:00",
+      "stated_interval": {
+        "date": "2026-10-10",
+        "duration_minutes": "110",
+        "end": "13:50",
+        "start": "12:00"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0004:2026-09-28T05:58:34.055765+00:00",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-10-10",
+        "host_club": "Holmen",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0004"
+    },
+    {
+      "arena": "Holmen ishall",
+      "asserted_at": "2026-10-15T21:41:16.844622+00:00",
+      "asserted_by": "Niclas Lindgren",
+      "asserted_interval": {
+        "age_group": "U10",
+        "date": "2026-10-18",
+        "duration_minutes": "140",
+        "end_time": "13:50",
+        "round_count": "5",
+        "start_time": "11:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_feasibility_warnings": [],
+      "booking_status": "booked",
+      "date": "2026-10-18",
+      "host_club": "Holmen",
+      "id": "manual_booking:rvv-0021:2026-10-15T21:41:16.844622+00:00",
+      "note": "Operator-confirmed host booking interval from live Sportello calendar",
+      "reconfirms_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "Sportello Holmen ishall calendar https://kalender.sportello.no/booking/11055, live scrape 2026-10-15",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": null,
+      "source_revision": "afbc07f9699428b0fe0ed2c492e6eb215d5804c7d6d179e1926541d0c7d3549d",
+      "source_scope": "tournament",
+      "start_time": "11:30",
+      "stated_interval": {
+        "date": "2026-10-18",
+        "duration_minutes": "140",
+        "end": "13:50",
+        "start": "11:30"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0021:2026-09-28T05:54:01.267464+00:00",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Holmen ishall",
+        "date": "2026-10-18",
+        "host_club": "Holmen",
+        "start_time": "11:30"
+      },
+      "tournament_id": "rvv-0021"
     }
   ],
   "rejected_booking_evidence": [
@@ -12541,30 +12971,6 @@
       "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
       "checked_at": "2026-09-30T19:21:11.444731+00:00",
       "checked_by": "niclasl",
-      "date": "2026-10-11",
-      "event_fingerprint": "1c5d2fe3969c5991090554c823142a0b21bca99c10c46c5d42dd868ba3dac7e4",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0011:2026-09-30T19:21:11.444731+00:00",
-      "note": "",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
-      "start_time": "12:30",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U9",
-        "arena": "Holmen ishall",
-        "date": "2026-10-11",
-        "host_club": "Holmen",
-        "start_time": "12:30"
-      },
-      "tournament_id": "rvv-0011"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
-      "checked_at": "2026-09-30T19:21:11.444731+00:00",
-      "checked_by": "niclasl",
       "date": "2026-10-18",
       "event_fingerprint": "",
       "host_club": "Holmen",
@@ -12583,30 +12989,6 @@
         "start_time": "12:30"
       },
       "tournament_id": "rvv-0021"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
-      "checked_at": "2026-09-30T19:21:11.444731+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-10-18",
-      "event_fingerprint": "175e011138d8759ea77e438b73a38303c4976d634841bceb2148e5f3ba2e9961",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0028:2026-09-30T19:21:11.444731+00:00",
-      "note": "",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
-      "start_time": "15:00",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Holmen ishall",
-        "date": "2026-10-18",
-        "host_club": "Holmen",
-        "start_time": "15:00"
-      },
-      "tournament_id": "rvv-0028"
     },
     {
       "arena": "Holmen ishall",
@@ -12661,30 +13043,6 @@
       "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
       "checked_at": "2026-09-30T19:21:11.444731+00:00",
       "checked_by": "niclasl",
-      "date": "2026-11-14",
-      "event_fingerprint": "f0c605482660a7194cb4806525bc2656e2f8a6b8eb9858f11fb9d3c775f9eef8",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0049:2026-09-30T19:21:11.444731+00:00",
-      "note": "",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
-      "start_time": "12:15",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U8",
-        "arena": "Holmen ishall",
-        "date": "2026-11-14",
-        "host_club": "Holmen",
-        "start_time": "12:15"
-      },
-      "tournament_id": "rvv-0049"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
-      "checked_at": "2026-09-30T19:21:11.444731+00:00",
-      "checked_by": "niclasl",
       "date": "2026-11-21",
       "event_fingerprint": "",
       "host_club": "Holmen",
@@ -12709,30 +13067,6 @@
       "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
       "checked_at": "2026-09-30T19:21:11.444731+00:00",
       "checked_by": "niclasl",
-      "date": "2026-11-22",
-      "event_fingerprint": "934ff8f723b9068afa3b70a9e84608291b2ef681ac9564a800196c11e83d9c6f",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0061:2026-09-30T19:21:11.444731+00:00",
-      "note": "",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
-      "start_time": "13:00",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Holmen ishall",
-        "date": "2026-11-22",
-        "host_club": "Holmen",
-        "start_time": "13:00"
-      },
-      "tournament_id": "rvv-0061"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
-      "checked_at": "2026-09-30T19:21:11.444731+00:00",
-      "checked_by": "niclasl",
       "date": "2026-11-29",
       "event_fingerprint": "",
       "host_club": "Holmen",
@@ -12751,30 +13085,6 @@
         "start_time": "12:00"
       },
       "tournament_id": "rvv-0071"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
-      "checked_at": "2026-09-30T19:21:11.444731+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-14",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0082:2026-09-30T19:21:11.444731+00:00",
-      "note": "",
-      "reason": "source_coverage_unproven",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
-      "start_time": "15:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U9",
-        "arena": "Holmen ishall",
-        "date": "2026-11-14",
-        "host_club": "Holmen",
-        "start_time": "15:00"
-      },
-      "tournament_id": "rvv-0082"
     },
     {
       "arena": "Holmen ishall",
@@ -12895,54 +13205,6 @@
         "start_time": "13:00"
       },
       "tournament_id": "rvv-0145"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
-      "checked_at": "2026-09-30T19:21:11.444731+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-02-20",
-      "event_fingerprint": "37130be5c74e9a4536831c0bd5e65c8a1976f23e631506a2c348e37a5d9ad26d",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0150:2026-09-30T19:21:11.444731+00:00",
-      "note": "",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
-      "start_time": "13:00",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U7",
-        "arena": "Holmen ishall",
-        "date": "2027-02-20",
-        "host_club": "Holmen",
-        "start_time": "13:00"
-      },
-      "tournament_id": "rvv-0150"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
-      "checked_at": "2026-09-30T19:21:11.444731+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-02-21",
-      "event_fingerprint": "603f6415e7703f06201799b428a5904195356e89a79fd03570af1cea28d76994",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0168:2026-09-30T19:21:11.444731+00:00",
-      "note": "",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
-      "start_time": "15:00",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U8",
-        "arena": "Holmen ishall",
-        "date": "2027-02-21",
-        "host_club": "Holmen",
-        "start_time": "15:00"
-      },
-      "tournament_id": "rvv-0168"
     },
     {
       "arena": "Holmen ishall",
@@ -15391,6 +15653,174 @@
         "start_time": "13:15"
       },
       "tournament_id": "rvv-0030"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "4b4c02943190a54a318c9eb9269750a2f1accd32db63bbecee6473e46bb958d3",
+      "checked_at": "2026-10-15T21:35:49.098712+00:00",
+      "checked_by": "Niclas Lindgren",
+      "date": "2026-10-11",
+      "event_fingerprint": "021e7cec25afc32185f4a3cff2c4bda9d717be2078649a93bcaade691db0d3f9",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0011:2026-10-15T21:35:49.098712+00:00",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "a01310ed79b9af412ddca3a6fd5bcbceef907edf7fb97f5bc77f9ec6f79ade0a",
+      "start_time": "12:30",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Holmen ishall",
+        "date": "2026-10-11",
+        "host_club": "Holmen",
+        "start_time": "12:30"
+      },
+      "tournament_id": "rvv-0011"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "4b4c02943190a54a318c9eb9269750a2f1accd32db63bbecee6473e46bb958d3",
+      "checked_at": "2026-10-15T21:35:49.821664+00:00",
+      "checked_by": "Niclas Lindgren",
+      "date": "2026-10-18",
+      "event_fingerprint": "30725263d89c5127bbee722e337019d2186bfaaa53253340bc44c42b883478ad",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0028:2026-10-15T21:35:49.821664+00:00",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "05f71df3d3450f52cc47aa3b0103d7a871d32daf85998c86e2eb2bc5c1cf9f5a",
+      "start_time": "15:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-10-18",
+        "host_club": "Holmen",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0028"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "4b4c02943190a54a318c9eb9269750a2f1accd32db63bbecee6473e46bb958d3",
+      "checked_at": "2026-10-15T21:35:50.535705+00:00",
+      "checked_by": "Niclas Lindgren",
+      "date": "2026-11-14",
+      "event_fingerprint": "b340471dca68e3813895b16369aeec5bed284ce34957deb7b902b509259bf05a",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0049:2026-10-15T21:35:50.535705+00:00",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "24572a89bee8f9f95de394ebc4b0569133460eaba7c29db20cb18b74e27e210b",
+      "start_time": "12:15",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Holmen ishall",
+        "date": "2026-11-14",
+        "host_club": "Holmen",
+        "start_time": "12:15"
+      },
+      "tournament_id": "rvv-0049"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "4b4c02943190a54a318c9eb9269750a2f1accd32db63bbecee6473e46bb958d3",
+      "checked_at": "2026-10-15T21:35:51.282017+00:00",
+      "checked_by": "Niclas Lindgren",
+      "date": "2026-11-22",
+      "event_fingerprint": "116814d6989fd9ac93f7087964f26fc030ca7edcd4b21675e5138d53e5cb75e6",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0061:2026-10-15T21:35:51.282017+00:00",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "513fd1212b731cd1e0046b5b7e0fad04d6844e4d766fadcd208ea9419eb768df",
+      "start_time": "13:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-11-22",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0061"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "4b4c02943190a54a318c9eb9269750a2f1accd32db63bbecee6473e46bb958d3",
+      "checked_at": "2026-10-15T21:35:52.021598+00:00",
+      "checked_by": "Niclas Lindgren",
+      "date": "2027-02-20",
+      "event_fingerprint": "30edeb05dff4fbac9bf84150901859910f8811768b7356459482e714d7bab039",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0150:2026-10-15T21:35:52.021598+00:00",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "47e635ce9007e0d579c3a4233b498823d44a7242ff5ea09d83c2943cd8f7f086",
+      "start_time": "13:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U7",
+        "arena": "Holmen ishall",
+        "date": "2027-02-20",
+        "host_club": "Holmen",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0150"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "4b4c02943190a54a318c9eb9269750a2f1accd32db63bbecee6473e46bb958d3",
+      "checked_at": "2026-10-15T21:35:52.845414+00:00",
+      "checked_by": "Niclas Lindgren",
+      "date": "2027-02-21",
+      "event_fingerprint": "4ad787a33c84e5e6c7af6adfdfec77c5a6ec371d9458e3e3a4227d8616e4ea5c",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0168:2026-10-15T21:35:52.845414+00:00",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "32940591fcaab5632594aa6bbafc172d5084ce26c5148ebd86fb00c9b0a81270",
+      "start_time": "15:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Holmen ishall",
+        "date": "2027-02-21",
+        "host_club": "Holmen",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0168"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "4b4c02943190a54a318c9eb9269750a2f1accd32db63bbecee6473e46bb958d3",
+      "checked_at": "2026-10-15T22:01:37.402665+00:00",
+      "checked_by": "Niclas Lindgren",
+      "date": "2026-11-14",
+      "event_fingerprint": "1357ba33c4754777e8074a7450f01c53a362ea53664ef9d675d9b7850e0b7953",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0082:2026-10-15T22:01:37.402665+00:00",
+      "note": "Live Holmen calendar U9 (2018) 14.11 15:00–17:35 exact match; rebinding after calendar refresh",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "006b6a0f13e0329a54b33ad3d39238350623f3dbe8ca8c541e6e0a5342006b16",
+      "start_time": "15:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Holmen ishall",
+        "date": "2026-11-14",
+        "host_club": "Holmen",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0082"
     }
   ]
 }

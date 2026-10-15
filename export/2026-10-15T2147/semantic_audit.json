@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "audit_id": "a65a8019c61edd22",
+  "generated_at": "2026-10-15T22:02:41.649390+00:00",
+  "run_id": "legacy",
+  "export_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+  "audit_context_fingerprint": "f569d925ec9dc98c54d66922f98cf4763702ce8327eb4d05a9c7e9a25d4b17f4",
+  "status": "REVIEW_REQUIRED",
+  "operator_assessment": {
+    "operator_summary": "Publiseringsdeltaet er ELIGIBLE (rvv-0003, 0004, 0021; booket). Full-sesong gjeld er uendret planleggingsgjeld. Korrigert vurdering: rvv-0016 er et kansellert-projeksjonsavvik, ikke en eksportdefekt. Verdict REVIEW_REQUIRED, ikke blokkerende for delta.",
+    "key_tradeoffs": [],
+    "remaining_actions": [
+      {
+        "title": "Kansellert booking Kongsberg 22.11",
+        "summary": "Avklar om Kongsberghallen 22.11 14:00 skal frigjøres for kansellert rvv-0016.",
+        "category": "booking"
+      },
+      {
+        "title": "Tønsberg utdaterte godkjenninger",
+        "summary": "rvv-0094 og rvv-0156 må vurderes med kalenderbevis eller ny klubbbekreftelse før reapprovering.",
+        "category": "approval"
+      }
+    ],
+    "limitations": [
+      "Publiseringsscope er ELIGIBLE, men full-sesong readiness er REVIEW_REQUIRED.",
+      "Ingen live-skraping utover Holmen-kalender i dag."
+    ]
+  },
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "Ikke alle lag får målt antall cuper: 128 deltakerunderskudd (participation_shortfalls) og 22 avvik fra målantall. Flere av dem er bevist umulige gitt input (f.eks. Frisk Asker JU8 2 av 3). Dette er planleggingsgjeld utenfor den publiserte delta.",
+      "severity": "major",
+      "confidence": "high"
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "Hosting-balanse har 16 ubalanser og 9 uplasserte turneringer (f.eks. U10 26.12 ekskludert av datopolitikk). Ingen ubalanse berører de tre turneringene i publiseringsdelta (rvv-0003/0004/0021, alle Holmen).",
+      "severity": "major",
+      "confidence": "high"
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "Ingen reell varighetsdefekt. Eneste treff var rvv-0016 (JU12 22.11 Kongsberg), som er kansellert (team_retirement) med 0 kamper. Auditprojeksjonen tok med kansellerte turneringer i varighetsdata. Korrigert i kode (audit_context) med regresjonstest. Kansellert turnering har fortsatt en aktiv manuell bookingbekreftelse fra Kongsberg (22.11 14:00); denne må avklares.",
+      "severity": "minor",
+      "confidence": "high"
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "Holmen-deltaet er bekreftet mot live Sportello-kalender 2026-10-15: rvv-0003 14:00–15:50, rvv-0004 12:00–13:50, rvv-0021 11:30–13:50 — eksakt treff, ingen overlapp. Kalenderdekning for alle klubber er ikke fullt bevist (10 manuelle eksterne konflikter, Frisk Asker og Sandefjord), men disse er ikke i delta.",
+      "severity": "minor",
+      "confidence": "medium"
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "Ingen treff i auditkontekst (0 poster).",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt én gang per dag?",
+      "finding": "Ingen treff i auditkontekst (0 poster); deterministisk verifisering OK.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "14 turneringer med 3 lag fra samme klub, ingen over hard max 3. Holmen-deltaet: rvv-0003 (4 lag: Tønsberg, Jar, Frisk Asker, Holmen), rvv-0004 (4 lag), rvv-0021 (6 lag: Holmen, Frisk Asker, Jar, Ringerike, Jutul, Kongsberg), ingen klubb over 2 i de tre.",
+      "severity": "minor",
+      "confidence": "high"
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "export_parity PASS. csv_games 2331 rader (2308 kamper + 23 pauser) stemmer med plan; csv_overview 183 rader; kanonisk revisjon 733cff02… er lik manifestets revisjon.",
+      "severity": "info",
+      "confidence": "high"
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?",
+      "finding": "Ni utdaterte godkjenninger (stale_approval, status sticky) ble vurdert individuelt mot booking og plassering. Syv er gjenopprettet med eksakt booking-evidens: rvv-0025, 0068, 0111, 0152, 0170, 0178 og rvv-0082 (sistnevnte etter kalender-rebinding til live Holmen-hendelse). Gjenstår utdatert: rvv-0094 og rvv-0156 (Tønsberg, kalender ikke sjekkbar, klubbbekreftelse uten kalenderbevis). Tidligere utsagn om stale_approvals=0 var feil.",
+      "severity": "minor",
+      "confidence": "high"
+    }
+  ],
+  "potential_missing_rule": [
+    {
+      "description": "Kansellerte turneringer bør holde booking-status som kansellert/frigjort, og ikke aktiv manuell bekreftelse."
+    }
+  ],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+  "publication_gate_status": "operator_review_required"
+}

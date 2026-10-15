@@ -57195,6 +57195,802 @@
       "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T21:34:55.314124+00:00",
+      "details": {
+        "blocked_sources": [],
+        "calendar_fingerprint": "943d63fe053e7a08ace56919f40099088616165a9fa545c1d4a3e5bf69b51538",
+        "planned_tournament_reconciliation": {
+          "Holmen": {
+            "count": 21,
+            "requires_review_count": 21
+          }
+        },
+        "previous_calendar_fingerprint": "9bdbf9eafb7d9d48bbba3d1bd11f3ce2e26fe5f00ff70847f2a9a843150c9658",
+        "previous_snapshot": {
+          "calendar_fingerprint": "9bdbf9eafb7d9d48bbba3d1bd11f3ce2e26fe5f00ff70847f2a9a843150c9658",
+          "captured_at": "2026-10-15T21:34:55.314124+00:00",
+          "had_prior_calendar_evidence": true,
+          "had_prior_source_policy": true,
+          "path": "evidence/calendar/1824fdb313fda8202900800ad92427a3a1543edd7afbcb6f449049b8176aaf73.json",
+          "sha256": "1824fdb313fda8202900800ad92427a3a1543edd7afbcb6f449049b8176aaf73",
+          "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0"
+        },
+        "source_count": 9,
+        "source_policy_changes": [],
+        "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0",
+        "stage2_fingerprint": "a8d3f43e4e772a03116c601652975cf9219800f46d5ad3bcb59894dad94988af",
+        "target_club": "Holmen"
+      },
+      "event": "refresh_calendar_evidence",
+      "note": "",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:46.463135+00:00",
+      "details": {
+        "association_id": "calendar_booking:1c5d2fe3969c5991090554c823142a0b21bca99c10c46c5d42dd868ba3dac7e4:rvv-0011",
+        "event_fingerprint": "1c5d2fe3969c5991090554c823142a0b21bca99c10c46c5d42dd868ba3dac7e4"
+      },
+      "event": "release_calendar_booking",
+      "note": "Calendar evidence refreshed; association superseded by live Sportello event",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0011"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:46.897790+00:00",
+      "details": {
+        "association_id": "calendar_booking:175e011138d8759ea77e438b73a38303c4976d634841bceb2148e5f3ba2e9961:rvv-0028",
+        "event_fingerprint": "175e011138d8759ea77e438b73a38303c4976d634841bceb2148e5f3ba2e9961"
+      },
+      "event": "release_calendar_booking",
+      "note": "Calendar evidence refreshed; association superseded by live Sportello event",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0028"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:47.322791+00:00",
+      "details": {
+        "association_id": "calendar_booking:f0c605482660a7194cb4806525bc2656e2f8a6b8eb9858f11fb9d3c775f9eef8:rvv-0049",
+        "event_fingerprint": "f0c605482660a7194cb4806525bc2656e2f8a6b8eb9858f11fb9d3c775f9eef8"
+      },
+      "event": "release_calendar_booking",
+      "note": "Calendar evidence refreshed; association superseded by live Sportello event",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0049"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:47.756456+00:00",
+      "details": {
+        "association_id": "calendar_booking:934ff8f723b9068afa3b70a9e84608291b2ef681ac9564a800196c11e83d9c6f:rvv-0061",
+        "event_fingerprint": "934ff8f723b9068afa3b70a9e84608291b2ef681ac9564a800196c11e83d9c6f"
+      },
+      "event": "release_calendar_booking",
+      "note": "Calendar evidence refreshed; association superseded by live Sportello event",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0061"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:48.185379+00:00",
+      "details": {
+        "association_id": "calendar_booking:37130be5c74e9a4536831c0bd5e65c8a1976f23e631506a2c348e37a5d9ad26d:rvv-0150",
+        "event_fingerprint": "37130be5c74e9a4536831c0bd5e65c8a1976f23e631506a2c348e37a5d9ad26d"
+      },
+      "event": "release_calendar_booking",
+      "note": "Calendar evidence refreshed; association superseded by live Sportello event",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0150"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:48.620562+00:00",
+      "details": {
+        "association_id": "calendar_booking:603f6415e7703f06201799b428a5904195356e89a79fd03570af1cea28d76994:rvv-0168",
+        "event_fingerprint": "603f6415e7703f06201799b428a5904195356e89a79fd03570af1cea28d76994"
+      },
+      "event": "release_calendar_booking",
+      "note": "Calendar evidence refreshed; association superseded by live Sportello event",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0168"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:49.098712+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U9 (2018)",
+        "event_fingerprint": "021e7cec25afc32185f4a3cff2c4bda9d717be2078649a93bcaade691db0d3f9",
+        "ice_time_override_id": "",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-10-11",
+            "duration_minutes": 170,
+            "end_time": "15:20",
+            "start_time": "12:30"
+          },
+          "changed": false,
+          "previous_interval": {
+            "age_group": "U9",
+            "date": "2026-10-11",
+            "duration_minutes": "170",
+            "end_time": "15:20",
+            "round_count": "5",
+            "start_time": "12:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "previous_fingerprint": "355c89578209274ca20aff78eaca46e4150636e2aea949d6366b890c1aa78fd5",
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": "355c89578209274ca20aff78eaca46e4150636e2aea949d6366b890c1aa78fd5",
+      "tournament_id": "rvv-0011"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:49.821664+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U12 (2015)",
+        "event_fingerprint": "30725263d89c5127bbee722e337019d2186bfaaa53253340bc44c42b883478ad",
+        "ice_time_override_id": "",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-10-18",
+            "duration_minutes": 110,
+            "end_time": "16:50",
+            "start_time": "15:00"
+          },
+          "changed": false,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2026-10-18",
+            "duration_minutes": "110",
+            "end_time": "16:50",
+            "round_count": "3",
+            "start_time": "15:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "previous_fingerprint": "490590de179fc73790be9e39140511b8b3dfa631908bab0ed0bb55ea18d8602c",
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": "490590de179fc73790be9e39140511b8b3dfa631908bab0ed0bb55ea18d8602c",
+      "tournament_id": "rvv-0028"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:50.535705+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:b3bf50735d22f532",
+        "reference": "U8 (2019)",
+        "request_id": "calendar-booking:b340471dca68e3813895b16369aeec5bed284ce34957deb7b902b509259bf05a",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0049"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:50.535705+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U8 (2019)",
+        "event_fingerprint": "b340471dca68e3813895b16369aeec5bed284ce34957deb7b902b509259bf05a",
+        "ice_time_override_id": "ice-time-override:b3bf50735d22f532",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-14",
+            "duration_minutes": 155,
+            "end_time": "14:50",
+            "start_time": "12:15"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U8",
+            "date": "2026-11-14",
+            "duration_minutes": "155",
+            "end_time": "14:50",
+            "round_count": "5",
+            "start_time": "12:15"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "previous_fingerprint": "6ec76db5451596520446cf0f127b4767070bb3bce75724ae2702439df5253bad",
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": "6da84302f71ac94e9f62638b09314f98af2272db084fd87b8d1cebb50b484f76",
+      "tournament_id": "rvv-0049"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:51.282017+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 100,
+        "override_id": "ice-time-override:119d3c61633f99c3",
+        "reference": "U12 (2015)",
+        "request_id": "calendar-booking:116814d6989fd9ac93f7087964f26fc030ca7edcd4b21675e5138d53e5cb75e6",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0061"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:51.282017+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U12 (2015)",
+        "event_fingerprint": "116814d6989fd9ac93f7087964f26fc030ca7edcd4b21675e5138d53e5cb75e6",
+        "ice_time_override_id": "ice-time-override:119d3c61633f99c3",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-22",
+            "duration_minutes": 100,
+            "end_time": "14:40",
+            "start_time": "13:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2026-11-22",
+            "duration_minutes": "100",
+            "end_time": "14:40",
+            "round_count": "3",
+            "start_time": "13:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "previous_fingerprint": "390c9304d181c029ae91513997ab66818da098cb7cf5bdbafb98dcb637fb6830",
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": "390c9304d181c029ae91513997ab66818da098cb7cf5bdbafb98dcb637fb6830",
+      "tournament_id": "rvv-0061"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:52.021598+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:b938d1a5eb224e69",
+        "reference": "U7 (2020)",
+        "request_id": "calendar-booking:30edeb05dff4fbac9bf84150901859910f8811768b7356459482e714d7bab039",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0150"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:52.021598+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U7 (2020)",
+        "event_fingerprint": "30edeb05dff4fbac9bf84150901859910f8811768b7356459482e714d7bab039",
+        "ice_time_override_id": "ice-time-override:b938d1a5eb224e69",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-02-20",
+            "duration_minutes": 155,
+            "end_time": "15:35",
+            "start_time": "13:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U7",
+            "date": "2027-02-20",
+            "duration_minutes": "155",
+            "end_time": "15:35",
+            "round_count": "5",
+            "start_time": "13:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "previous_fingerprint": "a7a22d4a65e1eb0d12ffbc720185e9ccca3843e3f31b00b96f9544a81c83d175",
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": "a7a22d4a65e1eb0d12ffbc720185e9ccca3843e3f31b00b96f9544a81c83d175",
+      "tournament_id": "rvv-0150"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:52.845414+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:a08825e1716f9bc0",
+        "reference": "U8 (2019)",
+        "request_id": "calendar-booking:4ad787a33c84e5e6c7af6adfdfec77c5a6ec371d9458e3e3a4227d8616e4ea5c",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0168"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:35:52.845414+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U8 (2019)",
+        "event_fingerprint": "4ad787a33c84e5e6c7af6adfdfec77c5a6ec371d9458e3e3a4227d8616e4ea5c",
+        "ice_time_override_id": "ice-time-override:a08825e1716f9bc0",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-02-21",
+            "duration_minutes": 155,
+            "end_time": "17:35",
+            "start_time": "15:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U8",
+            "date": "2027-02-21",
+            "duration_minutes": "155",
+            "end_time": "17:35",
+            "round_count": "5",
+            "start_time": "15:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Exact same-slot match in refreshed live Sportello calendar (Holmen ishall); confirmed by operator",
+      "previous_fingerprint": "a48807d6bd6935a5a302d994557b5b41ae8b7f71eb46ff275f1dc940fa780ee3",
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": "85311bdd75494baba5e8c2466e26173538315dd674a72109ebef7ac62436b26b",
+      "tournament_id": "rvv-0168"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:40:34.590691+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:6ccf6c20c42233d5",
+          "change:fab7bc61775e194c"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "Superseded by operator-confirmed live Holmen calendar times (Sportello, refreshed 2026-10-15): rvv-0003 14:00-15:50, rvv-0004 12:00-13:50, rvv-0021 11:30-13:50",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:40:35.081940+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 110,
+        "override_id": "ice-time-override:d358ce30044c6767",
+        "reference": "Sportello Holmen ishall calendar https://kalender.sportello.no/booking/11055, live scrape 2026-10-15",
+        "request_id": "manual-booking:rvv-0003:fcb9700e94fc7fca2d9745de9323935e2a3a2a6a490cb8ad339622ed3c57a89e",
+        "supersedes": "ice-time-override:4d718eb60e0af0e7"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Operator-confirmed host booking interval from live Sportello calendar",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0003"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:40:35.081940+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-10-10",
+          "duration_minutes": "110",
+          "end_time": "15:50",
+          "round_count": "3",
+          "start_time": "14:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:d358ce30044c6767",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2026-10-10",
+            "duration_minutes": 110,
+            "end_time": "15:50",
+            "start_time": "14:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2026-10-10",
+            "duration_minutes": "60",
+            "end_time": "15:00",
+            "round_count": "3",
+            "start_time": "14:00"
+          }
+        },
+        "reconfirms_stale_reasons": [
+          "tournament_duration_minutes_changed",
+          "tournament_end_time_changed"
+        ],
+        "reference": "Sportello Holmen ishall calendar https://kalender.sportello.no/booking/11055, live scrape 2026-10-15",
+        "source_scope": "tournament",
+        "stated_interval": {
+          "date": "2026-10-10",
+          "duration_minutes": "110",
+          "end": "15:50",
+          "start": "14:00"
+        },
+        "supersedes": "manual_booking:rvv-0003:2026-09-28T05:58:29.455441+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Operator-confirmed host booking interval from live Sportello calendar",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0003"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:40:56.059935+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 110,
+        "override_id": "ice-time-override:53800632f13dae1e",
+        "reference": "Sportello Holmen ishall calendar https://kalender.sportello.no/booking/11055, live scrape 2026-10-15",
+        "request_id": "manual-booking:rvv-0004:6d6034036b4bb0cbc5bdcab9c03f50a5ae29f07000ce4c1e1d3634026f94c0f2",
+        "supersedes": "ice-time-override:054481d0ed60959c"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Operator-confirmed host booking interval from live Sportello calendar",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0004"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:40:56.059935+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-10-10",
+          "duration_minutes": "110",
+          "end_time": "13:50",
+          "round_count": "3",
+          "start_time": "12:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:53800632f13dae1e",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2026-10-10",
+            "duration_minutes": 110,
+            "end_time": "13:50",
+            "start_time": "12:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2026-10-10",
+            "duration_minutes": "60",
+            "end_time": "14:00",
+            "round_count": "3",
+            "start_time": "13:00"
+          }
+        },
+        "reconfirms_stale_reasons": [
+          "tournament_duration_minutes_changed",
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "Sportello Holmen ishall calendar https://kalender.sportello.no/booking/11055, live scrape 2026-10-15",
+        "source_scope": "tournament",
+        "stated_interval": {
+          "date": "2026-10-10",
+          "duration_minutes": "110",
+          "end": "13:50",
+          "start": "12:00"
+        },
+        "supersedes": "manual_booking:rvv-0004:2026-09-28T05:58:34.055765+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Operator-confirmed host booking interval from live Sportello calendar",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "46763d43f4ed3d332c9ba66e1973f24cbcf1389e4adcf0fd35dee6cfac3c73b0",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0004"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:41:16.844622+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:4ea20b804e9236ca",
+        "reference": "Sportello Holmen ishall calendar https://kalender.sportello.no/booking/11055, live scrape 2026-10-15",
+        "request_id": "manual-booking:rvv-0021:f4f06307738bc14e1eeba85dec7a4d81eb977297e4217f05712ff5f46ab68314",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Operator-confirmed host booking interval from live Sportello calendar",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "46763d43f4ed3d332c9ba66e1973f24cbcf1389e4adcf0fd35dee6cfac3c73b0",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0021"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:41:16.844622+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2026-10-18",
+          "duration_minutes": "140",
+          "end_time": "13:50",
+          "round_count": "5",
+          "start_time": "11:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:4ea20b804e9236ca",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2026-10-18",
+            "duration_minutes": 140,
+            "end_time": "13:50",
+            "start_time": "11:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U10",
+            "date": "2026-10-18",
+            "duration_minutes": "140",
+            "end_time": "14:50",
+            "round_count": "5",
+            "start_time": "12:30"
+          }
+        },
+        "reconfirms_stale_reasons": [
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "Sportello Holmen ishall calendar https://kalender.sportello.no/booking/11055, live scrape 2026-10-15",
+        "source_scope": "tournament",
+        "stated_interval": {
+          "date": "2026-10-18",
+          "duration_minutes": "140",
+          "end": "13:50",
+          "start": "11:30"
+        },
+        "supersedes": "manual_booking:rvv-0021:2026-09-28T05:54:01.267464+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Operator-confirmed host booking interval from live Sportello calendar",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0021"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:46:17.792726+00:00",
+      "event": "approve",
+      "note": "Holmen confirmed booking via live Sportello calendar (2026-10-15); interval set by booking",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": "037c62a9db4d90ff8302640d3e7260cf7324a9add5dfb0c0f4079d90418d9ef6",
+      "tournament_id": "rvv-0003"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:46:18.480876+00:00",
+      "event": "approve",
+      "note": "Holmen confirmed booking via live Sportello calendar (2026-10-15); interval set by booking",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": "37d4321c34cb2152ae049e4169379d2dc677cc5eebbf4252452a753af2f135dc",
+      "tournament_id": "rvv-0004"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T21:46:19.154976+00:00",
+      "event": "approve",
+      "note": "Holmen confirmed booking via live Sportello calendar (2026-10-15); interval set by booking",
+      "previous_fingerprint": "1fdbb198a56cef22162283d97c611275d8c3ea29ac057cbf75a978020f6093e4",
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": "dd1a87db93f17dcb20b52418cfa9a1a6407eadbeeef5127f730bba6b57a85b7d",
+      "tournament_id": "rvv-0021"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T21:47:34.027682+00:00",
+      "details": {
+        "canonical_state_revision": "733cff02efb97ac68d6b200f090ce013b8c03e21a44cd6ae1a2557211f672e8f",
+        "export_dir": "export/2026-10-15T2147",
+        "previous_export_status": "stale",
+        "previous_requires_fresh_export": true
+      },
+      "event": "mark_export_fresh",
+      "note": "canonical export",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T22:01:33.609661+00:00",
+      "event": "approve",
+      "note": "Re-approved individually 2026-10-16: booking evidence matches exact interval (calendar-confirmed or manual club confirmation); placement unchanged vs published baseline",
+      "previous_fingerprint": "bde5224687939a480807c606e1fe55d62839106d830f5cc851c825b104220c8d",
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": "da5d311deb9b4287791898fad54678affd5f7119da8827620ee9dc0d51338bbc",
+      "tournament_id": "rvv-0025"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T22:01:34.269604+00:00",
+      "event": "approve",
+      "note": "Re-approved individually 2026-10-16: booking evidence matches exact interval (calendar-confirmed or manual club confirmation); placement unchanged vs published baseline",
+      "previous_fingerprint": "43308088bec44b74c6cb75f3a7d1b5a5b1b8054175f1c7f43a55570b264031b5",
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": "8dbea069d7c4ab7389a8ac341a25f90f3c376657904d2979c3d411b9851cd9c1",
+      "tournament_id": "rvv-0068"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T22:01:34.915293+00:00",
+      "event": "approve",
+      "note": "Re-approved individually 2026-10-16: booking evidence matches exact interval (calendar-confirmed or manual club confirmation); placement unchanged vs published baseline",
+      "previous_fingerprint": "e308302f37adf1ca6f5231984a13c21085a07dc6cae9541cec6894bb5cdb7c45",
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": "cb8e180cfbb97031872d0e95e8fb9d2ae9e30741f739c294fbc39c1a6bd3d8f3",
+      "tournament_id": "rvv-0111"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T22:01:35.568078+00:00",
+      "event": "approve",
+      "note": "Re-approved individually 2026-10-16: booking evidence matches exact interval (calendar-confirmed or manual club confirmation); placement unchanged vs published baseline",
+      "previous_fingerprint": "91fe0aab6ec6cb6a76cbe44f1f9c7b4815fcda6d8f6d1775d3c13d602af1666f",
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": "0f687a52b08afa226eb34123479ebc5e329e819f12cc5fe61483c22dd46be929",
+      "tournament_id": "rvv-0152"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T22:01:36.230410+00:00",
+      "event": "approve",
+      "note": "Re-approved individually 2026-10-16: booking evidence matches exact interval (calendar-confirmed or manual club confirmation); placement unchanged vs published baseline",
+      "previous_fingerprint": "c04bbf15721f9f42c78b55f7fbbc4023b47fbbc341167b0787ca39d8d8aa074d",
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": "daef63c062b67c7d3b3dba68e82ad8324926289fa94feb1dfa1f3d6b78182fbe",
+      "tournament_id": "rvv-0170"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T22:01:36.877031+00:00",
+      "event": "approve",
+      "note": "Re-approved individually 2026-10-16: booking evidence matches exact interval (calendar-confirmed or manual club confirmation); placement unchanged vs published baseline",
+      "previous_fingerprint": "fb9d0e14683a93ab456e7908da1c049e8a1a35fe98b292f7db35ce8b7416b0a9",
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": "c4eb60bf8bc6965bf34ab65171c7b26b6cb0583f86430736b26ab88e9b524e2e",
+      "tournament_id": "rvv-0178"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T22:01:37.402665+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:70cf026551dcdc06",
+        "reference": "U9 (2018)",
+        "request_id": "calendar-booking:1357ba33c4754777e8074a7450f01c53a362ea53664ef9d675d9b7850e0b7953",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Live Holmen calendar U9 (2018) 14.11 15:00–17:35 exact match; rebinding after calendar refresh",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0082"
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-15T22:01:37.402665+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U9 (2018)",
+        "event_fingerprint": "1357ba33c4754777e8074a7450f01c53a362ea53664ef9d675d9b7850e0b7953",
+        "ice_time_override_id": "ice-time-override:70cf026551dcdc06",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-14",
+            "duration_minutes": 155,
+            "end_time": "17:35",
+            "start_time": "15:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U9",
+            "date": "2026-11-14",
+            "duration_minutes": "155",
+            "end_time": "17:35",
+            "round_count": "5",
+            "start_time": "15:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Live Holmen calendar U9 (2018) 14.11 15:00–17:35 exact match; rebinding after calendar refresh",
+      "previous_fingerprint": "4d5cf7758d23dda2942cce988704243256f99a5e74c915c02a6f3a605464408a",
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": "e4ef33013d71d33fc231d77147f1cd02e3a1cd7c79a8eac90d07c8243d5dfc35",
+      "tournament_id": "rvv-0082"
     }
   ]
 }
