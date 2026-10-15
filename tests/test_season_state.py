@@ -4,7 +4,10 @@ import json
 from pathlib import Path
 
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
-from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
+from tournament_scheduler.testing.reviewed_export import (
+    build_problem_from_candidate,
+    write_reviewed_stage4_export,
+)
 import pytest
 
 from tournament_scheduler.application.canonical_season.store_facade import (
@@ -689,6 +692,91 @@ def test_replace_participant_handles_frisk_asker_one_tournament_substitution(tmp
             root=root,
         )
     assert (root / "2026-2027" / "schedule.json").read_bytes() == before_reject
+
+
+@pytest.mark.parametrize(
+    ("declare_rotatable_pool", "expected_applicable"),
+    [(True, True), (False, False)],
+)
+def test_replacement_uses_explicit_rotatable_pool_spacing_policy(
+    tmp_path: Path,
+    declare_rotatable_pool: bool,
+    expected_applicable: bool,
+) -> None:
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+
+    def team(club: str, label: str) -> dict:
+        return {"club": club, "label": label, "age_group": "U11"}
+
+    red = team("Jutul", "Jutul Rød")
+    green = team("Jutul", "Jutul Grønn")
+    stable = [team("A", "A1"), team("B", "B1"), team("C", "C1")]
+    removed = team("D", "D1")
+
+    def tournament(tournament_id: str, on_date: str, roster: list[dict]) -> dict:
+        return {
+            "id": tournament_id,
+            "date": on_date,
+            "arena": "Arena A",
+            "age_group": "U11",
+            "host_club": "A",
+            "teams": roster,
+            "games": [],
+            "start_time": "10:00",
+        }
+
+    candidate = {
+        "schema_version": 1,
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "tournaments": [
+            tournament("red-1", "2026-11-01", [red, removed, *stable[:2]]),
+            tournament("target", "2026-11-06", [removed, *stable]),
+            tournament("red-2", "2026-11-15", [red, removed, *stable[:2]]),
+            tournament("green-1", "2026-11-25", [green, removed, *stable[:2]]),
+        ],
+    }
+    state.write_stage(StageName.PLANNING, {"plan": candidate}, status=StageStatus.DONE)
+    problem = build_problem_from_candidate(candidate)
+    if declare_rotatable_pool:
+        problem["rotatable_participant_pools"] = [
+            {
+                "pool_id": "jutul-u11",
+                "club": "Jutul",
+                "age_group": "U11",
+                "team_labels": ["Jutul Rød", "Jutul Grønn"],
+            }
+        ]
+    write_reviewed_stage4_export(state, problem=problem)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    preview = replace_participant(
+        season="2026-2027",
+        tournament_id="target",
+        remove_team_label="D1",
+        add_team_label="Jutul Rød",
+        root=root,
+        actor="tester",
+        request_id="jutul-pool-spacing",
+        dry_run=True,
+    )
+
+    assert preview["verdict"]["applicable"] is expected_applicable, preview
+    added = preview["replacement"]["team_consequences"]["added_team"]
+    exact_codes = {
+        item["code"]
+        for item in added.get("team_level", added)["material_regressions"]
+    }
+    assert "more_gaps_under_7_days" in exact_codes
+    if declare_rotatable_pool:
+        assert added["participant_pool"]["material_regressions"] == []
+        assert "more_gaps_under_7_days" not in {
+            item["code"] for item in added["material_regressions"]
+        }
+    else:
+        assert "participant_pool" not in added
 
 
 def test_participant_swap_is_verified_atomic_and_dry_runnable(tmp_path: Path) -> None:

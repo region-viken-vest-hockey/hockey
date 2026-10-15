@@ -944,9 +944,12 @@ _SOFT: tuple[RuleEntry, ...] = (
         regression_codes=("more_gaps_under_7_days", "more_gaps_under_14_days"),
 
         classification=SOFT_OBJECTIVE,
-        meaning="A team's tournaments should be spaced sensibly; very short turnaround gaps are minimized.",
+        meaning=(
+            "A fixed team's tournaments, or the distributable load of an explicitly rotatable "
+            "sibling pool, should be spaced sensibly; very short turnaround gaps are minimized."
+        ),
         canonical_owner="tournament_scheduler.participation.team_schedule_quality",
-        input_source="candidate tournament dates per team",
+        input_source="candidate tournament dates plus explicit rotatable participant-pool declarations",
         verifier_owner="tournament_scheduler.planning.contract.score_candidate",
         evidence_projection=("score_candidate.turnaround.*", "rules_model"),
         tests=("tests/test_team_schedule_quality.py", "tests/test_fairness_temporal.py"),
@@ -956,6 +959,33 @@ _SOFT: tuple[RuleEntry, ...] = (
             "turnaround.gaps_under_days.14",
         ),
         finding_codes=("temporal_clustering",),
+    ),
+    RuleEntry(
+        id="rotatable_participant_pool",
+        regression_codes=(
+            "more_unavoidable_same_day_pool_load",
+            "more_unavoidable_back_to_back_days",
+            "more_unavoidable_consecutive_weekends",
+            "exact_label_regression_distributable_in_pool",
+            "sibling_label_imbalance_worse",
+            "extreme_sibling_label_imbalance",
+            "severe_sibling_deprivation",
+        ),
+        classification=SOFT_OBJECTIVE,
+        meaning=(
+            "Only explicitly declared club + age-group sibling pools may distribute participant "
+            "opportunities across labels; unavoidable congestion, deprivation, and extreme label "
+            "imbalance remain regressions."
+        ),
+        canonical_owner="tournament_scheduler.participation.participant_pool_consequences",
+        input_source="controlled workbook Deltakerpooler sheet and candidate tournament rosters",
+        verifier_owner="tournament_scheduler.participation.team_schedule_quality",
+        evidence_projection=(
+            "team_consequences.*.team_level",
+            "team_consequences.*.participant_pool",
+            "season_findings.temporal_clustering",
+        ),
+        tests=("tests/test_team_schedule_quality.py", "tests/test_season_state.py"),
     ),
     RuleEntry(
         id="temporal_coverage",

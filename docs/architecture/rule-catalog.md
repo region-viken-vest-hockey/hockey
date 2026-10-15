@@ -156,7 +156,8 @@ candidate regresses a higher-priority operational obligation.
 | `opponent_repetition` | soft (3) | Teams should meet diverse opponents; repeated pairings beyond the configured expectation are minimized. The primary opponent identity is the opposing club within an age group, not the exact squad label, so a swap between sibling squads is not a new opponent. Exact squad-pair counts remain available as diagnostics. | `tournament_scheduler.scoring.quality_objectives` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_quality_objectives.py` |
 | `opponent_club_diversity` | soft (3) | Each individual squad should meet a variety of opposing clubs within its age group. Exposure to one club is normalized by that club's squad supply, so a large multi-squad club is not penalized merely for supplying more opponents, while genuinely concentrated exposure remains visible. | `tournament_scheduler.participation.opponent_diversity` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_opponent_diversity.py` |
 | `inter_club_diversity` | soft (3) | Tournaments should mix teams across clubs rather than concentrating same-club matchups. | `tournament_scheduler.scoring.quality_objectives` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_quality_objectives.py` |
-| `temporal_spacing` | soft (3) | A team's tournaments should be spaced sensibly; very short turnaround gaps are minimized. | `tournament_scheduler.participation.team_schedule_quality` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_team_schedule_quality.py`, `tests/test_fairness_temporal.py` |
+| `temporal_spacing` | soft (3) | A fixed team's tournaments, or the distributable load of an explicitly rotatable sibling pool, should be spaced sensibly; very short turnaround gaps are minimized. | `tournament_scheduler.participation.team_schedule_quality` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_team_schedule_quality.py`, `tests/test_fairness_temporal.py` |
+| `rotatable_participant_pool` | soft (3) | Only explicitly declared club + age-group sibling pools may distribute participant opportunities across labels; unavoidable congestion, deprivation, and extreme label imbalance remain regressions. | `tournament_scheduler.participation.participant_pool_consequences` | `tournament_scheduler.participation.team_schedule_quality` | `tests/test_team_schedule_quality.py`, `tests/test_season_state.py` |
 | `temporal_coverage` | soft (3) | A team's tournaments should cover the season rather than cluster in one stretch. | `tournament_scheduler.participation.temporal_coverage` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_temporal_coverage.py` |
 | `travel_distance` | soft (3) | Estimated team travel between home and away arenas should be kept reasonable. | `tournament_scheduler.clubs.distances` | `tournament_scheduler.planning.contract.score_candidate` | `tests/test_club_distances.py` |
 
@@ -964,14 +965,28 @@ candidate regresses a higher-priority operational obligation.
 
 `Soft objective` · status `active` · operator-waivable: yes  
 **Priority tier:** soft (3)  
-**Meaning:** A team's tournaments should be spaced sensibly; very short turnaround gaps are minimized.  
+**Meaning:** A fixed team's tournaments, or the distributable load of an explicitly rotatable sibling pool, should be spaced sensibly; very short turnaround gaps are minimized.  
 **Canonical owner:** `tournament_scheduler.participation.team_schedule_quality`  
-**Input / fact source:** candidate tournament dates per team  
+**Input / fact source:** candidate tournament dates plus explicit rotatable participant-pool declarations  
 **Verifier / measurement:** `tournament_scheduler.planning.contract.score_candidate`  
 **Codes:** verifier — · finding `temporal_clustering` · score `turnaround.min_turnaround_days`, `turnaround.gaps_under_days.7`, `turnaround.gaps_under_days.14`  
 **Providers:** mutation — · search —  
 **Evidence / report:** `score_candidate.turnaround.*`, `rules_model`  
 **Tests:** `tests/test_team_schedule_quality.py`, `tests/test_fairness_temporal.py`  
+**Precedence:** precedes — · depends on —
+
+### `rotatable_participant_pool`
+
+`Soft objective` · status `active` · operator-waivable: yes  
+**Priority tier:** soft (3)  
+**Meaning:** Only explicitly declared club + age-group sibling pools may distribute participant opportunities across labels; unavoidable congestion, deprivation, and extreme label imbalance remain regressions.  
+**Canonical owner:** `tournament_scheduler.participation.participant_pool_consequences`  
+**Input / fact source:** controlled workbook Deltakerpooler sheet and candidate tournament rosters  
+**Verifier / measurement:** `tournament_scheduler.participation.team_schedule_quality`  
+**Codes:** verifier — · finding — · score —  
+**Providers:** mutation — · search —  
+**Evidence / report:** `team_consequences.*.team_level`, `team_consequences.*.participant_pool`, `season_findings.temporal_clustering`  
+**Tests:** `tests/test_team_schedule_quality.py`, `tests/test_season_state.py`  
 **Precedence:** precedes — · depends on —
 
 ### `temporal_coverage`

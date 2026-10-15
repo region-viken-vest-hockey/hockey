@@ -101,6 +101,17 @@ Do not add a normal per-team `target_tournament_count` override. Normal particip
 
 Empty rows are ignored. Duplicate `label` values may exist across different age groups, but not as duplicate team identities within the same age group.
 
+### `Deltakerpooler` (optional)
+
+This internal sheet explicitly declares sibling labels whose participant load can rotate within one club and age group. Canonical columns are:
+
+- `club`
+- `age_group`
+- `pool_id`
+- `team_label`
+
+Use one row per sibling label and repeat the same `pool_id` for every member. A pool needs at least two labels, and every label must exist in `Lag` with the same club and age group. Merely registering multiple teams never implies rotatability. The declaration is normalized into `rotatable_participant_pools` in the promoted, revision-bound planning problem; participant consequence analysis then reports both exact-label diagnostics and distributable pool-level spacing/coverage. Hosting responsibility and hosting fairness are not changed by this declaration.
+
 ### Reviewed SharePoint registration exports
 
 `input.xlsx` remains the controlled planner input, but `Lag` can be rebuilt from a reviewed SharePoint List export so volunteers do not copy registrations manually.
@@ -156,6 +167,7 @@ Positive values penalize dates; negative values reward them. Date cells and comm
 
 - Root `input.xlsx` is the planner input; there is no parallel operator-maintained JSON config.
 - `Lag` contains identities, not hidden scheduling-policy overrides.
+- Rotatable sibling semantics must be explicit in `Deltakerpooler`; multiple `Lag` rows alone are not evidence.
 - Participation configuration belongs in `Aldersgrupper`, split before/after New Year.
 - Registration import replaces only `Lag`; it must not overwrite planning settings.
 - Generated output is derived data and should never become a new source of truth.

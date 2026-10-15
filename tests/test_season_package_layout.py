@@ -27,6 +27,7 @@ SEASON_MODULES = {
     "maintenance_context",
     "replan",
     "request_constraints",
+    "spacing_finding_subject",
     "state",
     "waivers",
 }

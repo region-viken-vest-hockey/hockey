@@ -8,18 +8,16 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from .input_workbook import load_workbook_config
-
 from tournament_scheduler.shape.occupancy import governing_minimum_ice_time_minutes, minimum_playing_requirement_minutes
 from ..intake.roster_loader import RosterLoader
+from .input_workbook import load_workbook_config
+from .participant_pool_input import participant_pool_config_errors
 
 logger = logging.getLogger(__name__)
 
 
 def validate_config(raw: dict[str, Any], input_path: Path) -> list[str]:
-    """Validate *raw* config dict and return a list of Norwegian error messages.
-
-    Returns an empty list if the config is valid.
+    """Validate *raw* config dict and return Norwegian error messages.
 
     Parameters
     ----------
@@ -300,6 +298,7 @@ def validate_config(raw: dict[str, Any], input_path: Path) -> list[str]:
                 "'teams' må være enten en liste med lag-objekter eller en sti til en lagfil (streng)."
             )
 
+    errors.extend(participant_pool_config_errors(raw))
     return errors
 
 
@@ -430,6 +429,7 @@ def _parse_config(raw: dict[str, Any], input_path: str | os.PathLike[str]) -> di
             "target_tournament_count",
             "deltakelser_per_lag",
             "participation_targets_by_age_group",
+            "rotatable_participant_pools",
             "max_hosting_days_per_month",
             "fairness_thresholds",
         }

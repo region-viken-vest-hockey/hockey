@@ -5,23 +5,15 @@ roster swap can improve the aggregate while making the displaced team's own
 schedule materially worse. This module therefore compares the exact two team
 identities affected by a targeted swap.
 
-The thresholds here are policy-level definitions of "material", deliberately
-kept deterministic and conservative:
-- creating an additional gap under 7 or 14 days is material;
-- worsening temporal coverage into the normal >60-day offender range is material;
-- materially concentrating a squad's opponents on one opposing club is material;
-- increasing estimated season travel by at least 50 km and 25% is material.
+Material policy covers new sub-7/sub-14-day gaps, >60-day temporal regression,
+concentrated opponents, and travel increases of at least 50 km and 25%.
 
-The subject is the individual squad, but the primary opponent identity is the
-*club within an age group* (see
-:mod:`tournament_scheduler.participation.opponent_diversity`). Squad labels such as
-"Frisk Asker 1"/"Frisk Asker 2" are administrative: a swap that changes which
-sibling squad an opponent meets must not be treated as adding a new opponent.
-Exact squad-pair repetition is still reported for diagnostics, but a rise in
-that metric alone is never a material regression blocker.
+The subject is the squad unless an explicit rotatable pool supplies distributable
+spacing/coverage policy; multi-team registration alone never activates it.
+Opponent identity is the club within an age group; exact sibling labels remain
+diagnostic rather than material for opponent repetition.
 
-Small neutral trade-offs remain visible in the before/after profiles but do not
-block a swap.
+Small neutral trade-offs remain visible but do not block a swap.
 """
 
 from __future__ import annotations
@@ -434,11 +426,17 @@ def compare_team_schedule_consequence(
     *,
     problem: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Build and compare one team's before/after targeted-change profiles."""
+    """Build exact-team and, when declared, effective pool consequences."""
 
     before = team_schedule_profile(before_plan, identity, problem=problem)
     after = team_schedule_profile(after_plan, identity, problem=problem)
-    return compare_team_schedule_profiles(before, after)
+    team_level = compare_team_schedule_profiles(before, after)
+
+    from tournament_scheduler.participation.participant_pool_consequences import (
+        apply_rotatable_pool_policy,
+    )
+
+    return apply_rotatable_pool_policy(team_level, before_plan, after_plan, identity, problem=problem)
 
 
 def _half_counts(dates: list[str], split: date | None) -> dict[str, int]:
@@ -599,6 +597,8 @@ ACCEPTABLE_REGRESSION_CODES = frozenset(
     {
         "more_gaps_under_7_days",
         "more_gaps_under_14_days",
+        "more_unavoidable_back_to_back_days",
+        "more_unavoidable_consecutive_weekends",
         "temporal_coverage_materially_worse",
         "more_concentrated_club_exposure",
         "travel_materially_worse",
