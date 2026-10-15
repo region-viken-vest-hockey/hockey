@@ -56481,6 +56481,704 @@
       "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T07:48:45.218150+00:00",
+      "details": {
+        "blocked_sources": [],
+        "calendar_fingerprint": "9bdbf9eafb7d9d48bbba3d1bd11f3ce2e26fe5f00ff70847f2a9a843150c9658",
+        "planned_tournament_reconciliation": {
+          "Skien": {
+            "count": 8,
+            "requires_review_count": 8
+          }
+        },
+        "previous_calendar_fingerprint": "26c6042c2996884acde0b74443ac1d2ece082a8ff7f25353e65cf994029e39a4",
+        "previous_snapshot": {
+          "calendar_fingerprint": "26c6042c2996884acde0b74443ac1d2ece082a8ff7f25353e65cf994029e39a4",
+          "captured_at": "2026-10-15T07:48:45.218150+00:00",
+          "had_prior_calendar_evidence": true,
+          "had_prior_source_policy": true,
+          "path": "evidence/calendar/308cfdf205bcb8610dfd9d2705df2f038f48e8b16f89b6ebcbfa1a30ff10db86.json",
+          "sha256": "308cfdf205bcb8610dfd9d2705df2f038f48e8b16f89b6ebcbfa1a30ff10db86",
+          "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0"
+        },
+        "source_count": 9,
+        "source_policy_changes": [],
+        "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0",
+        "stage2_fingerprint": "b03d893718e1f710f036d74a9678203f5909f92a08acd565981ad78d5582a77b",
+        "target_club": "Skien"
+      },
+      "event": "refresh_calendar_evidence",
+      "note": "Skien calendar reconciliation with plan (fresh BRP/Exigo scrape)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T07:50:02.331537+00:00",
+      "details": {
+        "classified": [
+          {
+            "event_fingerprint": "91c1c4c5bbc3e791d28dd2f0200ac137fbb69f1df073591868b2c37d9f87a2c0",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0007"
+          },
+          {
+            "event_fingerprint": "bfbb9bf6ab8ab971efb1b082a2ccc5627f10c38f58c78920fddd1b0549714225",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0020"
+          },
+          {
+            "event_fingerprint": "b5adec2aec0d2880d62cde2615f31d710d422a8a133b07d57e872c9d385c3a7d",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0030"
+          },
+          {
+            "event_fingerprint": "f2eafda51c93f50dabad687f6c8bd82aa6c1ac8a0ad97f104a30ba6ef8616196",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0041"
+          },
+          {
+            "event_fingerprint": "17d24e44ac32914ac9c49a4c89fab608a7a15e5a4d372963ad0d67eb6a33494b",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0050"
+          },
+          {
+            "event_fingerprint": "a8f7a2340f59fa455d3971e57e91f1d22b7cfe65087890be1013e2fc14b79278",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0062"
+          },
+          {
+            "event_fingerprint": "456c750ebef8cb45e46202dbf71c7bd8f29dccdd04d3e1003efab44124f6d0be",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0109"
+          },
+          {
+            "event_fingerprint": "49fa396317fc014ecb9ce708030cb3d757bde6e6ab6bf3fa640129ab8553dd23",
+            "evidence_reasons": [
+              "event_evidence_usable",
+              "association_ambiguous"
+            ],
+            "manual_conflict": false,
+            "reason": "single_overlapping_event_requires_confirmation",
+            "source_fabricated_placeholder": false,
+            "source_integrity_concern": true,
+            "source_positive_evidence_usable": true,
+            "source_status": "source_review_required",
+            "status": "ambiguous",
+            "tournament_id": "rvv-0013"
+          }
+        ],
+        "club": "Skien"
+      },
+      "event": "reconcile_calendar_bookings",
+      "note": "Skien calendar reconciliation with plan after fresh BRP/Exigo refresh",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:08:44.591088+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:74c5d9e2b3865215",
+        "reference": "Skien Ishockeyklubb - JU10: Skien, Jar Blå, Frisk Asker Orange, Jar hvit, Frisk Asker Svart 11:15-13:35",
+        "request_id": "calendar-booking:91c1c4c5bbc3e791d28dd2f0200ac137fbb69f1df073591868b2c37d9f87a2c0",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0007"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:08:44.591088+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Skien Ishockeyklubb - JU10: Skien, Jar Blå, Frisk Asker Orange, Jar hvit, Frisk Asker Svart 11:15-13:35",
+        "event_fingerprint": "91c1c4c5bbc3e791d28dd2f0200ac137fbb69f1df073591868b2c37d9f87a2c0",
+        "ice_time_override_id": "ice-time-override:74c5d9e2b3865215",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-24",
+            "duration_minutes": 140,
+            "end_time": "13:35",
+            "start_time": "11:15"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "JU10",
+            "date": "2027-01-24",
+            "duration_minutes": "140",
+            "end_time": "13:35",
+            "round_count": "5",
+            "start_time": "11:15"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": "5fbb293237aad261255034077cc6e8644238414f30ecb5134086c942dcd42f44",
+      "tournament_id": "rvv-0007"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:08:45.307466+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:9f6af462dc1f21a7",
+        "reference": "Skien Ishockeyklubb - U11. Tønsberg Hvit, Jar Lilla, Jar Gul, Holmen Hockey Hvit, Skien, Ringerike 2 12:00-14:20",
+        "request_id": "calendar-booking:49fa396317fc014ecb9ce708030cb3d757bde6e6ab6bf3fa640129ab8553dd23",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0013"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:08:45.307466+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Skien Ishockeyklubb - U11. Tønsberg Hvit, Jar Lilla, Jar Gul, Holmen Hockey Hvit, Skien, Ringerike 2 12:00-14:20",
+        "event_fingerprint": "49fa396317fc014ecb9ce708030cb3d757bde6e6ab6bf3fa640129ab8553dd23",
+        "ice_time_override_id": "ice-time-override:9f6af462dc1f21a7",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-17",
+            "duration_minutes": 140,
+            "end_time": "14:20",
+            "start_time": "12:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2027-01-17",
+            "duration_minutes": "140",
+            "end_time": "14:20",
+            "round_count": "5",
+            "start_time": "12:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": "f158780cad9d5f504d2afb62a877da7ae4f88cb6a259a9991db2f78b8c18f7a5",
+      "tournament_id": "rvv-0013"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:08:45.993967+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:ac1b8232edaef575",
+        "reference": "Skien Ishockeyklubb - JU8: Frisk Asker, Jar, Jutul Kittens, Skien 11:45-14:20",
+        "request_id": "calendar-booking:bfbb9bf6ab8ab971efb1b082a2ccc5627f10c38f58c78920fddd1b0549714225",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0020"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:08:45.993967+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Skien Ishockeyklubb - JU8: Frisk Asker, Jar, Jutul Kittens, Skien 11:45-14:20",
+        "event_fingerprint": "bfbb9bf6ab8ab971efb1b082a2ccc5627f10c38f58c78920fddd1b0549714225",
+        "ice_time_override_id": "ice-time-override:ac1b8232edaef575",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-29",
+            "duration_minutes": 155,
+            "end_time": "14:20",
+            "start_time": "11:45"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "JU8",
+            "date": "2026-11-29",
+            "duration_minutes": "155",
+            "end_time": "14:20",
+            "round_count": "3",
+            "start_time": "11:45"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": "f4aa816f0c42967aebf83fe46859f87a07cf717a4d52c3d10447d05affb90da6",
+      "tournament_id": "rvv-0020"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:08:46.682889+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:7b2eba65abc73371",
+        "reference": "Skien Ishockeyklubb - Kamper U9: Skien, Frisk Asker3, Holmen Hockey Hvit, Jar Hvit, Jotul Rød, Frisk Asker 4, Tønsberg 11:15-13:50",
+        "request_id": "calendar-booking:f2eafda51c93f50dabad687f6c8bd82aa6c1ac8a0ad97f104a30ba6ef8616196",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0041"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:08:46.682889+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Skien Ishockeyklubb - Kamper U9: Skien, Frisk Asker3, Holmen Hockey Hvit, Jar Hvit, Jotul Rød, Frisk Asker 4, Tønsberg 11:15-13:50",
+        "event_fingerprint": "f2eafda51c93f50dabad687f6c8bd82aa6c1ac8a0ad97f104a30ba6ef8616196",
+        "ice_time_override_id": "ice-time-override:7b2eba65abc73371",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-01",
+            "duration_minutes": 155,
+            "end_time": "13:50",
+            "start_time": "11:15"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U9",
+            "date": "2026-11-01",
+            "duration_minutes": "155",
+            "end_time": "13:50",
+            "round_count": "5",
+            "start_time": "11:15"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": "89bd8c1068d686897f9b91a29faf5c1ec450eb58c4faf9b47f3a8839a47b07cd",
+      "tournament_id": "rvv-0041"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:08:47.363770+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 100,
+        "override_id": "ice-time-override:5a33dd61e33a5189",
+        "reference": "Skien Ishockeyklubb - JU12: Skien, Frisk Asker Svart, Ringerike1, Kongsberg/Tønsberg 11:15-12:55",
+        "request_id": "calendar-booking:17d24e44ac32914ac9c49a4c89fab608a7a15e5a4d372963ad0d67eb6a33494b",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0050"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:08:47.363770+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Skien Ishockeyklubb - JU12: Skien, Frisk Asker Svart, Ringerike1, Kongsberg/Tønsberg 11:15-12:55",
+        "event_fingerprint": "17d24e44ac32914ac9c49a4c89fab608a7a15e5a4d372963ad0d67eb6a33494b",
+        "ice_time_override_id": "ice-time-override:5a33dd61e33a5189",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-15",
+            "duration_minutes": 100,
+            "end_time": "12:55",
+            "start_time": "11:15"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "JU12",
+            "date": "2026-11-15",
+            "duration_minutes": "100",
+            "end_time": "12:55",
+            "round_count": "3",
+            "start_time": "11:15"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": "bd45bc90d3ea2eee29e59cee2e65ea19b1841dbba619be94ee53085cb11abebf",
+      "tournament_id": "rvv-0050"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:08:48.048527+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:e4a69f3080bfba62",
+        "reference": "Skien Ishockeyklubb - U8: Skien, Jutul Grønn, Frisk Asker 4, Holmen Hockey Sort, Jar Hvit, Jar Blå, Frisk Asker 11:15-13:50",
+        "request_id": "calendar-booking:a8f7a2340f59fa455d3971e57e91f1d22b7cfe65087890be1013e2fc14b79278",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0062"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:08:48.048527+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Skien Ishockeyklubb - U8: Skien, Jutul Grønn, Frisk Asker 4, Holmen Hockey Sort, Jar Hvit, Jar Blå, Frisk Asker 11:15-13:50",
+        "event_fingerprint": "a8f7a2340f59fa455d3971e57e91f1d22b7cfe65087890be1013e2fc14b79278",
+        "ice_time_override_id": "ice-time-override:e4a69f3080bfba62",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-22",
+            "duration_minutes": 155,
+            "end_time": "13:50",
+            "start_time": "11:15"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U8",
+            "date": "2026-11-22",
+            "duration_minutes": "155",
+            "end_time": "13:50",
+            "round_count": "5",
+            "start_time": "11:15"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": "70f70cdbdb341bffe771703e91b75490c54806128661bbdf77a2b1a44877b8f8",
+      "tournament_id": "rvv-0062"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:08:48.725273+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:0fd38a9bb9118b58",
+        "reference": "Skien Ishockeyklubb - U11: Skien, Jar Rød, Tønsberg Hvit, Frisk Asker 1, Ringerike Svart, Jar Hvit 11:15-13:35",
+        "request_id": "calendar-booking:456c750ebef8cb45e46202dbf71c7bd8f29dccdd04d3e1003efab44124f6d0be",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0109"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:08:48.725273+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Skien Ishockeyklubb - U11: Skien, Jar Rød, Tønsberg Hvit, Frisk Asker 1, Ringerike Svart, Jar Hvit 11:15-13:35",
+        "event_fingerprint": "456c750ebef8cb45e46202dbf71c7bd8f29dccdd04d3e1003efab44124f6d0be",
+        "ice_time_override_id": "ice-time-override:0fd38a9bb9118b58",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-12-20",
+            "duration_minutes": 140,
+            "end_time": "13:35",
+            "start_time": "11:15"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2026-12-20",
+            "duration_minutes": "140",
+            "end_time": "13:35",
+            "round_count": "5",
+            "start_time": "11:15"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": "fc0f47dc6756c64f927ad2f3f593d76ec8c75690328c2b480c1637a86c4435c5",
+      "tournament_id": "rvv-0109"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:09:34.079163+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:65ef2997894d5e83"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "Superseded by club-feedback:skien:ju12:2026-12-13-confirmed: Skien confirmed JU12 on 13.12.2026 13:15-15:00",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:09:52.242266+00:00",
+      "details": {
+        "after_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+        "before_canonical_revision": "588db62d6820d786c48d2a7aa6baf4ed9b30cf65243af69a991f4f6575fc6349",
+        "before_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+        "new_placement": {
+          "arena": "Skien ishall",
+          "date": "2026-12-13",
+          "host_club": "Skien",
+          "start_time": "13:15"
+        },
+        "old_placement": {
+          "arena": "Skien ishall",
+          "date": "2026-12-12",
+          "host_club": "Skien",
+          "start_time": "13:40"
+        },
+        "operational_acceptability": {
+          "after_counts": {
+            "fixed_busy_placement": 10,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 89,
+            "unresolved_placement_obligation": 9
+          },
+          "before_counts": {
+            "fixed_busy_placement": 10,
+            "host_confirmation_dependency": 0,
+            "manual_calendar_placement": 89,
+            "unresolved_placement_obligation": 9
+          },
+          "ok": true,
+          "regressions": [],
+          "schema_version": 1
+        },
+        "request_id": "club-feedback:skien:ju12:2026-12-13-confirmed",
+        "run_id": null,
+        "verification_summary": {
+          "counts": {
+            "hosting_balance_imbalances": 16,
+            "input_constrained_shapes": 5,
+            "manual_calendar_placements": 89,
+            "manual_external_conflict_placements": 10,
+            "manual_participation_placements": 137,
+            "movable_allocations_used": 0,
+            "orphaned_approvals": 0,
+            "participation_club_pool_shortfalls": 123,
+            "participation_club_pools": 183,
+            "participation_deviations": 264,
+            "stale_approvals": 0,
+            "unresolved_hosting_obligations": 0,
+            "violations": 0,
+            "waived_violations": 0
+          },
+          "ok": true,
+          "schema_version": 1,
+          "tournament_external_conflicts": [],
+          "tournament_manual_calendar_placements": [
+            "rvv-0030"
+          ],
+          "tournament_violations": [],
+          "verification_hash": "7f24665d4d3580def83fbc9255cab51eb28f251b4f704a9e377d5473d8ffb533"
+        }
+      },
+      "event": "move",
+      "note": "Skien confirmed JU12 on 13.12.2026 13:15-15:00; supersedes 12.12 13:40 placement",
+      "previous_fingerprint": "1cca152e3e08bb7a78299c45795358353929308bb6c4e0f9a4f2ae39646b0e4a",
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": "027f9507aed07004e2b71de034ced1c4bc97ec4b799998456f38948689bbd647",
+      "tournament_id": "rvv-0030"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:09:57.600042+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 105,
+        "override_id": "ice-time-override:1dea16c1e11dbe0a",
+        "reference": "Skien Ishockeyklubb - JU12: Skien, Frisk Asker Orange, Ringerike 2, Kongsberg/Tønsberg 13:15-15:00",
+        "request_id": "calendar-booking:e1afbeabef73882f77c1a869046c99e22a1d41a06308aa73b53daa0df578f941",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Operator confirmed Skien calendar event 13.12 13:15-15:00 is rvv-0030",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0030"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:09:57.600042+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Skien Ishockeyklubb - JU12: Skien, Frisk Asker Orange, Ringerike 2, Kongsberg/Tønsberg 13:15-15:00",
+        "event_fingerprint": "e1afbeabef73882f77c1a869046c99e22a1d41a06308aa73b53daa0df578f941",
+        "ice_time_override_id": "ice-time-override:1dea16c1e11dbe0a",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-12-13",
+            "duration_minutes": 105,
+            "end_time": "15:00",
+            "start_time": "13:15"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "JU12",
+            "date": "2026-12-13",
+            "duration_minutes": "100",
+            "end_time": "14:55",
+            "round_count": "3",
+            "start_time": "13:15"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Operator confirmed Skien calendar event 13.12 13:15-15:00 is rvv-0030",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": "027f9507aed07004e2b71de034ced1c4bc97ec4b799998456f38948689bbd647",
+      "tournament_id": "rvv-0030"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T10:12:56.987190+00:00",
+      "details": {
+        "canonical_state_revision": "899655001fbfce313ceddfded6afa4ced743fd714fce8d6471295350ee2b96a2",
+        "export_dir": "export/2026-10-15T1012",
+        "previous_export_status": "stale",
+        "previous_requires_fresh_export": true
+      },
+      "event": "mark_export_fresh",
+      "note": "canonical export",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ]
 }

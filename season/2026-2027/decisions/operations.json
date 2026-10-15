@@ -1,6 +1,6 @@
 {
   "actor": "claude-code",
-  "canonical_state_revision": "cfb5b08e9b486ed807b56d47fa1c4d00a20af1c734a380e127f52d15395fb4d3",
+  "canonical_state_revision": "899655001fbfce313ceddfded6afa4ced743fd714fce8d6471295350ee2b96a2",
   "created_at": "2026-09-18T19:44:06.643372+00:00",
   "decisions": {
     "mp_unplaced_placement_U11_2026_10_18_1": {
@@ -67,13 +67,14 @@
       "status": "approved"
     },
     "rvv-0007": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-15T10:08:44.591088+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "5fbb293237aad261255034077cc6e8644238414f30ecb5134086c942dcd42f44",
+      "approved_placement_fingerprint": "fc20f8c22c0dadfac53ab1e702f3599ffb88923dd232614de4a4f21eb4a31acf",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0008": {
       "approved_at": "2026-09-25T11:04:03.654435+00:00",
@@ -122,13 +123,14 @@
       "status": "approved"
     },
     "rvv-0013": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-15T10:08:45.307466+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "f158780cad9d5f504d2afb62a877da7ae4f88cb6a259a9991db2f78b8c18f7a5",
+      "approved_placement_fingerprint": "88d8d551df114f2891a605eaa726aa656843970a6ebc2af97a6a3722591751a6",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0015": {
       "approved_at": null,
@@ -176,13 +178,14 @@
       "status": "pending_review"
     },
     "rvv-0020": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-15T10:08:45.993967+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "f4aa816f0c42967aebf83fe46859f87a07cf717a4d52c3d10447d05affb90da6",
+      "approved_placement_fingerprint": "53deb6a23ba063ec72d44745b8aead4b9ed4663207b6f731389b42dc8d9abe79",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0021": {
       "approved_at": "2026-09-22T14:40:17.862930+00:00",
@@ -271,13 +274,14 @@
       "status": "pending_review"
     },
     "rvv-0030": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-15T10:09:57.600042+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "027f9507aed07004e2b71de034ced1c4bc97ec4b799998456f38948689bbd647",
+      "approved_placement_fingerprint": "18303078b44d0cf8e8ec5f352f58f0b2dab4cccd8e1a247bd7afc9952ed61d98",
+      "note": "Operator confirmed Skien calendar event 13.12 13:15-15:00 is rvv-0030",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0031": {
       "approved_at": null,
@@ -372,13 +376,14 @@
       "status": "approved"
     },
     "rvv-0041": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-15T10:08:46.682889+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "89bd8c1068d686897f9b91a29faf5c1ec450eb58c4faf9b47f3a8839a47b07cd",
+      "approved_placement_fingerprint": "fe804fd0c3760748339732a5a85daf7373bbbd873b356b3e9e90a50848454893",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0042": {
       "approved_at": null,
@@ -447,13 +452,14 @@
       "status": "stale_approval"
     },
     "rvv-0050": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-15T10:08:47.363770+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "bd45bc90d3ea2eee29e59cee2e65ea19b1841dbba619be94ee53085cb11abebf",
+      "approved_placement_fingerprint": "19e368eca536fa274108877cfdabd68d284b3bd79b4b4e0593916ef947b5b581",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0051": {
       "approved_at": "2026-09-22T14:08:28.568625+00:00",
@@ -558,13 +564,14 @@
       "status": "approved"
     },
     "rvv-0062": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-15T10:08:48.048527+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "70f70cdbdb341bffe771703e91b75490c54806128661bbdf77a2b1a44877b8f8",
+      "approved_placement_fingerprint": "3784329b6333c959ccb6ec0818c0411dd68538ce772692a61341ea9b15cc5513",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0063": {
       "approved_at": "2026-09-28T18:50:46.531143+00:00",
@@ -947,13 +954,14 @@
       "status": "approved"
     },
     "rvv-0109": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-15T10:08:48.725273+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "fc0f47dc6756c64f927ad2f3f593d76ec8c75690328c2b480c1637a86c4435c5",
+      "approved_placement_fingerprint": "72a00cd77cb5109aaf0bcb1fb7596ec9e019a620f09a637c518727480c7eb62a",
+      "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0110": {
       "approved_at": "2026-09-27T19:28:24.384100+00:00",
@@ -1701,18 +1709,18 @@
     }
   },
   "export_state": {
-    "calendar_fingerprint": "e29a104f0dcf7fe91d1bfeca8ed50d1a99c8e563ae7a79084ee1884f83cb480f",
-    "export_dir": "export/2026-10-06T1358",
-    "fresh_at": "2026-10-06T14:00:08.541784+00:00",
-    "fresh_by": "nicli",
-    "fresh_canonical_revision": "4c54761b2040299818ed893b7081e662bb9b249ce19ac891ba175a75bf89d7cb",
+    "calendar_fingerprint": "9bdbf9eafb7d9d48bbba3d1bd11f3ce2e26fe5f00ff70847f2a9a843150c9658",
+    "export_dir": "export/2026-10-15T1012",
+    "fresh_at": "2026-10-15T10:12:56.987190+00:00",
+    "fresh_by": "niclasl",
+    "fresh_canonical_revision": "899655001fbfce313ceddfded6afa4ced743fd714fce8d6471295350ee2b96a2",
     "requires_fresh_audit": true,
     "requires_fresh_export": false,
-    "stale_at": "2026-09-30T20:15:29.486280+00:00",
+    "stale_at": "2026-10-15T07:48:45.218150+00:00",
     "stale_reason": "calendar_evidence_refreshed",
     "status": "fresh"
   },
-  "schedule_fingerprint": "66520c672276f6f738257333f2f09c97f58c4725cf211e177bd118317799e0f8",
+  "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
   "schema_version": 1,
   "season": "2026-2027",
   "season_lifecycle": {
@@ -151051,5 +151059,5 @@
     "sealed_by": "niclasl",
     "state": "published_sealed"
   },
-  "updated_at": "2026-10-13T11:15:31.083573+00:00"
+  "updated_at": "2026-10-15T10:12:56.987190+00:00"
 }
