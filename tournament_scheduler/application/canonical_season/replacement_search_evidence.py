@@ -210,12 +210,21 @@ def ranking_reason(candidate: Mapping[str, Any]) -> str:
         blockers = verdict.get("blockers") or ["canonical replacement gate"]
         return "Blocked by " + ", ".join(str(item) for item in blockers)
     fairness = candidate["club_age_booked_participation"]["added_club"]
-    temporal = candidate["affected_team_booked_coverage"]["added_team"]["after"]
+    coverage = candidate["affected_team_booked_coverage"]
+    temporal = coverage["added_team"]["after"]
+    removed_before = coverage["removed_team"]["before"]
+    removed_after = coverage["removed_team"]["after"]
+    donor_half_losses = sum(
+        int(removed_before[half] > 0 and removed_after[half] == 0)
+        for half in ("before_christmas", "after_christmas")
+    )
     reason = (
         f"Safe; added club has {fairness['before']['normalized_shortfall']:.2f} "
         f"booked opportunities per registered team below target"
     )
-    if temporal["before_christmas"] and temporal["after_christmas"]:
+    if donor_half_losses:
+        reason += f"; removal loses donor coverage in {donor_half_losses} season half"
+    elif temporal["before_christmas"] and temporal["after_christmas"]:
         reason += "; preserves both season halves"
     if candidate["booking_evidence"]["provisional"]:
         reason += "; provisional because booking evidence is incomplete"
@@ -225,7 +234,19 @@ def ranking_reason(candidate: Mapping[str, Any]) -> str:
 def rank_key(candidate: Mapping[str, Any]) -> tuple[Any, ...]:
     fairness = candidate["club_age_booked_participation"]
     added, removed = fairness["added_club"], fairness["removed_club"]
-    after = candidate["affected_team_booked_coverage"]["added_team"]["after"]
+    coverage = candidate["affected_team_booked_coverage"]
+    after = coverage["added_team"]["after"]
+    removed_before = coverage["removed_team"]["before"]
+    removed_after = coverage["removed_team"]["after"]
+    removed_half_losses = sum(
+        int(removed_before[half] > 0 and removed_after[half] == 0)
+        for half in ("before_christmas", "after_christmas")
+    )
+    removed_gap_worsening = max(
+        0,
+        int(removed_after.get("max_inactive_gap_days") or 0)
+        - int(removed_before.get("max_inactive_gap_days") or 0),
+    )
     spacing = candidate["spacing_clustering_delta"]
     opponent = candidate["opponent_exposure_delta"]
     travel = candidate["travel_delta"]
@@ -243,6 +264,8 @@ def rank_key(candidate: Mapping[str, Any]) -> tuple[Any, ...]:
         0 if candidate["verdict"].get("applicable") else 1,
         -float(added["before"]["normalized_shortfall"]),
         -net_improvement,
+        removed_half_losses,
+        removed_gap_worsening,
         missing_halves,
         int(after.get("max_inactive_gap_days") or 0),
         max(0, int(spacing["back_to_back_weekends"])),

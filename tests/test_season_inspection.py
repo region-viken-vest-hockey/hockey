@@ -543,4 +543,21 @@ def test_replacement_search_without_remove_enumerates_pairs_and_cli_filters(
         "D1",
     }
     assert {item["add_team"]["club"] for item in payload["candidates"]} == {"G"}
+    by_removed = {item["remove_team"]["label"]: item for item in payload["candidates"]}
+    # B1 and D1 add the same incoming club, so legality and club-age fairness
+    # are identical. Removing D1 loses its only booked half-season appearance;
+    # removing B1 leaves another booked appearance. Donor temporal harm must
+    # therefore decide the temporal tier before incoming-team optimization.
+    assert by_removed["B1"]["safe_to_apply"] is True
+    assert by_removed["D1"]["safe_to_apply"] is True
+    assert (
+        by_removed["B1"]["club_age_booked_participation"]["added_club"]
+        == by_removed["D1"]["club_age_booked_participation"]["added_club"]
+    )
+    b_coverage = by_removed["B1"]["affected_team_booked_coverage"]["removed_team"]
+    d_coverage = by_removed["D1"]["affected_team_booked_coverage"]["removed_team"]
+    assert b_coverage["after"]["before_christmas"] == 1
+    assert d_coverage["after"]["before_christmas"] == 0
+    assert by_removed["B1"]["rank"] < by_removed["D1"]["rank"]
+    assert "loses donor coverage" in by_removed["D1"]["ranking_reason"]
     assert payload["apply_command"].startswith("season replace-participant")
