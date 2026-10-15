@@ -74,6 +74,37 @@ def test_context_includes_evidence_inventory(tmp_path):
     assert context["evidence_index"]["evidence_commands"]["item"] == "operator audit-evidence --item <n>"
 
 
+def test_context_keeps_normalized_booking_reconciliation_reference(tmp_path):
+    export_dir = tmp_path / "export"
+    export_dir.mkdir()
+    booking_path = export_dir / "booking_reconciliation.json"
+    booking_path.write_text(
+        json.dumps({"schema_version": 2, "events": {}, "tournaments": []}),
+        encoding="utf-8",
+    )
+    (export_dir / "evidence_bundle.json").write_text(
+        json.dumps({"source_summary": {"sources_scanned": 1, "blocked_sources": []}}),
+        encoding="utf-8",
+    )
+    PipelineState(tmp_path).write_stage(
+        StageName.EXPORT,
+        {
+            "export_dir": str(export_dir),
+            "output_files": {
+                "html": str(export_dir / "season_plan.html"),
+                "booking_reconciliation": str(booking_path),
+            },
+            "verify_result": {"ok": True, "violations": []},
+            "export_fingerprint": "fp-normalized-booking",
+        },
+        status=StageStatus.DONE,
+    )
+
+    context = build_audit_context(work_dir=tmp_path)
+
+    assert context["output_files"]["booking_reconciliation"] == str(booking_path)
+
+
 def test_bound_final_operator_evidence_overrides_stale_stage3_manual_state(tmp_path):
     RunManifest(tmp_path).start_run("test objective", run_id="run-1")
     PipelineState(tmp_path).write_stage(
