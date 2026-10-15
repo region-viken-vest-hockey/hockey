@@ -124,13 +124,15 @@ def test_run_sportello_scraper_keeps_distinct_same_day_bookings_with_same_activi
     assert sorted((event.name, event.datetime.hour) for event in events) == [("U8 (2019)", 12), ("U9 (2018)", 15)]
 
 
-def test_run_sportello_scraper_dedupes_booking_repeated_across_overlapping_windows() -> None:
+def test_run_sportello_scraper_dedupes_booking_repeated_across_chunk_responses() -> None:
     start = datetime(2026, 9, 1)
     end = datetime(2026, 12, 15)
-    booking = _holmen_booking(31, "2026-10-18T09:30:00Z", "2026-10-18T11:50:00Z", "U10 (2017)", "Kamp")
+    booking = _holmen_booking(31, "2026-12-01T09:30:00Z", "2026-12-01T11:50:00Z", "U10 (2017)", "Kamp")
     session = _FakeSession([
+        # Sportello may return records outside the requested chunk. Seeing that
+        # copy first must not suppress the same booking in its valid chunk.
         {"data": {"publicBookings": [booking]}},
-        {"data": {"publicBookings": [booking]}},
+        {"data": {"publicBookings": [booking, booking]}},
     ])
 
     events, _ = _run_sportello_scraper(

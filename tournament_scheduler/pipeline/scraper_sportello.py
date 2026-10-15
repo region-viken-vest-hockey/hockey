@@ -236,13 +236,6 @@ def _run_sportello_scraper(
         bookings, _ = _query_public_bookings(session, club_id, window)
 
         for booking in bookings:
-            # Windows can overlap at chunk edges; one source booking is one event.
-            booking_id = str(booking.get("id", "")).strip()
-            if booking_id:
-                if booking_id in seen_booking_ids:
-                    continue
-                seen_booking_ids.add(booking_id)
-
             try:
                 event_start, duration_hours = _booking_datetime_range(booking)
             except ValueError:
@@ -250,6 +243,14 @@ def _run_sportello_scraper(
 
             if not (window.start <= event_start.date() <= window.end):
                 continue
+
+            # Sportello can repeat a booking across chunk responses. Only mark
+            # accepted records seen so an out-of-window copy cannot suppress one.
+            booking_id = str(booking.get("id", "")).strip()
+            if booking_id:
+                if booking_id in seen_booking_ids:
+                    continue
+                seen_booking_ids.add(booking_id)
 
             event_name = _booking_name(booking)
             location = _booking_location(booking)
