@@ -33,6 +33,12 @@ Keep machine/audit status values intact, but do not expose a conservative intern
 
 Reserve the word **ambiguous** for genuine identity ambiguity. When a low-level command still returns `BOOKING_AMBIGUOUS` solely because explicit `confirm-calendar-booking` authority has not yet been recorded, explain that as an authorization state in audit detail rather than making it the primary human-readable result.
 
+### Source links in operator output
+
+For every calendar event reported as an exact match, likely match, moved-booking candidate, competing candidate or blocking conflict, include the authoritative source link used for the observation in the operator-facing table or immediately adjacent detail. Prefer an evidence-provided event/deep link when one exists. Otherwise print the registered human calendar URL; for a source whose repository-owned contract supports a deterministic date-qualified view, the date-specific calendar URL may be shown as the observation link. Clearly label a generic calendar page as **Source calendar** rather than implying that it is an event-specific link. Never invent or guess an event URL that the source/evidence did not provide. If no usable URL is retained, say **Source URL unavailable in evidence** rather than omitting provenance silently.
+
+When several rows come from the same source, the table may use a compact `Source` column and print the full URL once below the table, but a moved booking or conflict should always make the directly relevant observation link easy to identify.
+
 ## Planned tournaments without booking
 
 A planned tournament absent from a worksheet or calendar is a **follow-up**, not automatically cancelled. Check source coverage, other booking evidence, club response, approval/lock, accepted constraints, and whether the tournament is merely proposed. Do not label it booked. When reliable host/operator evidence explicitly establishes that ice is unavailable and the event will not occur, classify as cancellation rather than postponement; load `tournament-maintenance.md`, preview participant/host/distribution consequences, and use the supported canonical cancel/removal lifecycle. Preserve durable ID, reason, evidence and history; remove from active/public upcoming plan through the canonical projection, not file deletion. If no supported action exists, report the capability gap. A proposed event may otherwise remain visibly proposed under the actual publication policy.
