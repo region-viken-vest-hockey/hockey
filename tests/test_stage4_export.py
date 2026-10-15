@@ -400,7 +400,9 @@ class TestRunStage4:
         reconciliation_path = Path(result["output_files"]["booking_reconciliation"])
         reconciliation_text = reconciliation_path.read_text(encoding="utf-8")
         reconciliation = json.loads(reconciliation_text)
-        assert reconciliation["events"][0]["classification"] == "unmatched"
+        assert reconciliation["schema_version"] == 2
+        assert reconciliation["assessment_schema_version"] == 1
+        assert reconciliation["events"]["calendar-only-candidate"]["classification"] == "unmatched"
 
         repeated = run(_make_plan_dict(), state, export_dir=str(tmp_path / "export"), timestamped_export=False)
         assert Path(repeated["output_files"]["booking_reconciliation"]).read_text(encoding="utf-8") == reconciliation_text
@@ -667,18 +669,16 @@ class TestRunStage4:
         diagnostic_tokens = {
             str(candidate.get("event_fingerprint"))
             for row in reconciliation["tournaments"]
-            for candidate in row.get("candidates", [])
+            for candidate in row.get("candidate_relations", [])
             if candidate.get("event_fingerprint")
         }
         diagnostic_tokens.update(
             str(candidate.get("candidate_tournament_id"))
             for row in reconciliation["tournaments"]
-            for candidate in row.get("candidates", [])
+            for candidate in row.get("candidate_relations", [])
             if candidate.get("candidate_tournament_id")
         )
-        diagnostic_tokens.update(
-            str(event.get("fingerprint")) for event in reconciliation.get("events", []) if event.get("fingerprint")
-        )
+        diagnostic_tokens.update(str(event_fingerprint) for event_fingerprint in reconciliation.get("events", {}))
         assert diagnostic_tokens, "fixture should include diagnostic-only calendar identifiers"
         assert diagnostic_tokens.isdisjoint(html_text)
         assert diagnostic_tokens.isdisjoint(xlsx_text)

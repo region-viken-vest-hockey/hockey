@@ -16,14 +16,10 @@ and writes three output files:
 
 File paths are written to the Stage 4 checkpoint.
 
-The module is split into focused siblings kept under the repo's
-300-line-per-file guideline: ``stage4_export_errors`` (``Stage4Error``),
-``stage4_export_timing`` (build-timestamp resolution, export pruning),
-``stage4_export_xlsx`` (reproducible XLSX normalization),
-``stage4_export_not_started`` (placeholder exports before planning starts),
-``stage4_export_manual_schedule`` (the "Må planlegges manuelt" view), and
-``stage4_export_verification`` (the hard-verification problem builder).
-This file owns the ``run()`` orchestration itself and the CLI entry point.
+Focused siblings own errors, timing/pruning, XLSX normalization, placeholder
+exports, the "Må planlegges manuelt" view and hard-verification problem
+construction. This file owns the ``run()`` orchestration itself and the CLI
+entry point.
 """
 
 from __future__ import annotations
@@ -38,6 +34,7 @@ from pathlib import Path
 from typing import Any
 
 from tournament_scheduler.booking.arena_conflicts import find_arena_interval_collisions
+from tournament_scheduler.booking.assessment_export import normalize_booking_reconciliation
 from ..planning.verification import verify_final_candidate
 from ..planning.contract import extract_candidate
 from tournament_scheduler.publication.export_lifecycle import EXPORT_LIFECYCLE_FILENAME, write_draft_manifest
@@ -465,6 +462,7 @@ def run(
                     "booking reconciliation revision "
                     f"{assessment_revision} does not match export canonical revision {canonical_revision}"
                 )
+            booking_reconciliation = normalize_booking_reconciliation(booking_reconciliation)
         except Exception as exc:  # noqa: BLE001
             booking_reconciliation = None
             booking_reconciliation_error = str(exc)
