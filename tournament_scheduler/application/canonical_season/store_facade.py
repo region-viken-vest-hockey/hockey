@@ -646,15 +646,15 @@ def replacement_candidates(
     tournament_id: str,
     root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
     replace_team_label: str | None = None,
+    eligible_clubs: list[str] | None = None,
+    eligible_team_labels: list[str] | None = None,
     legal_only: bool = False,
     limit: int | None = None,
 ) -> dict[str, Any]:
     return _service(root).replacement_candidates(
-        season=season,
-        tournament_id=tournament_id,
-        replace_team_label=replace_team_label,
-        legal_only=legal_only,
-        limit=limit,
+        season=season, tournament_id=tournament_id,
+        replace_team_label=replace_team_label, eligible_clubs=eligible_clubs,
+        eligible_team_labels=eligible_team_labels, legal_only=legal_only, limit=limit,
     )
 
 

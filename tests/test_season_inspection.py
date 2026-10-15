@@ -23,6 +23,7 @@ from tournament_scheduler.application.canonical_season.store_facade import (
     promote_from_stage3,
     replace_participant,
     replacement_candidates,
+    set_manual_booking_assertion,
     tournament_inspection,
 )
 from tournament_scheduler.testing.reviewed_export import (
@@ -121,6 +122,54 @@ def _promote(tmp_path: Path) -> Path:
         state, problem=_problem_with_registered_pool(candidate)
     )
     promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    return root
+
+
+def _promote_replacement_ranking_fixture(tmp_path: Path) -> Path:
+    work_dir = tmp_path / ".pipeline-ranking"
+    root = tmp_path / "season-ranking"
+    state = PipelineState(work_dir)
+    candidate = _candidate()
+    candidate["tournaments"].extend(
+        [
+            _tournament(
+                "t4",
+                "2027-01-16",
+                "W",
+                "Arena W",
+                [("W", "W1"), ("J", "J1"), ("K", "K1"), ("L", "L1")],
+                "10:00",
+            ),
+            _tournament(
+                "t5",
+                "2026-09-06",
+                "S",
+                "Arena S",
+                [("S", "S1"), ("M", "M1"), ("N", "N1"), ("O", "O1")],
+                "10:00",
+            ),
+        ]
+    )
+    problem = _problem_with_registered_pool(candidate)
+    for team in problem["teams"]:
+        if team["label"] == "G1":
+            team["target_tournament_count"] = 4
+        elif team["label"] == "W1":
+            team["target_tournament_count"] = 1
+        elif team["label"] == "S1":
+            team["target_tournament_count"] = 2
+    state.write_stage(StageName.PLANNING, {"plan": candidate}, status=StageStatus.DONE)
+    write_reviewed_stage4_export(state, problem=problem)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    for tournament_id in ("t1", "t3", "t4", "t5"):
+        set_manual_booking_assertion(
+            season="2026-2027",
+            tournament_id=tournament_id,
+            booking_status="booked",
+            actor="tester",
+            reference=f"test-confirmation:{tournament_id}",
+            root=root,
+        )
     return root
 
 
@@ -262,8 +311,16 @@ def test_replacement_candidates_exclude_participants_and_other_age_groups(
     g1 = next(item for item in report["candidates"] if item["label"] == "G1")
     assert g1["plays_on_tournament_date"] is False
     assert report["age_group"] == "U10"
-    assert report["validated"] is False
-    assert all("verdict" not in candidate for candidate in report["candidates"])
+    # Omitting --replace now searches every removable participant and evaluates
+    # every pair through the same dry-run gate.
+    assert report["validated"] is True
+    assert {item["remove_team"]["label"] for item in report["candidates"]} == {
+        "A1",
+        "B1",
+        "C1",
+        "D1",
+    }
+    assert all("verdict" in candidate for candidate in report["candidates"])
 
 
 def test_replacement_candidate_discovery_validates_legality(tmp_path: Path) -> None:
@@ -284,7 +341,10 @@ def test_replacement_candidate_discovery_validates_legality(tmp_path: Path) -> N
     # A same-date participant is a deterministic hard conflict, reported as a
     # domain verdict instead of a green-looking candidate.
     assert by_label["E1"]["verdict"]["applicable"] is False
-    assert "same_date_participation" in by_label["E1"]["verdict"]["blockers"]
+    assert any(
+        "scheduled in 2 tournaments" in blocker
+        for blocker in by_label["E1"]["verdict"]["blockers"]
+    )
 
     legal = replacement_candidates(
         season="2026-2027",
@@ -295,7 +355,7 @@ def test_replacement_candidate_discovery_validates_legality(tmp_path: Path) -> N
     )
     assert [candidate["label"] for candidate in legal["candidates"]] == ["G1"]
 
-    with pytest.raises(SeasonStateError, match="not a participant"):
+    with pytest.raises(SeasonStateError, match="not a removable participant"):
         replacement_candidates(
             season="2026-2027",
             tournament_id="t1",
@@ -400,3 +460,87 @@ def test_season_inspect_candidates_cli_returns_legal_verdicts(
     assert payload["validated"] is True
     assert [candidate["label"] for candidate in payload["candidates"]] == ["G1"]
     assert payload["candidates"][0]["verdict"]["applicable"] is True
+
+
+def test_replacement_search_ranks_booked_under_served_club_and_is_read_only(
+    tmp_path: Path,
+) -> None:
+    root = _promote_replacement_ranking_fixture(tmp_path)
+    revision = load_schedule("2026-2027", root=root)["revision"]
+
+    report = replacement_candidates(
+        season="2026-2027",
+        tournament_id="t1",
+        replace_team_label="D1",
+        eligible_clubs=["G", "W"],
+        root=root,
+    )
+
+    assert [item["add_team"]["club"] for item in report["candidates"]] == ["G", "W"]
+    assert all(item["safe_to_apply"] for item in report["candidates"])
+    assert report["best_candidate"]["add_team"]["label"] == "G1"
+    g_fairness = report["candidates"][0]["club_age_booked_participation"]["added_club"]
+    w_fairness = report["candidates"][1]["club_age_booked_participation"]["added_club"]
+    assert g_fairness["before"]["normalized_shortfall"] > w_fairness["before"]["normalized_shortfall"]
+    assert report["booking_evidence"]["target_tournament_booked"] is True
+    # t2 deliberately has no accepted booking evidence, so the command does not
+    # fill that gap from the planned schedule.
+    assert report["booking_evidence"]["provisional"] is True
+    assert "t2" in report["booking_evidence"]["unresolved_tournament_ids"]
+    assert load_schedule("2026-2027", root=root)["revision"] == revision
+
+
+def test_replacement_search_keeps_spacing_blocked_candidate_visible(
+    tmp_path: Path,
+) -> None:
+    root = _promote_replacement_ranking_fixture(tmp_path)
+
+    report = replacement_candidates(
+        season="2026-2027",
+        tournament_id="t1",
+        replace_team_label="D1",
+        eligible_team_labels=["S1"],
+        root=root,
+    )
+
+    assert report["candidate_count"] == 1
+    candidate = report["candidates"][0]
+    assert candidate["safe_to_apply"] is False
+    assert candidate["verdict"]["status"] == "blocked"
+    assert "consequences_acceptable" in candidate["blockers"]
+    assert candidate["spacing_clustering_delta"]["gaps_under_7_days"] == 1
+    assert candidate["ranking_reason"].startswith("Blocked by")
+
+
+def test_replacement_search_without_remove_enumerates_pairs_and_cli_filters(
+    tmp_path: Path, capsys
+) -> None:
+    root = _promote_replacement_ranking_fixture(tmp_path)
+
+    args = build_parser().parse_args(
+        [
+            "season",
+            "inspect",
+            "candidates",
+            "--season",
+            "2026-2027",
+            "--tournament-id",
+            "t1",
+            "--club",
+            "G",
+            "--root",
+            str(root),
+            "--json",
+        ]
+    )
+    assert _cmd_season(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    assert {item["remove_team"]["label"] for item in payload["candidates"]} == {
+        "A1",
+        "B1",
+        "C1",
+        "D1",
+    }
+    assert {item["add_team"]["club"] for item in payload["candidates"]} == {"G"}
+    assert payload["apply_command"].startswith("season replace-participant")

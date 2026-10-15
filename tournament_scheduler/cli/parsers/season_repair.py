@@ -79,6 +79,20 @@ def add_season_repair_parsers(season_sub: argparse._SubParsersAction) -> None:
         ),
     )
     season_inspect_candidates.add_argument(
+        "--club",
+        dest="eligible_clubs",
+        action="append",
+        default=None,
+        help="Only add teams from this club (repeatable)",
+    )
+    season_inspect_candidates.add_argument(
+        "--team",
+        dest="eligible_team_labels",
+        action="append",
+        default=None,
+        help="Only add this registered team label (repeatable)",
+    )
+    season_inspect_candidates.add_argument(
         "--legal-only",
         action="store_true",
         help="Only include candidates the read-only validation marks safe to apply",

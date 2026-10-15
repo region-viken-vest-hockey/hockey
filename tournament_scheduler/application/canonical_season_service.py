@@ -66,6 +66,7 @@ from .canonical_season import (
     placements as _placements,
     publication as _publication,
     replacement as _replacement,
+    replacement_search as _replacement_search,
     roster as _roster,
     team_rename as _team_rename,
     retirement as _retirement,
@@ -281,16 +282,15 @@ class CanonicalSeasonService:
         season: str,
         tournament_id: str,
         replace_team_label: str | None = None,
+        eligible_clubs: list[str] | None = None,
+        eligible_team_labels: list[str] | None = None,
         legal_only: bool = False,
         limit: int | None = None,
     ) -> dict[str, Any]:
-        return _inspection.replacement_candidates(
-            self,
-            season=season,
-            tournament_id=tournament_id,
-            replace_team_label=replace_team_label,
-            legal_only=legal_only,
-            limit=limit,
+        return _replacement_search.search_participant_replacements(
+            self, season=season, tournament_id=tournament_id,
+            replace_team_label=replace_team_label, eligible_clubs=eligible_clubs,
+            eligible_team_labels=eligible_team_labels, legal_only=legal_only, limit=limit,
         )
 
     def add_request_constraint(

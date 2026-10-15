@@ -197,6 +197,8 @@ def _cmd_season_inspect_candidates(args: argparse.Namespace) -> int:
         tournament_id=args.tournament_id,
         root=args.root,
         replace_team_label=getattr(args, 'replace_team', None),
+        eligible_clubs=getattr(args, 'eligible_clubs', None),
+        eligible_team_labels=getattr(args, 'eligible_team_labels', None),
         legal_only=getattr(args, 'legal_only', False),
         limit=getattr(args, 'limit', None),
     )
@@ -209,9 +211,23 @@ def _cmd_season_inspect_candidates(args: argparse.Namespace) -> int:
             for i, candidate in enumerate(result, 1):
                 _console.print(f"  {i}. {candidate}")
         elif result:
-            _console.print(f"[green]✓[/green] Replacement candidates for tournament {args.tournament_id} in season {args.season}:")
-            for key, value in result.items():
-                _console.print(f"  {key}: {value}")
+            _console.print(f"[green]✓[/green] Ranked replacement candidates for tournament {args.tournament_id} in season {args.season}:")
+            best = result.get("best_candidate")
+            if best:
+                _console.print(
+                    f"  Best: {best['remove_team']['label']} → {best['add_team']['label']} "
+                    f"({best['add_team']['club']}): {best['ranking_reason']}"
+                )
+            for candidate in result.get("candidates") or []:
+                verdict = "safe" if candidate.get("safe_to_apply") else "blocked"
+                _console.print(
+                    f"  {candidate['rank']}. {candidate['remove_team']['label']} → "
+                    f"{candidate['add_team']['label']} ({candidate['add_team']['club']}) "
+                    f"[{verdict}] {candidate['ranking_reason']}"
+                )
+            if result.get("booking_evidence", {}).get("provisional"):
+                _console.print("  [yellow]Booking coverage is incomplete; fairness ranking is provisional.[/yellow]")
+            _console.print("  Read-only search; apply separately with season replace-participant and --request-id.")
         else:
             _console.print(f"[yellow]⚠[/yellow] No replacement candidates found for tournament {args.tournament_id} in season {args.season}")
     return 0
