@@ -1710,10 +1710,10 @@
   },
   "export_state": {
     "calendar_fingerprint": "9bdbf9eafb7d9d48bbba3d1bd11f3ce2e26fe5f00ff70847f2a9a843150c9658",
-    "export_dir": "export/2026-10-15T1012",
-    "fresh_at": "2026-10-15T10:12:56.987190+00:00",
+    "export_dir": "export/2026-10-15T1120",
+    "fresh_at": "2026-10-15T11:20:29.086149+00:00",
     "fresh_by": "niclasl",
-    "fresh_canonical_revision": "899655001fbfce313ceddfded6afa4ced743fd714fce8d6471295350ee2b96a2",
+    "fresh_canonical_revision": "655a8b98f709aa2473f6f7cf3e4b0d2f8309eab0d33ebd2eba56acc283f9c34a",
     "requires_fresh_audit": true,
     "requires_fresh_export": false,
     "stale_at": "2026-10-15T07:48:45.218150+00:00",
@@ -159220,5 +159220,5 @@
     "sealed_by": "niclasl",
     "state": "published_sealed"
   },
-  "updated_at": "2026-10-15T10:28:52.381721+00:00"
+  "updated_at": "2026-10-15T11:20:29.086149+00:00"
 }

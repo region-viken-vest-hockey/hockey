@@ -57179,6 +57179,22 @@
       "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-15T11:20:29.086149+00:00",
+      "details": {
+        "canonical_state_revision": "655a8b98f709aa2473f6f7cf3e4b0d2f8309eab0d33ebd2eba56acc283f9c34a",
+        "export_dir": "export/2026-10-15T1120",
+        "previous_export_status": "fresh",
+        "previous_requires_fresh_export": false
+      },
+      "event": "mark_export_fresh",
+      "note": "canonical export",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ]
 }
