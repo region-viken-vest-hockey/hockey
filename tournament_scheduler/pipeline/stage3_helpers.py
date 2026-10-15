@@ -260,6 +260,8 @@ def _build_club_busy_intervals(
                     "calendar_event": event.name,
                     **interval_resource_fields(club_name, event.resources),
                 }
+                if event.order_id:
+                    entry["order_id"] = event.order_id
                 if reason:
                     entry["reason"] = reason
                 intervals.append(entry)

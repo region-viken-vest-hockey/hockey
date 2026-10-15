@@ -24,6 +24,11 @@ import requests
 
 from ..models_calendar import CalendarEvent, SourceResource
 from .scraper_brp_exigo_coverage import coverage_for_walk, failure_message
+from .scraper_brp_exigo_messages import (
+    BrpExigoMessageError,
+    discover_message_action_id,
+    fetch_booking_messages,
+)
 from .source_integrity import with_coverage
 
 _RESOURCE_AND_EVENT_RE = re.compile(
@@ -50,6 +55,7 @@ def _run_brp_exigo_scraper(
     raw_html = ""
     inspected_dates: list[date] = []
     exceptions: list[str] = []
+    message_action_id: str | None = None
 
     current = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
     end = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -64,6 +70,23 @@ def _run_brp_exigo_scraper(
             exceptions.append(failure_message(current.date(), exc))
             current += timedelta(days=1)
             continue
+
+        try:
+            groups = _booking_groups_from_page(page_content)
+            if groups:
+                if message_action_id is None:
+                    message_action_id = discover_message_action_id(session, day_url, page_content)
+                messages = fetch_booking_messages(
+                    session, day_url, groups, action_id=message_action_id
+                )
+                day_events = _parse_brp_exigo_day_strict(
+                    page_content, current, messages=messages
+                )
+        except BrpExigoMessageError as exc:
+            # Keep authentic interval/resource occupancy as bounded positive
+            # evidence, but make the source partial so missing descriptive
+            # identity can never be reported as a clean refresh.
+            exceptions.append(failure_message(current.date(), exc))
 
         raw_html += page_content
         inspected_dates.append(current.date())
@@ -112,6 +135,7 @@ def _parse_brp_exigo_day_strict(
     day: datetime,
     *,
     validate_response_date: bool = True,
+    messages: list[str] | None = None,
 ) -> list[CalendarEvent]:
     """Parse one day or raise when its response is not trustworthy evidence."""
     match = _RESOURCE_AND_EVENT_RE.search(page_content)
@@ -168,8 +192,12 @@ def _parse_brp_exigo_day_strict(
                 f"En BRP/Exigo-hendelse på {expected_date} viser til en ukjent ressurs."
             )
 
+    groups = _group_by_booking(raw_events, resource_names)
+    if messages is not None and len(messages) != len(groups):
+        raise BrpExigoPayloadError("BRP/Exigo-meldinger samsvarer ikke med hendelsene.")
+
     events: list[CalendarEvent] = []
-    for group in _group_by_booking(raw_events, resource_names):
+    for index, group in enumerate(groups):
         item = group["item"]
 
         time_range = str(item.get("timeRange") or "")
@@ -190,7 +218,7 @@ def _parse_brp_exigo_day_strict(
         duration = duration_minutes / 60
 
         title = str(item.get("title") or "Booking").strip() or "Booking"
-        message = str(item.get("message") or "").strip()
+        message = messages[index] if messages is not None else str(item.get("message") or "").strip()
         event_name = f"{title} - {message}" if message else title
         if time_range not in event_name:
             event_name = f"{event_name} {time_range}"
@@ -213,6 +241,25 @@ def _parse_brp_exigo_day_strict(
         )
 
     return events
+
+
+def _booking_groups_from_page(page_content: str) -> list[dict]:
+    """Return grouped raw bookings for message enrichment after strict parsing."""
+
+    match = _RESOURCE_AND_EVENT_RE.search(page_content)
+    if not match:
+        return []
+    try:
+        resources = json.loads(_unescape_next_payload_array(match.group("resources")))
+        raw_events = json.loads(_unescape_next_payload_array(match.group("events")))
+        resource_names = {
+            int(resource["id"]): str(resource.get("name") or "")
+            for resource in resources
+            if isinstance(resource, dict)
+        }
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        return []
+    return _group_by_booking(raw_events, resource_names)
 
 
 def _group_by_booking(raw_events: list, resource_names: dict[int, str]) -> list[dict]:

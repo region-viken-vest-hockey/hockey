@@ -1045,6 +1045,53 @@ def test_refresh_assessment_binds_to_the_actually_committed_revision(
     assert preview_assessment["canonical_state_revision"] == current_revision == preview["canonical_state_revision"]
 
 
+def test_refresh_surfaces_full_brp_message_in_reconciliation_assessment(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """#704: scoped refresh must expose BRP descriptive identity to the operator."""
+
+    root = _promote(tmp_path, host_club="Skien")
+    descriptive = "Skien Ishockeyklubb - U10: Skien, Jar Blå, Frisk Asker Orange 10:00-12:00"
+    event = {
+        "date": "12.09.2026",
+        "name": descriptive,
+        "datetime": "2026-09-12T10:00:00",
+        "duration_hours": 2.0,
+        "duration_minutes": 120,
+        "location": "Ishockey - bane 1 + Ishockey - bane 2",
+        "resources": [
+            {"id": "362", "label": "Ishockey - bane 1"},
+            {"id": "363", "label": "Ishockey - bane 2"},
+        ],
+        "order_id": "1194498",
+    }
+    _patch_refresh_inputs(
+        monkeypatch,
+        busy=False,
+        source_name="Skien",
+        source_type="brp_exigo",
+        source_url="https://skien.example.test/ishallen",
+        club="Skien",
+        events_override=[event],
+    )
+
+    result = refresh_calendars(
+        season="2026-2027",
+        root=root,
+        input_path="input.xlsx",
+        actor="tester",
+        club="Skien",
+    )
+
+    assessment = result["planned_tournament_reconciliation"]["assessment"]
+    row = next(row for row in assessment["tournaments"] if row["tournament_id"] == "u10-a-20260912")
+    assert row["candidates"][0]["title"] == descriptive
+    assert "event_title_age_group_matches" in row["candidates"][0]["evidence"]
+    persisted = load_schedule("2026-2027", root=root)["verification_context"]["problem"]
+    assert persisted["club_busy_intervals"]["Skien"][0]["calendar_event"] == descriptive
+    assert persisted["club_busy_intervals"]["Skien"][0]["order_id"] == "1194498"
+
+
 def test_refresh_reconciles_kongsberg_moved_booking_via_assessment_crosswalk(
     tmp_path: Path, monkeypatch
 ) -> None:
