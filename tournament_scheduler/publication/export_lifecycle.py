@@ -11,7 +11,7 @@ import json
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Collection, Mapping
 
 EXPORT_LIFECYCLE_FILENAME = "export_manifest.json"
 EXPORT_LIFECYCLE_SCHEMA_VERSION = 1
@@ -173,11 +173,48 @@ def _is_protected_export(path: Path) -> bool:
     return manifest.get("lifecycle_status") in (PUBLISHED_STATUS, SUPERSEDED_STATUS)
 
 
-def prune_draft_exports(export_dirs: list[Path], *, keep: int) -> list[str]:
-    """Delete old draft exports while preserving published and legacy dirs."""
+def canonical_export_references(decisions: Mapping[str, Any]) -> set[str]:
+    """Return the export directory names canonical decisions point at.
+
+    Two canonical records name an export: the current freshness latch
+    (``export_state.export_dir``) and every ``mark_export_fresh`` history entry.
+    History is append-only, so an export that was ever the fresh export for a
+    canonical revision stays referenced even after a newer export replaces it.
+    """
+    references: set[str] = set()
+    export_state = decisions.get("export_state")
+    if isinstance(export_state, Mapping) and export_state.get("export_dir"):
+        references.add(Path(str(export_state["export_dir"])).name)
+    for entry in decisions.get("history") or []:
+        if not isinstance(entry, Mapping):
+            continue
+        details = entry.get("details")
+        if isinstance(details, Mapping) and details.get("export_dir"):
+            references.add(Path(str(details["export_dir"])).name)
+    references.discard("")
+    return references
+
+
+def prune_draft_exports(
+    export_dirs: list[Path],
+    *,
+    keep: int,
+    retained_names: Collection[str] = (),
+) -> list[str]:
+    """Delete old draft exports while preserving published, legacy and retained dirs.
+
+    *retained_names* are export directory names the repository still relies on
+    (canonical references, git-tracked evidence). They are never draft
+    candidates, so they neither get deleted nor count toward *keep*.
+    """
     if keep <= 0:
         return []
-    draft_runs = [path for path in sorted(export_dirs, key=lambda p: p.name) if not _is_protected_export(path)]
+    retained = set(retained_names)
+    draft_runs = [
+        path
+        for path in sorted(export_dirs, key=lambda p: p.name)
+        if path.name not in retained and not _is_protected_export(path)
+    ]
     removed: list[str] = []
     for old_run in draft_runs[:-keep]:
         shutil.rmtree(old_run, ignore_errors=True)
