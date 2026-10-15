@@ -313,21 +313,24 @@ def _collect_plan_audit_facts(
                     end_time = end.strftime("%H:%M")
                 except ValueError:
                     end_time = None
-        else:
+        elif not tournament.get("cancelled"):
+            # A cancelled tournament is retired from the schedule, so it has no
+            # playable duration to audit; it is not a missing-duration defect.
             missing_duration.append(_tournament_ref(tournament))
-        duration_examples.append(
-            {
-                **_tournament_ref(tournament),
-                "start_time": start_time,
-                "end_time": end_time,
-                "round_count": round_count,
-                "configured_ice_time_minutes": ice_time,
-                "round_buffer_minutes": round_buffer_minutes,
-                "required_duration_minutes": duration_minutes,
-                "duration_minutes": duration_minutes,
-                "game_count": len(games),
-            }
-        )
+        if not tournament.get("cancelled"):
+            duration_examples.append(
+                {
+                    **_tournament_ref(tournament),
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "round_count": round_count,
+                    "configured_ice_time_minutes": ice_time,
+                    "round_buffer_minutes": round_buffer_minutes,
+                    "required_duration_minutes": duration_minutes,
+                    "duration_minutes": duration_minutes,
+                    "game_count": len(games),
+                }
+            )
         teams = [team for team in tournament.get("teams") or [] if isinstance(team, dict)]
         rvv_teams = [team for team in teams if not is_guest_team(team)]
         # Capacity/fullness counts real RVV participants plus active guest

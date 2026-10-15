@@ -719,3 +719,42 @@ def test_zero_scanned_sources_without_external_conflicts_reports_nothing_unverif
     context = build_audit_context(work_dir=tmp_path)
 
     assert context["evidence_coverage"] == {"unverified_placements": 0, "unverified_clubs": []}
+
+
+def test_cancelled_tournament_without_games_is_not_a_missing_duration_defect():
+    from tournament_scheduler.pipeline.audit_context import _collect_plan_audit_facts
+
+    plan = {
+        "tournaments": [
+            {
+                "id": "rvv-live",
+                "age_group": "U10",
+                "arena": "Arena 1",
+                "host_club": "Holmen",
+                "start_time": "13:00",
+                "cancelled": False,
+                "teams": [{"label": "A", "club": "Jar", "age_group": "U10"}],
+                "games": [{"round_number": 1}],
+            },
+            {
+                "id": "rvv-cancelled",
+                "age_group": "U10",
+                "arena": "Arena 2",
+                "host_club": "Kongsberg",
+                "start_time": "14:00",
+                "cancelled": True,
+                "cancellation_reason": "team_retirement",
+                "teams": [{"label": "B", "club": "Jar", "age_group": "U10"}],
+                "games": [],
+            },
+        ]
+    }
+
+    facts = _collect_plan_audit_facts(
+        plan_dict=plan,
+        config_checkpoint={"ice_time_minutes": {"U10": 120}},
+        verification_problem=None,
+    )
+
+    assert [row["id"] for row in facts["duration_examples"]] == ["rvv-live"]
+    assert facts["missing_duration"] == []
