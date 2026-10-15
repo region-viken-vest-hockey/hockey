@@ -587,6 +587,7 @@ def _spacing_findings(
     from tournament_scheduler.season.spacing_finding_subject import spacing_finding_subject
 
     out: List[Dict[str, Any]] = []
+    seen_subjects: set[tuple[str, str, str]] = set()
     tournaments = [
         dict(tournament)
         for tournament in plan.get("tournaments", []) or []
@@ -603,6 +604,10 @@ def _spacing_findings(
         subject = spacing_finding_subject(plan, problem, identity)
         if subject is None:
             continue
+        subject_key = (identity[0], str(subject["subject_id"]), identity[2])
+        if subject_key in seen_subjects:
+            continue
+        seen_subjects.add(subject_key)
         pool = subject["pool"]
         profile_dates = subject["dates"]
         min_gap = subject["min_gap"]
@@ -629,22 +634,25 @@ def _spacing_findings(
         if len(tournament_ids) < 2:
             continue
         subject_label = str(subject["subject_label"])
+        focus_label = str(subject["focus_label"])
         out.append(
             {
-                "finding_id": f"temporal_clustering:{identity[0]}:{subject_label}:{identity[2]}",
+                "finding_id": (
+                    f"temporal_clustering:{identity[0]}:{subject['subject_id']}:{identity[2]}"
+                ),
                 "code": "temporal_clustering",
                 "category": TEMPORAL_CLUSTERING,
                 "severity": "strong_goal",
                 "age_group": identity[2],
                 "club": identity[0],
-                "team": identity[1],
+                "team": focus_label,
                 "consequence_scope": (
                     "rotatable_participant_pool" if pool is not None else "exact_team"
                 ),
                 "participant_pool": pool,
                 "team_identity": {
                     "club": identity[0],
-                    "label": identity[1],
+                    "label": focus_label,
                     "age_group": identity[2],
                 },
                 "clustered_dates": sorted(cluster),

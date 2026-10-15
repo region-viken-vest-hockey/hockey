@@ -223,6 +223,7 @@ def participant_pool_schedule_profile(
         },
         "opportunity_count": sum(counts),
         "active_date_count": len(unique_dates),
+        "tournament_dates": [on_date.isoformat() for on_date in unique_dates],
         "date_loads": [
             {"date": on_date.isoformat(), "opportunities": load}
             for on_date, load in date_loads

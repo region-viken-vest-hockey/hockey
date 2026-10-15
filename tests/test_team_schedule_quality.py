@@ -175,6 +175,39 @@ def test_rotatable_pool_blocks_unavoidable_back_to_back_load() -> None:
     assert findings[0]["consequence_scope"] == "rotatable_participant_pool"
 
 
+def test_rotatable_pool_finding_uses_complete_pool_cluster_once() -> None:
+    red = _team("Jutul", "Jutul Rød")
+    green = _team("Jutul", "Jutul Grønn")
+    other = _team("Jar", "Jar 1")
+    plan = {
+        "tournaments": [
+            _tournament("red-first", "2026-11-01", "Jar", [red, other]),
+            _tournament("green-middle", "2026-11-03", "Jar", [green, other]),
+            _tournament("red-last", "2026-11-05", "Jar", [red, other]),
+        ]
+    }
+
+    findings = [
+        finding
+        for finding in _spacing_findings(_rotatable_problem(red, green, other), plan)
+        if finding["club"] == "Jutul"
+    ]
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding["finding_id"] == (
+        "temporal_clustering:Jutul:participant_pool=jutul-u9:U9"
+    )
+    assert finding["participant_pool"]["team_labels"] == ["Jutul Grønn", "Jutul Rød"]
+    assert finding["clustered_dates"] == ["2026-11-01", "2026-11-03", "2026-11-05"]
+    assert finding["tournament_ids"] == ["green-middle", "red-first", "red-last"]
+    assert finding["team_identity"] == {
+        "club": "Jutul",
+        "label": "Jutul Grønn",
+        "age_group": "U9",
+    }
+
+
 def test_multi_team_club_without_explicit_pool_keeps_exact_team_gate() -> None:
     red = _team("Jutul", "Jutul Rød")
     green = _team("Jutul", "Jutul Grønn")
