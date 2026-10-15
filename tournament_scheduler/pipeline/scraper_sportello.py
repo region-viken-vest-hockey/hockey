@@ -156,7 +156,20 @@ def _query_public_bookings(
 
 
 def _booking_name(booking: dict[str, Any]) -> str:
+    # The team display name carries the age group (e.g. "U10 (2017)"), which is
+    # the identity signal for matching tournaments; the activity type ("Kamp",
+    # "Trening") is generic and must not shadow it.
     for key in ("displayName",):
+        value = str(booking.get(key, "")).strip()
+        if value:
+            return value
+
+    team = booking.get("team") or {}
+    team_name = str(team.get("displayName", "")).strip()
+    if team_name:
+        return team_name
+
+    for key in ("teamText", "awayTeamText"):
         value = str(booking.get(key, "")).strip()
         if value:
             return value
@@ -166,16 +179,6 @@ def _booking_name(booking: dict[str, Any]) -> str:
         value = str(activity_type.get(key, "")).strip()
         if value:
             return value
-
-    for key in ("teamText", "awayTeamText"):
-        value = str(booking.get(key, "")).strip()
-        if value:
-            return value
-
-    team = booking.get("team") or {}
-    team_name = str(team.get("displayName", "")).strip()
-    if team_name:
-        return team_name
 
     return "Sportello booking"
 
@@ -228,6 +231,7 @@ def _run_sportello_scraper(
     windows = _chunk_windows(start_local, end_local)
     session = session or requests.Session()
 
+    seen_booking_ids: set[str] = set()
     for window in windows:
         bookings, _ = _query_public_bookings(session, club_id, window)
 
@@ -239,6 +243,14 @@ def _run_sportello_scraper(
 
             if not (window.start <= event_start.date() <= window.end):
                 continue
+
+            # Sportello can repeat a booking across chunk responses. Only mark
+            # accepted records seen so an out-of-window copy cannot suppress one.
+            booking_id = str(booking.get("id", "")).strip()
+            if booking_id:
+                if booking_id in seen_booking_ids:
+                    continue
+                seen_booking_ids.add(booking_id)
 
             event_name = _booking_name(booking)
             location = _booking_location(booking)
@@ -252,13 +264,7 @@ def _run_sportello_scraper(
                 )
             )
 
-    seen: set[tuple[str, str, str]] = set()
-    unique: list[CalendarEvent] = []
-    for event in events:
-        key = (event.date, event.name, event.location)
-        if key not in seen:
-            seen.add(key)
-            unique.append(event)
+    unique = events
 
     raw_summary = _json.dumps(
         {
