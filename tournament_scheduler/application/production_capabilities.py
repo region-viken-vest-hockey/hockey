@@ -164,11 +164,11 @@ PRODUCTION_CAPABILITIES: tuple[ProductionCapability, ...] = (
             "CanonicalSeasonService.constraint_inspection",
             "CanonicalSeasonService.replacement_candidates",
         ),
-        implementation_owner="tournament_scheduler/application/canonical_season/inspection.py",
+        implementation_owner="tournament_scheduler/application/canonical_season/inspection.py + replacement_search.py",
         invariants=(
             *_CANONICAL_READ_CONTRACT,
             "Read-only inspection never mutates canonical schedule or decisions and never invents evidence, approval or candidates.",
-            "Replacement-candidate legality is evaluated through the same read-only replacement gates as the mutation dry-run, not re-derived by callers.",
+            "Replacement legality uses the mutation dry-run gates; ranking is lexicographic over explicitly confirmed booked reality and marks incomplete evidence provisional.",
         ),
         focused_tests=("tests/test_season_inspection.py",),
     ),
