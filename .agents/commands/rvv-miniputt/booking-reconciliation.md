@@ -4,7 +4,7 @@ Load from `booking-management.md` for a club worksheet, booking email, calendar 
 
 ## Architectural guard (ADR 0005; implementation #504)
 
-Reconciliation records authoritative existing-booking facts; it is not a planning/repair workflow. Evaluate only the exact asserted change, including team availability and same-day conflicts when the date moves, arena occupancy, restrictions, accepted protections and actual playing feasibility. Do not search alternatives, move neighbors, change participants, inflate booked duration or auto-waive. A governing planning-floor shortfall in a real booking is a visible finding, not permission to fabricate ice; genuine playing or overlap failures remain hard. Retain conflicting evidence without committing invalid active placement or marking fully reconciled. Rejected operations must not leave approvals/locks. Confirmation is not publication authority. See [ADR](../../../docs/adr/0005-reconciliation-is-not-planning.md). These are target safeguards; check current code for gaps before acting.
+Reconciliation records authoritative existing-booking facts; it is not a planning/repair workflow. Evaluate only the exact asserted change, including team availability and same-day conflicts when the date moves, arena occupancy, restrictions, accepted protections and actual playing feasibility. Do not search planning alternatives, move neighbors, change participants, inflate booked duration or auto-waive. **This does not forbid searching the current host-calendar evidence for the same tournament at a shifted date/time.** Finding that an existing booking moved is reconciliation, not replanning: inspect plausible same-host booking candidates before concluding that a tournament is merely missing or blocked at its old slot. A governing planning-floor shortfall in a real booking is a visible finding, not permission to fabricate ice; genuine playing or overlap failures remain hard. Retain conflicting evidence without committing invalid active placement or marking fully reconciled. Rejected operations must not leave approvals/locks. Confirmation is not publication authority. See [ADR](../../../docs/adr/0005-reconciliation-is-not-planning.md). These are target safeguards; check current code for gaps before acting.
 
 ## Establish evidence before interpreting disagreement
 
@@ -12,6 +12,7 @@ Reconciliation records authoritative existing-booking facts; it is not a plannin
 2. When a worksheet/email and canonical calendar disagree, independently inspect the actual host source and its event details. Compare source document, live source, raw scrape, normalized event, persisted canonical evidence, effective canonical interval and export. A successful scrape or `known` integrity status alone does not prove event-level correctness. Check freshness/cache, event identity, venue, date, start/end and source provenance.
 3. If live source and worksheet agree but canonical evidence is stale, use the normal `season refresh-calendars` workflow, inspect source health and re-evaluate. If extraction itself is wrong, reproduce and fix via normal code/test workflow. Never alter canonical/generated JSON by hand or ask the club to resolve an artifact of our stale evidence.
 4. Absence in a partial, failed or untrusted feed is not proof of no booking or free ice. An exact, accepted host assertion may be authoritative even if a calendar is not current; preserve and disclose independent source conflicts rather than guessing.
+5. When the current canonical slot is occupied by an event that clearly belongs to something else, do not stop at that overlap. Inspect the repository-owned booking assessment/candidate crosswalk for the tournament itself, including shifted time and adjacent/other season dates. For footprint-aware calendars, a matching age-group/title or other identity evidence on another date must be surfaced as a changed-slot reconciliation candidate even when the old slot is blocked by a different event. Report both facts: the old slot conflict and the plausible moved booking. Only after that evidence check should a genuinely missing booking fall through to planning repair/search.
 
 ## Reconcile accepted bookings
 
@@ -19,6 +20,18 @@ Reconciliation records authoritative existing-booking facts; it is not a plannin
 - Use the repository-owned source registration and `season booking-set` assertion path with concrete stated date/start/end, source/version/reference and stable request identity. Do not use a planning-floor mutation to replace an accepted shorter booked window with a default duration. Preserve real effective occupancy; retain below-floor feasibility warnings independently.
 - Check calendar association trust, venue, event coverage and **raw active ownership**, including stale active associations. Auto-link only a single unambiguous supported event; otherwise use explicit release/rebind with evidence and authorization. A cancelled tournament must not silently donate or retain a booking for another tournament. Do not invent an event or conceal a real overlap.
 - Re-verify worksheet/live source -> accepted assertion -> effective canonical date/start/end/duration -> booking status -> export/rendered HTML. Export matching canonical is insufficient if canonical disagrees with accepted source facts. Recheck idempotency and affected neighboring tournaments.
+
+### Operator-facing reconciliation wording
+
+Keep machine/audit status values intact, but do not expose a conservative internal `ambiguous` label as if event identity itself were uncertain when the assessment already establishes a single strong candidate. In operator tables and summaries, prefer these meanings:
+
+- `proposed_unchanged` / one exact or near-exact supported candidate -> **Exact match — confirmation required** (or **Likely match — confirmation required** when evidence is supportive but not exact).
+- `proposed_changed_slot` / one supported shifted candidate -> **Moved booking candidate — confirmation required**, showing both canonical and observed date/time.
+- multiple plausible identity candidates -> **Competing candidates — review required**.
+- a wrong-age/clearly unrelated event occupying the current slot -> **Calendar conflict**, not a tournament match.
+- no defensible identity candidate -> **No matching booking found** (subject to source-coverage caveats).
+
+Reserve the word **ambiguous** for genuine identity ambiguity. When a low-level command still returns `BOOKING_AMBIGUOUS` solely because explicit `confirm-calendar-booking` authority has not yet been recorded, explain that as an authorization state in audit detail rather than making it the primary human-readable result.
 
 ## Planned tournaments without booking
 
