@@ -53,6 +53,14 @@ def _scrape(responses, *, start=datetime(2026, 10, 9), end=datetime(2026, 10, 11
     with patch(
         "tournament_scheduler.pipeline.scraper_brp_exigo.requests.Session",
         return_value=session,
+    ), patch(
+        "tournament_scheduler.pipeline.scraper_brp_exigo.discover_message_action_id",
+        return_value="action-id",
+    ), patch(
+        "tournament_scheduler.pipeline.scraper_brp_exigo.fetch_booking_messages",
+        side_effect=lambda _session, _url, groups, **_kwargs: [
+            str(group["item"].get("message") or "") for group in groups
+        ],
     ):
         events, raw = _run_brp_exigo_scraper(
             "https://example.test/ishallen?view=day", "Skien", start, end
@@ -206,6 +214,14 @@ def test_stage2_preserves_skien_coverage_through_checkpoint_and_cache(tmp_path):
     with patch(
         "tournament_scheduler.pipeline.scraper_brp_exigo.requests.Session",
         return_value=session,
+    ), patch(
+        "tournament_scheduler.pipeline.scraper_brp_exigo.discover_message_action_id",
+        return_value="action-id",
+    ), patch(
+        "tournament_scheduler.pipeline.scraper_brp_exigo.fetch_booking_messages",
+        side_effect=lambda _session, _url, groups, **_kwargs: [
+            str(group["item"].get("message") or "") for group in groups
+        ],
     ):
         first = run(
             config,

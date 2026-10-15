@@ -1301,6 +1301,51 @@ def test_calendar_booking_confirmation_rejects_wrong_tournament_and_reports_stal
     assert "event_missing" in findings["findings"][0]["reasons"]
 
 
+def test_existing_association_survives_introduction_of_source_order_id(tmp_path):
+    """Richer BRP metadata must not change an already accepted event identity."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    event = {
+        "date": "2026-09-12",
+        "start": "10:00",
+        "end": "12:00",
+        "kind": "external",
+        "availability": "fixed_busy",
+        "calendar_event": "Miniputt U10",
+        "resources": ["bane-1", "bane-2"],
+    }
+    problem = {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "teams": [],
+        "age_groups": ["U10"],
+        "ice_time_minutes": {"U10": 120},
+        "club_calendar_status": {"A": "known"},
+        "club_busy_intervals": {"A": [event]},
+    }
+    event_fp = calendar_booking_candidates(
+        season="2026-2027", root=root, club="A", problem=problem
+    )["booking_candidates"][0]["calendar_event"]["fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        problem=problem,
+    )
+
+    enriched_problem = copy.deepcopy(problem)
+    enriched_problem["club_busy_intervals"]["A"][0]["order_id"] = "1194498"
+    enriched_fp = calendar_booking_candidates(
+        season="2026-2027", root=root, club="A", problem=enriched_problem
+    )["booking_candidates"][0]["calendar_event"]["fingerprint"]
+
+    assert enriched_fp == event_fp
+    assert calendar_booking_findings(
+        season="2026-2027", root=root, problem=enriched_problem
+    )["findings"] == []
+
+
 def test_approval_refuses_known_external_conflict(tmp_path):
     root = _promote(tmp_path, [_tournament("t1")])
     problem = {

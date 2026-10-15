@@ -7,11 +7,6 @@ The generic date-param scraper sampled only the first day of each month; this
 module walks the configured date range day-by-day and parses the embedded event
 objects with their real dates, times, and rink resources.
 
-The initial page load contains events with empty ``message`` fields. The full
-descriptive messages (e.g. ``JU10: Skien, Jar Blå, ...``) are loaded via a
-Next.js server action (``fetchEventMessagesAction``). This scraper calls that
-action to enrich each event with its descriptive message.
-
 A clean walk returns strategy-specific coverage provenance. Empty dates count as
 inspected dates; they do not shrink the covered window. Any request, response-date,
 or payload failure is retained as partial/failed evidence so Stage 2 cannot treat
@@ -29,12 +24,12 @@ import requests
 
 from ..models_calendar import CalendarEvent, SourceResource
 from .scraper_brp_exigo_coverage import coverage_for_walk, failure_message
+from .scraper_brp_exigo_messages import (
+    BrpExigoMessageError,
+    discover_message_action_id,
+    fetch_booking_messages,
+)
 from .source_integrity import with_coverage
-
-# Next.js server action ID for fetchEventMessagesAction.
-# This is a stable hash of the function name; it changes only if the
-# deployed Next.js build is updated.
-_FETCH_MESSAGES_ACTION_ID = "406f9fb526df35ca452c6ec2a9180b8d822a9efc4a"
 
 _RESOURCE_AND_EVENT_RE = re.compile(
     r'\\"resources\\":\[(?P<resources>.*?)\],\\"events\\":\[(?P<events>.*?)\],'
@@ -60,6 +55,7 @@ def _run_brp_exigo_scraper(
     raw_html = ""
     inspected_dates: list[date] = []
     exceptions: list[str] = []
+    message_action_id: str | None = None
 
     current = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
     end = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -69,11 +65,28 @@ def _run_brp_exigo_scraper(
             response = session.get(day_url, timeout=15)
             response.raise_for_status()
             page_content = response.text
-            day_events = _parse_brp_exigo_day_strict(page_content, current, session, day_url)
+            day_events = _parse_brp_exigo_day_strict(page_content, current)
         except Exception as exc:  # noqa: BLE001 -- retain partial coverage and fail closed
             exceptions.append(failure_message(current.date(), exc))
             current += timedelta(days=1)
             continue
+
+        try:
+            groups = _booking_groups_from_page(page_content)
+            if groups:
+                if message_action_id is None:
+                    message_action_id = discover_message_action_id(session, day_url, page_content)
+                messages = fetch_booking_messages(
+                    session, day_url, groups, action_id=message_action_id
+                )
+                day_events = _parse_brp_exigo_day_strict(
+                    page_content, current, messages=messages
+                )
+        except BrpExigoMessageError as exc:
+            # Keep authentic interval/resource occupancy as bounded positive
+            # evidence, but make the source partial so missing descriptive
+            # identity can never be reported as a clean refresh.
+            exceptions.append(failure_message(current.date(), exc))
 
         raw_html += page_content
         inspected_dates.append(current.date())
@@ -108,78 +121,21 @@ def _url_for_date(url: str, day: datetime) -> str:
 def _parse_brp_exigo_day(page_content: str, day: datetime) -> list[CalendarEvent]:
     """Parse one BRP/Exigo day, retaining the legacy empty-on-error API."""
     try:
-        return _parse_brp_exigo_day_strict(page_content, day, validate_response_date=False)
+        return _parse_brp_exigo_day_strict(
+            page_content,
+            day,
+            validate_response_date=False,
+        )
     except BrpExigoPayloadError:
         return []
-
-
-def _fetch_event_messages(
-    session: requests.Session,
-    base_url: str,
-    events: list[dict],
-) -> dict[str, str]:
-    """Fetch descriptive messages for BRP events via Next.js server action.
-
-    Args:
-        session: Requests session (reuses cookies/connection).
-        base_url: The base calendar URL (e.g. https://skienfritidspark.brp.exigo.no/ishallen).
-        events: List of event dicts with orderId, startISO, endISO, eventId.
-
-    Returns:
-        Mapping from eventId to descriptive message string.
-    """
-    if not events:
-        return {}
-
-    # Build the payload expected by fetchEventMessagesAction
-    # It expects an array of arrays: [[{orderId, startISO, endISO, eventId}, ...]]
-    payload = json.dumps([events], separators=(",", ":"))
-
-    try:
-        response = session.post(
-            base_url,
-            headers={
-                "Next-Action": _FETCH_MESSAGES_ACTION_ID,
-                "Accept": "text/x-component",
-                "Content-Type": "text/plain;charset=UTF-8",
-            },
-            data=payload,
-            timeout=15,
-        )
-        response.raise_for_status()
-
-        # Parse Next.js flight response: 0:... 1:[[messages],[]]
-        # The messages are in the second array element
-        text = response.text
-        # Find the JSON array after "1:["
-        match = re.search(r"1:(\[.*\])", text)
-        if not match:
-            return {}
-
-        # The response is [[messages_for_resource_1], [messages_for_resource_2], ...]
-        # Each inner array corresponds to the input events in order
-        result = json.loads(match.group(1))
-        messages_map = {}
-        for i, event in enumerate(events):
-            event_id = event.get("eventId")
-            if event_id and i < len(result) and result[i]:
-                # result[i] is an array of messages (one per resource row for this event)
-                msg = result[i][0] if result[i] else ""
-                if msg:
-                    messages_map[event_id] = msg
-        return messages_map
-    except Exception:
-        # If message fetching fails, return empty map (events keep empty messages)
-        return {}
 
 
 def _parse_brp_exigo_day_strict(
     page_content: str,
     day: datetime,
-    session: requests.Session | None = None,
-    day_url: str | None = None,
     *,
     validate_response_date: bool = True,
+    messages: list[str] | None = None,
 ) -> list[CalendarEvent]:
     """Parse one day or raise when its response is not trustworthy evidence."""
     match = _RESOURCE_AND_EVENT_RE.search(page_content)
@@ -236,40 +192,12 @@ def _parse_brp_exigo_day_strict(
                 f"En BRP/Exigo-hendelse på {expected_date} viser til en ukjent ressurs."
             )
 
-    # Group by booking first (to get order_id and resources per booking)
     groups = _group_by_booking(raw_events, resource_names)
+    if messages is not None and len(messages) != len(groups):
+        raise BrpExigoPayloadError("BRP/Exigo-meldinger samsvarer ikke med hendelsene.")
 
-    # Collect events that need message fetching (those with orderId)
-    events_for_messages = []
-    for group in groups:
-        item = group["item"]
-        order_id = item.get("orderId")
-        if order_id is not None:
-            # Build eventId from the first resource row in the group
-            resource_id = item.get("resourceId")
-            time_range = str(item.get("timeRange") or "")
-            time_match = _TIME_RANGE_RE.match(time_range)
-            if time_match:
-                sh, sm, eh, em = (int(value) for value in time_match.groups())
-                start_dt = day.replace(hour=sh, minute=sm).isoformat() + "Z"
-                end_dt = day.replace(hour=eh, minute=em).isoformat() + "Z"
-                event_id = f"{order_id}-{resource_id}-{int(day.timestamp()*1000)}-{int(day.timestamp()*1000)}"
-                events_for_messages.append({
-                    "orderId": order_id,
-                    "startISO": start_dt,
-                    "endISO": end_dt,
-                    "eventId": event_id,
-                })
-
-    # Fetch messages if we have a session and URL
-    messages_map = {}
-    if session and day_url and events_for_messages:
-        base_url = day_url.split("?")[0]  # Remove query params
-        messages_map = _fetch_event_messages(session, base_url, events_for_messages)
-
-    # Now build CalendarEvents with messages
     events: list[CalendarEvent] = []
-    for group in groups:
+    for index, group in enumerate(groups):
         item = group["item"]
 
         time_range = str(item.get("timeRange") or "")
@@ -290,19 +218,7 @@ def _parse_brp_exigo_day_strict(
         duration = duration_minutes / 60
 
         title = str(item.get("title") or "Booking").strip() or "Booking"
-
-        # Get message from fetched map (match by eventId)
-        resource_id = item.get("resourceId")
-        time_match2 = _TIME_RANGE_RE.match(time_range)
-        if time_match2:
-            sh2, sm2, eh2, em2 = (int(value) for value in time_match2.groups())
-            start_dt = day.replace(hour=sh2, minute=sm2).isoformat() + "Z"
-            end_dt = day.replace(hour=eh2, minute=em2).isoformat() + "Z"
-            event_id = f"{item.get('orderId')}-{resource_id}-{int(day.timestamp()*1000)}-{int(day.timestamp()*1000)}"
-            message = messages_map.get(event_id, "")
-        else:
-            message = str(item.get("message") or "").strip()
-
+        message = messages[index] if messages is not None else str(item.get("message") or "").strip()
         event_name = f"{title} - {message}" if message else title
         if time_range not in event_name:
             event_name = f"{event_name} {time_range}"
@@ -325,6 +241,25 @@ def _parse_brp_exigo_day_strict(
         )
 
     return events
+
+
+def _booking_groups_from_page(page_content: str) -> list[dict]:
+    """Return grouped raw bookings for message enrichment after strict parsing."""
+
+    match = _RESOURCE_AND_EVENT_RE.search(page_content)
+    if not match:
+        return []
+    try:
+        resources = json.loads(_unescape_next_payload_array(match.group("resources")))
+        raw_events = json.loads(_unescape_next_payload_array(match.group("events")))
+        resource_names = {
+            int(resource["id"]): str(resource.get("name") or "")
+            for resource in resources
+            if isinstance(resource, dict)
+        }
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        return []
+    return _group_by_booking(raw_events, resource_names)
 
 
 def _group_by_booking(raw_events: list, resource_names: dict[int, str]) -> list[dict]:
@@ -361,5 +296,5 @@ def _group_by_booking(raw_events: list, resource_names: dict[int, str]) -> list[
 
 
 def _unescape_next_payload_array(raw_array_contents: str) -> str:
-    """Turn escaped React flight payload array contents into a JSON array string."""
+    """Turn escaped React flight array contents into a JSON array string."""
     return "[" + raw_array_contents.replace('\\"', '"') + "]"
