@@ -94,7 +94,16 @@ def _problem(events, *, status="known", complete=False, club="A", observed_windo
     return problem
 
 
-def _event(date_str, start, end, *, title="Miniputt U10", club="A", arena=None):
+def _event(
+    date_str,
+    start,
+    end,
+    *,
+    title="Miniputt U10",
+    club="A",
+    arena=None,
+    resources=None,
+):
     event = {
         "date": date_str,
         "start": start,
@@ -105,6 +114,8 @@ def _event(date_str, start, end, *, title="Miniputt U10", club="A", arena=None):
     }
     if arena is not None:
         event["arena"] = arena
+    if resources is not None:
+        event["resources"] = resources
     return event
 
 
@@ -156,10 +167,11 @@ def test_askerhallen_regression_excludes_varner_and_surfaces_changed_time(tmp_pa
     row = _tournament_row(_assess(root, problem), "asker-u10")
 
     assert row["classification"] == "proposed_changed_slot"
-    assert row["candidates"][0]["arena_mismatch"] is True
-    assert row["candidates"][0]["actionable"] is False
-    assert row["candidates"][1]["relation"] == "same_date_time_shift"
-    assert row["candidates"][1]["actionable"] is True
+    assert row["candidates"][0]["relation"] == "same_date_time_shift"
+    assert row["candidates"][0]["actionable"] is True
+    assert row["primary_candidate_event_fingerprint"] == row["candidates"][0]["event_fingerprint"]
+    conflicting = next(candidate for candidate in row["candidates"] if candidate["arena_mismatch"])
+    assert conflicting["actionable"] is False
 
     status_row = _tournament_row(booking_status_report(season="2026-2027", root=root, problem=problem), "asker-u10")
     assert status_row["operational_state"] == "changed_slot_review"
@@ -168,7 +180,83 @@ def test_askerhallen_regression_excludes_varner_and_surfaces_changed_time(tmp_pa
     assert status_row["latest_observed_interval"]["start"] == "13:00"
 
 
-def test_changed_slot_provenance_uses_latest_actionable_observation(tmp_path):
+def test_wrong_age_overlap_yields_to_shifted_identity_candidate(tmp_path):
+    root = _promote(
+        tmp_path,
+        [
+            _tournament(
+                "skien-u10",
+                date_str="2026-09-12",
+                start="10:00",
+                arena="Skien ishall",
+                host="Skien",
+            )
+        ],
+    )
+    full_footprint = ["bane-1", "bane-2"]
+    problem = _problem(
+        [
+            _event(
+                "2026-09-12",
+                "10:15",
+                "12:15",
+                title="U12 Skien - Stjernen",
+                club="Skien",
+                resources=full_footprint,
+            ),
+            _event(
+                "2026-09-13",
+                "13:15",
+                "15:00",
+                title="Miniputt U10",
+                club="Skien",
+                resources=full_footprint,
+            ),
+            _event(
+                "2026-09-14",
+                "16:30",
+                "17:30",
+                title="Recurring U11 16:30",
+                club="Skien",
+                resources=full_footprint,
+            ),
+        ],
+        club="Skien",
+    )
+
+    row = _tournament_row(_assess(root, problem), "skien-u10")
+
+    assert row["classification"] == "proposed_changed_slot"
+    primary = row["candidates"][0]
+    assert primary["title"] == "Miniputt U10"
+    assert primary["actionable"] is True
+    assert primary["relation"] == "proximate_date_shift"
+    assert row["primary_candidate_event_fingerprint"] == primary["event_fingerprint"]
+    conflicting = next(candidate for candidate in row["candidates"] if candidate["title"] == "U12 Skien - Stjernen")
+    assert conflicting["age_group_conflict"] is True
+    assert conflicting["overlaps_current_interval"] is True
+    assert conflicting["actionable"] is False
+    assert "event_title_age_group_differs" in conflicting["counterevidence"]
+    context = next(candidate for candidate in row["candidates"] if candidate["title"] == "Recurring U11 16:30")
+    assert context["season_context_only"] is True
+    assert context["actionable"] is False
+
+    status_row = _tournament_row(
+        booking_status_report(season="2026-2027", root=root, problem=problem),
+        "skien-u10",
+    )
+    assert status_row["operational_state"] == "changed_slot_review"
+    assert status_row["latest_observed_interval"]["date"] == "2026-09-13"
+    assert status_row["latest_observed_interval"]["start"] == "13:15"
+    assert (
+        status_row["latest_observed_interval"]["event_fingerprint"]
+        == row["primary_candidate_event_fingerprint"]
+    )
+    # Assessment/projection are advisory and leave canonical placement intact.
+    assert load_schedule("2026-2027", root=root)["plan"]["tournaments"][0]["date"] == "2026-09-12"
+
+
+def test_changed_slot_provenance_uses_selected_actionable_observation(tmp_path):
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00", arena="Askerhallen")])
     problem = _problem(
         [
@@ -182,8 +270,8 @@ def test_changed_slot_provenance_uses_latest_actionable_observation(tmp_path):
     status_row = _tournament_row(booking_status_report(season="2026-2027", root=root, problem=problem), "t1")
 
     assert status_row["operational_state"] == "changed_slot_review"
-    # The wrong-arena observation sorts first in the candidate list, but
-    # provenance must point at the latest *actionable* observation.
+    # Provenance consumes the assessment's selected identity candidate rather
+    # than independently choosing an observation by timestamp.
     assert status_row["latest_observed_interval"]["date"] == "2026-09-14"
     assert status_row["latest_observed_interval"]["start"] == "09:00"
 
@@ -221,6 +309,16 @@ def test_one_event_competing_for_two_tournaments_stays_visible(tmp_path):
     assert event_row["one_to_many"] is True
     assert {c["tournament_id"] for c in event_row["candidate_tournaments"]} == {"t1", "t2"}
     assert event_row["event_fingerprint"] in result["unresolved"]["event_fingerprints"]
+
+    status = booking_status_report(
+        season="2026-2027",
+        root=root,
+        problem=_problem([_event("2026-09-12", "10:00", "12:00")]),
+    )
+    assert all(
+        "latest_observed_interval" not in _tournament_row(status, tournament_id)
+        for tournament_id in ("t1", "t2")
+    )
 
 
 def test_group_booking_covering_two_tournaments_is_flagged(tmp_path):

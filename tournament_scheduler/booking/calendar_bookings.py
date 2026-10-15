@@ -104,6 +104,31 @@ _ASSESSMENT_RELATION_RANK = {
     RELATION_SAME_DATE_TIME_SHIFT: 1,
     RELATION_PROXIMATE_DATE_SHIFT: 2,
 }
+
+
+def _assessment_candidate_rank(candidate: Mapping[str, Any]) -> tuple[Any, ...]:
+    """Rank identity evidence before mere interval proximity.
+
+    ``same_date_overlap`` is strong occupancy evidence, but an overlap with
+    explicit age/arena counterevidence is not a stronger tournament identity
+    than an actionable shifted event. All candidates remain in the projection;
+    this key only chooses their deterministic primary order.
+    """
+
+    return (
+        not bool(candidate.get("actionable")),
+        bool(candidate.get("season_context_only")),
+        bool(candidate.get("age_group_conflict")),
+        bool(candidate.get("arena_mismatch")),
+        _ASSESSMENT_RELATION_RANK.get(str(candidate.get("relation") or ""), 99),
+        abs(int(candidate.get("date_delta_days") or 0)),
+        str(candidate.get("date") or ""),
+        str(candidate.get("start") or ""),
+        str(candidate.get("end") or ""),
+        str(candidate.get("event_fingerprint") or ""),
+    )
+
+
 BOOKING_CONFIRMED_BOOKED = "confirmed_booked"
 BOOKING_CONFIRMED_NOT_BOOKED = "confirmed_not_booked"
 BOOKING_AMBIGUOUS = "ambiguous"
@@ -1317,10 +1342,10 @@ def _assessment_provenance_fields(assessment_row: Mapping[str, Any] | None) -> d
 
     The crosswalk is advisory: attaching these fields never changes an accepted
     booking status or authority. It carries the classification and canonical
-    interval and, only when a plausible observation exists, the latest
-    *actionable* calendar observation. A negative finding deliberately carries
-    no observed interval, because an unrelated or wrong-arena event must never
-    be presented as this tournament's observed booking.
+    interval and, only when assessment selected one defensible identity match,
+    that primary calendar observation. A negative or competing finding
+    deliberately carries no observed interval, because unrelated or unresolved
+    evidence must never be presented as this tournament's observed booking.
     """
 
     if not assessment_row:
@@ -1332,27 +1357,29 @@ def _assessment_provenance_fields(assessment_row: Mapping[str, Any] | None) -> d
     canonical_interval = assessment_row.get("canonical_interval")
     if isinstance(canonical_interval, Mapping):
         fields["canonical_interval"] = dict(canonical_interval)
-    actionable = [
+    candidates = [
         candidate
         for candidate in assessment_row.get("candidates") or []
-        if isinstance(candidate, Mapping) and candidate.get("actionable")
+        if isinstance(candidate, Mapping)
     ]
-    if actionable:
-        candidate = max(
-            actionable,
-            key=lambda item: (
-                str(item.get("date") or ""),
-                str(item.get("start") or ""),
-                str(item.get("end") or ""),
-            ),
-        )
+    primary_fingerprint = str(assessment_row.get("primary_candidate_event_fingerprint") or "")
+    primary = next(
+        (
+            candidate
+            for candidate in candidates
+            if candidate.get("actionable")
+            and str(candidate.get("event_fingerprint") or "") == primary_fingerprint
+        ),
+        None,
+    )
+    if primary is not None:
         fields["latest_observed_interval"] = {
-            "date": str(candidate.get("date") or ""),
-            "start": str(candidate.get("start") or ""),
-            "end": str(candidate.get("end") or ""),
-            "event_fingerprint": str(candidate.get("event_fingerprint") or ""),
-            "title": str(candidate.get("title") or ""),
-            "source_trusted": bool(candidate.get("source_trusted")),
+            "date": str(primary.get("date") or ""),
+            "start": str(primary.get("start") or ""),
+            "end": str(primary.get("end") or ""),
+            "event_fingerprint": str(primary.get("event_fingerprint") or ""),
+            "title": str(primary.get("title") or ""),
+            "source_trusted": bool(primary.get("source_trusted")),
             "actionable": True,
         }
     if classification == ASSESSMENT_PRESUMED_UNSCHEDULED:
@@ -1960,6 +1987,24 @@ def _assessment_tournament_row(
         row["associated_event_fingerprint"] = str(
             associated_event.get("fingerprint") or event_fingerprint(associated_event)
         )
+    # Expose one canonical selection for downstream projections. A shared or
+    # competing event deliberately has no primary candidate: choosing one would
+    # turn unresolved evidence into an implied observed booking.
+    primary_candidate = None
+    if associated_event is not None:
+        associated_fingerprint = row["associated_event_fingerprint"]
+        primary_candidate = next(
+            (
+                candidate
+                for candidate in actionable
+                if candidate["event_fingerprint"] == associated_fingerprint
+            ),
+            None,
+        )
+    elif len(actionable) == 1 and actionable[0]["event_fingerprint"] not in shared_event_fingerprints:
+        primary_candidate = actionable[0]
+    if primary_candidate is not None:
+        row["primary_candidate_event_fingerprint"] = primary_candidate["event_fingerprint"]
     if manual is not None:
         row["manual_authority"] = str(manual.get("authority") or "")
         row["manual_booking_status"] = manual_assertion_projection_status(manual)
@@ -2136,16 +2181,7 @@ def booking_assessment(
                 candidates_by_event.setdefault(candidate["event_fingerprint"], []).append(
                     (tournament_id, candidate)
                 )
-        candidates.sort(
-            key=lambda item: (
-                _ASSESSMENT_RELATION_RANK.get(item["relation"], 99),
-                abs(int(item["date_delta_days"])),
-                item["date"],
-                item["start"],
-                item["end"],
-                item["event_fingerprint"],
-            )
-        )
+        candidates.sort(key=_assessment_candidate_rank)
         candidates_by_tournament[tournament_id] = candidates
 
     # An actionable event that plausibly belongs to more than one tournament is
