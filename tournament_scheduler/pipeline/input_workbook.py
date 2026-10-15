@@ -1,9 +1,4 @@
-"""Excel workbook input adapter for the RVV Miniputt pipeline.
-
-The pipeline standard is now a human-editable Excel workbook. This module
-converts the workbook sheets into the same raw config dict that Stage 1
-validation and downstream stages already understand.
-"""
+"""Convert the canonical Excel workbook into the normalized Stage 1 config."""
 
 from __future__ import annotations
 
@@ -16,6 +11,7 @@ import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
 
 from ..models import DatePreference
+from .participant_pool_input import read_participant_pools
 from .scraper_constants import SOURCE_FIXED_ALLOCATION
 
 
@@ -117,6 +113,8 @@ def load_workbook_config(path: str | Path) -> dict[str, Any]:
         required_columns=("club", "label", "age_group"),
         optional_columns=("target_tournament_count",),
     )
+
+    raw.update(read_participant_pools(wb, _read_table))
 
     if "Kilder" in wb.sheetnames:
         sources = _read_table(

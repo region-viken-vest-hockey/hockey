@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import openpyxl
 import pytest
 
+from tournament_scheduler.planning.contract import build_planning_problem
 from tournament_scheduler.pipeline.input_workbook import (
     PUBLIC_SHEET_WHITELIST,
     WorkbookInputError,
@@ -45,7 +47,10 @@ class TestPublicSheetWhitelist:
         assert PUBLIC_SHEET_WHITELIST == ("Lag",)
         assert_public_sheet("Lag")  # does not raise
 
-    @pytest.mark.parametrize("sheet_name", ["Innstillinger", "Aldersgrupper", "Kilder", "Datopreferanser"])
+    @pytest.mark.parametrize(
+        "sheet_name",
+        ["Innstillinger", "Aldersgrupper", "Kilder", "Datopreferanser", "Deltakerpooler"],
+    )
     def test_internal_sheets_are_rejected(self, sheet_name):
         with pytest.raises(WorkbookInputError):
             assert_public_sheet(sheet_name)
@@ -77,6 +82,35 @@ class TestPublicSheetWhitelist:
         wb.save(path)
 
         assert read_public_teams(path) == []
+
+    def test_rotatable_participant_pools_are_explicit_canonical_problem_input(self, tmp_path):
+        path = tmp_path / "input.xlsx"
+        _write_workbook(path)
+        wb = openpyxl.load_workbook(path)
+        pools = wb.create_sheet("Deltakerpooler")
+        pools.append(["club", "age_group", "pool_id", "team_label"])
+        pools.append(["Kongsberg", "U10", "kongsberg-u10", "Kongsberg U10A"])
+        pools.append(["Kongsberg", "U10", "kongsberg-u10", "Kongsberg U10B"])
+        teams = wb["Lag"]
+        teams.append(["Kongsberg", "Kongsberg U10B", "U10"])
+        wb.save(path)
+
+        config = load_workbook_config(path)
+        assert config["rotatable_participant_pools"] == [
+            {
+                "club": "Kongsberg",
+                "age_group": "U10",
+                "pool_id": "kongsberg-u10",
+                "team_labels": ["Kongsberg U10A", "Kongsberg U10B"],
+            }
+        ]
+        problem = build_planning_problem(
+            config,
+            None,
+            date(2025, 9, 1),
+            date(2026, 4, 1),
+        )
+        assert problem["rotatable_participant_pools"] == config["rotatable_participant_pools"]
 
     def test_age_groups_accept_rounds_per_tournament(self, tmp_path):
         path = tmp_path / "input.xlsx"

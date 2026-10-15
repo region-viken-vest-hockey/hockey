@@ -1,6 +1,7 @@
 from tournament_scheduler.participation.team_schedule_quality import (
     compare_team_schedule_consequence,
 )
+from tournament_scheduler.season.findings import _spacing_findings
 
 
 def _team(club: str, label: str, age_group: str = "U9") -> dict:
@@ -75,6 +76,134 @@ def test_team_consequence_flags_material_travel_regression() -> None:
         if entry["code"] == "travel_materially_worse"
     )
     assert regression["delta_km"] >= 50
+
+
+def _rotatable_problem(*teams: dict) -> dict:
+    return {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "teams": list(teams),
+        "rotatable_participant_pools": [
+            {
+                "pool_id": "jutul-u9",
+                "club": "Jutul",
+                "age_group": "U9",
+                "team_labels": ["Jutul Rød", "Jutul Grønn"],
+            }
+        ],
+    }
+
+
+def test_rotatable_pool_keeps_exact_spacing_diagnostic_without_blocking_distributable_gap() -> None:
+    red = _team("Jutul", "Jutul Rød")
+    green = _team("Jutul", "Jutul Grønn")
+    other = _team("Jar", "Jar 1")
+    before = {
+        "tournaments": [
+            _tournament("a", "2026-11-01", "Jar", [red, other]),
+            _tournament("b", "2026-11-06", "Jar", [green, other]),
+            _tournament("c", "2026-11-15", "Jar", [red, other]),
+            _tournament("d", "2026-11-25", "Jar", [green, other]),
+        ]
+    }
+    after = {
+        "tournaments": [
+            _tournament("a", "2026-11-01", "Jar", [red, other]),
+            _tournament("b", "2026-11-06", "Jar", [red, other]),
+            _tournament("c", "2026-11-15", "Jar", [red, other]),
+            _tournament("d", "2026-11-25", "Jar", [green, other]),
+        ]
+    }
+
+    comparison = compare_team_schedule_consequence(
+        before, after, ("Jutul", "Jutul Rød", "U9"), problem=_rotatable_problem(red, green, other)
+    )
+
+    assert "more_gaps_under_7_days" in {
+        item["code"] for item in comparison["team_level"]["material_regressions"]
+    }
+    assert "more_gaps_under_7_days" not in {
+        item["code"] for item in comparison["material_regressions"]
+    }
+    pool = comparison["participant_pool"]
+    assert pool["before"]["spacing"]["unavoidable_gaps_under_7"] == 0
+    assert pool["after"]["spacing"]["unavoidable_gaps_under_7"] == 0
+    assert pool["after"]["label_distribution"]["counts"] == {
+        "Jutul Grønn": 1,
+        "Jutul Rød": 3,
+    }
+    assert not [
+        finding
+        for finding in _spacing_findings(_rotatable_problem(red, green, other), after)
+        if finding["club"] == "Jutul"
+    ]
+
+
+def test_rotatable_pool_blocks_unavoidable_back_to_back_load() -> None:
+    red = _team("Jutul", "Jutul Rød")
+    green = _team("Jutul", "Jutul Grønn")
+    other = _team("Jar", "Jar 1")
+    before = {
+        "tournaments": [
+            _tournament("a", "2026-11-01", "Jar", [red, green, other]),
+        ]
+    }
+    after = {
+        "tournaments": [
+            _tournament("a", "2026-11-01", "Jar", [red, green, other]),
+            _tournament("b", "2026-11-02", "Jar", [red, other]),
+        ]
+    }
+
+    comparison = compare_team_schedule_consequence(
+        before, after, ("Jutul", "Jutul Rød", "U9"), problem=_rotatable_problem(red, green, other)
+    )
+
+    assert comparison["acceptable"] is False
+    assert "more_unavoidable_back_to_back_days" in {
+        item["code"] for item in comparison["material_regressions"]
+    }
+    assert comparison["participant_pool"]["after"]["spacing"][
+        "unavoidable_back_to_back_days"
+    ] == 1
+    findings = [
+        finding
+        for finding in _spacing_findings(_rotatable_problem(red, green, other), after)
+        if finding["club"] == "Jutul"
+    ]
+    assert len(findings) == 1
+    assert findings[0]["consequence_scope"] == "rotatable_participant_pool"
+
+
+def test_multi_team_club_without_explicit_pool_keeps_exact_team_gate() -> None:
+    red = _team("Jutul", "Jutul Rød")
+    green = _team("Jutul", "Jutul Grønn")
+    other = _team("Jar", "Jar 1")
+    before = {
+        "tournaments": [
+            _tournament("a", "2026-11-01", "Jar", [red, other]),
+            _tournament("b", "2026-11-15", "Jar", [red, green, other]),
+        ]
+    }
+    after = {
+        "tournaments": [
+            _tournament("a", "2026-11-01", "Jar", [red, other]),
+            _tournament("x", "2026-11-06", "Jar", [red, other]),
+            _tournament("b", "2026-11-15", "Jar", [red, green, other]),
+        ]
+    }
+
+    comparison = compare_team_schedule_consequence(
+        before,
+        after,
+        ("Jutul", "Jutul Rød", "U9"),
+        problem={"teams": [red, green, other]},
+    )
+
+    assert "participant_pool" not in comparison
+    assert "more_gaps_under_7_days" in {
+        item["code"] for item in comparison["material_regressions"]
+    }
 
 
 def test_team_consequence_allows_small_nonmaterial_tradeoff() -> None:

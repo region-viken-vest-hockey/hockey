@@ -581,20 +581,10 @@ def _booking_feasibility_findings(verification: Mapping[str, Any]) -> List[Dict[
 def _spacing_findings(
     problem: Mapping[str, Any], plan: Mapping[str, Any]
 ) -> List[Dict[str, Any]]:
-    """Actionable temporal-clustering findings for teams with a tight local cluster.
+    """Find actionable unavoidable temporal clusters for teams or declared pools."""
 
-    A team whose own tournaments fall within a few days of each other is a real
-    schedule-quality defect. The finding names the cluster and, crucially,
-    allows the bounded search to enumerate *cross-age* placement exchanges for
-    the clustered tournaments instead of concluding the cluster is
-    structurally unavoidable because same-age moves failed.
-    """
-
-    from tournament_scheduler.participation.team_schedule_quality import (
-        CLOSE_GAP_DAYS,
-        PREFERRED_GAP_DAYS,
-        team_schedule_profile,
-    )
+    from tournament_scheduler.participation.team_schedule_quality import CLOSE_GAP_DAYS, PREFERRED_GAP_DAYS
+    from tournament_scheduler.season.spacing_finding_subject import spacing_finding_subject
 
     out: List[Dict[str, Any]] = []
     tournaments = [
@@ -610,13 +600,15 @@ def _spacing_findings(
         )
         if not identity[0] or not identity[1]:
             continue
-        profile = team_schedule_profile(plan, identity, problem=problem)
-        gaps = profile.get("spacing") or {}
-        min_gap = gaps.get("min_gap_days")
-        if min_gap is None or int(min_gap) >= CLOSE_GAP_DAYS:
+        subject = spacing_finding_subject(plan, problem, identity)
+        if subject is None:
             continue
+        pool = subject["pool"]
+        profile_dates = subject["dates"]
+        min_gap = subject["min_gap"]
+        pool_labels = subject["labels"]
         cluster_dates = _clustered_dates(
-            profile.get("tournament_dates") or [],
+            profile_dates,
             close_gap=CLOSE_GAP_DAYS,
             neighbor_gap=PREFERRED_GAP_DAYS,
         )
@@ -629,22 +621,27 @@ def _spacing_findings(
             if str(tournament.get("date") or "") in cluster
             and any(
                 str(member.get("club") or "") == identity[0]
-                and str(member.get("label") or "") == identity[1]
+                and str(member.get("label") or "") in pool_labels
                 and not bool(member.get("guest", False))
                 for member in tournament.get("teams", []) or []
             )
         )
         if len(tournament_ids) < 2:
             continue
+        subject_label = str(subject["subject_label"])
         out.append(
             {
-                "finding_id": f"temporal_clustering:{identity[0]}:{identity[1]}:{identity[2]}",
+                "finding_id": f"temporal_clustering:{identity[0]}:{subject_label}:{identity[2]}",
                 "code": "temporal_clustering",
                 "category": TEMPORAL_CLUSTERING,
                 "severity": "strong_goal",
                 "age_group": identity[2],
                 "club": identity[0],
                 "team": identity[1],
+                "consequence_scope": (
+                    "rotatable_participant_pool" if pool is not None else "exact_team"
+                ),
+                "participant_pool": pool,
                 "team_identity": {
                     "club": identity[0],
                     "label": identity[1],
@@ -655,7 +652,7 @@ def _spacing_findings(
                 "tournament_id": tournament_ids[0],
                 "min_gap_days": int(min_gap),
                 "message": (
-                    f"{identity[0]} {identity[1]} plays {len(profile.get('tournament_dates') or [])} "
+                    f"{identity[0]} {subject_label} plays {len(profile_dates)} "
                     f"tournaments with a {int(min_gap)}-day minimum gap; the cluster around "
                     f"{', '.join(sorted(cluster))} may be repairable by a placement exchange"
                 ),

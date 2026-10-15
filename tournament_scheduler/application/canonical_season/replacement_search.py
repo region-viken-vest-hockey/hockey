@@ -1,7 +1,6 @@
 """Read-only participant-replacement discovery and lexicographic ranking.
 
-This owner composes canonical booking, replacement-preview, participation and
-team-consequence capabilities. It never writes state or applies its result.
+Composes canonical capabilities without writing or applying a result.
 """
 
 from __future__ import annotations
@@ -21,6 +20,7 @@ from tournament_scheduler.season.request_constraints import (
 from tournament_scheduler.season.state import canonical_state_revision
 
 from .replacement import _apply_replace_participant_to_plan, replace_participant
+from .replacement_search_pool import effective_spacing_delta
 from .replacement_search_evidence import (
     booked_projection,
     eligible_incoming,
@@ -177,6 +177,17 @@ def search_participant_replacements(
                 booked_before, booked_after, added_identity, problem=problem
             )
             opponent, travel = opponent_travel(consequence)
+            exact_spacing_delta = {
+                key: metric_delta(added_before, added_after, key)
+                for key in (
+                    "back_to_back_weekends",
+                    "gaps_under_7_days",
+                    "gaps_under_14_days",
+                )
+            }
+            spacing_delta, pool_consequence = effective_spacing_delta(
+                consequence, exact_spacing_delta
+            )
             details = preview.get("replacement") or {}
             planned_dates = team_dates(plan, added_identity)
             try:
@@ -222,14 +233,12 @@ def search_participant_replacements(
                     },
                     "added_team": {"before": added_before, "after": added_after},
                 },
-                "spacing_clustering_delta": {
-                    key: metric_delta(added_before, added_after, key)
-                    for key in (
-                        "back_to_back_weekends",
-                        "gaps_under_7_days",
-                        "gaps_under_14_days",
-                    )
-                },
+                "spacing_clustering_delta": spacing_delta,
+                "spacing_clustering_scope": (
+                    "rotatable_participant_pool" if pool_consequence else "exact_team"
+                ),
+                "exact_team_spacing_clustering_delta": exact_spacing_delta,
+                "participant_pool_consequence": pool_consequence,
                 "opponent_exposure_delta": opponent,
                 "travel_delta": travel,
                 "active_protection_request_effects": {

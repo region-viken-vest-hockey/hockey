@@ -89,6 +89,8 @@ def load_effective_config(
         merged["max_hosting_days_per_month"] = raw["max_hosting_days_per_month"]
     if raw.get("participation_targets_by_age_group"):
         merged["participation_targets_by_age_group"] = raw["participation_targets_by_age_group"]
+    if raw.get("rotatable_participant_pools"):
+        merged["rotatable_participant_pools"] = raw["rotatable_participant_pools"]
     merged["sources"] = raw.get("sources", [])
 
     # Age groups: explicit input workbook value only; downstream can fall back

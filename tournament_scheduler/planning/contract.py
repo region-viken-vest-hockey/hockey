@@ -248,6 +248,19 @@ def build_planning_problem(
             else {}
         ),
         "participation_targets_by_age_group": config.get("participation_targets_by_age_group") or {},
+        # Explicit club + age-group sibling pools are part of the promoted,
+        # revision-bound verification context. Multi-team registration alone
+        # never implies rotatability. Omit the key when undeclared so existing
+        # problem fingerprints remain stable.
+        **(
+            {
+                "rotatable_participant_pools": [
+                    dict(pool) for pool in config.get("rotatable_participant_pools", [])
+                ]
+            }
+            if config.get("rotatable_participant_pools")
+            else {}
+        ),
         # Optional explicit participation hard maximum -- a genuinely hard rule,
         # never inferred from the target (see participation/targets.py). Omitted
         # unless a caller/config explicitly configures one, so the canonical

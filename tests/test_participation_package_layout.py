@@ -14,6 +14,8 @@ PARTICIPATION_MODULES = {
     "fairness_scoring",
     "home_representation",
     "opponent_diversity",
+    "participant_pool_consequences",
+    "participant_pools",
     "targets",
     "team_schedule_quality",
     "temporal_coverage",
