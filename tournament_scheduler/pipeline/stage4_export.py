@@ -61,7 +61,7 @@ from .stage4_export_timing import (
     DEFAULT_EXPORT_DIR,
     DEFAULT_BASENAME,
     _TIMESTAMP_DIR_RE,
-    _prune_old_exports,
+    _prune_draft_exports_for_export,
     _resolve_build_timestamp,
 )
 from .stage4_export_xlsx import _normalize_export_workbooks
@@ -489,7 +489,7 @@ def run(
                 schedule_projection=schedule_projection,
             )
             output_files["export_manifest"] = str(primary_export_path / EXPORT_LIFECYCLE_FILENAME)
-            pruned_exports = _prune_old_exports(primary_export_path.parent)
+            pruned_exports = _prune_draft_exports_for_export(primary_export_path.parent, canonical_season, resolved)
         checkpoint = {
             "generated_at": generated_at,
             "input_path": input_path,
@@ -1168,7 +1168,7 @@ def run(
                 schedule_projection=schedule_projection,
             )
             output_files["export_manifest"] = str(primary_export_path / EXPORT_LIFECYCLE_FILENAME)
-            pruned_exports = _prune_old_exports(primary_export_path.parent)
+            pruned_exports = _prune_draft_exports_for_export(primary_export_path.parent, canonical_season, resolved)
             if pruned_exports:
                 _progress(f"Fjernet {len(pruned_exports)} eldre eksport(er): {', '.join(pruned_exports)}")
         except Exception as exc:  # noqa: BLE001
