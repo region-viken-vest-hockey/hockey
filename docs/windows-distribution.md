@@ -254,6 +254,73 @@ does not decide season content, and it does not replace `CanonicalSeasonStore`'s
 - **Operator CLI surface** for clone, refresh, status and commit is not exposed yet.
 - **Gate wiring** into the other canonical mutation paths (see above).
 
+## Claude runtime readiness and dispatch (sub-issue #620)
+
+Implemented in `tournament_scheduler/infrastructure/claude_runtime/` and tested offline in
+`tests/test_claude_runtime_*.py`. A fake runner stands in for the Claude executable, so no test
+starts Claude, logs in or reaches the network.
+
+### Readiness states
+
+`probe_runtime(runner)` runs `claude --version`, then `claude auth status --json`, and stops at the
+first failing check (fail closed):
+
+| State | Condition | Operator recovery |
+|---|---|---|
+| `not-installed` | executable not on PATH | install the supported Claude Code CLI |
+| `incompatible-version` | version outside the contract range | install a supported version |
+| `unverifiable` | version or auth status missing or unparseable | run the check again |
+| `not-authenticated` | `loggedIn` is false | sign in (`claude auth login`), no reinstall |
+| `auth-expired` | a dispatched run is rejected for authentication | sign in again, no reinstall |
+| `ready` | in range and signed in | none |
+
+`RuntimeReadiness.to_dict()` is the operator-safe view. It holds state, message, version, the
+auth method and the recovery text. It never holds the account email, organisation id or any token.
+
+### Compatibility contract
+
+`SUPPORTED_CONTRACT` (`contract.py`) declares the supported Claude Code range,
+`>= 2.1.0` and `< 3.0.0`, and the agent protocol version `1`. The range is the 2.1.x line that was
+verified on this build VM (2.1.296). Major version 3 is excluded until it has been assessed.
+
+### Dispatch (fail closed before mutation)
+
+`dispatch_operate(request, readiness=..., runner=..., repo_root=...)`:
+
+1. refuses unless the readiness is `ready` and the package protocol equals the contract protocol;
+2. only then starts one process: `claude -p "/rvv-miniputt:operate <request>"` in the checkout.
+
+The existing Claude transport (`.claude/commands/rvv-miniputt/operate.md`) loads the shared
+procedure. The `/rvv-miniputt:operate` argument is the operator request as intent. No scheduling,
+verification, prompt policy or audit logic is in the Windows adapter. The refusal happens before the
+runner is called, so no canonical mutation is dispatched when the runtime is missing, signed out,
+expired, incompatible or on a mismatched protocol. A dispatch failure that looks like an
+authentication rejection is reported as `auth-expired`.
+
+Tokens and account identity are never read by this package. Claude stores its own credentials outside
+the repository. The package has no logging. Its errors and readiness never contain probe or dispatch
+output.
+
+### Sign-in
+
+`launch_login()` starts `claude auth login` as a subprocess attached to the console. The Claude CLI
+performs the browser or OAuth flow. Nothing is captured.
+
+### Not implemented in this slice
+
+- **No operator CLI or UI surface.** Nothing calls `probe_runtime` or `dispatch_operate` from the
+  `rvv-miniputt` command or the packaged application yet, so the states are not shown to an operator.
+- **Protocol check against the repository.** The protocol version is declared in the package. It
+  is not yet compared with a repository-declared protocol marker. The caller supplies the version.
+- **Auth-expiry detection is heuristic.** The probe does not see expiry directly. `auth-expired` comes
+  from matching authentication-rejection markers in a failed dispatch. The exact expiry signal of
+  `claude auth status` was not verified here.
+- **Windows packaging of Claude.** Whether the Claude CLI can be installed or run under a restricted
+  Windows account is not decided or verified. The package does not bundle Claude.
+- **Dispatch permissions.** `claude -p` runs with the CLI's normal permission prompts. Non-interactive
+  tool approval for the operate procedure is not configured here.
+- **Login verification.** The interactive sign-in was not run. Only the argv is tested.
+
 ## Verification status
 
 | Check | Status |
@@ -264,5 +331,7 @@ does not decide season content, and it does not replace `CanonicalSeasonStore`'s
 | PyInstaller analysis and bundling of the spec | Verified on Linux with a scratch build (not Windows). All 30 HTML templates are bundled. |
 | Frozen binary: `--help`, `status`, separation guard | Verified on Linux. |
 | Windows binary, no-admin install/launch/uninstall, restricted user rights | **Not verified here.** Requires a Windows machine. |
+| Claude readiness states, compatibility gate, fail-closed dispatch, credential-free output (`tests/test_claude_runtime_*.py`) | Run in the repository gate, offline with a fake runner. The real Claude CLI 2.1.296 was probed on this VM (read-only `--version` and `auth status`). |
+| Interactive Claude sign-in, real operate dispatch from the packaged app, Windows Claude install | **Not verified here.** Needs an operator login and a Windows machine. |
 | Norwegian filenames, Excel/CSV/iCal exports opening on Windows | **Not verified here.** |
 | Representative read-only RVV commands against copied canonical data on Windows | **Not verified here.** |
