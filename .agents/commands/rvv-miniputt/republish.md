@@ -122,6 +122,26 @@ The publication boundary builds the sanitized public bundle, re-verifies parity,
 
 On success report: published URL, run id, canonical revision and the retained evidence path. On failure, published output is left unchanged; report the exact blocking gate and the operator question instead of improvising around it.
 
+## 6. Reconcile and checkpoint expected post-publication bookkeeping
+
+A successful publish is expected to mutate durable publication bookkeeping even when tournament operations are unchanged. Do not make the operator repeatedly investigate these expected changes as if they were suspicious canonical drift.
+
+After successful publication, inspect and classify the working-tree delta. The normal publication-bookkeeping envelope is:
+
+- `season/<season>/season.json`: canonical revision and partition hash movement caused by publication bookkeeping;
+- `season/<season>/decisions/operations.json`: appended publication history / published baseline / publication lifecycle metadata;
+- `season/<season>/evidence/publications/<publication_id>/`: retained before/after publication evidence and rollback provenance;
+- `season/<season>/change-log.md`: regenerated deterministic projection reflecting the post-publication canonical revision;
+- the exact export directory used for publication, when export artifacts are repository-tracked by the current workflow.
+
+For a presentation-only republish, verify before checkpointing that `schedule.json`, tournament placements, participants, booking evidence and the ordinary decisions partition are unchanged from the pre-publish canonical state. A revision change caused solely by the operations/publication partition is expected and is not a schedule mutation.
+
+Always reconcile `change-log.md` through the repository-owned generator before judging the final post-publish diff. If the file is missing, stale or was transiently removed during publication, regenerate it canonically rather than escalating the absence by itself. A clean regenerated ledger whose only relevant change is the expected post-publication revision/bookkeeping is part of the normal checkpoint.
+
+When the remaining delta is limited to that expected envelope and the operational-state verification passes, treat it as the successful publication checkpoint: report it as expected bookkeeping and commit it coherently without asking the operator to decide file-by-file or re-investigate why publication records changed the canonical revision. Do not publish again as part of this checkpoint.
+
+Stop and investigate only when the post-publish delta escapes the expected envelope, including any unexplained change to schedule/tournament facts, participants, bookings, ordinary decisions/protections/requests, unrelated canonical files, or a `change-log.md` regeneration that reveals more than expected publication bookkeeping.
+
 ## Rollback
 
 The previous published run stays reachable at `/runs/<run_id>/` and through the retained evidence. If the replacement must be undone:
