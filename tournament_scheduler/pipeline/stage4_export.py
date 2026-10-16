@@ -45,6 +45,7 @@ from ..ical.ical_exporter import ICalExporter
 from ..csv.csv_exporter import CsvExporter
 from ..html.html_exporter import HtmlExporter
 from ..html import CANCELLED_TOURNAMENTS_FILENAME, SEASON_CHANGES_FILENAME
+from ..html.data_computation import season_label
 from .stage1_config import load_effective_config
 from .state import PipelineState, StageName, StageStatus
 from ..serialization.season_plan import season_plan_from_dict
@@ -874,6 +875,7 @@ def run(
             _generate_input_html(
                 teams=list(input_context.get("teams") or []),
                 export_dir=str(primary_export_path),
+                season_label=season_label(plan),
             )
             _input_html_path = str(primary_export_path / "input.html")
             output_files["input_html"] = _input_html_path

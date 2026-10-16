@@ -2039,6 +2039,7 @@ class TestRunStage4:
         input_html = input_html_path.read_text(encoding="utf-8")
         assert "Kongsberg U10A" in input_html
         assert "Skien U10A" in input_html
+        assert "<title>Påmeldte lag 2025/2026 — RVV Hockey</title>" in input_html
 
         html = Path(files["html"]).read_text(encoding="utf-8")
         assert 'href="input.html"' in html, "season_plan.html navbar must link to input.html when it was generated"
