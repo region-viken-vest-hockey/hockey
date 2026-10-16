@@ -9,12 +9,17 @@ with no actual freshness problem.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
 from tournament_scheduler.cli.rvv_cli import main
+from tournament_scheduler.infrastructure.canonical_season_migration import (
+    migrate_season_to_partitioned,
+)
 from tournament_scheduler.pipeline.export_parity.gate import publish_parity_gate
 from tournament_scheduler.pipeline.state import PipelineState, StageName
+from tournament_scheduler.publication.export_lifecycle import write_draft_manifest
 from tournament_scheduler.application.canonical_season.store_facade import (
     add_banned_date,
     canonical_state_revision,
@@ -265,10 +270,10 @@ def test_repeated_mark_export_fresh_of_unchanged_state_is_idempotent(
     assert len(_mark_export_fresh_events(after_second)) == 1
 
 
-def test_mark_export_fresh_noop_still_binds_the_current_revision(
+def test_mark_export_fresh_already_fresh_path_does_not_commit(
     tmp_path: Path, monkeypatch
 ) -> None:
-    """A write landing after an already-fresh read must not be reported fresh."""
+    """The semantic no-op must never invoke the physically rewriting store."""
 
     revision = _stale_after_refresh(tmp_path, monkeypatch)
     root = tmp_path / "season"
@@ -276,33 +281,17 @@ def test_mark_export_fresh_noop_still_binds_the_current_revision(
 
     first = service.mark_export_fresh(season=SEASON, expected_revision=revision)
     assert first["cleared"] is True
-    already_fresh_snapshot = service.load(SEASON)
 
-    # A decision-only mutation advances canonical state but does not arm the
-    # export-freshness latch, so the stale snapshot still looks already fresh.
-    add_banned_date(
-        season=SEASON,
-        date="2027-01-15",
-        request_id="noop-interleave",
-        root=root,
-        note="state advanced after export",
-    )
-    current_revision = canonical_state_revision(
-        load_schedule(SEASON, root=root), load_decisions(SEASON, root=root)
-    )
-    assert current_revision != revision
+    def unexpected_commit(*_args, **_kwargs):
+        raise AssertionError("already-fresh export must not commit canonical state")
 
-    # Hold the already-fresh read past the concurrent write, so only the CAS can
-    # stop the idempotent no-op from blessing an obsolete export.
-    monkeypatch.setattr(service, "load", lambda season: already_fresh_snapshot)
+    monkeypatch.setattr(service, "_commit", unexpected_commit)
     result = service.mark_export_fresh(season=SEASON, expected_revision=revision)
 
-    assert result["cleared"] is False
-    assert result["reason"] == "canonical_state_changed_during_commit"
-    # The newer canonical revision is still on disk; the stale no-op did not win.
-    decisions = load_decisions(SEASON, root=root)
-    assert decisions["canonical_state_revision"] == current_revision
-    assert decisions["export_state"]["fresh_canonical_revision"] == revision
+    assert result["cleared"] is True
+    assert result["reason"] == "already_fresh"
+    assert result["canonical_state_revision"] == revision
+    assert result["committed_canonical_state_revision"] == revision
 
 
 def test_season_export_is_stale_when_freshness_does_not_cover_artifacts(
@@ -379,3 +368,84 @@ def test_repeated_season_export_does_not_churn_canonical_history(
     assert len(_mark_export_fresh_events(after_second)) == 1
     assert after_second["canonical_state_revision"] == first_revision
     assert after_second["updated_at"] == after_first["updated_at"]
+
+
+def _canonical_tree_bytes(root: Path) -> dict[str, bytes]:
+    season_root = root / SEASON
+    return {
+        str(path.relative_to(season_root)): path.read_bytes()
+        for path in sorted(season_root.rglob("*"))
+        if path.is_file()
+    }
+
+
+def test_presentation_only_export_keeps_already_fresh_partitioned_season_byte_exact(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    """Renderer-only regeneration must not rewrite partitioned canonical files."""
+
+    _stale_after_refresh(tmp_path, monkeypatch)
+    root = tmp_path / "season"
+    common_args = [
+        "season",
+        "export",
+        "--season",
+        SEASON,
+        "--work-dir",
+        str(tmp_path / ".pipeline"),
+        "--root",
+        str(root),
+        "--flat",
+    ]
+
+    # First perform the explicit stale -> fresh transition, then preserve that
+    # same semantic state in the production partitioned layout.
+    assert main([*common_args, "--export-dir", str(tmp_path / "initial-export")]) == 0
+    capsys.readouterr()
+    migrate_season_to_partitioned(SEASON, root=root)
+    # Materialize the deterministic change ledger that accompanies the real
+    # tracked partitioned season before taking the byte-level baseline.
+    assert main([*common_args, "--export-dir", str(tmp_path / "partitioned-baseline")]) == 0
+    capsys.readouterr()
+    before = _canonical_tree_bytes(root)
+
+    # The minimal promoted fixture predates canonical manifest metadata. Supply
+    # the same revision-bound draft manifest that a production canonical export
+    # carries so the presentation contract can prove artifact parity.
+    import tournament_scheduler.cli.season_presentation_export as presentation_cli
+
+    real_export = presentation_cli.run_canonical_season_export
+
+    def export_with_manifest(args):
+        result = real_export(args)
+        write_draft_manifest(
+            result["export_dir"],
+            export_id="presentation-byte-stability",
+            generated_at="2026-10-16T00:00:00+00:00",
+            export_fingerprint=result["export_fingerprint"],
+            source_run_id=None,
+            canonical_season=SEASON,
+            canonical_revision=result["canonical_revision"],
+        )
+        return result
+
+    monkeypatch.setattr(presentation_cli, "run_canonical_season_export", export_with_manifest)
+
+    rc = main(
+        [
+            *common_args,
+            "--export-dir",
+            str(tmp_path / "presentation-export"),
+            "--presentation-only",
+        ]
+    )
+    report = json.loads(capsys.readouterr().out)
+
+    assert report["artifact_parity"]["status"] == "PASS", report["artifact_parity"].get("reasons")
+    assert rc == 0, report
+    assert report["status"] == "PASS"
+    assert report["canonical_revision_unchanged"] is True
+    assert report["canonical_schedule_or_decisions_changed"] is False
+    assert report["artifact_parity"]["status"] == "PASS"
+    assert report["publication"] == {"performed": False, "authorized": False}
+    assert _canonical_tree_bytes(root) == before
