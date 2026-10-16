@@ -11,6 +11,50 @@
     <option value="">Alle arenaer</option>
   </select>
   $APPROVAL_FILTER$
+  <label class="filter-toggle" style="display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:0 10px;border:1px solid var(--border-dim);border-radius:8px;color:var(--text-muted);font-size:12px;white-space:nowrap;cursor:pointer">
+    <input type="checkbox" id="filterUpcoming" checked>
+    Kun kommende
+  </label>
   <input type="text" id="filterSearch" class="filter-input" placeholder="Søk etter lag…">
   <button type="button" id="filterClear" class="filter-clear">Nullstill filtre</button>
 </div>
+<script>
+(function() {
+  function localIsoDate() {
+    var now = new Date();
+    var y = String(now.getFullYear());
+    var m = String(now.getMonth() + 1).padStart(2, '0');
+    var d = String(now.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var upcoming = document.getElementById('filterUpcoming');
+    var clear = document.getElementById('filterClear');
+    if (!upcoming || typeof TOURNAMENTS === 'undefined' || typeof render !== 'function') return;
+
+    // Keep a stable copy of the complete exported season. TOURNAMENTS itself is
+    // intentionally mutated in place because the existing schedule renderer and
+    // filter helpers all reference that shared array.
+    var allTournaments = TOURNAMENTS.slice();
+
+    function applyUpcomingFilter() {
+      var source = upcoming.checked
+        ? allTournaments.filter(function(t) { return !t.d || t.d >= localIsoDate(); })
+        : allTournaments;
+      TOURNAMENTS.splice.apply(TOURNAMENTS, [0, TOURNAMENTS.length].concat(source));
+      render();
+    }
+
+    upcoming.addEventListener('change', applyUpcomingFilter);
+    if (clear) {
+      clear.addEventListener('click', function() {
+        upcoming.checked = true;
+        applyUpcomingFilter();
+      });
+    }
+
+    applyUpcomingFilter();
+  });
+})();
+</script>
