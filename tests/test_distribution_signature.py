@@ -102,7 +102,7 @@ def test_signature_by_a_different_key_under_a_trusted_id_is_a_bad_signature(monk
     raw = _raw()
     impostor, _ = _other_key_pair()
     with pytest.raises(du.UntrustedManifestError, match="does not verify"):
-        du.verify_manifest_signature(raw, sign(raw, key=impostor))
+        du.verify_manifest_signature(raw, sign(raw, signer=impostor))
 
 
 def test_flipped_signature_bits_are_rejected():
@@ -148,12 +148,12 @@ def test_additive_rotation_accepts_old_and_new_key_and_retired_key_is_refused(mo
     trust(monkeypatch, {"rvv-release-old": old_public, "rvv-release-new": new_public})
     raw = _raw()
 
-    assert du.verify_manifest_signature(raw, sign(raw, key=TEST_SIGNER, key_id="rvv-release-old")) == "rvv-release-old"
-    assert du.verify_manifest_signature(raw, sign(raw, key=new_key, key_id="rvv-release-new")) == "rvv-release-new"
+    assert du.verify_manifest_signature(raw, sign(raw, signer=TEST_SIGNER, key_id="rvv-release-old")) == "rvv-release-old"
+    assert du.verify_manifest_signature(raw, sign(raw, signer=new_key, key_id="rvv-release-new")) == "rvv-release-new"
 
     trust(monkeypatch, {"rvv-release-new": new_public})
     with pytest.raises(du.UntrustedManifestError, match="not trusted"):
-        du.verify_manifest_signature(raw, sign(raw, key=TEST_SIGNER, key_id="rvv-release-old"))
+        du.verify_manifest_signature(raw, sign(raw, signer=TEST_SIGNER, key_id="rvv-release-old"))
 
 
 def test_empty_trust_root_offers_no_update(monkeypatch, tmp_path):
@@ -172,7 +172,7 @@ def test_untrusted_manifest_cannot_lower_the_write_floor(tmp_path):
     attacker_key, _ = _other_key_pair()
     forged = _raw(minimum_write_version="1.0.0", minimum_supported_version="1.0.0")
 
-    for signature in (sign(forged, key=attacker_key), sign(forged, key_id="unknown-key")):
+    for signature in (sign(forged, signer=attacker_key), sign(forged, key_id="unknown-key")):
         result = du.check_for_update("1.5.0", URL, SIGNATURE_URL, _Transport(forged, signature).as_transport(), tmp_path)
         assert result.status is du.UpdateStatus.UNTRUSTED
         assert result.manifest is None
@@ -198,7 +198,7 @@ def test_save_cache_refuses_untrusted_metadata(tmp_path):
     raw = _raw()
     attacker_key, _ = _other_key_pair()
     with pytest.raises(du.UntrustedManifestError):
-        du.save_cached_manifest(tmp_path, raw, sign(raw, key=attacker_key))
+        du.save_cached_manifest(tmp_path, raw, sign(raw, signer=attacker_key))
     assert not (tmp_path / du.CACHE_FILE_NAME).exists()
 
 

@@ -16,8 +16,8 @@ TEST_SIGNER = Ed25519PrivateKey.generate()
 TEST_PUBLIC_B64 = public_key_b64(TEST_SIGNER)
 
 
-def sign(raw: bytes, key: Ed25519PrivateKey = TEST_SIGNER, key_id: str = TEST_KEY_ID) -> bytes:
-    return sign_manifest_bytes(key, key_id, raw)
+def sign(raw: bytes, signer: Ed25519PrivateKey = TEST_SIGNER, key_id: str = TEST_KEY_ID) -> bytes:
+    return sign_manifest_bytes(signer, key_id, raw)
 
 
 def trust(monkeypatch, keys: dict[str, str] | None = None) -> None:
