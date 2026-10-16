@@ -43,7 +43,7 @@ help:
 	@echo ""
 	@echo "Setup and verification:"
 	@echo "  make bootstrap                     Set up a new machine/checkout with Python 3.12"
-	@echo "  make handover [ARGS='--issue N --json']  Read-only verified session handover"
+	@echo "  make handover [ARGS=\x27--issue N --json\x27]  Read-only verified session handover"
 	@echo "  make install                       Reinstall Python/project dependencies"
 	@echo "  make sync                          Alias for dependency convergence"
 	@echo "  make check [ARGS='...']            Run canonical verification via scripts/check"
