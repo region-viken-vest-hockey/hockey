@@ -16,9 +16,10 @@ artifact.
 The transition is idempotent: when the current revision is already recorded as
 fresh and no stale marker remains, the operation appends no history event and
 performs no canonical commit, leaving every canonical file byte-for-byte
-unchanged. Callers that require a stable revision across a larger operation
-(such as presentation-only regeneration) compare the authoritative revision
-before and after that operation.
+unchanged. A read-only expected-revision check under the season lock preserves
+the same return-boundary concurrency protection as the mutating path. Callers
+that require stability across a larger operation (such as presentation-only
+regeneration) additionally compare the authoritative revision before and after.
 """
 
 from __future__ import annotations
@@ -84,12 +85,27 @@ def mark_export_fresh(
     )
 
     if already_fresh:
+        # Re-read under the store's season lock at the return boundary. This is
+        # the read-only equivalent of the mutating path's compare-and-swap: it
+        # detects an interleaving write without staging or rewriting files.
+        validated = service.store.load(season)
+        validated_revision = canonical_state_revision(
+            validated.schedule, validated.decisions
+        )
+        if validated_revision != current_revision:
+            return {
+                "season": season,
+                "cleared": False,
+                "reason": "canonical_state_changed_during_commit",
+                "exported_canonical_revision": exported_revision,
+                "canonical_state_revision": validated_revision,
+            }
         return {
             "season": season,
             "cleared": True,
             "reason": "already_fresh",
-            "canonical_state_revision": current_revision,
-            "committed_canonical_state_revision": current_revision,
+            "canonical_state_revision": validated_revision,
+            "committed_canonical_state_revision": validated_revision,
             "export_state": previous_export_state,
         }
 

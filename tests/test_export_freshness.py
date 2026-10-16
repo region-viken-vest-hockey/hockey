@@ -294,6 +294,45 @@ def test_mark_export_fresh_already_fresh_path_does_not_commit(
     assert result["committed_canonical_state_revision"] == revision
 
 
+def test_mark_export_fresh_noop_still_binds_the_current_revision(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A write landing after an already-fresh read must not be reported fresh."""
+
+    revision = _stale_after_refresh(tmp_path, monkeypatch)
+    root = tmp_path / "season"
+    service = CanonicalSeasonService(root=root)
+
+    first = service.mark_export_fresh(season=SEASON, expected_revision=revision)
+    assert first["cleared"] is True
+    already_fresh_snapshot = service.load(SEASON)
+
+    # A decision-only mutation advances canonical state but does not arm the
+    # export-freshness latch, so the stale snapshot still looks already fresh.
+    add_banned_date(
+        season=SEASON,
+        date="2027-01-15",
+        request_id="noop-interleave",
+        root=root,
+        note="state advanced after export",
+    )
+    current_revision = canonical_state_revision(
+        load_schedule(SEASON, root=root), load_decisions(SEASON, root=root)
+    )
+    assert current_revision != revision
+
+    # Hold the already-fresh read past the concurrent write. The store's
+    # read-only expected-revision boundary must detect it without rewriting.
+    monkeypatch.setattr(service, "load", lambda season: already_fresh_snapshot)
+    result = service.mark_export_fresh(season=SEASON, expected_revision=revision)
+
+    assert result["cleared"] is False
+    assert result["reason"] == "canonical_state_changed_during_commit"
+    decisions = load_decisions(SEASON, root=root)
+    assert decisions["canonical_state_revision"] == current_revision
+    assert decisions["export_state"]["fresh_canonical_revision"] == revision
+
+
 def test_season_export_is_stale_when_freshness_does_not_cover_artifacts(
     tmp_path: Path, monkeypatch
 ) -> None:
