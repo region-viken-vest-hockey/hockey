@@ -9,9 +9,10 @@ GitHub Issues remain the only live implementation backlog.
 
 "Continue hockey from the repo handover; verify live state first."
 
-Local checkout: from the repository root run `make handover`, optionally
-`make handover ARGS='--issue N --json'`. This command is read-only. Season
-defaults to the single canonical `season/` directory. The repository is inferred
+Local checkout: for an `operate` request first run the repository freshness gate
+required by `operate.md`; after it reports `READY`, run `make handover`, optionally
+`make handover ARGS='--issue N --json'`. `make handover` itself is read-only.
+Season defaults to the single canonical `season/` directory. The repository is inferred
 from the origin remote; if the origin cannot be verified, `--repo` is required
 rather than guessed at the upstream default. Pass `--season`/`--repo` to
 override. It uses the canonical
@@ -22,8 +23,12 @@ report says REVIEW_REQUIRED; do not fill in gaps from memory.
 
 ## Required startup verification
 
-1. Read `AGENTS.md`, this procedure and only the task-relevant shared RVV
-   instructions. Current code/tests/controlled inputs outrank prose.
+1. For an `operate` request, run `make operate-preflight` before loading further
+   workflow instructions or evaluating lifecycle state. Continue only on `READY`,
+   retain its exact `workflow_commit`, and stop on `REVIEW_REQUIRED`; the gate
+   never discards local work. Then read `AGENTS.md`, this procedure and only the
+   task-relevant shared RVV instructions. Current code/tests/controlled inputs
+   outrank prose.
 2. Inspect local branch/HEAD/worktree, live remote `main` SHA and CI. If
    working in a feature branch, compare its base/current changes to main; the
    handover deliberately does not treat a divergent branch as current main.

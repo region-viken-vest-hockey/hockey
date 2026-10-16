@@ -14,6 +14,7 @@ CHECK ?= $(ROOT_DIR)/scripts/check
 RELEASE ?= $(ROOT_DIR)/scripts/release
 BOOTSTRAP ?= $(ROOT_DIR)/scripts/bootstrap
 HANDOVER ?= $(ROOT_DIR)/scripts/handover.py
+OPERATE_PREFLIGHT ?= $(ROOT_DIR)/scripts/operate-preflight.py
 INSTALL ?= $(ROOT_DIR)/scripts/install.sh
 PYTHON ?= $(ROOT_DIR)/venv/bin/python3
 SECRET_SCAN ?= $(ROOT_DIR)/scripts/secret-scan.sh
@@ -24,7 +25,7 @@ SEASON ?= 2026-2027
 
 export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CONFIRM_CLEANUP CSV ARGS BACKEND RESULT_FILE RESUME_AFTER_AUDIT
 
-PUBLIC_TARGETS := help bootstrap handover install sync check test dependency-lock secret-scan rules-report rule-catalog kampveileder-markdown \
+PUBLIC_TARGETS := help bootstrap handover operate-preflight install sync check test dependency-lock secret-scan rules-report rule-catalog kampveileder-markdown \
 	operator-run operator-run-force run status logs calendars calendars-refresh sources-status season-export season-presentation-export season-republish season-changes season-changes-markdown \
 	waiver \
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
@@ -44,6 +45,7 @@ help:
 	@echo "Setup and verification:"
 	@echo "  make bootstrap                     Set up a new machine/checkout with Python 3.12"
 	@echo "  make handover [ARGS=\x27--issue N --json\x27]  Read-only verified session handover"
+	@echo "  make operate-preflight [ARGS=\x27--json\x27]   Refresh/verify clean main before /operate"
 	@echo "  make install                       Reinstall Python/project dependencies"
 	@echo "  make sync                          Alias for dependency convergence"
 	@echo "  make check [ARGS='...']            Run canonical verification via scripts/check"
@@ -124,6 +126,12 @@ bootstrap:
 # must work before `make bootstrap` has provisioned the venv.
 handover:
 	@cd "$(ROOT_DIR)" && python3 "$(HANDOVER)" $(ARGS)
+
+# Like handover, this stdlib-only gate must work before the venv is provisioned.
+# It may only fast-forward a tracked-clean main; tracked changes/divergence/other
+# branches fail closed, while unrelated untracked artifacts are preserved.
+operate-preflight:
+	@cd "$(ROOT_DIR)" && python3 "$(OPERATE_PREFLIGHT)" $(ARGS)
 
 install:
 	@cd "$(ROOT_DIR)" && INSTALL='$(INSTALL)' ARGS='$(ARGS)' mise run install

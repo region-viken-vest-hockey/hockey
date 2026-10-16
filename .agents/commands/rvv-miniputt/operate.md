@@ -2,7 +2,9 @@
 
 This is the single operator-facing entry point for RVV Miniputt work. The operator states the desired outcome in ordinary language; the active harness determines the lifecycle, loads the relevant shared procedures, and uses repository-owned capabilities to carry it out.
 
-At the start of a new session or after context loss, first follow
+Before loading further repository workflow instructions, drawing lifecycle conclusions, or invoking any repository-owned operator workflow, run `make operate-preflight`. This fetches `origin/main` and fast-forwards only a tracked-clean, non-diverged local `main`; unrelated untracked artifacts are preserved, while Git still refuses an update that would overwrite one. Continue only when it reports `READY`; otherwise stop with its `REVIEW_REQUIRED` reason. Never switch branches, stash, reset, revert, clean, or discard work to make the gate pass. After `READY`, discard any pre-refresh copy of these instructions and reread this file from the updated checkout. Retain and report its `workflow_commit` as the exact repository contract used for the operation.
+
+After that gate, at the start of a new session or after context loss, follow
 `.agents/commands/rvv-miniputt/handover.md` and verify current refs; never
 reuse old conversation status as authority. This step grants no mutation or
 publication permission.
@@ -99,6 +101,7 @@ Report the result in operator terms:
 - unresolved findings or required host/operator confirmations;
 - verification and semantic-audit result;
 - resulting canonical/export revision or fingerprint when relevant;
+- the `workflow_commit` reported by `make operate-preflight`;
 - whether the result is ready for review or publication.
 
 Do not claim global optimality unless the repository actually proves it.

@@ -40,7 +40,6 @@ PI_PACKAGE = "@earendil-works/pi-coding-agent"
 
 SHARED_INSTRUCTIONS = (
     ".agents/commands/rvv-miniputt/operate.md",
-    ".agents/commands/rvv-miniputt/handover.md",
     "AGENTS.md",
     ".agents/skills/rvv/SKILL.md",
 )
