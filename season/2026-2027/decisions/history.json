@@ -57991,6 +57991,141 @@
       "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
       "tournament_fingerprint": "e4ef33013d71d33fc231d77147f1cd02e3a1cd7c79a8eac90d07c8243d5dfc35",
       "tournament_id": "rvv-0082"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-16T06:26:46.003087+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:d63ea9cddfb236ec",
+          "change:e3c24a89a05af331"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "Superseded by operator confirmation 2026-10-16: rvv-0029 U8 at Kongsberg 13.03.2027 10:30-13:00 (host calendar), replacing proposed 11:00 placement from club-feedback:kongsberg:u8:2026-10-11-to-march",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-16T06:27:05.351434+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 150,
+        "override_id": "ice-time-override:38e995c9bee733a1",
+        "reference": "Kongsberg webkalender (ishall), hendelse 'KIF ishockey - Miniput turnering U8' 13.03.2027 10:30-13:00, observert 16.10.2026; bekreftet av operatør",
+        "request_id": "manual-booking:rvv-0029:a831d1c84a09af7598478ac3a6fd58c03c73ec647b06d6647e547fa0a36a3ed4",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Kongsberg U8 rvv-0029 bekreftet av operatør 2026-10-16 på host-tid 13.03.2027 10:30-13:00 (planen var 11:00-13:35)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "e7cc5fc3089bde56c07e26ec6cd9a13746814a29b059ca74ca200f74e33ab86d",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0029"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-16T06:27:05.351434+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U8",
+          "date": "2027-03-13",
+          "duration_minutes": "150",
+          "end_time": "13:00",
+          "round_count": "5",
+          "start_time": "10:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:38e995c9bee733a1",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2027-03-13",
+            "duration_minutes": 150,
+            "end_time": "13:00",
+            "start_time": "10:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U8",
+            "date": "2027-03-13",
+            "duration_minutes": "155",
+            "end_time": "13:35",
+            "round_count": "5",
+            "start_time": "11:00"
+          }
+        },
+        "reconfirms_stale_reasons": [
+          "tournament_date_changed",
+          "tournament_duration_minutes_changed",
+          "tournament_end_time_changed",
+          "tournament_start_time_changed"
+        ],
+        "reference": "Kongsberg webkalender (ishall), hendelse 'KIF ishockey - Miniput turnering U8' 13.03.2027 10:30-13:00, observert 16.10.2026; bekreftet av operatør",
+        "source_scope": "tournament",
+        "stated_interval": {
+          "date": "2027-03-13",
+          "duration_minutes": "150",
+          "end": "13:00",
+          "start": "10:30"
+        },
+        "supersedes": "manual_booking:rvv-0029:2026-09-28T07:46:40.602545+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Kongsberg U8 rvv-0029 bekreftet av operatør 2026-10-16 på host-tid 13.03.2027 10:30-13:00 (planen var 11:00-13:35)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f3f27e903d70077ecc236218d0c40c28882757abd137ad6a86609bbffadcac13",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0029"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-16T06:27:49.543590+00:00",
+      "details": {
+        "assertion_id": "manual_booking:rvv-0016:2026-09-28T07:46:32.308616+00:00"
+      },
+      "event": "clear_manual_booking_assertion",
+      "note": "Turneringen er kansellert (cancellation_reason team_retirement, Kongsberg/Tønsberg JU12 trukket); klubbens bekreftelse gjelder ikke lenger",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f3f27e903d70077ecc236218d0c40c28882757abd137ad6a86609bbffadcac13",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0016"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-16T06:27:50.009533+00:00",
+      "details": {
+        "assertion_id": "manual_booking:rvv-0103:2026-09-28T07:46:56.788582+00:00"
+      },
+      "event": "clear_manual_booking_assertion",
+      "note": "Turneringen er kansellert (cancellation_reason team_retirement, Kongsberg/Tønsberg JU12 trukket); klubbens bekreftelse gjelder ikke lenger",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f3f27e903d70077ecc236218d0c40c28882757abd137ad6a86609bbffadcac13",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0103"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-16T06:28:38.722354+00:00",
+      "details": {
+        "canonical_state_revision": "245e425ef51ba508c04a5ca42d5c20220ecafb0d9e4acf8d35e5e27b41ef89ee",
+        "export_dir": "export/2026-10-16T0628",
+        "previous_export_status": "fresh",
+        "previous_requires_fresh_export": false
+      },
+      "event": "mark_export_fresh",
+      "note": "canonical export",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f3f27e903d70077ecc236218d0c40c28882757abd137ad6a86609bbffadcac13",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ]
 }

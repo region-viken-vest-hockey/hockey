@@ -14286,7 +14286,7 @@
         ],
         "host_club": "Kongsberg",
         "id": "rvv-0029",
-        "start_time": "11:00",
+        "start_time": "10:30",
         "teams": [
           {
             "age_group": "U8",
@@ -41094,8 +41094,8 @@
   },
   "plan_schema_version": 1,
   "promoted_from": {
-    "export_fresh_at": "2026-10-15T21:47:34.027682+00:00",
-    "export_fresh_revision": "733cff02efb97ac68d6b200f090ce013b8c03e21a44cd6ae1a2557211f672e8f",
+    "export_fresh_at": "2026-10-16T06:28:38.722354+00:00",
+    "export_fresh_revision": "245e425ef51ba508c04a5ca42d5c20220ecafb0d9e4acf8d35e5e27b41ef89ee",
     "public_export_context_fingerprint": "f5ac564e3b0f7eac33196110185cb082556676d5fe9f8bbd33ea0be77bbfc415",
     "run_id": "20260918T135604Z-8d38f146",
     "stage3_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",

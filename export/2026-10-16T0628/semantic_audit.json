@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "audit_id": "rvv-republish-2026-10-16-rvv0029",
+  "generated_at": "2026-10-16T06:30:13.583731+00:00",
+  "run_id": "legacy",
+  "export_fingerprint": "f3f27e903d70077ecc236218d0c40c28882757abd137ad6a86609bbffadcac13",
+  "audit_context_fingerprint": "68653b34ba706164c372a08dd2705a5d95c13939750012563cf1673c6f0f0641",
+  "status": "REVIEW_REQUIRED",
+  "operator_assessment": {
+    "operator_summary": "Publiseringsdeltaet er ett punkt: rvv-0029 U8 flyttes fra 13.03 11:00–13:35 til 10:30–13:00, bekreftet av operatør mot Kongsberg-kalenderen. Deterministisk verifisering er OK, avstemming mot publisert baseline er OK, og publiseringsscope er ELIGIBLE. Full-sesong-gjelden er uendret og utenfor deltaet.",
+    "accepted_trade_offs": [
+      "Planlagt varighet for rvv-0029 er 150 min i stedet for 155 min, etter klubbens bekreftede host-intervall."
+    ],
+    "remaining_operator_actions": [
+      "Full-sesong-gjelden (participation shortfalls, hosting-balanse, uplasserte turneringer) er planleggingsgjeld og må håndteres separat.",
+      "Kalenderevidensen for Kongsberg bør committes med refresh-calendars, slik at den live hendelsen blir kanonisk evidens."
+    ],
+    "limitations": [
+      "Auditen dekker publiseringsdeltaet og ikke hele sesongen.",
+      "Kongsberg-feeden er delvis, og negativ evidens fra den er ikke bevist."
+    ]
+  },
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "Uendret planleggingsgjeld utenfor publiseringsdelta: 128 deltakerunderskudd og 22 avvik fra målantall (publication_readiness). Ingen av dem skyldes endringen rvv-0029.",
+      "severity": "major",
+      "confidence": "high",
+      "evidence": [
+        "publication_readiness.reasons: participation_shortfalls=128, participation_target_deviation=22"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "16 hosting-balanse-ubalanser og 9 uplasserte turneringer er uendret. rvv-0029 forblir vert Kongsberg, så hostingansvaret er ikke flyttet.",
+      "severity": "major",
+      "confidence": "high",
+      "evidence": [
+        "publication_readiness.reasons: hosting_balance_imbalances=16",
+        "published_to_canonical_delta: rvv-0029 host uendret"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "rvv-0029 er 150 min i kanonisk tilstand, eksport og booking-evidens (10:30–13:00). Auditprojeksjonen for tournament_duration viser fortsatt 155 min for samme turnering. Dette er en avvik i auditprojeksjonen, ikke i publisert data, og er informasjonsnivå.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence": [
+        "audit-evidence --tournament rvv-0029: tournament_duration 'duration=155 min'",
+        "season_plan booking_reconciliation.json: duration_minutes 150"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "rvv-0029 10:30–13:00 13.03.2027 i Kongsberghallen matches én hendelse i ny live-skraping (16.10 06:09), 'KIF ishockey - Miniput turnering U8'. Den nye skrapingen er ikke committet som kanonisk evidens ennå, og feeden er delvis, så dette er positiv evidens for dette intervallet, ikke full dekning av sesongen.",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        "refresh-calendars --dry-run: planned_tournament_reconciliation rvv-0029 same_date_overlap 10:30–13:00"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "Ikke kontrollert for rvv-0029 i denne auditen.",
+      "severity": "info",
+      "confidence": "low",
+      "evidence": [],
+      "could_not_establish": true
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt én gang per dag?",
+      "finding": "Ikke kontrollert for rvv-0029 i denne auditen. Deltakerlisten er uendret.",
+      "severity": "info",
+      "confidence": "low",
+      "evidence": [
+        "published_to_canonical_delta.participant_changes: []"
+      ],
+      "could_not_establish": true
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "Ikke kontrollert for denne endringen. Deltakerlisten er uendret.",
+      "severity": "info",
+      "confidence": "low",
+      "evidence": [],
+      "could_not_establish": true
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "export_consistency_summary matcher plan for CSV-overview, CSV-games og iCal. booking_reconciliation.json viser rvv-0029 som manually_booked 10:30–13:00. Jeg har ikke lest HTML/XLSX-innholdet for rvv-0029 individuelt; publiseringsgaten leser artefaktbytes tilbake.",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        "export_consistency_summary.checks: matches_plan=true"
+      ],
+      "could_not_establish": false
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?",
+      "finding": "To forhold. (a) rvv-0016 og rvv-0103 var kansellert, men hadde fortsatt aktive klubbbekreftelser fra Kongsberg. Disse er fjernet med booking-clear før eksport, og bookingstatus er nå ren. (b) rvv-0029 hadde plasseringsbeskyttelser fra en tidligere forespørsel (11:00). De er frigitt med eksplisitt supersession-notat, og rosterbeskyttelsene for Holmen er beholdt.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence": [
+        "booking-status etter booking-clear: ingen booked/manually_booked for rvv-0016/rvv-0103",
+        "release-protection change:d63ea9cddfb236ec, change:e3c24a89a05af331"
+      ],
+      "could_not_establish": false
+    }
+  ],
+  "potential_missing_rule": [
+    {
+      "description": "En kansellert turnering kan beholde en aktiv klubbbekreftelse fra en klubbsammenfattende kilde. Dette ga 'booked' i bookingstatus for kansellerte turneringer. Samme problem er registrert som #725.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence": [
+        "rvv-0016 og rvv-0103 før booking-clear"
+      ]
+    }
+  ],
+  "could_not_independently_establish": [
+    "Fullstendig dekning av Kongsberg-kalenderen: 10 datoer uten hentede hendelser i lagret skraping, og source_integrity er partial.",
+    "rvv-0016 og rvv-0103 mangler i ny skraping. Forklaringen er kansellering, som er bekreftet av operatør, men ikke uavhengig verifisert i klubbens kalender.",
+    "Holmen-rostertrader for rvv-0029 (must_participate/must_not_participate) er ikke revidert i denne auditen."
+  ],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "f3f27e903d70077ecc236218d0c40c28882757abd137ad6a86609bbffadcac13",
+  "publication_gate_status": "operator_review_required"
+}
