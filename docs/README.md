@@ -25,6 +25,7 @@ External federation policy is different: the NIHF Kampveileder is authoritative 
 | [`run-manifest-schema.md`](run-manifest-schema.md) | Durable run/decision state contract. |
 | [`engineering-principles.md`](engineering-principles.md) | Repository-wide engineering and maintenance principles. |
 | [`ci.md`](ci.md) | Verification and CI behavior. |
+| [`windows-distribution.md`](windows-distribution.md) | Self-contained Windows packaging layout, per-user data separation and update implications. |
 | [`security.md`](security.md) | Credential/session handling requirements. |
 | [`ownership-and-handover.md`](ownership-and-handover.md) | Operational ownership, recovery and maintainer transfer. |
 | [`power-automate-github-sync.md`](power-automate-github-sync.md) | Microsoft 365 registration/integration flow. |
