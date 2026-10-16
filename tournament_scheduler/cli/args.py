@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 
 from .parsers.distribution import add_distribution_parsers
+from .parsers.shell import add_shell_parsers
 from .parsers.export_parity import add_export_parity_parser
 from .parsers.operator_audit import add_operator_audit_subparsers
 from .parsers.intake import add_intake_parsers
@@ -108,5 +109,6 @@ def build_parser() -> argparse.ArgumentParser:
     add_export_parity_parser(sub)
 
     add_distribution_parsers(sub)
+    add_shell_parsers(sub)
 
     return parser

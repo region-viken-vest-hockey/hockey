@@ -251,7 +251,9 @@ does not decide season content, and it does not replace `CanonicalSeasonStore`'s
   network and the decided OAuth app, so they could not be tested offline here.
 - **Windows Credential Manager backend** (`CredReadW`/`CredWriteW`/`CredDeleteW`) is not written.
   It cannot be exercised on this Linux VM.
-- **Operator CLI surface** for clone, refresh, status and commit is not exposed yet.
+- **Clone and commit from the operator shell** are not exposed. Refresh and readiness are
+  (see the operator shell section below). Commit needs the season maintenance flow, which is
+  not wrapped yet.
 - **Gate wiring** into the other canonical mutation paths (see above).
 
 ## Claude runtime readiness and dispatch (sub-issue #620)
@@ -308,8 +310,8 @@ performs the browser or OAuth flow. Nothing is captured.
 
 ### Not implemented in this slice
 
-- **No operator CLI or UI surface.** Nothing calls `probe_runtime` or `dispatch_operate` from the
-  `rvv-miniputt` command or the packaged application yet, so the states are not shown to an operator.
+- **Dispatch is not exposed to the operator.** `probe_runtime` is shown by the operator shell
+  readiness view (see below). `dispatch_operate` is not called from any command yet.
 - **Protocol check against the repository.** The protocol version is declared in the package. It
   is not yet compared with a repository-declared protocol marker. The caller supplies the version.
 - **Auth-expiry detection is heuristic.** The probe does not see expiry directly. `auth-expired` comes
@@ -320,6 +322,100 @@ performs the browser or OAuth flow. Nothing is captured.
 - **Dispatch permissions.** `claude -p` runs with the CLI's normal permission prompts. Non-interactive
   tool approval for the operate procedure is not configured here.
 - **Login verification.** The interactive sign-in was not run. Only the argv is tested.
+
+## Operator shell (sub-issue #621)
+
+Implemented in `tournament_scheduler/operator_shell/` with thin handlers in
+`tournament_scheduler/cli/shell_command.py` and `cli/parsers/shell.py`. Tested offline in
+`tests/test_operator_shell_*.py` and `tests/test_cli_shell.py`. The shell is a CLI-hosted operator
+view. It is dependency-free: no GUI framework is added, and no graphical window is built.
+
+The shell owns no scheduling, verification, persistence or publication policy. It gathers facts
+from `distribution_update`, `repository_sync` and `claude_runtime`, and it wraps the gated flows.
+
+| Command | Kind | Behaviour |
+|---|---|---|
+| `rvv-miniputt shell` / `shell readiness [--json] [--repo PATH]` | read-only | Software version and update status, repository state, GitHub sign-in state, Claude readiness, and the reasons canonical writes are blocked. |
+| `rvv-miniputt shell refresh [--repo PATH]` | preview | Describes a fast-forward of local `main` to `origin/main`. Changes no working-tree or branch state. Prints the local `HEAD` to confirm. |
+| `rvv-miniputt shell refresh --confirm HEAD` | mutation | Fast-forwards only when the operator passes the previewed `HEAD`, the checkout is still merely `behind`, and git accepts it. Otherwise refuses with the reason and changes nothing. |
+| `rvv-miniputt shell publish` | handoff | Prints that publication is a separate, explicit step and never runs from the shell or from a refresh. |
+
+Exit status: `0` for a read-only view, a performed refresh, or a repository that is already
+current. `2` when a refresh is refused.
+
+`--repo` defaults to the current directory. The update cache is read from
+`<data root>/update-cache` (the data root follows `RVV_MINIPUTT_DATA_DIR` or the per-user default
+in `distribution.default_data_root`). Nothing in the shell reads a credential file, prints a token
+or prints an account identity.
+
+### Write blockers in operator language
+
+`ReadinessView.blockers` lists every reason canonical writes are blocked. Each reason comes from
+the owning service, and the shell only words it:
+
+| Source | Blocks writes when |
+|---|---|
+| Software version | the cached release manifest says the installed version is `update-required` or `unsupported`, or the cache is corrupt. An unknown minimum (no check has run) does not block, as in the write gate. |
+| Repository | the checkout is not `ready`: not cloned, unavailable, not on `main`, uncommitted changes, `behind`, `ahead` or `diverged`. |
+| GitHub sign-in | no sign-in is verified. A stored token is never treated as verified in this build, and the credential seam fails closed. |
+
+Claude readiness is shown but does **not** block canonical writes, so the command line stays usable
+without Claude.
+
+### Shell acceptance against #621
+
+| #621 criterion | Status in this slice |
+|---|---|
+| Representative read-only and mutation flows use shared services | **Partly done.** Readiness and refresh call `repository_sync`, `distribution_update` and `claude_runtime`. Season status, preview, apply and export are not wrapped yet. |
+| The UI contains no duplicated hard-rule or scheduling policy | **Done** for the shell. It classifies nothing that the services do not classify. |
+| Operator completes a normal supported workflow without terminal commands | **Not done.** Readiness and refresh are available, but no supported season workflow is in the shell. |
+| Canonical mutations require explicit confirmation after preview | **Done** for refresh (confirm binds to the previewed `HEAD`). The shell has no other canonical mutation. |
+| Publication stays a separate explicit action | **Done.** The shell never publishes, and a refresh never implies publication. |
+| Dirty, diverged, missing auth, unsupported version or failed verification block writes with an explanation | **Partly done.** Dirty, diverged, not cloned, missing or unverified sign-in, and unsupported or update-required versions are covered. **Failed verification is not**, because the shell runs no canonical verifier. |
+| Errors and recovery steps in operator language, diagnostic detail kept for support | **Partly done.** Messages are operator-facing. The `--json` output keeps the state codes for support. |
+| No generic shell, file editor or Git UI | **Done.** The shell has no file or Git passthrough. |
+
+### Shell open points
+
+- **Operate or request change is not in the shell.** `dispatch_operate` runs `claude -p`, and
+  non-interactive tool approval for the operate procedure is not configured or verified (see the
+  Claude section above). It stays out until that is decided.
+- **Season status, preview and apply, export and canonical commit** are not wrapped. They belong in
+  the existing season/application commands, and the shell should call them when they are ready.
+- **Checkout location.** The operator must pass `--repo` (or run from the checkout). The packaged
+  launcher changes into the data root, so the checkout path is not yet configured by default.
+- **Refresh binds to local `HEAD` and the `behind` state, not to the origin commit.** A new origin
+  commit after the preview is fast-forwarded to, as `refresh_main` always does.
+- **Preview fetches `origin/main`.** That updates the remote-tracking ref only. It is read-only for
+  the working tree and branches.
+- **No GUI.** A graphical window is not built and not verified. Remaining work for #621 is a
+  thin GUI over the same `operator_shell` services, if the operator needs one.
+
+## Epic #364 acceptance status (as of #621)
+
+Only items this repository can show are marked. Items that need Windows, a release channel, a signing
+decision or a real operator run stay open.
+
+| Epic criterion | Status |
+|---|---|
+| Non-developer can obtain and run `rvv-miniputt` without a checkout or dev tools | Not verified (Windows, release channel). |
+| Packaged executable targets the same application code as the repository CLI | Done for the entry point (#618). The shell is in the same package. |
+| Common workflows have documented stable machine-readable contracts | Partly: `shell readiness --json` and `version --json`. Season inspect, preview and apply are not documented. |
+| Structured output is clean | Partly: JSON output is credential-free. |
+| Normal operator workflows do not require Git commands or canonical JSON editing | Not done. Commit and season maintenance are not in the shell. |
+| Write operations are revision-aware and fail closed on stale state | Partly: refresh binds to `HEAD`. Canonical commit is gated but not revision-bound from the shell. |
+| Versioned GitHub software releases publish artifacts and manifest | Not done (no release workflow). |
+| Installed clients report application, protocol and schema compatibility | Partly: application version and update status. Protocol and schema are not reported by the shell. |
+| Read and write compatibility floors are explicit | Partly: manifest floors and the write gate (#622, #619). The gate is not wired into all mutation paths. |
+| Update failure leaves the previous version usable | Partly: offline Linux tests (#622). Not verified on Windows. |
+| Software update, repository sync, migration, season mutation, export and publication stay separate | Done for the shell: refresh does not update the software, and publication is a handoff only. |
+| Claude plugin or skill uses only the supported CLI surface | Not done (out of scope for this slice). |
+| CLI/plugin compatibility is explicit | Not done. |
+| Human CLI operation remains usable without Claude | Done for the shell: Claude is shown as optional and does not block canonical writes. |
+| Another consumer can use the same machine contract | Partly: `shell readiness --json`. |
+| Publication remains separately and explicitly authorized | Done for the shell (see above). |
+| Published-season maintenance semantics and canonical state are unchanged by packaging, distribution and update work | Done for this slice: the shell does not write canonical state. |
+| Clean-machine packaging, release and update checks and plugin/CLI workflows are covered by automated or reproducible release tests | Not done. |
 
 ## Verification status
 
@@ -335,3 +431,4 @@ performs the browser or OAuth flow. Nothing is captured.
 | Interactive Claude sign-in, real operate dispatch from the packaged app, Windows Claude install | **Not verified here.** Needs an operator login and a Windows machine. |
 | Norwegian filenames, Excel/CSV/iCal exports opening on Windows | **Not verified here.** |
 | Representative read-only RVV commands against copied canonical data on Windows | **Not verified here.** |
+| Operator shell readiness, blocked-write explanations, preview-then-confirm refresh, CLI wiring (`tests/test_operator_shell_*.py`, `tests/test_cli_shell.py`) | Run in the repository gate, offline against temporary local git repositories and fake Claude runners. Not run on Windows. |
