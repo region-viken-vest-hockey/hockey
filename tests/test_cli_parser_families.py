@@ -47,6 +47,7 @@ TOP_LEVEL_COMMANDS = (
     "plan",
     "waiver",
     "export-parity",
+    "version",
 )
 
 

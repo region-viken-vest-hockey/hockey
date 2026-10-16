@@ -60,24 +60,20 @@ def test_sibling_data_root_is_accepted_even_with_shared_name_prefix(tmp_path):
 def test_prepare_working_root_creates_data_root_sets_season_root_and_changes_directory(tmp_path, monkeypatch):
     data = tmp_path / "data"
     env: dict[str, str] = {}
-    original_cwd = Path.cwd()
-    try:
-        distribution.prepare_working_root(data, env)
-        assert data.is_dir()
-        assert Path.cwd() == data.resolve()
-        assert env[distribution.SEASON_ROOT_ENV_VAR] == str(data / "season")
-    finally:
-        monkeypatch.chdir(original_cwd)
+    # monkeypatch must record the original cwd before prepare_working_root changes it,
+    # otherwise teardown restores the data root and leaks it to later tests.
+    monkeypatch.chdir(tmp_path)
+    distribution.prepare_working_root(data, env)
+    assert data.is_dir()
+    assert Path.cwd() == data.resolve()
+    assert env[distribution.SEASON_ROOT_ENV_VAR] == str(data / "season")
 
 
 def test_prepare_working_root_respects_explicit_season_root(tmp_path, monkeypatch):
-    original_cwd = Path.cwd()
+    monkeypatch.chdir(tmp_path)
     env = {distribution.SEASON_ROOT_ENV_VAR: "/custom/season"}
-    try:
-        distribution.prepare_working_root(tmp_path / "data", env)
-        assert env[distribution.SEASON_ROOT_ENV_VAR] == "/custom/season"
-    finally:
-        monkeypatch.chdir(original_cwd)
+    distribution.prepare_working_root(tmp_path / "data", env)
+    assert env[distribution.SEASON_ROOT_ENV_VAR] == "/custom/season"
 
 
 def test_season_root_env_name_matches_application_contract():

@@ -19,12 +19,14 @@ Family owners:
 - plan: ``parsers/plan_verify.py``, ``parsers/plan_ab.py``, ``parsers/plan_decision.py``
 - waiver: ``parsers/waiver.py``
 - export-parity: ``parsers/export_parity.py``
+- version: ``parsers/distribution.py``
 """
 
 from __future__ import annotations
 
 import argparse
 
+from .parsers.distribution import add_distribution_parsers
 from .parsers.export_parity import add_export_parity_parser
 from .parsers.operator_audit import add_operator_audit_subparsers
 from .parsers.intake import add_intake_parsers
@@ -104,5 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     add_waiver_parsers(sub)
     add_export_parity_parser(sub)
+
+    add_distribution_parsers(sub)
 
     return parser

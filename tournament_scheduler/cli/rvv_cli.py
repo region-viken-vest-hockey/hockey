@@ -205,6 +205,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         from .export_parity_command import _cmd_export_parity
 
         return _cmd_export_parity(args)
+    elif args.command == "version":
+        from .distribution_command import _cmd_version
+
+        return _cmd_version(args)
     else:
         parser.print_help()
         return 0
