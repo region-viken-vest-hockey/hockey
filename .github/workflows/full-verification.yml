@@ -54,6 +54,9 @@ jobs:
       - name: Compile Python sources
         run: python -m compileall -q tournament_scheduler tests
 
+      - name: Install Chromium for browser tests
+        run: python -m playwright install --with-deps chromium
+
       # Lint + quick + slow + hermetic integration + rules-report, in one
       # canonical invocation. Includes the real canonical input.xlsx planner
       # path that the quick PR lane deliberately skips.
@@ -96,6 +99,9 @@ jobs:
           python -m pip install --disable-pip-version-check --upgrade "pip<26"
           python -m pip install --require-hashes -r requirements.lock
           python -m pip install --no-deps -e .
+
+      - name: Install Chromium for browser tests
+        run: python -m playwright install --with-deps chromium
 
       - name: Run live external-source tests
         run: scripts/check live

@@ -101,7 +101,9 @@ The full lane is run by `.github/workflows/full-verification.yml` on a nightly
 `schedule:` and on `workflow_dispatch:` — it is deliberately **not** a required
 PR status check, because it includes the multi-minute canonical-planner tests.
 Its failure is still a normal, visible, actionable workflow run with uploaded
-artifacts.
+artifacts. Both the hermetic and non-blocking live jobs provision Playwright
+Chromium before invoking their canonical check command so browser-backed tests
+can run without CI-only exclusions.
 
 ### Test markers and lane separation
 

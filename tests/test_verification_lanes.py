@@ -68,6 +68,24 @@ def test_full_lane_workflow_is_scheduled_and_manual() -> None:
     assert "continue-on-error: true" in text
 
 
+def test_full_lane_provisions_chromium_before_browser_backed_checks() -> None:
+    yaml = pytest.importorskip("yaml")
+    workflow = yaml.safe_load(FULL_WORKFLOW.read_text(encoding="utf-8"))
+
+    expected_checks = {
+        "full": "scripts/check full",
+        "live": "scripts/check live",
+    }
+    for job_name, check_command in expected_checks.items():
+        job = workflow["jobs"][job_name]
+        commands = [step.get("run", "") for step in job["steps"]]
+        install_index = commands.index("python -m playwright install --with-deps chromium")
+        check_index = commands.index(check_command)
+        assert install_index < check_index, f"{job_name} installs Chromium after {check_command}"
+
+    assert workflow["jobs"]["live"]["continue-on-error"] is True
+
+
 def test_ci_documents_quick_versus_full_verification() -> None:
     text = CI_DOC.read_text(encoding="utf-8")
     assert "scripts/check full" in text
