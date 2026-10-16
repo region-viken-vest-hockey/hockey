@@ -101,9 +101,9 @@ The full lane is run by `.github/workflows/full-verification.yml` on a nightly
 `schedule:` and on `workflow_dispatch:` — it is deliberately **not** a required
 PR status check, because it includes the multi-minute canonical-planner tests.
 Its failure is still a normal, visible, actionable workflow run with uploaded
-artifacts. Both the hermetic and non-blocking live jobs provision Playwright
-Chromium before invoking their canonical check command so browser-backed tests
-can run without CI-only exclusions.
+artifacts. The hermetic job provisions Playwright Chromium before invoking its
+canonical check command so browser-backed repository tests can run without
+CI-only exclusions. The workflow does not scrape live external sources.
 
 ### Test markers and lane separation
 
@@ -120,8 +120,10 @@ excludes all of them (quick = fast hermetic unit/component tests only):
 This keeps `-m integration` predictable: it means "hermetic integration test
 suitable for CI", not a mixture that also silently includes an unavailable
 harness or a flaky upstream service. `harness`/`live` tests do not disappear
-under a generic marker — they have their own selectable lanes and their own CI
-job (`live`, `continue-on-error`).
+under a generic marker — they have their own selectable lanes. Live checks are
+run only through an explicit local/manual `scripts/check live` invocation, not
+by CI, so CI does not scrape calendars or depend on external markup/network
+availability.
 
 BookUp (Tønsberg) is a public deterministic source: there is no
 authentication/MFA/manual-login test category. Its browser/DOM parser behavior
