@@ -336,7 +336,7 @@ def _cancel_hosted_tournament(
 
     # A cancelled hosting obligation no longer needs any reserved guest
     # place; release them as part of the same cancellation rather than
-    # leaving a dangling active reservation (see `batch._apply_cancel_to_plan`
+    # leaving a dangling active reservation (see `cancellation._apply_cancel_to_plan`
     # for the matching batch-cancel behaviour and rationale).
     released_guest_reservations = release_guest_slots_for_cancellation(
         target, now=now, actor=actor, reason="team_retirement"

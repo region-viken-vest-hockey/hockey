@@ -44,6 +44,7 @@ from tournament_scheduler.publication.baseline import (
     is_published_sealed,
 )
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
+from tournament_scheduler.booking.calendar_bookings import release_booking_authority_for_new_cancellations
 from .scoped_mutation import (
     ScopedMutationAuthorization,
     permitted_history_event_for_authorization,
@@ -503,7 +504,7 @@ def apply_candidate(
         },
     }
     updated_decisions = {
-        **working_decisions,
+        **release_booking_authority_for_new_cancellations(working_decisions, before_plan=schedule["plan"], after_plan=plan, now=now, operation=operation),
         "updated_at": now,
         "schedule_fingerprint": fingerprint,
         "decisions": _reconcile_decisions(working_decisions.get("decisions", {}), plan, now=now),

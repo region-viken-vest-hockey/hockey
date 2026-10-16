@@ -9,21 +9,29 @@ while an unaffected tournament stays byte-for-byte unchanged.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
 
+from tournament_scheduler.booking.calendar_bookings import (
+    active_manual_assertions,
+    manual_assertion_records,
+    release_booking_authority_for_new_cancellations,
+)
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
 from tournament_scheduler.application.canonical_season.store_facade import (
     SeasonStateError,
     add_request_constraint,
     approve_tournament,
     batch_maintenance,
+    booking_status_report,
     load_decisions,
     load_schedule,
     move_tournament,
     promote_from_stage3,
     request_constraint_report,
+    set_manual_booking_assertion,
     swap_participants,
 )
 from tournament_scheduler.testing.reviewed_export import (
@@ -159,6 +167,11 @@ def _schedule_bytes(root: Path) -> bytes:
 
 def _decisions_bytes(root: Path) -> bytes:
     return (root / "2026-2027" / "decisions.json").read_bytes()
+
+
+def _booked_row(root: Path, tournament_id: str) -> dict:
+    report = booking_status_report(season="2026-2027", root=root)
+    return next(row for row in report["tournaments"] if row["tournament_id"] == tournament_id)
 
 
 def _tournaments_by_id(root: Path) -> dict[str, dict]:
@@ -567,6 +580,110 @@ def test_batch_cancellation_is_a_supported_operation(tmp_path: Path) -> None:
     assert by_id["u10-c-20261018"]["cancellation_reason"] == "ice unavailable"
 
 
+def test_cancellation_releases_booked_assertion_but_keeps_its_provenance(tmp_path: Path) -> None:
+    _work_dir, root = _promote(tmp_path)
+    for tournament_id, reference in (
+        ("u10-c-20261018", "email:c-confirmation"),
+        ("u10-a-20260912", "email:a-confirmation"),
+    ):
+        set_manual_booking_assertion(
+            season="2026-2027",
+            root=root,
+            tournament_id=tournament_id,
+            booking_status="booked",
+            actor="booker",
+            note="club confirmed booking",
+            reference=reference,
+        )
+    assert _booked_row(root, "u10-c-20261018")["status"] == "manually_booked"
+
+    result = batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=[{"op": "cancel", "tournament_id": "u10-c-20261018", "reason": "ice unavailable"}],
+        scope=["u10-c-20261018"],
+        request_id="cancel-c-booked",
+        actor="tester",
+        accept_regressions=[
+            f"{club}|{team}|U10={code}"
+            for club, team in (("C", "C1"), ("C", "C2"), ("D", "D1"), ("D", "D2"))
+            for code in ("participation_count_changed", "temporal_coverage_materially_worse")
+        ],
+        accept_regression_reason="ice unavailable; all four U10 teams accept one fewer appearance",
+    )
+    assert result["committed"] is True
+
+    decisions = json.loads(_decisions_bytes(root))
+    records = {record["tournament_id"]: record for record in manual_assertion_records(decisions)}
+    released = records["u10-c-20261018"]
+    # Historical evidence stays inspectable with its provenance and the reason
+    # the booking authority ended; it is no longer an active assertion.
+    assert released["status"] == "superseded"
+    assert released["supersede_reason"] == "tournament_cancelled"
+    assert released["superseded_by_operation"] == "batch_maintenance"
+    assert released["note"] == "club confirmed booking"
+    assert released["reference"] == "email:c-confirmation"
+    # Only the cancelled tournament is affected.
+    assert records["u10-a-20260912"]["status"] == "active"
+    assert [record["tournament_id"] for record in active_manual_assertions(decisions)] == [
+        "u10-a-20260912"
+    ]
+    assert _booked_row(root, "u10-c-20261018")["status"] != "manually_booked"
+    assert _booked_row(root, "u10-a-20260912")["status"] == "manually_booked"
+
+
+def test_release_of_new_cancellation_is_pure_and_idempotent() -> None:
+    decisions = {
+        "manual_booking_assertions": [
+            {"id": "m1", "tournament_id": "t1", "status": "active", "note": "booked"},
+            {"id": "m2", "tournament_id": "t2", "status": "active", "note": "booked"},
+        ],
+        "calendar_booking_associations": [
+            {"id": "c1", "tournament_id": "t1", "status": "active", "event_fingerprint": "e1"},
+            {"id": "c2", "tournament_id": "t2", "event_fingerprint": "e2"},
+        ],
+    }
+    before = {"tournaments": [{"id": "t1"}, {"id": "t2"}]}
+    after = {"tournaments": [{"id": "t1", "cancelled": True}, {"id": "t2"}]}
+    snapshot = json.loads(json.dumps(decisions))
+
+    released = release_booking_authority_for_new_cancellations(
+        decisions, before_plan=before, after_plan=after, now="2026-10-16T10:00:00+00:00", operation="team_retirement"
+    )
+    # The input is never mutated, so a refused candidate writes nothing.
+    assert decisions == snapshot
+    manual = released["manual_booking_assertions"]
+    assert [record["status"] for record in manual] == ["superseded", "active"]
+    assert manual[0]["supersede_reason"] == "tournament_cancelled"
+    assert manual[0]["superseded_by_operation"] == "team_retirement"
+    # Historical evidence stays in place; the raw event link is released, not deleted.
+    association = released["calendar_booking_associations"][0]
+    assert association["status"] == "superseded"
+    assert association["event_fingerprint"] == "e1"
+    assert released["calendar_booking_associations"][1].get("status") is None
+
+    # Replaying the same cancellation finds nothing left to release.
+    replayed = release_booking_authority_for_new_cancellations(
+        released, before_plan=before, after_plan=after, now="2026-10-17T10:00:00+00:00", operation="team_retirement"
+    )
+    assert replayed == released
+    assert replayed["manual_booking_assertions"][0]["superseded_at"] == "2026-10-16T10:00:00+00:00"
+
+
+def test_release_ignores_tournament_already_cancelled_before() -> None:
+    decisions = {
+        "manual_booking_assertions": [
+            {"id": "m1", "tournament_id": "t1", "status": "active", "note": "booked"},
+        ],
+    }
+    cancelled = {"tournaments": [{"id": "t1", "cancelled": True}]}
+
+    released = release_booking_authority_for_new_cancellations(
+        decisions, before_plan=cancelled, after_plan=cancelled, now="2026-10-16T10:00:00+00:00", operation="batch_maintenance"
+    )
+    assert released["manual_booking_assertions"][0]["status"] == "active"
+
+
 def test_batch_rejects_unknown_scope_id(tmp_path: Path) -> None:
     _work_dir, root = _promote(tmp_path)
     with pytest.raises(SeasonStateError, match="unknown tournament ids"):
@@ -654,3 +771,4 @@ def test_batch_swap_and_swap_back_adds_no_roster_protection(tmp_path: Path) -> N
     # Roster order/games may be regenerated, but membership is unchanged, so
     # nothing may be newly protected.
     assert preview["protections_to_add"] == []
+
