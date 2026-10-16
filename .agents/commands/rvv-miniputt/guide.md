@@ -2,7 +2,7 @@
 
 Use this as the internal shared routing guide behind `operate.md`. This is the **shared conversational guide procedure for every agent harness**. It is not a separate operator-facing command; the operator should normally invoke only `operate` and describe the desired outcome in natural language.
 
-At the start of a new session or after context loss, first follow `.agents/commands/rvv-miniputt/handover.md` and verify current refs; it is read-only and grants no mutation or publication authority.
+After the mandatory `make operate-preflight` gate in `operate.md` reports `READY`, follow `.agents/commands/rvv-miniputt/handover.md` at the start of a new session or after context loss and verify current refs; handover is read-only and grants no mutation or publication authority.
 
 1. Determine which lifecycle the user's goal belongs to:
    - **initial season creation**: `run`, `status`, `logs`, `calendars`, `scrape`, `scrape-llm`, then audit/review and explicit baseline promotion;

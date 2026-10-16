@@ -47,6 +47,16 @@ def test_operate_procedure_routes_to_audit_execution_model():
     assert "operator audit" not in SKILL_MD.read_text(encoding="utf-8")
 
 
+def test_operate_requires_shared_repository_freshness_before_workflow_loading() -> None:
+    text = SHARED_OPERATE.read_text(encoding="utf-8")
+    gate = text.index("make operate-preflight")
+    workflow_loading = text.index("Read `AGENTS.md`")
+    assert gate < workflow_loading
+    assert "workflow_commit" in text
+    assert "READY" in text
+    assert "REVIEW_REQUIRED" in text
+
+
 def test_harnesses_expose_only_the_single_operator_entrypoint():
     for adapter_dir in ADAPTER_DIRS:
         if not adapter_dir.exists():
@@ -102,14 +112,11 @@ def test_pi_exposes_only_one_rvv_operational_prompt() -> None:
     assert (PI_PROMPTS_DIR / "implement-issue.md").exists()
 
 
-def test_pi_operate_adapter_loads_the_shared_instruction_chain() -> None:
+def test_pi_operate_adapter_leaves_startup_order_to_shared_procedure() -> None:
     text = PI_OPERATE_PROMPT.read_text(encoding="utf-8")
-    for reference in (
-        "AGENTS.md",
-        ".agents/skills/rvv/SKILL.md",
-        ".agents/commands/rvv-miniputt/handover.md",
-    ):
-        assert reference in text
+    assert ".agents/commands/rvv-miniputt/operate.md" in text
+    assert ".agents/commands/rvv-miniputt/handover.md" not in text
+    assert "owns repository freshness and the instruction-loading sequence" in text
 
 
 def test_pi_prompts_are_transport_only_and_own_no_rvv_behavior() -> None:
