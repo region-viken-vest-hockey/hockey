@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
+from tournament_scheduler.booking.calendar_bookings import manual_assertion_records
 
 
 def _build_test_season_plan() -> dict:
@@ -329,6 +330,67 @@ def test_team_retirement_applies_cancellations_and_withdrawals(tmp_path: Path):
     assert withdrawal["team"]["age_group"] == "Ju12"
     assert withdrawal["status"] == "active"
     assert len(withdrawal["tournament_ids"]) == 3
+
+
+def test_team_retirement_releases_booked_assertion_of_cancelled_hosted_tournament(tmp_path: Path):
+    """A booked assertion on a retired hosted tournament is released, with provenance kept."""
+    season = "2026-2027"
+    _create_test_season_dir(tmp_path, season)
+    service = CanonicalSeasonService(root=tmp_path)
+    club, label, age_group = "Kongsberg/Tønsberg", "Kongsberg/Tønsberg", "Ju12"
+
+    tournaments = service.store.load(season).schedule["plan"]["tournaments"]
+    hosted = next(
+        t for t in tournaments
+        if t.get("host_club") == club and t.get("age_group") == age_group and not t.get("cancelled")
+    )
+    # An away tournament is only withdrawn from, never cancelled, so it keeps
+    # its booking authority.
+    unrelated = next(
+        t for t in tournaments
+        if t.get("host_club") != club and t.get("age_group") == age_group and not t.get("cancelled")
+    )
+    for tournament, reference in ((hosted, "email:hosted"), (unrelated, "email:unrelated")):
+        service.set_manual_booking_assertion(
+            season=season,
+            tournament_id=tournament["id"],
+            booking_status="booked",
+            actor="booker",
+            note="club confirmed booking",
+            reference=reference,
+        )
+
+    preview = service.preview_retire_team(
+        season=season,
+        club=club,
+        team_label=label,
+        age_group=age_group,
+        effective_from="2026-09-01",
+        request_id="test-request-booked-preview",
+        actor="test-operator",
+        note="Test retirement preview",
+    )
+    service.apply_retire_team(
+        season=season,
+        club=club,
+        team_label=label,
+        age_group=age_group,
+        effective_from="2026-09-01",
+        request_id="test-request-booked",
+        actor="test-operator",
+        note="Test retirement apply",
+        accept_rebalance=True,
+        rebalance_proposals=preview["classification"]["rebalance"]["proposals"],
+    )
+
+    decisions = service.store.load(season).decisions
+    records = {record["tournament_id"]: record for record in manual_assertion_records(decisions)}
+    released = records[hosted["id"]]
+    assert released["status"] == "superseded"
+    assert released["supersede_reason"] == "tournament_cancelled"
+    assert released["superseded_by_operation"] == "team_retirement"
+    assert released["reference"] == "email:hosted"
+    assert records[unrelated["id"]]["status"] == "active"
 
 
 def test_team_retirement_preserves_historical_tournaments(tmp_path: Path):
