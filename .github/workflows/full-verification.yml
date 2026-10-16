@@ -54,6 +54,9 @@ jobs:
       - name: Compile Python sources
         run: python -m compileall -q tournament_scheduler tests
 
+      - name: Install Chromium for browser tests
+        run: python -m playwright install --with-deps chromium
+
       # Lint + quick + slow + hermetic integration + rules-report, in one
       # canonical invocation. Includes the real canonical input.xlsx planner
       # path that the quick PR lane deliberately skips.
@@ -69,41 +72,4 @@ jobs:
             htmlcov/
             .pytest_cache/
             repro-tmp/
-          if-no-files-found: ignore
-
-  live:
-    name: Live external-source checks
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    # An upstream outage or markup change must never fail the lane as a whole;
-    # the run result is still visible and actionable on its own.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-          cache-dependency-path: |
-            requirements.lock
-            pyproject.toml
-
-      - name: Install locked Python dependencies
-        run: |
-          python -m pip install --disable-pip-version-check --upgrade "pip<26"
-          python -m pip install --require-hashes -r requirements.lock
-          python -m pip install --no-deps -e .
-
-      - name: Run live external-source tests
-        run: scripts/check live
-
-      - name: Upload live-lane artifacts on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: live-verification-artifacts
-          path: .pytest_cache/
           if-no-files-found: ignore

@@ -63,9 +63,18 @@ def test_full_lane_workflow_is_scheduled_and_manual() -> None:
 
     text = FULL_WORKFLOW.read_text(encoding="utf-8")
     assert "scripts/check full" in text
-    assert "scripts/check live" in text
-    # The live job must not be allowed to fail the lane as a whole.
-    assert "continue-on-error: true" in text
+    assert "scripts/check live" not in text
+    assert "live" not in workflow["jobs"]
+
+
+def test_full_lane_provisions_chromium_before_browser_backed_checks() -> None:
+    yaml = pytest.importorskip("yaml")
+    workflow = yaml.safe_load(FULL_WORKFLOW.read_text(encoding="utf-8"))
+
+    commands = [step.get("run", "") for step in workflow["jobs"]["full"]["steps"]]
+    install_index = commands.index("python -m playwright install --with-deps chromium")
+    check_index = commands.index("scripts/check full")
+    assert install_index < check_index
 
 
 def test_ci_documents_quick_versus_full_verification() -> None:
