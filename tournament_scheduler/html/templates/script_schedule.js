@@ -14,6 +14,17 @@ function compareTournaments(a, b) {
     (a.id || '').localeCompare(b.id || '');
 }
 TOURNAMENTS.sort(compareTournaments);
+// Keep the complete season stable while the upcoming-only view mutates the
+// shared array consumed by the existing renderer and filter helpers.
+const ALL_TOURNAMENTS = TOURNAMENTS.slice();
+
+function localIsoDate() {
+  var now = new Date();
+  var y = String(now.getFullYear());
+  var m = String(now.getMonth() + 1).padStart(2, '0');
+  var d = String(now.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + d;
+}
 
 function parseDate(s) {
   const [y, m, d] = s.split('-').map(Number);
@@ -290,8 +301,18 @@ var clubFilter = document.getElementById('filterClub');
 var teamFilter = document.getElementById('filterTeam');
 var searchFilter = document.getElementById('filterSearch');
 var clearFilter = document.getElementById('filterClear');
+var upcomingFilter = document.getElementById('filterUpcoming');
 var clubDashboard = document.getElementById('clubDashboard');
 
+function applyUpcomingFilter() {
+  var source = upcomingFilter && upcomingFilter.checked
+    ? ALL_TOURNAMENTS.filter(function(t) { return !t.d || t.d >= localIsoDate(); })
+    : ALL_TOURNAMENTS;
+  TOURNAMENTS.splice.apply(TOURNAMENTS, [0, TOURNAMENTS.length].concat(source));
+  render();
+}
+
+if (upcomingFilter) upcomingFilter.addEventListener('change', applyUpcomingFilter);
 if (ageFilter) ageFilter.addEventListener('change', function() {
   populateTeamOptions(true);
   render();
@@ -330,8 +351,9 @@ if (clearFilter) clearFilter.addEventListener('click', function() {
   if (searchFilter) searchFilter.value = '';
   populateTeamOptions(false);
   if (clubDashboard) clubDashboard.style.display = 'none';
-  render();
+  if (upcomingFilter) upcomingFilter.checked = true;
+  applyUpcomingFilter();
 });
 
 
-render();
+applyUpcomingFilter();

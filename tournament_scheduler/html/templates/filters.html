@@ -11,6 +11,10 @@
     <option value="">Alle arenaer</option>
   </select>
   $APPROVAL_FILTER$
+  <label class="filter-toggle" style="display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:0 10px;border:1px solid var(--border-dim);border-radius:8px;color:var(--text-muted);font-size:12px;white-space:nowrap;cursor:pointer">
+    <input type="checkbox" id="filterUpcoming" checked>
+    Kun kommende
+  </label>
   <input type="text" id="filterSearch" class="filter-input" placeholder="Søk etter lag…">
   <button type="button" id="filterClear" class="filter-clear">Nullstill filtre</button>
 </div>
