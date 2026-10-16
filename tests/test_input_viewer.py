@@ -122,3 +122,52 @@ class TestInputViewer:
             )
         ).read_text(encoding="utf-8")
         assert "Skrapede kalendere" in html_with
+
+    def test_generate_html_title_contains_escaped_season_label(self, tmp_path):
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path)
+
+        html = Path(
+            generate_html(
+                input_path=str(input_path),
+                export_dir=str(tmp_path / "export"),
+                season_label="2025/2026 <b>&</b>",
+            )
+        ).read_text(encoding="utf-8")
+
+        assert "<title>Påmeldte lag 2025/2026 &lt;b&gt;&amp;&lt;/b&gt; — RVV Hockey</title>" in html
+        assert "<title>Påmeldte lag — RVV Hockey</title>" not in html
+
+    def test_generate_html_without_season_label_has_plain_title(self, tmp_path):
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path)
+
+        html = Path(
+            generate_html(input_path=str(input_path), export_dir=str(tmp_path / "export"))
+        ).read_text(encoding="utf-8")
+
+        assert "<title>Påmeldte lag — RVV Hockey</title>" in html
+
+    def test_generate_html_never_leaks_template_expressions_or_markers(self, tmp_path):
+        input_path = tmp_path / "input.xlsx"
+        wb = openpyxl.Workbook()
+        wb.active.title = "Innstillinger"
+        teams = wb.create_sheet("Lag")
+        teams.append(["club", "label", "age_group"])
+        # Team/club names that look like placeholders must be rendered as text,
+        # not expanded by a later substitution pass.
+        teams.append(["@@TOTAL_TEAMS@@", "@@SEASON_TITLE@@ lag", "U10"])
+        wb.save(input_path)
+
+        html = Path(
+            generate_html(
+                input_path=str(input_path),
+                export_dir=str(tmp_path / "export"),
+                season_label="2025/2026",
+            )
+        ).read_text(encoding="utf-8")
+
+        assert "_html.escape" not in html
+        assert "{_html" not in html
+        assert "@@SEASON_TITLE@@ lag" in html
+        assert "@@TOTAL_TEAMS@@" in html

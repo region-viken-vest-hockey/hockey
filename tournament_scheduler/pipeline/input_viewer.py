@@ -11,6 +11,7 @@ the workbook file itself are never read or referenced by this module.
 from __future__ import annotations
 
 import html as _html
+import re
 from pathlib import Path
 from typing import Any
 
@@ -126,6 +127,7 @@ def generate_html(
         "@@ICON_BAR_CHART@@": _ICON_BAR_CHART,
         "@@ICON_USERS@@": _ICON_USERS,
         "@@SEASON_LABEL@@": f" &mdash; {_html.escape(season_label)}" if season_label else "",
+        "@@SEASON_TITLE@@": f" {_html.escape(season_label)}" if season_label else "",
         "@@TOTAL_CLUBS@@": str(total_clubs),
         "@@TOTAL_TEAMS@@": str(total_teams),
         "@@AGE_GROUP_COUNT@@": str(len(all_age_groups)),
@@ -133,9 +135,13 @@ def generate_html(
         "@@CLUB_OPTIONS@@": club_options,
         "@@GROUPS_SECTION@@": groups_section_html,
     }
-    for marker, value in replacements.items():
-        template = template.replace(marker, value)
-    html = template
+    # Single pass: values are inserted once and never re-scanned, so a club or
+    # team name containing a marker-like string cannot pull in another value.
+    html = re.sub(
+        "|".join(re.escape(marker) for marker in replacements),
+        lambda match: replacements[match.group(0)],
+        template,
+    )
 
     out_path = Path(export_dir) / "input.html"
     out_path.parent.mkdir(parents=True, exist_ok=True)
