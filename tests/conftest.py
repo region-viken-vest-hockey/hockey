@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+from tests.repository_sync_support import git_identity, remote_pair  # noqa: F401 - shared fixtures
 from tournament_scheduler.season.baseline_overlay import SEASON_ROOT_ENV_VAR
 from tournament_scheduler.testing.canonical_input import (
     build_canonical_planner,

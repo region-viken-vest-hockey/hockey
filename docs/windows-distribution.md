@@ -119,9 +119,11 @@ Unknown extra keys are ignored. The manifest is never part of season or publicat
 - with no cached manifest there is no declared minimum, so writes are allowed and the
   decision reason says the minimum is unknown. Run an update check to establish one.
 
-**Not yet wired.** No commit, push or apply path calls the gate today. Wiring it into the
-canonical mutation facade is the next step, and it belongs in the application layer, not in
-scheduler policy. Until then the gate is a callable contract only.
+**Wired into the repository adapter only.** `commit_canonical_season()` (see below) calls
+`require_write_allowed` on the cached manifest before it stages, commits or pushes anything, and
+a corrupt cached manifest blocks writes. The other canonical mutation paths (CLI apply and
+publish flows, which today rely on the operator's own Git commits) do not call the gate yet.
+Wiring them is the next step, and it belongs in the application layer, not in scheduler policy.
 
 ### Check, download and activation
 
@@ -174,11 +176,83 @@ explicit, tested application command that the operator runs, not an updater side
   is not verifiable here.
 - **GitHub Releases publication workflow.** Not built. Release channel URL and artifact
   upload are undecided.
-- **Gate wiring** into canonical mutation paths (see above).
+- **Gate wiring** into the remaining canonical mutation paths (the repository adapter is wired;
+  see above).
 - **Post-update smoke check** that calls `confirm_release` or `rollback_release` automatically.
   The functions exist; the orchestration does not.
 - **Restricted-user install on Windows.** Activation uses only per-user directory renames.
   Not verified on Windows.
+
+## Repository adapter and sign-in (sub-issue #619)
+
+Implemented in `tournament_scheduler/infrastructure/repository_sync/` and tested offline in
+`tests/test_repository_sync_*.py` against temporary local repositories (a bare remote plus a
+clone). Git transport lives only in this infrastructure package. Scheduling, verification and
+publication policy are not in it.
+
+### Checkout states
+
+`inspect_checkout()` refreshes the remote-tracking `origin/main` (never the local branch) and
+classifies the checkout. `classify_state()` is pure and fail-closed in this order:
+
+| State | Meaning |
+|---|---|
+| `not-cloned` | No git work tree at the configured path. A plain directory inside another repository also counts. |
+| `unavailable` | Git cannot run, the fetch failed (including auth rejection, reported as `auth_rejected`), or the checkout cannot be read. |
+| `not-on-main` | Detached HEAD or another branch. |
+| `local-changes` | Tracked files or the index differ from HEAD. Untracked files are ignored. |
+| `diverged` | Local `main` and `origin/main` both have commits the other lacks. |
+| `behind` | Local `main` is behind `origin/main` only. |
+| `ahead` | Local `main` has commits not on `origin/main` only. |
+| `ready` | Local `main` equals `origin/main` and the tracked tree is clean. |
+
+### Refresh and clone
+
+- `refresh_main()` fast-forwards only, and only from `behind` (`git merge --ff-only`). Every other
+  state is refused with no change. Divergent work is never overwritten, and there is no reset,
+  clean, stash, force push or branch switch.
+- `clone_repository()` clones `main` over `https` only. It refuses a non-empty destination.
+
+### Canonical commit and push
+
+`commit_canonical_season()` is the only Git write path. It runs in this order:
+
+1. the write gate (`require_write_allowed` on the cached manifest; corrupt cache blocks);
+2. the checkout must be `ready` or `local-changes` with no ahead or behind commits;
+3. every tracked change must lie under the season root, and the index must be empty;
+4. `git add -A -- <season root>`, then a commit of the staged season state only;
+5. `git push origin HEAD:refs/heads/main`. This is a plain push, never forced. If it is refused,
+   the local commit is kept and reported, and the checkout becomes `ahead`. The operator must
+   refresh or reconcile before retrying.
+
+The commit payload is what the canonical store already wrote under the season root. The adapter
+does not decide season content, and it does not replace `CanonicalSeasonStore`'s revision checks.
+
+### Credentials and sign-in state
+
+- `CredentialStore` is the interface. `InMemoryCredentialStore` is the test double.
+- `WindowsCredentialManagerStore` is a **seam only**. It raises `CredentialStoreError` on every
+  call, so a build without the real backend fails closed and never falls back to a file.
+  Target name: `RVV Miniputt/github`.
+- Tokens reach git only through the child environment (`https_auth_env()`, an
+  `http.extraheader` via `GIT_CONFIG_*`). They never appear in argv, `.git/config`, remote URLs
+  or files. `Credential.__repr__` redacts the token.
+- `resolve_auth_state()` reports signed out, authenticated, unauthorized or expired. Expired and
+  rejected credentials are cleared from the store, and the state becomes signed out with
+  `recovered_from` set. The checkout is never touched.
+- **Requested scopes (decision pending):** the minimum for a private repository is repository
+  contents read and write on this one repository (fine-grained token), or the classic `repo`
+  scope if the OAuth app cannot use fine-grained permissions. Confirm before the device flow exists.
+
+### Not implemented in this slice
+
+- **GitHub browser sign-in (OAuth device flow) is not done.** Token acquisition, the GitHub
+  `GET /user` probe that feeds `ProbeResult`, and the operator sign-in command all need the
+  network and the decided OAuth app, so they could not be tested offline here.
+- **Windows Credential Manager backend** (`CredReadW`/`CredWriteW`/`CredDeleteW`) is not written.
+  It cannot be exercised on this Linux VM.
+- **Operator CLI surface** for clone, refresh, status and commit is not exposed yet.
+- **Gate wiring** into the other canonical mutation paths (see above).
 
 ## Verification status
 
@@ -186,6 +260,7 @@ explicit, tested application command that the operator runs, not an updater side
 |---|---|
 | Unit tests for data-root selection, separation guard, working-root preparation, version metadata (`tests/test_distribution.py`) | Run in the repository gate. |
 | Manifest, classification, write gate, cache, staged download and integrity, extraction, activation and rollback (`tests/test_distribution_update.py`) | Run in the repository gate, offline with fixtures. Activation is tested on Linux only. |
+| Checkout states, fast-forward refresh, refused divergent/dirty refresh, write-gated commit and push, refused push, credential model and auth recovery (`tests/test_repository_sync_*.py`) | Run in the repository gate, offline against temporary local git repositories on Linux. Not verified against GitHub or Windows Git. |
 | PyInstaller analysis and bundling of the spec | Verified on Linux with a scratch build (not Windows). All 30 HTML templates are bundled. |
 | Frozen binary: `--help`, `status`, separation guard | Verified on Linux. |
 | Windows binary, no-admin install/launch/uninstall, restricted user rights | **Not verified here.** Requires a Windows machine. |
