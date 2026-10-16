@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "audit_id": "ddaa2d8f0bde524c",
+  "generated_at": "2026-10-16T10:16:14+00:00",
+  "run_id": "legacy",
+  "export_fingerprint": "f3f27e903d70077ecc236218d0c40c28882757abd137ad6a86609bbffadcac13",
+  "audit_context_fingerprint": "3df5eb40ab63138652282848d74677e6680eac2a49733272d6f00f8827409574",
+  "status": "REVIEW_REQUIRED",
+  "operator_assessment": {
+    "operator_summary": "The regenerated presentation export matches the last published canonical revision tournament-for-tournament (183 unchanged, zero added/removed/changed). Publication scope is ELIGIBLE with no held or blocking tournaments. Season-wide planning debt (participation shortfalls, 9 unplaced U10 placements, hosting imbalances, external-calendar conflicts) is unchanged from the published baseline and is not introduced by the presentation change.",
+    "key_tradeoffs": [
+      {
+        "title": "Presentation change only",
+        "summary": "Adds an upcoming-only filter (default on), past-week fading and a today marker to the club heatmap. Tournament data is identical to the published page.",
+        "severity": "minor"
+      }
+    ],
+    "remaining_actions": [
+      {
+        "title": "Season-wide planning debt",
+        "summary": "Participation shortfalls, the 9 unplaced U10 placements and host-calendar conflicts remain canonical maintenance work and are not part of this publication delta.",
+        "category": "planning_debt"
+      }
+    ],
+    "limitations": [
+      "Semantic review used the bounded audit overview and the category evidence listed above, not every individual record."
+    ]
+  },
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "128 participation shortfalls, 264 target deviations and 137 manual participation placements remain unresolved season-wide. Identical to the last published revision (published-to-canonical delta is zero), so this is pre-existing planning debt, not introduced by this export.",
+      "severity": "major",
+      "confidence": "high",
+      "evidence_refs": [
+        "participation_shortfalls",
+        "participation_target_deviations",
+        "manual_participation_placements"
+      ]
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "9 unresolved tournament placements (for example U10 2026-12-26, hosted by Jar, rejected candidates all on host external calendar conflicts or team already playing), 16 hosting-balance imbalances, 5 same-age hosting repairs. Hosting responsibility did not change versus the published baseline.",
+      "severity": "major",
+      "confidence": "high",
+      "evidence_refs": [
+        "unresolved_tournament_placements",
+        "unresolved_hosting_obligations",
+        "same_age_hosting_repairs"
+      ]
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "169 duration records checked; no blocking byes; 5 input-constrained shapes and 5 guest reservations are recorded and understood.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence_refs": [
+        "tournament_duration",
+        "blocking_byes",
+        "input_constrained_shape",
+        "guest_reservations"
+      ]
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "10 manually placed tournaments conflict with external host calendars (for example rvv-0095, rvv-0121, rvv-0155, all Frisk Asker), 46 underfilled tournaments, and 10 placements are unverified for Frisk Asker and Sandefjord Penguins. These placements publish as proposed awaiting host confirmation, not as booked.",
+      "severity": "major",
+      "confidence": "high",
+      "evidence_refs": [
+        "manual_external_conflict_placements",
+        "underfilled_tournaments",
+        "unverified_placements"
+      ]
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "No host-participation violations (0).",
+      "severity": "info",
+      "confidence": "high",
+      "evidence_refs": [
+        "host_participation"
+      ]
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt én gang per dag?",
+      "finding": "No duplicate team-days (0).",
+      "severity": "info",
+      "confidence": "high",
+      "evidence_refs": [
+        "duplicate_team_days"
+      ]
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "14 same-club participant cases; 0 above the hard maximum of 3.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence_refs": [
+        "same_club_participants",
+        "same_club_participants_hard_max"
+      ]
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "All export checks match the plan: 2331 CSV game rows, 183 overview rows, 142 team-count rows, 183 iCal events, 183 XLSX tournament rows. Artifact parity PASS.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence_refs": [
+        "export_consistency"
+      ]
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?",
+      "finding": "Deterministic verification OK with 0 violations, 0 waivers and 0 stale approvals. Observed tooling issue: audit-context workflow block still points at export 2026-10-16T0715 (phase audit_required) while the bound export fingerprint and output files are 2026-10-16T0929. Verdict bound to the 0929 fingerprint.",
+      "severity": "minor",
+      "confidence": "medium",
+      "evidence_refs": [
+        "verify_violations",
+        "operator_waivers",
+        "stale_approvals",
+        "workflow"
+      ]
+    }
+  ],
+  "potential_missing_rule": [
+    {
+      "description": "audit-context workflow block can reference an older export directory than the bound export_fingerprint/output_files (0715 vs 0929). Worth checking whether workflow.export_dir should follow the current export."
+    }
+  ],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "f3f27e903d70077ecc236218d0c40c28882757abd137ad6a86609bbffadcac13",
+  "publication_gate_status": "operator_review_required"
+}
