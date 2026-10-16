@@ -187,6 +187,11 @@ def test_harness_procedures_require_presentation_only_proof_and_never_imply_publ
     assert "compare the generated HTML with the published one" in republish
     assert "pause for publication confirmation" in republish
     assert "reuse that exact verified export" in republish
+    assert "expected post-publication bookkeeping" in republish
+    assert "Do not make the operator repeatedly investigate" in republish
+    assert "Always reconcile `change-log.md` through the repository-owned generator" in republish
+    assert "commit it coherently without asking the operator to decide file-by-file" in republish
+    assert "revision change caused solely by the operations/publication partition is expected" in republish
     assert "season-presentation-export:" in makefile
     assert 'season export --season "$(SEASON)" --presentation-only $(ARGS)' in makefile
     assert "Export alone never publishes" in republish
