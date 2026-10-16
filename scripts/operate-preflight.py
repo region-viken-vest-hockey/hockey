@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Refresh and verify the committed workflow contract used by ``operate``.
 
-This gate updates a clean local ``main`` only by fast-forwarding it to the
-freshly fetched ``origin/main``. It never resets, reverts, cleans, stashes, or
-otherwise discards local work.
+This gate updates a tracked-clean local ``main`` only by fast-forwarding it to
+the freshly fetched ``origin/main``. Unrelated untracked artifacts are allowed;
+Git still refuses a merge that would overwrite one. The gate never resets,
+reverts, cleans, stashes, or otherwise discards local work.
 """
 from __future__ import annotations
 
@@ -72,7 +73,9 @@ def prepare(root: Path) -> dict[str, Any]:
         report["local_head_before"] = _value(root, "rev-parse", "HEAD")
         report["local_head"] = report["local_head_before"]
         report["origin_main"] = _value(root, "rev-parse", "refs/remotes/origin/main")
-        dirty = bool(_value(root, "status", "--porcelain"))
+        tracked_dirty = bool(
+            _value(root, "status", "--porcelain", "--untracked-files=no")
+        )
     except (OSError, RuntimeError, subprocess.TimeoutExpired):
         report["reason"] = (
             "Could not inspect the local checkout after refreshing origin/main."
@@ -85,10 +88,10 @@ def prepare(root: Path) -> dict[str, Any]:
             "no automatic branch switch or reset was attempted."
         )
         return report
-    if dirty:
+    if tracked_dirty:
         report["reason"] = (
-            "Working tree is dirty; no automatic stash, reset, revert, clean, "
-            "or update was attempted."
+            "Tracked files or the index are dirty; no automatic stash, reset, "
+            "revert, clean, or update was attempted."
         )
         return report
 
@@ -120,7 +123,9 @@ def prepare(root: Path) -> dict[str, Any]:
 
     try:
         final_branch = _value(root, "branch", "--show-current") or None
-        final_dirty = bool(_value(root, "status", "--porcelain"))
+        final_tracked_dirty = bool(
+            _value(root, "status", "--porcelain", "--untracked-files=no")
+        )
         final_head = _value(root, "rev-parse", "HEAD")
     except (OSError, RuntimeError, subprocess.TimeoutExpired):
         report["reason"] = "Could not verify the checkout after the freshness update."
@@ -128,7 +133,11 @@ def prepare(root: Path) -> dict[str, Any]:
 
     report["branch"] = final_branch
     report["local_head"] = final_head
-    if final_branch != "main" or final_dirty or final_head != report["origin_main"]:
+    if (
+        final_branch != "main"
+        or final_tracked_dirty
+        or final_head != report["origin_main"]
+    ):
         report["reason"] = (
             "Checkout changed during the freshness gate; do not run a repository-owned workflow."
         )
@@ -136,7 +145,9 @@ def prepare(root: Path) -> dict[str, Any]:
 
     report["status"] = "READY"
     report["workflow_commit"] = final_head
-    report["reason"] = "Local main is clean and equals the freshly fetched origin/main."
+    report["reason"] = (
+        "Local main is tracked-clean and equals the freshly fetched origin/main."
+    )
     return report
 
 

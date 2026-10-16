@@ -128,7 +128,8 @@ handover:
 	@cd "$(ROOT_DIR)" && python3 "$(HANDOVER)" $(ARGS)
 
 # Like handover, this stdlib-only gate must work before the venv is provisioned.
-# It may only fast-forward a clean main; dirty/diverged/other branches fail closed.
+# It may only fast-forward a tracked-clean main; tracked changes/divergence/other
+# branches fail closed, while unrelated untracked artifacts are preserved.
 operate-preflight:
 	@cd "$(ROOT_DIR)" && python3 "$(OPERATE_PREFLIGHT)" $(ARGS)
 

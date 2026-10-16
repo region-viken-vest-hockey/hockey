@@ -65,9 +65,26 @@ def test_preflight_fetches_advanced_origin_and_records_executed_contract(tmp_pat
     assert report["update_performed"] is True
     assert report["workflow_commit"] == fixed_head
     assert report["reason"] == (
-        "Local main is clean and equals the freshly fetched origin/main."
+        "Local main is tracked-clean and equals the freshly fetched origin/main."
     )
     assert (checkout / "workflow.txt").read_text(encoding="utf-8") == "fixed contract\n"
+
+
+def test_preflight_preserves_untracked_artifact_while_fast_forwarding(tmp_path: Path) -> None:
+    _origin, seed, checkout = _repositories(tmp_path)
+    fixed_head = _advance_origin(seed)
+    artifact = checkout / "local-operator-artifact.txt"
+    artifact_contents = "must survive\n"
+    artifact.write_text(artifact_contents, encoding="utf-8")
+
+    report = preflight.prepare(checkout)
+
+    assert report["status"] == "READY"
+    assert report["update_performed"] is True
+    assert report["local_head"] == fixed_head
+    assert report["workflow_commit"] == fixed_head
+    assert artifact.read_text(encoding="utf-8") == artifact_contents
+    assert _git(checkout, "status", "--porcelain") == "?? local-operator-artifact.txt"
 
 
 def test_preflight_refuses_stale_dirty_main_without_discarding_work(tmp_path: Path) -> None:
