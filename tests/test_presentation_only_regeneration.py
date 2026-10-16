@@ -179,6 +179,14 @@ def test_harness_procedures_require_presentation_only_proof_and_never_imply_publ
         assert "canonical revision" in text
     assert "make season-presentation-export SEASON=<season>" in delivery
     assert "Do not require the operator to restate the safety contract" in delivery
+    assert "automatically resolve the authoritative `active_publication`" in delivery
+    assert "Do not make the operator ask for this comparison manually" in delivery
+    assert "public-facing delta" in delivery
+    assert "reuse the exact verified export" in delivery
+    assert "presentation-only republish contract" in republish.lower()
+    assert "compare the generated HTML with the published one" in republish
+    assert "pause for publication confirmation" in republish
+    assert "reuse that exact verified export" in republish
     assert "season-presentation-export:" in makefile
     assert 'season export --season "$(SEASON)" --presentation-only $(ARGS)' in makefile
     assert "Export alone never publishes" in republish
