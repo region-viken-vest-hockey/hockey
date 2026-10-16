@@ -268,6 +268,35 @@ var PUBLIC_HEATMAP_LEGEND = [
     legend.appendChild(span);
   });
 
+  function isoWeekMondayUtc(isoWeek) {
+    var parts = isoWeek.split('-W');
+    var year = parseInt(parts[0], 10);
+    var week = parseInt(parts[1], 10);
+    var jan4 = new Date(Date.UTC(year, 0, 4));
+    var jan4Day = jan4.getUTCDay() || 7;
+    var firstThursday = new Date(Date.UTC(year, 0, 4 - jan4Day + 4));
+    var monday = new Date(firstThursday.getTime());
+    monday.setUTCDate(monday.getUTCDate() + (week - 1) * 7 - 3);
+    return monday;
+  }
+
+  var now = new Date();
+  var todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  var weekdayFromMonday = (now.getDay() + 6) % 7;
+  var todayPercent = ((weekdayFromMonday + 0.5) / 7) * 100;
+
+  function heatmapTimeStyle(isoWeek) {
+    var mondayMs = isoWeekMondayUtc(isoWeek).getTime();
+    var sundayMs = mondayMs + 6 * 24 * 60 * 60 * 1000;
+    var isPast = sundayMs < todayUtc;
+    var isCurrent = mondayMs <= todayUtc && todayUtc <= sundayMs;
+    var style = isPast ? ';opacity:0.42;filter:grayscale(0.7)' : '';
+    if (isCurrent) {
+      style += ';background-image:linear-gradient(to right, transparent calc(' + todayPercent + '% - 1px), var(--amber) calc(' + todayPercent + '% - 1px), var(--amber) calc(' + todayPercent + '% + 1px), transparent calc(' + todayPercent + '% + 1px));background-repeat:no-repeat';
+    }
+    return style;
+  }
+
   // Build header row: week labels with month grouping
   let headerRow = '<tr><th style="position:sticky;left:0;z-index:1;background:var(--bg);padding:6px 10px;text-align:left;color:var(--text-muted);font-weight:600;min-width:110px">Klubb</th>';
   const MONTHS_NO = ["","jan","feb","mar","apr","mai","jun","jul","aug","sep","okt","nov","des"];
@@ -284,7 +313,7 @@ var PUBLIC_HEATMAP_LEGEND = [
     const month = MONTHS_NO[monday.getUTCMonth() + 1];
     const monthLabel = month !== lastMonth ? month : '';
     if (month !== lastMonth && month) lastMonth = month;
-    headerRow += '<th style="padding:4px 2px;text-align:center;font-weight:600;font-size:10px;color:var(--text-muted)">' + monthLabel + '<br><span style="font-size:9px;color:var(--text-muted)">' + wk.slice(-2) + '</span></th>';
+    headerRow += '<th style="padding:4px 2px;text-align:center;font-weight:600;font-size:10px;color:var(--text-muted)' + heatmapTimeStyle(wk) + '">' + monthLabel + '<br><span style="font-size:9px;color:var(--text-muted)">' + wk.slice(-2) + '</span></th>';
   });
   headerRow += '</tr>';
   head.innerHTML = headerRow;
@@ -298,6 +327,7 @@ var PUBLIC_HEATMAP_LEGEND = [
     HEATMAP_WEEKS.forEach(wk => {
       const weekData = HEATMAP[wk] || {};
       const clubData = weekData[club];
+      const timeStyle = heatmapTimeStyle(wk);
       if (clubData && clubData.length) {
         const items = clubData.map(function(item) {
           if (typeof item === 'string') return {age_group: item, operational_state: '', booking_status: 'unknown'};
@@ -307,9 +337,9 @@ var PUBLIC_HEATMAP_LEGEND = [
           const state = heatmapState(item);
           return '<span class="heatmap-booking-item heatmap-booking-' + state + '" title="' + escapeHtml(heatmapTitle(item)) + '">' + escapeHtml(item.age_group || '') + '</span>';
         }).join('');
-        bodyHtml += '<td style="background:' + c.bg + ';border:1px solid ' + c.text + ';padding:3px 4px;text-align:center;font-size:10px;color:' + c.text + ';font-weight:600;white-space:nowrap">' + label + '</td>';
+        bodyHtml += '<td style="background:' + c.bg + ';border:1px solid ' + c.text + ';padding:3px 4px;text-align:center;font-size:10px;color:' + c.text + ';font-weight:600;white-space:nowrap' + timeStyle + '">' + label + '</td>';
       } else {
-        bodyHtml += '<td style="background:var(--heatmap-empty-bg);border:1px solid var(--border-dim);padding:3px 4px;text-align:center"></td>';
+        bodyHtml += '<td style="background:var(--heatmap-empty-bg);border:1px solid var(--border-dim);padding:3px 4px;text-align:center' + timeStyle + '"></td>';
       }
     });
     bodyHtml += '</tr>';
