@@ -1,6 +1,6 @@
 """Read-only ``version`` and ``capabilities`` commands.
 
-``version`` reports the installed version and, with a local manifest, its update classification.
+``version`` reports the installed version and, with a local manifest, its verified update classification.
 ``capabilities`` reports the machine-readable compatibility contract (see ``tournament_scheduler.capabilities``).
 """
 
@@ -20,8 +20,17 @@ def _cmd_version(args: argparse.Namespace) -> int:
     result: dict[str, object] = dict(metadata)
 
     if args.manifest:
+        manifest_path = Path(args.manifest)
+        signature_path = Path(args.signature) if args.signature else manifest_path.with_name(
+            manifest_path.name + distribution_update.SIGNATURE_SUFFIX
+        )
         try:
-            manifest = distribution_update.parse_manifest(Path(args.manifest).read_bytes())
+            manifest = distribution_update.parse_verified_manifest(
+                manifest_path.read_bytes(), signature_path.read_bytes()
+            )
+        except distribution_update.UntrustedManifestError as exc:
+            print(f"Release manifest {args.manifest} is untrusted: {exc}", file=sys.stderr)
+            return 2
         except (OSError, distribution_update.ManifestError) as exc:
             print(f"Cannot read release manifest {args.manifest}: {exc}", file=sys.stderr)
             return 2

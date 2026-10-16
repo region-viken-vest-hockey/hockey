@@ -7,11 +7,17 @@ import json
 import pytest
 
 from tests.claude_runtime_support import auth_output, runner_for, version_output
+from tests.distribution_signing_support import trust
 from tests.operator_shell_support import make_dirty
 from tests.repository_sync_support import advance_remote, head, write_cache
 from tournament_scheduler.cli.args import build_parser
 from tournament_scheduler.cli.shell_command import _cmd_shell
 from tournament_scheduler.infrastructure.repository_sync import InMemoryCredentialStore
+
+
+@pytest.fixture(autouse=True)
+def _cache_is_signed_by_test_signer(monkeypatch):
+    trust(monkeypatch)
 
 
 @pytest.fixture

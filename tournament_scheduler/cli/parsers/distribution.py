@@ -20,6 +20,12 @@ def add_distribution_parsers(sub: argparse._SubParsersAction) -> None:
         metavar="PATH",
         help="Local release manifest JSON to classify the installed version against (no network access)",
     )
+    parser.add_argument(
+        "--signature",
+        default=None,
+        metavar="PATH",
+        help="Detached signature for --manifest (default: <manifest>.sig); unverified manifests are rejected",
+    )
     parser.add_argument("--json", action="store_true", help="Print the result as JSON")
 
     capabilities = sub.add_parser(

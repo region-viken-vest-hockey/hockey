@@ -76,8 +76,9 @@ through a `Transport`, so no test touches the network.
 
 ### Release manifest
 
-The release channel publishes one JSON manifest per channel. Only release artifacts
-and this metadata come from the release source; there is no hosted backend.
+The release channel publishes one JSON manifest per channel plus a detached signature
+(`<manifest>.sig`). Only release artifacts and this metadata come from the release source;
+there is no hosted backend.
 
 ```json
 {
@@ -99,6 +100,42 @@ and this metadata come from the release source; there is no hosted backend.
 Rules enforced by the parser: `https` artifact URL only; plain `.zip` file name; valid
 SHA-256 and positive size; `minimum_supported_version <= minimum_write_version <= latest_version`.
 Unknown extra keys are ignored. The manifest is never part of season or publication state.
+
+### Trust model (signed manifests)
+
+Implemented in `tournament_scheduler/distribution_update/signature.py`,
+`trust_roots.py` and `check.py`. The trust root is a set of **public** Ed25519 keys embedded in
+the client, keyed by key ID. No private key is in the repository or the packaged application.
+
+- **Signature file.** `<manifest>.sig` is a JSON envelope:
+  `{"schema": 1, "algorithm": "ed25519", "key_id": "<id>", "signature": "<base64 64 bytes>"}`.
+  The Ed25519 signature covers the exact manifest bytes. The envelope must contain exactly those
+  four fields; the key ID matches `[A-Za-z0-9._-]{1,64}`.
+- **Verify before parse.** `parse_verified_manifest()` verifies the signature first and only then
+  parses the manifest. No manifest field is read from unverified bytes. `check_for_update()`,
+  the cache loader and `rvv-miniputt version --manifest` all use this path.
+- **Untrusted metadata.** An unknown key ID, a bad signature, a malformed envelope, a wrong-length
+  key or signature, or an empty trust root gives status `untrusted` (`UntrustedManifestError`).
+  Untrusted metadata offers no update, is never cached, and is never used to classify or to
+  change the write gate. The previously cached, verified manifest keeps gating writes.
+- **Cache re-verification.** The cache holds `release-manifest.json` and its `.sig`. Both are
+  verified on every load, so a locally edited cache is "unusable" and blocks writes.
+- **Additive rotation.** `TRUSTED_RELEASE_KEYS` can hold several key IDs. A client release trusts
+  the old and the new key together; a later release removes the old one. A manifest signed by a
+  removed key is refused.
+- **Signing helper.** `scripts/sign-release-manifest.py --manifest M --key-id ID` signs the exact
+  bytes of `M`. The private PEM comes from `--private-key-file PATH` or from the
+  `RVV_RELEASE_SIGNING_KEY` environment variable (intended for a protected workflow secret). The
+  manifest is parsed before signing, and the helper refuses an invalid manifest. The same script
+  with `--public-key-for-trust-root` prints the base64 public key to embed.
+- **Dependency.** `cryptography` (pinned in `requirements.lock`, hash-verified) provides Ed25519.
+  The lock was regenerated with `scripts/refresh-python-lock.sh`; the change only adds
+  `cryptography`, `cffi` and `pycparser`.
+
+**Current state: fail closed.** `TRUSTED_RELEASE_KEYS` is empty because no project signing key
+has been generated. Every manifest is therefore `untrusted` and no update is offered until a
+public key is embedded in a release. Tests use throwaway in-memory keys through
+`tests/distribution_signing_support.py`.
 
 ### Classification
 
@@ -127,9 +164,11 @@ Wiring them is the next step, and it belongs in the application layer, not in sc
 
 ### Check, download and activation
 
-1. **Check** (`check_for_update`): reads the manifest through the transport, validates it,
-   classifies the installed version, and caches the manifest only after it validates. An
-   offline or invalid response returns an error result and leaves the previous cache in place.
+1. **Check** (`check_for_update(installed, manifest_url, signature_url, transport, cache_dir)`):
+   reads the manifest and its signature through the transport, verifies the signature, parses
+   the manifest, classifies the installed version, and caches manifest plus signature only after
+   both verify. An offline, invalid or untrusted response returns an error result (status `None`
+   or `untrusted`) and leaves the previous cache in place.
 2. **Stage** (`download_verified`): writes `<name>.partial` under the staging directory,
    checks size and SHA-256, and renames to the final name only after both match. Any failure
    removes the partial file.
@@ -156,9 +195,10 @@ Install layout used by activation:
 
 ### Operator-facing surface
 
-`rvv-miniputt version [--json] [--manifest PATH]` is read-only. It prints the installed
-version and, with a local manifest file, the update status and whether writes are allowed.
-It makes no network request. A check against the live release channel is not exposed in the
+`rvv-miniputt version [--json] [--manifest PATH] [--signature PATH]` is read-only. It prints the
+installed version and, with a local manifest file, the verified update status and whether writes
+are allowed. The signature defaults to `<manifest>.sig`. An untrusted manifest exits 2 with an
+"untrusted" message. It makes no network request. A check against the live release channel is not exposed in the
 CLI yet, because the channel URL is not decided.
 
 ### Migrations
@@ -170,10 +210,17 @@ explicit, tested application command that the operator runs, not an updater side
 
 ### Not implemented
 
-- **Signature verification.** The manifest and archive are checked by SHA-256 only. The
-  manifest itself is unsigned, so a tampered manifest could lower the declared minimum. This
-  must be closed before the gate is a security guarantee. It needs a signing key decision and
-  is not verifiable here.
+- **Real project public key.** No Ed25519 key has been generated for the project, so
+  `TRUSTED_RELEASE_KEYS` is empty and all manifests are untrusted. Generate the key pair, store the
+  private half only as a protected workflow secret, embed the public half with its key ID, and
+  cover the embedding in a test. Until then no update is offered.
+- **Release workflow signing step.** `scripts/sign-release-manifest.py` exists, but the
+  software-release workflow does not call it yet. The workflow must sign only after packaged smoke
+  tests pass, and must publish the manifest and `.sig` together.
+- **Frozen-build check.** `cryptography` is not yet confirmed to bundle correctly in the PyInstaller
+  build (`packaging/windows/rvv-miniputt.spec`). Verify on a built artifact.
+- **Live end-to-end check.** The signed flow is tested with in-memory fakes only; no live release
+  channel exists yet. Artifact size and SHA-256 are verified before staging (`download_verified`).
 - **GitHub Releases publication workflow.** Not built. Release channel URL and artifact
   upload are undecided.
 - **Gate wiring** into the remaining canonical mutation paths (the repository adapter is wired;

@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.distribution_signing_support import sign
 from tournament_scheduler.distribution_update import save_cached_manifest
 
 SEASON_REL = Path("season") / "2026"
@@ -98,4 +99,4 @@ def write_cache(cache_dir: Path, *, minimum_write: str = "2.0.0", latest: str = 
             },
         }
     ).encode("utf-8")
-    save_cached_manifest(cache_dir, raw)
+    save_cached_manifest(cache_dir, raw, sign(raw))

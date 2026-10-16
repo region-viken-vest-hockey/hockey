@@ -9,11 +9,13 @@ from pathlib import Path
 
 import pytest
 
+from tests.distribution_signing_support import sign, trust
 from tournament_scheduler import distribution_update as du
 from tournament_scheduler.distribution_update import activation
 from tournament_scheduler.cli.rvv_cli import main
 
 URL = "https://releases.example.invalid/rvv-miniputt/windows-stable.json"
+SIGNATURE_URL = URL + ".sig"
 ARCHIVE_URL = "https://releases.example.invalid/rvv-miniputt/rvv-miniputt-2.1.0-windows-x64.zip"
 
 
@@ -42,19 +44,34 @@ def _manifest(**overrides) -> du.UpdateManifest:
     return du.parse_manifest(json.dumps(_manifest_dict(**overrides)).encode())
 
 
-class FakeTransport:
-    """In-memory transport. ``manifest`` is returned for the manifest URL; ``archive`` is streamed for downloads."""
+@pytest.fixture(autouse=True)
+def _test_signer_is_the_only_trusted_key(monkeypatch):
+    trust(monkeypatch)
 
-    def __init__(self, *, manifest: bytes | None = None, archive: bytes | None = None, fail: str | None = None):
+
+class FakeTransport:
+    """In-memory transport. ``manifest`` is returned for the manifest URL, its signature (test signer by default) for ``.sig`` URLs; ``archive`` is streamed for downloads."""
+
+    def __init__(
+        self,
+        *,
+        manifest: bytes | None = None,
+        archive: bytes | None = None,
+        fail: str | None = None,
+        signature: bytes | None = None,
+    ):
         self.manifest = manifest
         self.archive = archive
         self.fail = fail
+        self.signature = signature
         self.downloads: list[str] = []
 
     def read_bytes(self, url: str, limit: int) -> bytes:
         if self.fail == "network":
             raise du.NetworkError(f"offline: {url}")
         assert self.manifest is not None
+        if url.endswith(du.SIGNATURE_SUFFIX):
+            return self.signature if self.signature is not None else sign(self.manifest)
         return self.manifest
 
     def download(self, url: str, dest: Path, max_bytes: int) -> None:
@@ -189,7 +206,7 @@ def test_require_write_allowed_raises_for_stale_client():
 
 def test_successful_check_classifies_and_caches_manifest(tmp_path):
     raw = json.dumps(_manifest_dict()).encode()
-    result = du.check_for_update("2.0.0", URL, FakeTransport(manifest=raw).as_transport(), cache_dir=tmp_path)
+    result = du.check_for_update("2.0.0", URL, SIGNATURE_URL, FakeTransport(manifest=raw).as_transport(), cache_dir=tmp_path)
     assert result.error is None
     assert result.status is du.UpdateStatus.UPDATE_AVAILABLE
     assert du.load_cached_manifest(tmp_path) == result.manifest
@@ -197,10 +214,12 @@ def test_successful_check_classifies_and_caches_manifest(tmp_path):
 
 def test_offline_check_reports_error_without_raising_or_touching_cache(tmp_path):
     raw = json.dumps(_manifest_dict(minimum_write="2.0.0")).encode()
-    du.save_cached_manifest(tmp_path, raw)
+    du.save_cached_manifest(tmp_path, raw, sign(raw))
     before = (tmp_path / du.CACHE_FILE_NAME).read_bytes()
 
-    result = du.check_for_update("1.9.0", URL, FakeTransport(fail="network").as_transport(), cache_dir=tmp_path)
+    result = du.check_for_update(
+        "1.9.0", URL, SIGNATURE_URL, FakeTransport(fail="network").as_transport(), cache_dir=tmp_path
+    )
 
     assert result.status is None and result.manifest is None
     assert "offline" in result.error
@@ -210,9 +229,10 @@ def test_offline_check_reports_error_without_raising_or_touching_cache(tmp_path)
 
 
 def test_invalid_manifest_from_source_does_not_replace_cache(tmp_path):
-    du.save_cached_manifest(tmp_path, json.dumps(_manifest_dict(minimum_write="2.0.0")).encode())
+    cached = json.dumps(_manifest_dict(minimum_write="2.0.0")).encode()
+    du.save_cached_manifest(tmp_path, cached, sign(cached))
     bad = FakeTransport(manifest=b'{"schema": 1}').as_transport()
-    result = du.check_for_update("2.0.0", URL, bad, cache_dir=tmp_path)
+    result = du.check_for_update("2.0.0", URL, SIGNATURE_URL, bad, cache_dir=tmp_path)
     assert result.error is not None and result.manifest is None
     assert du.load_cached_manifest(tmp_path).minimum_write_version == "2.0.0"
 
@@ -422,7 +442,7 @@ def test_full_offline_fixture_flow_installs_verified_release_only(tmp_path, inst
     manifest_raw = json.dumps(_manifest_dict(sha256=hashlib.sha256(payload).hexdigest(), size=len(payload))).encode()
     transport = FakeTransport(manifest=manifest_raw, archive=payload).as_transport()
 
-    check = du.check_for_update("2.0.0", URL, transport, cache_dir=install["install_root"] / "updates")
+    check = du.check_for_update("2.0.0", URL, SIGNATURE_URL, transport, cache_dir=install["install_root"] / "updates")
     assert check.status is du.UpdateStatus.UPDATE_AVAILABLE
 
     flow = tmp_path / "flow"
@@ -434,7 +454,9 @@ def test_full_offline_fixture_flow_installs_verified_release_only(tmp_path, inst
 
 def test_version_cli_reports_update_status_from_local_manifest(tmp_path, capsys):
     manifest_path = tmp_path / "windows-stable.json"
-    manifest_path.write_text(json.dumps(_manifest_dict(latest="99.0.0", minimum_write="99.0.0")), encoding="utf-8")
+    raw = json.dumps(_manifest_dict(latest="99.0.0", minimum_write="99.0.0")).encode()
+    manifest_path.write_bytes(raw)
+    (tmp_path / "windows-stable.json.sig").write_bytes(sign(raw))
 
     assert main(["version", "--manifest", str(manifest_path), "--json"]) == 0
     payload = json.loads(capsys.readouterr().out)

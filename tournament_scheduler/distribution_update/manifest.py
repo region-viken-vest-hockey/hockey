@@ -29,6 +29,7 @@ class UpdateStatus(str, Enum):
     UPDATE_AVAILABLE = "update-available"
     UPDATE_REQUIRED = "update-required"
     UNSUPPORTED = "unsupported"
+    UNTRUSTED = "untrusted"
 
 
 def parse_version(text: object) -> tuple[int, ...]:

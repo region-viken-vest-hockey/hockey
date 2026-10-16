@@ -4,6 +4,8 @@ Public surface is re-exported here. Owners:
 
 * ``manifest``: manifest format, version ordering, classification, write gate
 * ``check``: manifest cache, injectable transport, update check
+* ``signature``: Ed25519 detached-signature verification and signing helpers
+* ``trust_roots``: embedded public trust roots (public keys only)
 * ``staging``: staged download, SHA-256 verification, safe extraction
 * ``activation``: atomic swap with previous-release rollback
 * ``errors``: exception types
@@ -18,6 +20,7 @@ from .activation import (
 )
 from .check import (
     CACHE_FILE_NAME,
+    CACHE_SIGNATURE_NAME,
     DEFAULT_TIMEOUT_SECONDS,
     Transport,
     UpdateCheck,
@@ -32,6 +35,7 @@ from .errors import (
     IntegrityError,
     ManifestError,
     NetworkError,
+    UntrustedManifestError,
     UpdateError,
     WriteBlockedError,
 )
@@ -50,16 +54,27 @@ from .manifest import (
     require_write_allowed,
     write_decision,
 )
+from .signature import (
+    MAX_SIGNATURE_BYTES,
+    SIGNATURE_SUFFIX,
+    load_signing_key,
+    parse_verified_manifest,
+    public_key_b64,
+    sign_manifest_bytes,
+    verify_manifest_signature,
+)
 from .staging import download_verified, extract_release, verify_file
 
 __all__ = [
-    "ActivationError", "Artifact", "CACHE_FILE_NAME", "DEFAULT_TIMEOUT_SECONDS",
-    "IntegrityError", "MANIFEST_SCHEMA_VERSION", "MAX_MANIFEST_BYTES", "ManifestError",
-    "NetworkError", "PREVIOUS_SUFFIX", "Transport", "UpdateCheck", "UpdateError",
+    "ActivationError", "Artifact", "CACHE_FILE_NAME", "CACHE_SIGNATURE_NAME", "DEFAULT_TIMEOUT_SECONDS",
+    "IntegrityError", "MANIFEST_SCHEMA_VERSION", "MAX_MANIFEST_BYTES", "MAX_SIGNATURE_BYTES",
+    "ManifestError", "NetworkError", "PREVIOUS_SUFFIX", "SIGNATURE_SUFFIX", "Transport",
+    "UntrustedManifestError", "UpdateCheck", "UpdateError",
     "UpdateManifest", "UpdateStatus", "WRITE_ALLOWED_STATUSES", "WriteBlockedError",
     "WriteDecision", "activate_release", "check_for_update", "classify",
     "confirm_release", "download_verified", "extract_release", "load_cached_manifest",
-    "manifest_to_dict", "parse_manifest", "parse_version", "previous_release_path",
-    "require_write_allowed", "rollback_release", "save_cached_manifest", "urllib_transport",
-    "verify_file", "write_decision", "write_decision_from_cache",
+    "load_signing_key", "manifest_to_dict", "parse_manifest", "parse_verified_manifest",
+    "parse_version", "previous_release_path", "public_key_b64", "require_write_allowed",
+    "rollback_release", "save_cached_manifest", "sign_manifest_bytes", "urllib_transport",
+    "verify_file", "verify_manifest_signature", "write_decision", "write_decision_from_cache",
 ]

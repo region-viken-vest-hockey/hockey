@@ -16,6 +16,7 @@ dependencies = [
     "icalendar>=6.0",
     "recurring-ical-events>=3.0",
     "rich>=14.0",
+    "cryptography>=46.0",
 ]
 
 [project.optional-dependencies]

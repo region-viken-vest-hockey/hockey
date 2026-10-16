@@ -8,6 +8,7 @@ import pytest
 
 from tests.claude_runtime_support import auth_output, not_installed_runner, runner_for, version_output
 from tests.operator_shell_support import INSTALLED, make_diverged, make_dirty
+from tests.distribution_signing_support import trust
 from tests.repository_sync_support import advance_remote, write_cache
 from tournament_scheduler.distribution_update import CACHE_FILE_NAME
 from tournament_scheduler.infrastructure.repository_sync import (
@@ -21,6 +22,11 @@ from tournament_scheduler.operator_shell import gather_readiness, render_readine
 
 def _ready_runner():
     return runner_for(version_output("2.1.296"), auth_output(True))
+
+
+@pytest.fixture(autouse=True)
+def _cache_is_signed_by_test_signer(monkeypatch):
+    trust(monkeypatch)
 
 
 def _view(checkout, cache_dir, *, store=None, claude=None, installed=INSTALLED):

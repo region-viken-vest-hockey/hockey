@@ -1,31 +1,34 @@
 """Release manifest cache, injectable transport and update check.
 
 Network access is confined to :class:`Transport`; tests inject fakes. The cache
-holds only validated release metadata and is never part of season state.
+holds only signature-verified release metadata and is never part of season
+state. The cached signature is re-verified on every load, so a locally edited
+cache is treated as unusable and blocks writes.
 """
 
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
 from dataclasses import dataclass
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from urllib.parse import urlsplit
 from urllib.request import urlopen
 
-from .errors import ManifestError, NetworkError, UpdateError
+from .errors import ManifestError, NetworkError, UntrustedManifestError, UpdateError
 from .manifest import (
     MAX_MANIFEST_BYTES,
     UpdateManifest,
     UpdateStatus,
     WriteDecision,
     classify,
-    parse_manifest,
     write_decision,
 )
+from .signature import MAX_SIGNATURE_BYTES, SIGNATURE_SUFFIX, parse_verified_manifest
 
 DEFAULT_TIMEOUT_SECONDS = 20.0
 CACHE_FILE_NAME = "release-manifest.json"
+CACHE_SIGNATURE_NAME = CACHE_FILE_NAME + SIGNATURE_SUFFIX
 
 
 def _atomic_write_bytes(path: Path, payload: bytes) -> None:
@@ -35,26 +38,42 @@ def _atomic_write_bytes(path: Path, payload: bytes) -> None:
     os.replace(temp, path)
 
 
-def save_cached_manifest(cache_dir: Path, raw: bytes) -> None:
-    parse_manifest(raw)  # only validated manifests are cached
+def save_cached_manifest(
+    cache_dir: Path,
+    raw: bytes,
+    signature: bytes,
+    trusted_keys: Mapping[str, str] | None = None,
+) -> None:
+    """Cache a manifest with its detached signature. Unverified metadata is never cached."""
+    parse_verified_manifest(raw, signature, trusted_keys)  # raises when untrusted or invalid
     _atomic_write_bytes(cache_dir / CACHE_FILE_NAME, raw)
+    _atomic_write_bytes(cache_dir / CACHE_SIGNATURE_NAME, signature)
 
 
-def load_cached_manifest(cache_dir: Path) -> UpdateManifest | None:
-    """Return the cached manifest, ``None`` when none exists, and raise when it is unreadable."""
+def load_cached_manifest(cache_dir: Path, trusted_keys: Mapping[str, str] | None = None) -> UpdateManifest | None:
+    """Return the cached manifest, ``None`` when none exists, and raise when it is unreadable or untrusted."""
     path = cache_dir / CACHE_FILE_NAME
     if not path.exists():
         return None
     try:
-        return parse_manifest(path.read_bytes())
+        raw = path.read_bytes()
+        signature = (cache_dir / CACHE_SIGNATURE_NAME).read_bytes()
     except OSError as exc:
         raise ManifestError(f"cached manifest unreadable: {exc}") from exc
-
-
-def write_decision_from_cache(installed: str, cache_dir: Path) -> WriteDecision:
-    """Gate for mutation paths: a corrupt cache blocks writes instead of being ignored."""
     try:
-        manifest = load_cached_manifest(cache_dir)
+        return parse_verified_manifest(raw, signature, trusted_keys)
+    except UntrustedManifestError as exc:
+        raise ManifestError(f"cached manifest is not trusted: {exc}") from exc
+
+
+def write_decision_from_cache(
+    installed: str,
+    cache_dir: Path,
+    trusted_keys: Mapping[str, str] | None = None,
+) -> WriteDecision:
+    """Gate for mutation paths: a corrupt or untrusted cache blocks writes instead of being ignored."""
+    try:
+        manifest = load_cached_manifest(cache_dir, trusted_keys)
     except ManifestError as exc:
         return WriteDecision(False, None, f"cached release manifest is unusable ({exc}); run an update check")
     return write_decision(installed, manifest)
@@ -112,22 +131,30 @@ class UpdateCheck:
 def check_for_update(
     installed: str,
     manifest_url: str,
+    signature_url: str,
     transport: Transport,
     cache_dir: Path | None = None,
+    *,
+    trusted_keys: Mapping[str, str] | None = None,
 ) -> UpdateCheck:
-    """Fetch and classify the release manifest. Never raises for offline or bad-manifest cases.
+    """Fetch, verify and classify the release manifest. Never raises for offline or bad-metadata cases.
 
-    The cache is only replaced after a manifest validates, so a failed check leaves
-    the previous cached manifest (and therefore the previous write gate) in place.
+    The signature is verified before any manifest field is read. Untrusted metadata
+    (unknown key ID, bad or malformed signature) yields status ``untrusted`` and offers
+    no update. The cache is only replaced after a verified manifest, so a failed or
+    untrusted check leaves the previous cached manifest and write gate in place.
     """
     try:
         raw = transport.read_bytes(manifest_url, MAX_MANIFEST_BYTES)
-        manifest = parse_manifest(raw)
+        signature = transport.read_bytes(signature_url, MAX_SIGNATURE_BYTES)
+        manifest = parse_verified_manifest(raw, signature, trusted_keys)
+    except UntrustedManifestError as exc:
+        return UpdateCheck(installed, UpdateStatus.UNTRUSTED, None, str(exc))
     except UpdateError as exc:
         return UpdateCheck(installed, None, None, str(exc))
     if cache_dir is not None:
         try:
-            save_cached_manifest(cache_dir, raw)
+            save_cached_manifest(cache_dir, raw, signature, trusted_keys)
         except OSError as exc:
             return UpdateCheck(installed, None, None, f"could not cache manifest: {exc}")
     return UpdateCheck(installed, classify(installed, manifest), manifest, None)

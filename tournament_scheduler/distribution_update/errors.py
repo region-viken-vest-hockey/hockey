@@ -15,6 +15,13 @@ class NetworkError(UpdateError):
     """The release source could not be reached or returned an error."""
 
 
+class UntrustedManifestError(UpdateError):
+    """The manifest signature is missing, malformed, from an unknown key ID or does not verify.
+
+    Untrusted metadata must never offer an update or change the write gate.
+    """
+
+
 class IntegrityError(UpdateError):
     """A downloaded or extracted artifact does not match the manifest."""
 

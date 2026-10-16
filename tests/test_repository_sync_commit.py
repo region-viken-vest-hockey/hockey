@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.distribution_signing_support import trust
 from tests.repository_sync_support import (
     INSTALLED,
     advance_remote,
@@ -22,6 +23,11 @@ from tournament_scheduler.infrastructure.repository_sync import (
 )
 
 SEASON_ROOT = Path("season") / "2026"
+
+
+@pytest.fixture(autouse=True)
+def _cache_is_signed_by_test_signer(monkeypatch):
+    trust(monkeypatch)
 
 
 def _commit(checkout: Path, cache_dir: Path, *, runner=run_git, push: bool = True, token=None):
