@@ -25,7 +25,7 @@ SEASON ?= 2026-2027
 export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CONFIRM_CLEANUP CSV ARGS BACKEND RESULT_FILE RESUME_AFTER_AUDIT
 
 PUBLIC_TARGETS := help bootstrap handover install sync check test dependency-lock secret-scan rules-report rule-catalog kampveileder-markdown \
-	operator-run operator-run-force run status logs calendars calendars-refresh sources-status season-export season-republish season-changes season-changes-markdown \
+	operator-run operator-run-force run status logs calendars calendars-refresh sources-status season-export season-presentation-export season-republish season-changes season-changes-markdown \
 	waiver \
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
 	questions questions-all answer promote \
@@ -65,6 +65,8 @@ help:
 	@echo "  make sources-status [ARGS='...']   sources status"
 	@echo "  make season-export [SEASON=2026-2027] [ARGS='...']"
 	@echo "                                      Regenerate export artifacts from canonical season state (does not publish)"
+	@echo "  make season-presentation-export [SEASON=2026-2027] [ARGS='...']"
+	@echo "                                      Safely regenerate renderer/template/CSS/JS output; proves canonical state unchanged"
 	@echo "  make season-republish SEASON=2026-2027 BACKEND=<name> [CONFIRM_PUBLIC=1]"
 	@echo "                                      Export + audit + publish preview; CONFIRM_PUBLIC=1 also publishes and verifies"
 	@echo "  make season-changes [SEASON=2026-2027] [ARGS='--markdown|--write|--json']"
@@ -178,6 +180,9 @@ sources-status:
 
 season-export:
 	@cd "$(ROOT_DIR)" && "$(RVV)" season export --season "$(SEASON)" $(ARGS)
+
+season-presentation-export:
+	@cd "$(ROOT_DIR)" && "$(RVV)" season export --season "$(SEASON)" --presentation-only $(ARGS)
 
 season-republish:
 	@cd "$(ROOT_DIR)" && RVV="$(RVV)" "$(PYTHON)" "$(SEASON_REPUBLISH)" --season "$(SEASON)" $(if $(filter 1,$(RESUME_AFTER_AUDIT)),--resume-after-audit,) $(if $(filter 1,$(CONFIRM_PUBLIC)),--confirm-public,)

@@ -172,8 +172,13 @@ def test_real_stage4_strict_failure_is_reported_as_export_failed(tmp_path):
 def test_harness_procedures_require_presentation_only_proof_and_never_imply_publication():
     delivery = (REPO_ROOT / ".agents/commands/rvv-miniputt/season-delivery.md").read_text(encoding="utf-8")
     republish = (REPO_ROOT / ".agents/commands/rvv-miniputt/republish.md").read_text(encoding="utf-8")
+    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
 
     for text in (delivery, republish):
         assert "season export --season <season> --presentation-only" in text
         assert "canonical revision" in text
+    assert "make season-presentation-export SEASON=<season>" in delivery
+    assert "Do not require the operator to restate the safety contract" in delivery
+    assert "season-presentation-export:" in makefile
+    assert 'season export --season "$(SEASON)" --presentation-only $(ARGS)' in makefile
     assert "Export alone never publishes" in republish
