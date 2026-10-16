@@ -48,6 +48,7 @@ TOP_LEVEL_COMMANDS = (
     "waiver",
     "export-parity",
     "version",
+    "capabilities",
     "shell",
 )
 

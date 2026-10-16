@@ -10,6 +10,8 @@
 # bundled because the calendar scraper imports it at module load; browser
 # binaries are not bundled and remain an optional, advanced recovery step.
 
+import glob
+import os
 import sys
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
@@ -21,6 +23,14 @@ sys.path.insert(0, ROOT)
 
 hiddenimports = collect_submodules("tournament_scheduler") + collect_submodules("holidays")
 datas = collect_data_files("tournament_scheduler")
+
+# Shared agent skill files read at runtime through
+# tournament_scheduler.repository_resources. They sit outside the package, so
+# each one is bundled explicitly at the same repository-relative location.
+# Every such file must be a SKILL.md under .agents/skills/rvv.
+for skill_file in sorted(glob.glob(os.path.join(ROOT, ".agents", "skills", "rvv", "**", "SKILL.md"), recursive=True)):
+    relative_dir = os.path.relpath(os.path.dirname(skill_file), ROOT)
+    datas.append((os.path.normpath(skill_file), relative_dir))
 
 a = Analysis(
     [SPECPATH + "/rvv_miniputt_launcher.py"],

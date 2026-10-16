@@ -8,7 +8,7 @@ policy or audit logic lives here.
 Order of checks (all before any process is started):
 
 1. the probe result must be ``ready``;
-2. the package protocol version must equal the contract protocol version.
+2. the requested agent protocol must lie in the repository-owned supported range.
 """
 
 from __future__ import annotations
@@ -16,6 +16,12 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+
+from tournament_scheduler.agent_protocol import (
+    AGENT_PROTOCOL_MAX_SUPPORTED,
+    AGENT_PROTOCOL_MIN_SUPPORTED,
+    AGENT_PROTOCOL_VERSION,
+)
 
 from .contract import SUPPORTED_CONTRACT, RuntimeContract
 from .probe import CLAUDE_EXECUTABLE, CommandResult, RuntimeReadiness, RuntimeState
@@ -56,17 +62,22 @@ def check_dispatch_allowed(
     contract: RuntimeContract = SUPPORTED_CONTRACT,
     protocol_version: int | None = None,
 ) -> None:
-    """Raise :class:`RuntimeBlockedError` unless dispatch may start."""
+    """Raise :class:`RuntimeBlockedError` unless dispatch may start.
+
+    ``protocol_version`` is the agent protocol a caller asks to speak. It is
+    checked against the repository-owned range in ``agent_protocol``; ``None``
+    means this package's own current protocol, which is always supported.
+    """
     if not readiness.ready:
         raise RuntimeBlockedError(readiness)
-    package_protocol = contract.protocol_version if protocol_version is None else protocol_version
-    if package_protocol != contract.protocol_version:
+    requested = AGENT_PROTOCOL_VERSION if protocol_version is None else protocol_version
+    if not contract.supports_protocol(requested):
         raise RuntimeBlockedError(
             RuntimeReadiness(
                 state=RuntimeState.INCOMPATIBLE_VERSION,
                 message=(
-                    f"Agent protocol {package_protocol} is not supported; "
-                    f"this package speaks protocol {contract.protocol_version}."
+                    f"Agent protocol {requested} is not supported; this package supports "
+                    f"protocol {AGENT_PROTOCOL_MIN_SUPPORTED} to {AGENT_PROTOCOL_MAX_SUPPORTED}."
                 ),
                 version=readiness.version,
             )

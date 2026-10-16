@@ -11,6 +11,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from tournament_scheduler.agent_protocol import is_supported_protocol
+
 _VERSION_RE = re.compile(r"(\d+)\.(\d+)\.(\d+)")
 
 
@@ -34,19 +36,22 @@ class Version:
 
 @dataclass(frozen=True)
 class RuntimeContract:
-    """Supported Claude runtime range and agent protocol version.
+    """Supported Claude runtime version range.
 
     ``min_claude_version`` is inclusive; ``max_claude_version_exclusive`` is not.
-    ``protocol_version`` identifies the dispatch protocol (argv shape and the
-    ``/rvv-miniputt:operate`` transport) that this package speaks.
+    The agent protocol range is not stored here: it is the repository-owned
+    constant in ``tournament_scheduler.agent_protocol``, read through
+    :meth:`supports_protocol`.
     """
 
     min_claude_version: Version
     max_claude_version_exclusive: Version
-    protocol_version: int
 
     def supports(self, version: Version) -> bool:
         return self.min_claude_version <= version < self.max_claude_version_exclusive
+
+    def supports_protocol(self, protocol_version: int) -> bool:
+        return is_supported_protocol(protocol_version)
 
     def describe_range(self) -> str:
         return (
@@ -59,5 +64,4 @@ class RuntimeContract:
 SUPPORTED_CONTRACT = RuntimeContract(
     min_claude_version=Version(2, 1, 0),
     max_claude_version_exclusive=Version(3, 0, 0),
-    protocol_version=1,
 )

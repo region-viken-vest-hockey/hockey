@@ -7,6 +7,8 @@ from pathlib import Path
 import pytest
 
 from tests.claude_runtime_support import auth_output, ok, recording_dispatch, runner_for, version_output
+from tournament_scheduler import agent_protocol
+from tournament_scheduler.agent_protocol import AGENT_PROTOCOL_MAX_SUPPORTED, AGENT_PROTOCOL_MIN_SUPPORTED
 from tournament_scheduler.infrastructure.claude_runtime import (
     SUPPORTED_CONTRACT,
     CommandResult,
@@ -50,7 +52,12 @@ def test_dispatch_is_refused_before_any_process_starts(readiness: RuntimeReadine
     assert calls == []
 
 
-def test_protocol_mismatch_fails_closed_before_dispatch() -> None:
+@pytest.mark.parametrize(
+    "requested",
+    [AGENT_PROTOCOL_MAX_SUPPORTED + 1, AGENT_PROTOCOL_MIN_SUPPORTED - 1],
+    ids=["above-range", "below-range"],
+)
+def test_protocol_outside_repository_range_fails_closed_before_dispatch(requested: int) -> None:
     calls, runner = recording_dispatch()
 
     with pytest.raises(RuntimeBlockedError) as raised:
@@ -59,12 +66,37 @@ def test_protocol_mismatch_fails_closed_before_dispatch() -> None:
             readiness=_ready(),
             runner=runner,
             repo_root=REPO,
-            protocol_version=SUPPORTED_CONTRACT.protocol_version + 1,
+            protocol_version=requested,
         )
 
     assert raised.value.readiness.state is RuntimeState.INCOMPATIBLE_VERSION
     assert "protocol" in str(raised.value)
     assert calls == []
+
+
+def test_protocol_range_is_read_from_the_repository_constant(monkeypatch) -> None:
+    calls, runner = recording_dispatch(ok("done"))
+    monkeypatch.setattr(agent_protocol, "AGENT_PROTOCOL_MAX_SUPPORTED", AGENT_PROTOCOL_MAX_SUPPORTED + 1)
+
+    outcome = dispatch_operate(
+        "request",
+        readiness=_ready(),
+        runner=runner,
+        repo_root=REPO,
+        protocol_version=AGENT_PROTOCOL_MAX_SUPPORTED + 1,
+    )
+
+    assert outcome.returncode == 0
+    assert len(calls) == 1
+
+
+def test_default_protocol_is_the_repository_protocol_and_always_dispatches() -> None:
+    calls, runner = recording_dispatch(ok("done"))
+
+    dispatch_operate("request", readiness=_ready(), runner=runner, repo_root=REPO)
+
+    assert len(calls) == 1
+    assert SUPPORTED_CONTRACT.supports_protocol(agent_protocol.AGENT_PROTOCOL_VERSION)
 
 
 def test_ready_dispatch_runs_operate_once_in_repo_root() -> None:

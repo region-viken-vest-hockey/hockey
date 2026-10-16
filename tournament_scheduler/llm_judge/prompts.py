@@ -22,16 +22,16 @@ Usage::
 from __future__ import annotations
 
 from functools import lru_cache
-from pathlib import Path
 from typing import Any
 
 from ..application.decisions import DecisionAction, DecisionContext
+from ..repository_resources import repository_resource
 
 # ---------------------------------------------------------------------------
 # Canonical shared planning policy (.agents/skills/rvv/planning/SKILL.md)
 # ---------------------------------------------------------------------------
 
-_SKILL_MD_PATH = Path(__file__).resolve().parents[2] / ".agents" / "skills" / "rvv" / "planning" / "SKILL.md"
+_SKILL_MD_PATH = repository_resource(".agents", "skills", "rvv", "planning", "SKILL.md")
 
 # Per-stage headings inside the canonical "## Stage gating policy" section of
 # planning/SKILL.md. Kept as exact heading strings so a documentation edit that breaks a

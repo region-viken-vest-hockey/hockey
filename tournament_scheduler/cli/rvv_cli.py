@@ -209,6 +209,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         from .distribution_command import _cmd_version
 
         return _cmd_version(args)
+    elif args.command == "capabilities":
+        from .distribution_command import _cmd_capabilities
+
+        return _cmd_capabilities(args)
     elif args.command == "shell":
         from .shell_command import _cmd_shell
 

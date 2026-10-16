@@ -19,7 +19,7 @@ Family owners:
 - plan: ``parsers/plan_verify.py``, ``parsers/plan_ab.py``, ``parsers/plan_decision.py``
 - waiver: ``parsers/waiver.py``
 - export-parity: ``parsers/export_parity.py``
-- version: ``parsers/distribution.py``
+- version, capabilities: ``parsers/distribution.py``
 """
 
 from __future__ import annotations

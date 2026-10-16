@@ -282,8 +282,39 @@ auth method and the recovery text. It never holds the account email, organisatio
 ### Compatibility contract
 
 `SUPPORTED_CONTRACT` (`contract.py`) declares the supported Claude Code range,
-`>= 2.1.0` and `< 3.0.0`, and the agent protocol version `1`. The range is the 2.1.x line that was
-verified on this build VM (2.1.296). Major version 3 is excluded until it has been assessed.
+`>= 2.1.0` and `< 3.0.0`. The range is the 2.1.x line that was verified on this build VM
+(2.1.296). Major version 3 is excluded until it has been assessed.
+
+The agent protocol is owned by the repository, not by the caller, in
+`tournament_scheduler/agent_protocol.py`: `AGENT_PROTOCOL_VERSION` (currently `1`) and the
+supported range `AGENT_PROTOCOL_MIN_SUPPORTED` to `AGENT_PROTOCOL_MAX_SUPPORTED`. The dispatch
+check reads that range, so a requested protocol outside it is refused before any process starts.
+
+### Capabilities (`rvv-miniputt capabilities --json`)
+
+`capabilities.py` assembles one structured report from the owners of each fact. It is read-only
+and prints only JSON on stdout with `--json`:
+
+| Key | Owner |
+|---|---|
+| `application_version`, `name`, `distribution` | `distribution.version_metadata()` (the single version source) |
+| `agent_protocol_version`, `agent_protocol_supported` (`min`, `max`) | `agent_protocol.py` |
+| `canonical_schema_version` (`schedule`, `decisions`, `physical_layout`) | canonical store constants, the same ones used to validate state on read |
+| `claude_runtime_supported` (`min_version`, `max_version_exclusive`) | `SUPPORTED_CONTRACT` |
+| `commands` | top-level command list discovered from the CLI parser, sorted |
+
+`version --json` reports the same application version. Protocol and schema facts are not in
+`version` output.
+
+### Shared resource resolution
+
+Shared agent files read at runtime, such as `.agents/skills/rvv/SKILL.md` and
+`.agents/skills/rvv/planning/SKILL.md`, are resolved only through
+`tournament_scheduler/repository_resources.py::repository_resource()`. Code does not build
+these paths from its own `__file__`. From a source checkout the resolver uses the repository root.
+In the frozen build it uses PyInstaller's `sys._MEIPASS`. `packaging/windows/rvv-miniputt.spec`
+bundles every `.agents/skills/rvv/**/SKILL.md` at the same relative location. Tests cover both
+layouts in `tests/test_repository_resources.py`.
 
 ### Dispatch (fail closed before mutation)
 
@@ -405,7 +436,7 @@ decision or a real operator run stay open.
 | Normal operator workflows do not require Git commands or canonical JSON editing | Not done. Commit and season maintenance are not in the shell. |
 | Write operations are revision-aware and fail closed on stale state | Partly: refresh binds to `HEAD`. Canonical commit is gated but not revision-bound from the shell. |
 | Versioned GitHub software releases publish artifacts and manifest | Not done (no release workflow). |
-| Installed clients report application, protocol and schema compatibility | Partly: application version and update status. Protocol and schema are not reported by the shell. |
+| Installed clients report application, protocol and schema compatibility | Partly: `capabilities --json` reports application, protocol range, schema versions and commands. The shell does not yet report them, and Windows is not verified. |
 | Read and write compatibility floors are explicit | Partly: manifest floors and the write gate (#622, #619). The gate is not wired into all mutation paths. |
 | Update failure leaves the previous version usable | Partly: offline Linux tests (#622). Not verified on Windows. |
 | Software update, repository sync, migration, season mutation, export and publication stay separate | Done for the shell: refresh does not update the software, and publication is a handoff only. |

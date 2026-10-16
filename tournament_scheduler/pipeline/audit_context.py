@@ -28,6 +28,7 @@ from tournament_scheduler.shape.guest_slots import (
     rvv_team_count,
 )
 from tournament_scheduler.hosting.representation import clubs_represent_same_club
+from tournament_scheduler.repository_resources import repository_resource
 from tournament_scheduler.planning.derived_state import (
     publication_readiness_with_plan_placements,
     reconcile_plan_derived_state,
@@ -86,7 +87,7 @@ AUDIT_CHECKLIST: tuple[dict[str, Any], ...] = (
     },
 )
 
-_SKILL_MD_PATH = Path(__file__).resolve().parents[2] / ".agents" / "skills" / "rvv" / "SKILL.md"
+_SKILL_MD_PATH = repository_resource(".agents", "skills", "rvv", "SKILL.md")
 _AUDIT_POLICY_HEADING = "## Semantic safety-net audit (post-export, pre-publication)"
 
 
