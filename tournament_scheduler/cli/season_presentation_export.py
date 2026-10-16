@@ -18,7 +18,7 @@ from ..application.canonical_season.presentation_regeneration import (
 from ..application.canonical_season.store_facade import load_decisions, load_schedule
 from ..pipeline.export_parity import STATUS_NOT_CHECKABLE, STATUS_PASS
 from ..season.state import canonical_state_revision
-from .season_export_core import run_canonical_season_export
+from .season_export_core import render_canonical_season_export
 
 _EXIT_CODES = {STATUS_PASS: 0, STATUS_NOT_CHECKABLE: 2}
 
@@ -36,7 +36,7 @@ def cmd_season_presentation_export(args: argparse.Namespace) -> int:
         report = run_presentation_only_regeneration(
             season=args.season,
             read_canonical_revision=lambda: _read_canonical_revision(args.season, args.root),
-            export=lambda: run_canonical_season_export(args),
+            export=lambda: render_canonical_season_export(args),
         )
     print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True, default=str))
     return _EXIT_CODES.get(report["status"], 1)

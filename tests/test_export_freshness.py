@@ -418,6 +418,32 @@ def _canonical_tree_bytes(root: Path) -> dict[str, bytes]:
     }
 
 
+def _install_presentation_manifest_writer(monkeypatch) -> None:
+    """Add canonical manifest metadata omitted by the minimal promoted fixture."""
+    import tournament_scheduler.cli.season_presentation_export as presentation_cli
+
+    real_render = presentation_cli.render_canonical_season_export
+
+    def render_with_manifest(args):
+        result = real_render(args)
+        write_draft_manifest(
+            result["export_dir"],
+            export_id="presentation-byte-stability",
+            generated_at="2026-10-16T00:00:00+00:00",
+            export_fingerprint=result["export_fingerprint"],
+            source_run_id=None,
+            canonical_season=SEASON,
+            canonical_revision=result["canonical_revision"],
+        )
+        return result
+
+    monkeypatch.setattr(
+        presentation_cli,
+        "render_canonical_season_export",
+        render_with_manifest,
+    )
+
+
 def test_presentation_only_export_keeps_already_fresh_partitioned_season_byte_exact(
     tmp_path: Path, monkeypatch, capsys
 ) -> None:
@@ -451,24 +477,7 @@ def test_presentation_only_export_keeps_already_fresh_partitioned_season_byte_ex
     # The minimal promoted fixture predates canonical manifest metadata. Supply
     # the same revision-bound draft manifest that a production canonical export
     # carries so the presentation contract can prove artifact parity.
-    import tournament_scheduler.cli.season_presentation_export as presentation_cli
-
-    real_export = presentation_cli.run_canonical_season_export
-
-    def export_with_manifest(args):
-        result = real_export(args)
-        write_draft_manifest(
-            result["export_dir"],
-            export_id="presentation-byte-stability",
-            generated_at="2026-10-16T00:00:00+00:00",
-            export_fingerprint=result["export_fingerprint"],
-            source_run_id=None,
-            canonical_season=SEASON,
-            canonical_revision=result["canonical_revision"],
-        )
-        return result
-
-    monkeypatch.setattr(presentation_cli, "run_canonical_season_export", export_with_manifest)
+    _install_presentation_manifest_writer(monkeypatch)
 
     rc = main(
         [
@@ -488,3 +497,50 @@ def test_presentation_only_export_keeps_already_fresh_partitioned_season_byte_ex
     assert report["artifact_parity"]["status"] == "PASS"
     assert report["publication"] == {"performed": False, "authorized": False}
     assert _canonical_tree_bytes(root) == before
+
+
+def test_presentation_only_export_preserves_stale_partitioned_season_byte_exact(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    """Renderer-only regeneration must not clear stale export bookkeeping."""
+
+    stale = _stale_after_refresh(tmp_path, monkeypatch)
+    root = tmp_path / "season"
+    migrate_season_to_partitioned(SEASON, root=root)
+    before = _canonical_tree_bytes(root)
+    decisions_before = load_decisions(SEASON, root=root)
+    assert decisions_before["export_state"]["requires_fresh_export"] is True
+    assert _mark_export_fresh_events(decisions_before) == []
+
+    _install_presentation_manifest_writer(monkeypatch)
+    rc = main(
+        [
+            "season",
+            "export",
+            "--season",
+            SEASON,
+            "--work-dir",
+            str(tmp_path / ".pipeline"),
+            "--root",
+            str(root),
+            "--export-dir",
+            str(tmp_path / "presentation-export"),
+            "--flat",
+            "--presentation-only",
+        ]
+    )
+    report = json.loads(capsys.readouterr().out)
+
+    assert rc == 0, report
+    assert report["status"] == "PASS"
+    assert report["canonical_revision_before"] == stale
+    assert report["canonical_revision_after"] == stale
+    assert report["canonical_revision_unchanged"] is True
+    assert report["canonical_schedule_or_decisions_changed"] is False
+    assert report["artifact_parity"]["status"] == "PASS"
+    assert report["publication"] == {"performed": False, "authorized": False}
+    assert _canonical_tree_bytes(root) == before
+
+    decisions_after = load_decisions(SEASON, root=root)
+    assert decisions_after["export_state"] == decisions_before["export_state"]
+    assert _mark_export_fresh_events(decisions_after) == []
