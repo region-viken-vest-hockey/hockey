@@ -247,21 +247,68 @@ explicit, tested application command that the operator runs, not an updater side
   `TRUSTED_RELEASE_KEYS` is empty and all manifests are untrusted. Generate the key pair, store the
   private half only as a protected workflow secret, embed the public half with its key ID, and
   cover the embedding in a test. Until then no update is offered.
-- **Release workflow signing step.** `scripts/sign-release-manifest.py` exists, but the
-  software-release workflow does not call it yet. The workflow must sign only after packaged smoke
-  tests pass, and must publish the manifest and `.sig` together.
 - **Frozen-build check.** `cryptography` is not yet confirmed to bundle correctly in the PyInstaller
   build (`packaging/windows/rvv-miniputt.spec`). Verify on a built artifact.
 - **Live end-to-end check.** The signed flow is tested with in-memory fakes only; no live release
   channel exists yet. Artifact size and SHA-256 are verified before staging (`download_verified`).
-- **GitHub Releases publication workflow.** Not built. Release channel URL and artifact
-  upload are undecided.
 - **Gate wiring** into the remaining canonical mutation paths (the repository adapter is wired;
   see above).
 - **Post-update smoke check** that calls `confirm_release` or `rollback_release` automatically.
   The functions exist; the orchestration does not.
 - **Restricted-user install on Windows.** Activation uses only per-user directory renames.
   Not verified on Windows.
+
+## Software release procedure (epic #364, sub-issue #622)
+
+Implemented by `.github/workflows/software-release.yml` (manual `workflow_dispatch` only), with
+the metadata helper `scripts/software-release-metadata.py`. The release is a **software** event and
+is kept apart from season publication snapshots (#549): separate workflow, separate tag namespace
+(`rvv-miniputt-app-v<version>`, which no season or maintenance tag uses) and a separate manifest.
+
+### One-time repository setup (maintainer)
+
+- Environment `software-release` with required reviewers. It guards the signing and publish jobs.
+- Environment secret `RVV_RELEASE_SIGNING_KEY`: the Ed25519 private key as PEM. It is never stored in
+  the repository or in the application.
+- Repository variable `RVV_RELEASE_KEY_ID`: the key ID, which must match the public key embedded in
+  `trust_roots.py` in a client release. Until a client trusts this key, every published manifest is
+  `untrusted` by design.
+
+### Release steps
+
+1. Dispatch the workflow with `mode=build-only`, the `ref` (branch, tag or full SHA; it must name
+   exactly one ref) and the two floors `minimum_write_version` and `minimum_supported_version`.
+   The floors are maintainer decisions and must satisfy `minimum_supported <= minimum_write <= version`.
+2. The build job checks out the resolved commit and refuses a dirty tree or an ambiguous ref. It
+   builds `packaging/windows/rvv-miniputt.spec` with PyInstaller 6.11.1 on `windows-latest`, then runs
+   the packaged `--help`, `version --json`, `capabilities --json` and `status` on the extracted zip.
+   The metadata comes from those outputs, not from a second source.
+3. The sign job verifies `checksums.txt`, signs `update-manifest.json` with
+   `scripts/sign-release-manifest.py` and checks the signature against the public key.
+   The signing key is passed only through the environment and is not printed.
+4. Review the `software-release-candidate` and `software-release-signed` artifacts.
+5. Dispatch again with `mode=publish` and `confirm_publish=PUBLISER`. The publish job refuses an
+   existing tag or release, creates a **draft** Release with the zip, `checksums.txt`,
+   `update-manifest.json`, `update-manifest.json.sig` and `release-metadata.json`, and only then
+   publishes it and marks it Latest. The stable channel is therefore the manifest asset of the
+   Latest software Release. There is no separate pointer file.
+
+Artifacts: `rvv-miniputt-<version>-windows-x64.zip` contains one top-level `rvv-miniputt/` folder, the
+onedir layout that the updater extracts. Asset URLs follow
+`https://github.com/<owner>/<repo>/releases/download/rvv-miniputt-app-v<version>/<file>`.
+
+### Not tested (must be verified before trusting a release)
+
+- No GitHub Actions run has been made. The workflow was checked only by YAML parse, a static
+  structural test (`tests/test_software_release_workflow.py`), and a local exercise of the
+  source-identity step against a scratch repository. `actionlint` was not available.
+- The Windows build, the packaged smoke commands and the zip extraction have not run on a Windows
+  machine. The PyInstaller build has not been run with `cryptography` included.
+- No real signing key exists. The sign and verify steps have only been run with in-memory test keys.
+- The no-admin Windows installer (`RVV-Miniputt-Setup-<version>.exe`, requested in #622) is not built.
+  The workflow publishes the zip only, so it is not the final end-user artifact yet.
+- Restricted-user install and update on Windows, and the rollback path, remain unverified.
+- The client does not yet fetch from the release channel; the channel URL is still undecided.
 
 ## Repository adapter and sign-in (sub-issue #619)
 

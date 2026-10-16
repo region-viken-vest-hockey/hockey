@@ -1,0 +1,292 @@
+name: "Software release: build and publish RVV Miniputt (Windows x64)"
+
+# Software releases are operator-product events, separate from season
+# publication (#549). Manual dispatch only: nothing runs on push, tag or schedule.
+# Mode build-only builds, smoke-tests and signs a candidate without touching
+# GitHub Releases or the stable channel. Mode publish additionally creates the
+# software Release, which is the only place a stable channel pointer is advertised.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag or full commit SHA. Must resolve to exactly one ref."
+        required: true
+        type: string
+        default: "main"
+      mode:
+        description: "build-only: no Release or channel change. publish: create the software Release."
+        required: true
+        type: choice
+        options:
+          - build-only
+          - publish
+        default: "build-only"
+      minimum_write_version:
+        description: "Lowest version allowed to write canonical state (maintainer decision)."
+        required: true
+        type: string
+      minimum_supported_version:
+        description: "Lowest version that may still run read-only commands (maintainer decision)."
+        required: true
+        type: string
+      confirm_publish:
+        description: "For mode=publish only: type PUBLISER."
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: software-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.12"
+  PYINSTALLER_VERSION: "6.11.1"
+  ARTIFACT_CANDIDATE: software-release-candidate
+  ARTIFACT_SIGNED: software-release-signed
+
+jobs:
+  build:
+    name: "Build, smoke-test and describe the candidate"
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      REQUESTED_REF: ${{ inputs.ref }}
+      RELEASE_DIR: ${{ runner.temp }}/release
+      BUILD_ROOT: ${{ runner.temp }}/rvv-build
+      SMOKE_ROOT: ${{ runner.temp }}/rvv-smoke
+      SMOKE_DATA_DIR: ${{ runner.temp }}/rvv-smoke-data
+      MIN_WRITE: ${{ inputs.minimum_write_version }}
+      MIN_SUPPORTED: ${{ inputs.minimum_supported_version }}
+    steps:
+      - name: "Check out the workflow revision"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: "Resolve and verify the source identity"
+        run: scripts/software-release-source.sh
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.lock
+
+      - name: "Install locked dependencies and PyInstaller"
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --upgrade "pip<26"
+          python -m pip install --require-hashes -r requirements.lock
+          python -m pip install "pyinstaller==${PYINSTALLER_VERSION}"
+
+      - name: "Build the onedir application from the packaging spec"
+        run: |
+          set -euo pipefail
+          python -m PyInstaller --noconfirm \
+            --workpath "$BUILD_ROOT/work" \
+            --distpath "$BUILD_ROOT/dist" \
+            packaging/windows/rvv-miniputt.spec
+          test -f "$BUILD_ROOT/dist/rvv-miniputt/rvv-miniputt.exe"
+          if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
+            echo "::error::the build modified the source tree" >&2
+            exit 1
+          fi
+
+      - name: "Read the built application's own version report"
+        run: |
+          set -euo pipefail
+          "$BUILD_ROOT/dist/rvv-miniputt/rvv-miniputt.exe" version --json > "$BUILD_ROOT/version-built.json"
+          python scripts/software-release-metadata.py archive \
+            --app-dir "$BUILD_ROOT/dist/rvv-miniputt" \
+            --version-json "$BUILD_ROOT/version-built.json" \
+            --out-dir "$RELEASE_DIR"
+
+      - name: "Smoke-test the packaged artifact from a clean directory"
+        run: |
+          set -euo pipefail
+          rm -rf "$SMOKE_ROOT" "$SMOKE_DATA_DIR"
+          mkdir -p "$SMOKE_ROOT" "$SMOKE_DATA_DIR"
+          artifact="$(ls "$RELEASE_DIR"/rvv-miniputt-*-windows-x64.zip)"
+          python -m zipfile -e "$artifact" "$SMOKE_ROOT"
+          exe="$SMOKE_ROOT/rvv-miniputt/rvv-miniputt.exe"
+          export RVV_MINIPUTT_DATA_DIR="$SMOKE_DATA_DIR"
+          "$exe" --help > "$RELEASE_DIR/smoke-help.txt"
+          "$exe" version --json > "$RELEASE_DIR/smoke-version.json"
+          "$exe" capabilities --json > "$RELEASE_DIR/smoke-capabilities.json"
+          "$exe" status > "$RELEASE_DIR/smoke-status.txt"
+          cmp -s "$BUILD_ROOT/version-built.json" "$RELEASE_DIR/smoke-version.json" \
+            || { echo "::error::version report differs between build output and extracted artifact" >&2; exit 1; }
+
+      - name: "Describe the release: manifest, metadata, checksums"
+        run: |
+          set -euo pipefail
+          artifact="$(ls "$RELEASE_DIR"/rvv-miniputt-*-windows-x64.zip)"
+          python scripts/software-release-metadata.py describe \
+            --version-json "$RELEASE_DIR/smoke-version.json" \
+            --capabilities-json "$RELEASE_DIR/smoke-capabilities.json" \
+            --source-identity "$RELEASE_DIR/source-identity.json" \
+            --artifact "$artifact" \
+            --repository "$GITHUB_REPOSITORY" \
+            --minimum-write-version "$MIN_WRITE" \
+            --minimum-supported-version "$MIN_SUPPORTED" \
+            --out-dir "$RELEASE_DIR"
+          rm -f "$RELEASE_DIR/version-built.json"
+
+      - name: "Upload the unsigned candidate"
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_CANDIDATE }}
+          path: ${{ env.RELEASE_DIR }}
+          if-no-files-found: error
+          retention-days: 14
+
+  sign:
+    name: "Sign the update manifest"
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The signing key exists only in this protected environment. Its value is
+    # passed through env to the signing script and is never printed.
+    environment: software-release
+    permissions:
+      contents: read
+    steps:
+      - name: "Check out the reviewed workflow revision"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: "Download the candidate"
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_CANDIDATE }}
+          path: release
+
+      - name: "Verify candidate checksums before signing"
+        working-directory: release
+        run: sha256sum -c checksums.txt
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.lock
+
+      - name: "Install locked dependencies"
+        run: |
+          python -m pip install --disable-pip-version-check --upgrade "pip<26"
+          python -m pip install --require-hashes -r requirements.lock
+
+      - name: "Sign the manifest"
+        env:
+          RVV_RELEASE_SIGNING_KEY: ${{ secrets.RVV_RELEASE_SIGNING_KEY }}
+          RELEASE_KEY_ID: ${{ vars.RVV_RELEASE_KEY_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$RVV_RELEASE_SIGNING_KEY" || { echo "::error::signing key secret is not configured" >&2; exit 1; }
+          test -n "$RELEASE_KEY_ID" || { echo "::error::repository variable RVV_RELEASE_KEY_ID is not configured" >&2; exit 1; }
+          python scripts/sign-release-manifest.py \
+            --manifest release/update-manifest.json \
+            --key-id "$RELEASE_KEY_ID"
+          public_key="$(python scripts/sign-release-manifest.py --public-key-for-trust-root)"
+          python scripts/software-release-metadata.py verify \
+            --manifest release/update-manifest.json \
+            --signature release/update-manifest.json.sig \
+            --key-id "$RELEASE_KEY_ID" \
+            --public-key-b64 "$public_key"
+
+      - name: "Upload the signed candidate"
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_SIGNED }}
+          path: release
+          if-no-files-found: error
+          retention-days: 90
+
+  publish:
+    name: "Create the GitHub software Release"
+    needs: [build, sign]
+    if: ${{ inputs.mode == 'publish' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: software-release
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: "Confirm the publish request"
+        env:
+          CONFIRM_TEXT: ${{ inputs.confirm_publish }}
+        run: |
+          if [ "$CONFIRM_TEXT" != "PUBLISER" ]; then
+            echo "::error::confirm_publish must be exactly PUBLISER" >&2
+            exit 2
+          fi
+
+      - name: "Download the signed candidate"
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_SIGNED }}
+          path: release
+
+      - name: "Verify checksums and signature before publishing"
+        working-directory: release
+        run: |
+          set -euo pipefail
+          sha256sum -c checksums.txt
+          test -f update-manifest.json.sig
+
+      - name: "Refuse to reuse an existing tag or release"
+        run: |
+          set -euo pipefail
+          tag="$(jq -r '.tag' release/release-metadata.json)"
+          case "$tag" in
+            rvv-miniputt-app-v*) ;;
+            *) echo "::error::unexpected software tag '$tag'" >&2; exit 1 ;;
+          esac
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" >/dev/null 2>&1; then
+            echo "::error::tag $tag already exists; bump the application version" >&2
+            exit 1
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::release $tag already exists" >&2
+            exit 1
+          fi
+
+      - name: "Create the draft Release with all assets attached"
+        working-directory: release
+        run: |
+          set -euo pipefail
+          tag="$(jq -r '.tag' release-metadata.json)"
+          commit="$(jq -r '.source_commit' release-metadata.json)"
+          version="$(jq -r '.application_version' release-metadata.json)"
+          zip="$(jq -r '.artifact.filename' release-metadata.json)"
+          gh release create "$tag" \
+            --draft \
+            --target "$commit" \
+            --title "RVV Miniputt $version (Windows x64)" \
+            --notes-file release-notes.md \
+            "$zip" \
+            checksums.txt \
+            update-manifest.json \
+            update-manifest.json.sig \
+            release-metadata.json
+
+      - name: "Publish the Release and advertise the stable channel last"
+        working-directory: release
+        run: |
+          set -euo pipefail
+          tag="$(jq -r '.tag' release-metadata.json)"
+          gh release edit "$tag" --draft=false --latest
