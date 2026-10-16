@@ -5,7 +5,7 @@
       <p class="eyebrow">Kalender</p>
       <h2>Varmekart &mdash; klubbaktivitet per uke</h2>
     </div>
-    <p class="section-note">Antall turneringer per klubb og uke gjennom sesongen.</p>
+    <p class="section-note">Antall turneringer per klubb og uke gjennom sesongen. Tidligere uker er tonet ned; streken viser i dag.</p>
   </div>
   <div id="heatmapLegend" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px;"></div>
   <div class="table-wrap">
@@ -18,3 +18,57 @@
     </table>
   </div>
 </section>
+<script>
+(function() {
+  function isoWeekMondayUtc(isoWeek) {
+    var parts = isoWeek.split('-W');
+    var year = parseInt(parts[0], 10);
+    var week = parseInt(parts[1], 10);
+    var jan4 = new Date(Date.UTC(year, 0, 4));
+    var jan4Day = jan4.getUTCDay() || 7;
+    var firstThursday = new Date(Date.UTC(year, 0, 4 - jan4Day + 4));
+    var monday = new Date(firstThursday.getTime());
+    monday.setUTCDate(monday.getUTCDate() + (week - 1) * 7 - 3);
+    return monday;
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var head = document.getElementById('heatmapHead');
+    var body = document.getElementById('heatmapBody');
+    if (!head || !body || typeof HEATMAP_WEEKS === 'undefined' || !HEATMAP_WEEKS.length) return;
+
+    var now = new Date();
+    var todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    var weekdayFromMonday = (now.getDay() + 6) % 7;
+    var todayPercent = ((weekdayFromMonday + 0.5) / 7) * 100;
+    var headCells = head.querySelectorAll('th');
+    var rows = body.querySelectorAll('tr');
+
+    HEATMAP_WEEKS.forEach(function(isoWeek, index) {
+      var monday = isoWeekMondayUtc(isoWeek);
+      var mondayMs = monday.getTime();
+      var sundayMs = mondayMs + 6 * 24 * 60 * 60 * 1000;
+      var isPast = sundayMs < todayUtc;
+      var isCurrent = mondayMs <= todayUtc && todayUtc <= sundayMs;
+      var columnIndex = index + 1; // first column is the club label
+
+      function decorate(cell) {
+        if (!cell) return;
+        if (isPast) {
+          cell.style.opacity = '0.42';
+          cell.style.filter = 'grayscale(0.7)';
+        }
+        if (isCurrent) {
+          cell.style.backgroundImage = 'linear-gradient(to right, transparent calc(' + todayPercent + '% - 1px), var(--amber) calc(' + todayPercent + '% - 1px), var(--amber) calc(' + todayPercent + '% + 1px), transparent calc(' + todayPercent + '% + 1px))';
+          cell.style.backgroundRepeat = 'no-repeat';
+        }
+      }
+
+      decorate(headCells[columnIndex]);
+      rows.forEach(function(row) {
+        decorate(row.children[columnIndex]);
+      });
+    });
+  });
+})();
+</script>
