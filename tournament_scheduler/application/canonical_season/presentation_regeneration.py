@@ -49,10 +49,10 @@ def run_presentation_only_regeneration(
 ) -> dict[str, Any]:
     """Run one canonical export and return the bounded presentation-only report.
 
-    ``export`` performs the canonical export and returns its checkpoint (with
-    ``stale_export``). ``read_canonical_revision`` re-reads authoritative state.
-    The report is ``PASS`` only when the revision is unchanged across export,
-    the export is not stale, and artifact parity/freshness passes against the
+    ``export`` renders canonical artifacts through the read-only export boundary
+    and returns its checkpoint. ``read_canonical_revision`` re-reads authoritative
+    state. The report is ``PASS`` only when the revision is unchanged across the
+    render, the artifacts were not overtaken, and parity passes against the
     pre-regeneration revision.
     """
 

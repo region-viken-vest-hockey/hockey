@@ -1,7 +1,8 @@
-"""Canonical ``season export`` core: regenerate Stage 4 artifacts from canonical state.
+"""Canonical Stage 4 rendering and ordinary ``season export`` finalization.
 
-Printing and exit codes stay in the CLI command modules; this module only runs
-the export and records its freshness, evidence and audit-required marks.
+Printing and exit codes stay in the CLI command modules. Presentation-only
+regeneration uses the read-only rendering boundary; ordinary canonical export
+additionally records freshness, evidence and audit-required marks.
 """
 
 from __future__ import annotations
@@ -43,18 +44,14 @@ def _write_canonical_export_evidence(schedule: dict, export_checkpoint: dict) ->
         _console.print(f"  [yellow]⚠[/yellow] Kunne ikke skrive evidence-bundle: {exc}")
 
 
-def run_canonical_season_export(args: argparse.Namespace) -> dict[str, Any]:
-    """Regenerate Stage 4 exports from canonical season state and return the checkpoint.
-
-    Pure export step shared by ``season export`` and the presentation-only
-    regeneration report; it prints nothing. ``result["stale_export"]`` tells the
-    caller whether the artifacts may be published.
-    """
+def _render_canonical_season_export(
+    args: argparse.Namespace,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Render Stage 4 artifacts and retain the exact source schedule."""
     from ..pipeline.stage4_export import run as run_export
     from ..pipeline.state import PipelineState
     from ..application.canonical_season.store_facade import (
         SeasonStateError,
-        change_request_ledger,
         effective_config_from_verification_problem,
         load_decisions,
         load_export_context,
@@ -166,14 +163,43 @@ def run_canonical_season_export(args: argparse.Namespace) -> dict[str, Any]:
     # lifecycle uses it to avoid ever routing a promoted-season audit back
     # into an unrelated Stage 3 candidate (issue #397).
     result["is_canonical_season_export"] = True
+    return result, schedule
+
+
+def render_canonical_season_export(args: argparse.Namespace) -> dict[str, Any]:
+    """Render Stage 4 artifacts without mutating canonical season state.
+
+    This boundary deliberately does not clear export freshness, write the
+    canonical change-log projection, or mark publication readiness. Callers
+    requiring those ordinary ``season export`` effects must use
+    :func:`run_canonical_season_export`.
+    """
+    result, schedule = _render_canonical_season_export(args)
+    _write_canonical_export_evidence(schedule, result)
+    return result
+
+
+def run_canonical_season_export(args: argparse.Namespace) -> dict[str, Any]:
+    """Render and finalize an ordinary revision-bound canonical export.
+
+    Unlike presentation-only rendering, this operation owns the stale-to-fresh
+    publication-readiness transition and its canonical bookkeeping.
+    """
+    from ..application.canonical_season.store_facade import (
+        change_request_ledger,
+        mark_export_fresh,
+    )
+    from ..pipeline.state import PipelineState, StageName, StageStatus
+
+    result, schedule = _render_canonical_season_export(args)
+    state = PipelineState(args.work_dir)
+
     # A successful export covers the revision it was generated from, so
     # clear the one-way "fresh export required" latch that a calendar
     # refresh or config reconciliation set. The clearing is revision-
     # bound: if canonical state advanced while this export ran, the
     # newer state's freshness requirement survives and publication
     # keeps refusing the now-stale artifact.
-    from ..application.canonical_season.store_facade import mark_export_fresh
-
     result["export_freshness"] = mark_export_fresh(
         season=args.season,
         root=args.root,
@@ -201,7 +227,6 @@ def run_canonical_season_export(args: argparse.Namespace) -> dict[str, Any]:
                 or "canonical state changed during export"
             ),
         ]
-    from ..pipeline.state import StageName, StageStatus
     state.write_stage(
         StageName.EXPORT,
         result,
