@@ -15,7 +15,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from urllib.request import urlopen
 
-from .errors import ManifestError, NetworkError, UntrustedManifestError, UpdateError
+from .errors import ManifestError, NetworkError, UntrustedManifestError, UpdateError, WriteBlockedError
 from .manifest import (
     MAX_MANIFEST_BYTES,
     UpdateManifest,
@@ -77,6 +77,22 @@ def write_decision_from_cache(
     except ManifestError as exc:
         return WriteDecision(False, None, f"cached release manifest is unusable ({exc}); run an update check")
     return write_decision(installed, manifest)
+
+
+def require_cached_write_allowed(
+    installed: str,
+    cache_dir: Path,
+    trusted_keys: Mapping[str, str] | None = None,
+) -> None:
+    """Raise :class:`WriteBlockedError` unless the cached manifest allows canonical writes.
+
+    This is the single policy entry point for the application mutation gate and
+    the repository commit gate. The message is operator-facing and states that
+    nothing was changed.
+    """
+    decision = write_decision_from_cache(installed, cache_dir, trusted_keys)
+    if not decision.allowed:
+        raise WriteBlockedError(f"Canonical changes are blocked: {decision.reason}. Nothing was changed.")
 
 
 @dataclass(frozen=True)

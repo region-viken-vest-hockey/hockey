@@ -156,11 +156,44 @@ public key is embedded in a release. Tests use throwaway in-memory keys through
 - with no cached manifest there is no declared minimum, so writes are allowed and the
   decision reason says the minimum is unknown. Run an update check to establish one.
 
-**Wired into the repository adapter only.** `commit_canonical_season()` (see below) calls
-`require_write_allowed` on the cached manifest before it stages, commits or pushes anything, and
-a corrupt cached manifest blocks writes. The other canonical mutation paths (CLI apply and
-publish flows, which today rely on the operator's own Git commits) do not call the gate yet.
-Wiring them is the next step, and it belongs in the application layer, not in scheduler policy.
+**Application mutation gate.** `CanonicalSeasonService` is wrapped by `gate_canonical_writes`
+(`application/canonical_season/write_gate.py`), which owns the list `GATED_WRITE_METHODS`. Each
+listed write use case calls the service's `write_gate` before it does any work, so a refused client
+fails before any local canonical file is written. The policy stays in `distribution_update.require_cached_write_allowed()`;
+the application layer only selects the installed version and the per-user update cache. A refusal
+says `Canonical changes are blocked: ... Nothing was changed.`
+
+Gated write use cases (44; the set is pinned by `tests/test_canonical_write_gate.py`, and every
+public method not listed here is read-only):
+
+- baseline and calendars: `season_baseline_create`, `season_baseline_advance`, `refresh_calendars`,
+  `reconcile_config`, `mark_export_fresh`, `compact_history`
+- request constraints and dates: `add_request_constraint`, `release_request_constraints`,
+  `allow_holiday_date`, `disallow_holiday_dates`, `add_banned_date`, `release_banned_dates`
+- participants and placement: `promote`, `move_tournament`, `swap_participants`,
+  `replace_participant`, `remove_participant`, `release_participation_withdrawals`,
+  `apply_retire_team`, `rename_teams`, `batch_maintenance`, `apply_candidate`,
+  `normalize_placements`, `normalize_arena_identities`
+- publication lifecycle: `seal_published_season`, `reopen_planning`
+- guest slots and protections: `reserve_guest_slot`, `fill_guest_slot`, `release_guest_slot`,
+  `release_change_protections`
+- calendar bookings: `reconcile_calendar_bookings`, `confirm_calendar_booking`,
+  `release_calendar_booking`, `set_manual_booking_assertion`, `clear_manual_booking_assertion`,
+  `set_club_booking_source`
+- ice time and infeasibility: `set_ice_time_minutes`, `clear_ice_time_minutes`,
+  `record_placement_infeasibility_proofs`, `release_placement_infeasibility_proofs`
+- approvals: `approve_tournament`, `unapprove_tournament`, `record_participation_acceptance`,
+  `revoke_participation_acceptance`
+
+Dry-run options of these methods are gated too, so a stale client gets no preview either.
+Not gated, on purpose: `replacement_candidates` (read-only search; it calls `replace_participant`
+as a module-level dry run, not through the gated method), and all report and inspection methods.
+
+Not gated in this slice: `write_change_log_markdown` (generated Markdown report under
+`season/<season>/change-log.md`, never read back as canonical state), publication evidence and
+export draft manifests (derived export artifacts), `save_waivers` (pipeline work directory), and
+`infrastructure.canonical_season_migration.migrate_season_to_partitioned` (no application caller
+yet; gate it when it is wired).
 
 ### Check, download and activation
 
@@ -264,7 +297,9 @@ classifies the checkout. `classify_state()` is pure and fail-closed in this orde
 
 `commit_canonical_season()` is the only Git write path. It runs in this order:
 
-1. the write gate (`require_write_allowed` on the cached manifest; corrupt cache blocks);
+1. the write gate (`require_cached_write_allowed` on the cached manifest; corrupt cache blocks).
+   This is a second line of defence: the application gate has already refused any stale client
+   before local canonical state was written;
 2. the checkout must be `ready` or `local-changes` with no ahead or behind commits;
 3. every tracked change must lie under the season root, and the index must be empty;
 4. `git add -A -- <season root>`, then a commit of the staged season state only;
@@ -301,7 +336,7 @@ does not decide season content, and it does not replace `CanonicalSeasonStore`'s
 - **Clone and commit from the operator shell** are not exposed. Refresh and readiness are
   (see the operator shell section below). Commit needs the season maintenance flow, which is
   not wrapped yet.
-- **Gate wiring** into the other canonical mutation paths (see above).
+- **Gate coverage** for the not-gated write helpers listed under the write-compatibility gate.
 
 ## Claude runtime readiness and dispatch (sub-issue #620)
 

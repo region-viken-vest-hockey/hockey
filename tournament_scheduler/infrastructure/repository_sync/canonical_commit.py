@@ -2,7 +2,8 @@
 
 This is the only Git write path in the adapter. It fails closed in this order:
 
-1. write gate: the installed version must be allowed to write (``require_write_allowed``);
+1. write gate: the cached release manifest must allow writes for the installed version
+   (``require_cached_write_allowed``, a second line behind the application mutation gate);
 2. checkout state must be ``ready`` or ``local-changes`` with no ahead/behind commits;
 3. every tracked change must lie under the season root, and the index must be empty;
 4. only the season root is staged and committed;
@@ -18,12 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from tournament_scheduler.distribution_update import (
-    ManifestError,
-    WriteBlockedError,
-    load_cached_manifest,
-    require_write_allowed,
-)
+from tournament_scheduler.distribution_update import require_cached_write_allowed
 
 from .errors import GitCommandError, RepositoryStateError
 from .git_runner import GitRunner, https_auth_env, run_git
@@ -39,17 +35,8 @@ class CanonicalCommitResult:
 
 
 def enforce_write_gate(installed_version: str, cache_dir: Path) -> None:
-    """Raise :class:`WriteBlockedError` unless the cached release manifest allows writes.
-
-    A corrupt cached manifest blocks writes rather than being ignored.
-    """
-    try:
-        manifest = load_cached_manifest(Path(cache_dir))
-    except ManifestError as exc:
-        raise WriteBlockedError(
-            f"cached release manifest is unusable ({exc}); run an update check before writing"
-        ) from exc
-    require_write_allowed(installed_version, manifest)
+    """Second-line write check at the Git boundary; policy lives in ``distribution_update``."""
+    require_cached_write_allowed(installed_version, Path(cache_dir))
 
 
 def _season_relative(root: Path, season_root: Path) -> str:

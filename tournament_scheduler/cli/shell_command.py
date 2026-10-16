@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -22,13 +21,6 @@ from tournament_scheduler.infrastructure.repository_sync import (
     WindowsCredentialManagerStore,
     run_git,
 )
-
-UPDATE_CACHE_DIR_NAME = "update-cache"
-
-
-def _default_cache_dir() -> Path:
-    root = distribution.default_data_root(os.environ, windows=os.name == "nt", home=Path.home())
-    return Path(root) / UPDATE_CACHE_DIR_NAME
 
 
 def _repo(args: argparse.Namespace) -> Path:
@@ -45,7 +37,7 @@ def _refresh_exit(ok: bool, snapshot: RepoSnapshot | None) -> int:
 def _cmd_shell_readiness(args: argparse.Namespace, store: CredentialStore, claude_runner: ClaudeRunner) -> int:
     view = operator_shell.gather_readiness(
         _repo(args),
-        cache_dir=_default_cache_dir(),
+        cache_dir=distribution.default_update_cache_dir(),
         store=store,
         claude_runner=claude_runner,
         installed=distribution.version_metadata()["version"],

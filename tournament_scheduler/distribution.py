@@ -55,6 +55,15 @@ def default_data_root(
     return flavour(home) / ".local" / "share" / PACKAGE_NAME
 
 
+UPDATE_CACHE_DIR_NAME = "update-cache"
+
+
+def default_update_cache_dir() -> Path:
+    """Per-user cache of the last signature-verified release manifest (never season state)."""
+    root = default_data_root(os.environ, windows=os.name == "nt", home=Path.home())
+    return Path(root) / UPDATE_CACHE_DIR_NAME
+
+
 def ensure_data_outside_application(app_dir: Path, data_root: Path) -> None:
     """Fail closed when mutable data would live inside the application directory."""
     app = app_dir.resolve()

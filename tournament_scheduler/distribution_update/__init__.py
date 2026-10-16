@@ -26,6 +26,7 @@ from .check import (
     UpdateCheck,
     check_for_update,
     load_cached_manifest,
+    require_cached_write_allowed,
     save_cached_manifest,
     urllib_transport,
     write_decision_from_cache,
@@ -75,6 +76,7 @@ __all__ = [
     "confirm_release", "download_verified", "extract_release", "load_cached_manifest",
     "load_signing_key", "manifest_to_dict", "parse_manifest", "parse_verified_manifest",
     "parse_version", "previous_release_path", "public_key_b64", "require_write_allowed",
-    "rollback_release", "save_cached_manifest", "sign_manifest_bytes", "urllib_transport",
+    "require_cached_write_allowed", "rollback_release", "save_cached_manifest", "sign_manifest_bytes",
+    "urllib_transport",
     "verify_file", "verify_manifest_signature", "write_decision", "write_decision_from_cache",
 ]

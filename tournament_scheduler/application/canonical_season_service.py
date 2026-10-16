@@ -72,11 +72,8 @@ from .canonical_season import (
     retirement as _retirement,
     withdrawal as _withdrawal,
 )
-from .canonical_season.shared import (
-    APPROVED_STATUS,
-    STALE_APPROVAL_STATUS,
-    PENDING_REVIEW_STATUS,
-)
+from .canonical_season.shared import APPROVED_STATUS, PENDING_REVIEW_STATUS, STALE_APPROVAL_STATUS
+from .canonical_season.write_gate import WriteGate, gate_canonical_writes, production_write_gate
 
 
 __all__ = [
@@ -87,6 +84,7 @@ __all__ = [
 ]
 
 
+@gate_canonical_writes
 class CanonicalSeasonService:
     """Application-layer mutation service over a canonical-season store."""
 
@@ -95,8 +93,10 @@ class CanonicalSeasonService:
         store: CanonicalSeasonStore | None = None,
         *,
         root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+        write_gate: WriteGate | None = None,
     ) -> None:
         self.store = store or CanonicalSeasonStore(root)
+        self.write_gate: WriteGate = write_gate or production_write_gate()
 
     def load(self, season: str) -> CanonicalSeasonSnapshot:
         return self.store.load(season)
