@@ -13,6 +13,7 @@ import pytest
 
 
 from tournament_scheduler.html import CANCELLED_TOURNAMENTS_FILENAME
+from tournament_scheduler.html.templates import SCHEDULE_JAVASCRIPT
 from tournament_scheduler.html.html_exporter import HtmlExporter
 from tournament_scheduler.models import SeasonPlan
 from tournament_scheduler.serialization.season_plan import season_plan_from_dict
@@ -1034,6 +1035,10 @@ class TestTeamFilter:
         assert 'id="filterClub"' in html
         assert 'id="filterAge"' in html
 
+    def test_schedule_script_has_no_dead_team_or_booking_filter_code(self):
+        for dead_reference in ("filterTeam", "filterBooking", "populateTeamOptions", "tournamentHasTeam"):
+            assert dead_reference not in SCHEDULE_JAVASCRIPT
+
     def test_serializes_exact_participant_identities_for_same_club_same_age_group(self, tmp_path):
         html = _export_schedule_html(_make_multi_kongsberg_plan(), tmp_path)
         tournaments = _embedded_tournaments(html)
@@ -1045,13 +1050,6 @@ class TestTeamFilter:
         assert ("Kongsberg", "U10", "Kongsberg 1") in identities
         assert ("Kongsberg", "U10", "Kongsberg 2") in identities
         assert ("Kongsberg", "U10", "Kongsberg 3") in identities
-
-    def test_client_filter_uses_exact_team_identity_not_club_inference(self, tmp_path):
-        html = _export_schedule_html(_make_multi_kongsberg_plan(), tmp_path)
-        assert "function teamKey(team)" in html
-        assert "tournamentHasTeam(t, team)" in html
-        assert "teamKey(team) === selectedTeamKey" in html
-        assert "populateTeamOptions(true)" in html
 
 
 class TestNoJudgmentSection:
