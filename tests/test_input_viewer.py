@@ -34,6 +34,36 @@ def _write_input_workbook(path: Path) -> None:
 
 
 class TestInputViewer:
+    def test_generate_html_title_includes_escaped_season_label(self, tmp_path):
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path)
+
+        html = Path(
+            generate_html(
+                input_path=str(input_path),
+                export_dir=str(tmp_path / "export"),
+                season_label="Sesong <2026>",
+            )
+        ).read_text(encoding="utf-8")
+
+        assert "<title>Påmeldte lag &mdash; Sesong &lt;2026&gt; — RVV Hockey</title>" in html
+
+    def test_generate_html_leaves_no_template_expressions_or_placeholders(self, tmp_path):
+        input_path = tmp_path / "input.xlsx"
+        _write_input_workbook(input_path)
+
+        for season_label in ("", "2026/27"):
+            html = Path(
+                generate_html(
+                    input_path=str(input_path),
+                    export_dir=str(tmp_path / "export"),
+                    season_label=season_label,
+                )
+            ).read_text(encoding="utf-8")
+
+            assert "_html.escape" not in html
+            assert "@@" not in html
+
     def test_generate_html_lists_teams_grouped_by_age_group(self, tmp_path):
         input_path = tmp_path / "input.xlsx"
         _write_input_workbook(input_path)
