@@ -1,6 +1,6 @@
 """Holiday conflict checker.
 
-The exclusion rule itself lives in
+The exclusion rule and the exception/ban precedence live in
 :mod:`tournament_scheduler.planning.date_policy` so the initial scheduler and every
 later verification/repair path share one implementation. This checker is the
 thin scheduler adapter over that canonical policy.
@@ -9,7 +9,7 @@ thin scheduler adapter over that canonical policy.
 from datetime import date, datetime
 from typing import Iterable, List, Optional
 
-from tournament_scheduler.planning.date_policy import holiday_exclusions
+from tournament_scheduler.planning.date_policy import effective_holiday_policy
 from tournament_scheduler.interfaces import ConflictChecker
 from tournament_scheduler.models import ConflictContext, ConflictResult
 
@@ -49,18 +49,20 @@ class HolidayConflictChecker(ConflictChecker):
         """
         start_date = _as_date(context.start_date)
         end_date = _as_date(context.end_date)
-        exclusions = holiday_exclusions(start_date, end_date, country=self.country)
+        exclusions = effective_holiday_policy(
+            start_date,
+            end_date,
+            exceptions=self.date_exceptions,
+            banned=self.banned_dates,
+            country=self.country,
+        )
 
         excluded_dates = set()
         reasons = {}
         for check_date in dates:
-            # Precedence: derived exclusion < explicit exception < explicit ban.
-            if check_date in self.banned_dates:
-                reason = "banned by operator"
-            else:
-                reason = exclusions.get(check_date)
-                if reason is None or check_date in self.date_exceptions:
-                    continue
+            reason = exclusions.get(check_date)
+            if reason is None:
+                continue
             excluded_dates.add(check_date)
             reasons[check_date] = reason
 
