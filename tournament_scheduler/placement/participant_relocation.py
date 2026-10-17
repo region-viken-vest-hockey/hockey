@@ -15,6 +15,9 @@ from tournament_scheduler.models import overlapping_age_groups
 from tournament_scheduler.shape.effective_shape import compute_effective_tournament_shape
 
 MIN_TEAMS_PER_TOURNAMENT = 3
+# Floor `planning.participant_roster_sizing.plan_roster_sizes` enforces for every
+# generic materialized roster (even and at least four teams).
+MATERIALIZABLE_MIN_TEAMS_PER_ROSTER = 4
 
 
 def minimum_materializable_team_count(
@@ -25,11 +28,14 @@ def minimum_materializable_team_count(
 ) -> int:
     """Smallest roster a single `age_group` slot can legally be materialized at.
 
-    issue #449: age groups with an explicit tournament target (for example
-    U12/JU12, which require four teams) cannot legally run a slot smaller than
-    their effective shape, so the relocation predicate must not use the generic
-    `MIN_TEAMS_PER_TOURNAMENT`. Input-constrained pools keep their smaller
-    effective count, and generic age groups keep the generic minimum.
+    issue #449: the relocation predicate must use the size the planner can
+    actually materialize, not the generic `MIN_TEAMS_PER_TOURNAMENT`:
+
+    - age groups with an explicit tournament target (for example U12/JU12,
+      which require four teams) use their effective shape, with input-
+      constrained pools keeping their smaller effective count;
+    - generic age groups get four teams, the floor `plan_roster_sizes`
+      enforces for every materialized even roster.
     """
     shape = compute_effective_tournament_shape(
         age_group,
@@ -38,7 +44,7 @@ def minimum_materializable_team_count(
         parallel_game_capacity=parallel_game_capacity,
     )
     if not shape.has_explicit_target:
-        return MIN_TEAMS_PER_TOURNAMENT
+        return MATERIALIZABLE_MIN_TEAMS_PER_ROSTER
     return max(MIN_TEAMS_PER_TOURNAMENT, shape.effective_team_count)
 
 

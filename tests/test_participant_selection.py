@@ -697,7 +697,19 @@ class TestEffectiveShapeRelocationMinimum:
 
         assert minimum_materializable_team_count("U12", 17) == 4
         assert minimum_materializable_team_count("JU12", 17) == 4
-        assert minimum_materializable_team_count("U11", 17) == MIN_TEAMS_PER_TOURNAMENT
+        assert minimum_materializable_team_count("U11", 17) == 4
+
+    def test_generic_group_seven_teams_two_same_day_slots_relocates_one(self):
+        """Two generic 4-team rosters need 8 distinct teams; a 7-team pool
+        must move the second same-day slot to an alternate date."""
+        same_day = date(2026, 9, 5)
+        other_day = date(2026, 9, 12)
+        scheduled = [(same_day, "U11")] * 2
+
+        new_scheduled, evidence = self._relocate(7, scheduled, [same_day, other_day], age_group="U11")
+
+        assert sorted(d for d, _ in new_scheduled) == [same_day, other_day]
+        assert not any(e["category"] == "same_date_uniqueness_limit" for e in evidence)
 
     def test_input_constrained_small_pool_keeps_its_effective_minimum(self):
         from tournament_scheduler.placement.participant_relocation import minimum_materializable_team_count
