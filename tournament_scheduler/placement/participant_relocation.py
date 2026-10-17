@@ -12,8 +12,34 @@ from itertools import groupby
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 from tournament_scheduler.models import overlapping_age_groups
+from tournament_scheduler.shape.effective_shape import compute_effective_tournament_shape
 
 MIN_TEAMS_PER_TOURNAMENT = 3
+
+
+def minimum_materializable_team_count(
+    age_group: str,
+    registered_team_count: int,
+    configured_rounds: Optional[int] = None,
+    parallel_game_capacity: Optional[int] = None,
+) -> int:
+    """Smallest roster a single `age_group` slot can legally be materialized at.
+
+    issue #449: age groups with an explicit tournament target (for example
+    U12/JU12, which require four teams) cannot legally run a slot smaller than
+    their effective shape, so the relocation predicate must not use the generic
+    `MIN_TEAMS_PER_TOURNAMENT`. Input-constrained pools keep their smaller
+    effective count, and generic age groups keep the generic minimum.
+    """
+    shape = compute_effective_tournament_shape(
+        age_group,
+        registered_team_count,
+        configured_rounds=configured_rounds,
+        parallel_game_capacity=parallel_game_capacity,
+    )
+    if not shape.has_explicit_target:
+        return MIN_TEAMS_PER_TOURNAMENT
+    return max(MIN_TEAMS_PER_TOURNAMENT, shape.effective_team_count)
 
 
 def relocate_structurally_impossible_slots(
@@ -131,6 +157,7 @@ def relocate_structurally_impossible_scheduled_slots(
     scheduled: List[Tuple[date, str]],
     free_dates: Sequence[date],
     period_for_date: Callable[[date], Optional[str]],
+    min_teams_for: Optional[Callable[[str], int]] = None,
 ) -> Tuple[List[Tuple[date, str]], List[Dict[str, object]]]:
     """Apply `relocate_structurally_impossible_slots` across every
     (age_group, period) group in a full `scheduled` list.
@@ -140,6 +167,11 @@ def relocate_structurally_impossible_scheduled_slots(
     fans the per-group relocation out across all of them and folds the
     per-group evidence back into a single list, tagging each entry with the
     age_group/period it came from.
+
+    issue #449: `min_teams_for` supplies the per-age-group minimum legal
+    roster size (see `minimum_materializable_team_count`). Without it the
+    generic `MIN_TEAMS_PER_TOURNAMENT` applies to every age group, which
+    under-counts shapes such as U12/JU12 that need four teams per slot.
     """
     same_date_relocation_evidence: List[Dict[str, object]] = []
     age_groups_by_date: Dict[date, List[str]] = {}
@@ -156,8 +188,14 @@ def relocate_structurally_impossible_scheduled_slots(
                 continue
             date_groups = [(d, len(list(group))) for d, group in groupby(period_dates)]
             alternative_dates = [d for d in free_dates if period_for_date(d) == period]
+            min_teams = min_teams_for(age_group) if min_teams_for else MIN_TEAMS_PER_TOURNAMENT
             new_date_groups, relocation_evidence = relocate_structurally_impossible_slots(
-                date_groups, distinct_team_count, age_group, age_groups_by_date, alternative_dates
+                date_groups,
+                distinct_team_count,
+                age_group,
+                age_groups_by_date,
+                alternative_dates,
+                min_teams=min_teams,
             )
             if new_date_groups != date_groups:
                 relocation_happened = True

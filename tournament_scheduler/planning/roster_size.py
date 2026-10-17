@@ -13,11 +13,43 @@ from datetime import date
 from itertools import groupby
 from typing import Callable, Dict, List, Optional, Tuple
 
+from tournament_scheduler.placement.participant_relocation import (
+    minimum_materializable_team_count,
+    relocate_structurally_impossible_scheduled_slots,
+)
 from tournament_scheduler.planning.participant_selection import (
     max_teams_for,
     plan_roster_sizes_for_age_group,
     rebalance_roster_sizes_across_dates,
 )
+
+
+def min_materializable_team_count_for(planner, age_group: str) -> int:
+    """Planner-level minimum legal slot size for `age_group` (issue #449).
+
+    Uses the planner's own rounds/parallel-games config so relocation and
+    roster-size packing share one shape authority.
+    """
+    rounds = getattr(planner, "rounds_per_tournament_for_age_group", {}) or {}
+    parallel = getattr(planner, "parallel_games_for_age_group", {}) or {}
+    return minimum_materializable_team_count(
+        age_group,
+        len(planner.roster.by_age_group(age_group)),
+        configured_rounds=rounds.get(age_group) if isinstance(rounds, dict) else None,
+        parallel_game_capacity=parallel.get(age_group) if isinstance(parallel, dict) else None,
+    )
+
+
+def relocate_scheduled_slots_for_planner(planner, scheduled, free_dates, period_for_date):
+    """Relocate structurally impossible same-date slots using the planner's
+    per-age-group minimum roster size (issue #449)."""
+    return relocate_structurally_impossible_scheduled_slots(
+        planner.roster,
+        scheduled,
+        free_dates,
+        period_for_date,
+        min_teams_for=lambda age_group: min_materializable_team_count_for(planner, age_group),
+    )
 
 
 def compute_rebalanced_roster_sizes(
@@ -58,7 +90,11 @@ def compute_rebalanced_roster_sizes(
             distinct_team_count = len(planner.roster.by_age_group(age_group))
             capacity = min(distinct_team_count, max_teams_for(planner, age_group)) or 1
             sizes_by_date, evidence = rebalance_roster_sizes_across_dates(
-                date_groups, flat_sizes, capacity, distinct_team_count
+                date_groups,
+                flat_sizes,
+                capacity,
+                distinct_team_count,
+                min_teams=min_materializable_team_count_for(planner, age_group),
             )
             rebalanced_sizes_by_key[(age_group, period)] = sizes_by_date
             for entry in evidence:

@@ -671,3 +671,60 @@ class TestClubDemandShares:
         assert shares["Jar"] == pytest.approx(0.4)
         assert shares["Holmen"] == pytest.approx(0.1)
         assert shares["Jutul"] == pytest.approx(0.1)
+
+
+class TestEffectiveShapeRelocationMinimum:
+    """issue #449: relocation must use the age group's effective minimum
+    materializable roster size (U12/JU12 need four teams), not the generic
+    `MIN_TEAMS_PER_TOURNAMENT` of three."""
+
+    def _relocate(self, team_count, scheduled, free_dates, age_group="U12"):
+        from tournament_scheduler.placement.participant_relocation import (
+            minimum_materializable_team_count,
+            relocate_structurally_impossible_scheduled_slots,
+        )
+
+        return relocate_structurally_impossible_scheduled_slots(
+            _StubRoster(team_count),
+            scheduled,
+            free_dates,
+            lambda _d: None,
+            min_teams_for=lambda ag: minimum_materializable_team_count(ag, team_count),
+        )
+
+    def test_minimum_is_four_for_u12_with_full_pool_and_three_for_generic_group(self):
+        from tournament_scheduler.placement.participant_relocation import minimum_materializable_team_count
+
+        assert minimum_materializable_team_count("U12", 17) == 4
+        assert minimum_materializable_team_count("JU12", 17) == 4
+        assert minimum_materializable_team_count("U11", 17) == MIN_TEAMS_PER_TOURNAMENT
+
+    def test_input_constrained_small_pool_keeps_its_effective_minimum(self):
+        from tournament_scheduler.placement.participant_relocation import minimum_materializable_team_count
+
+        assert minimum_materializable_team_count("U12", 3) == MIN_TEAMS_PER_TOURNAMENT
+
+    def test_five_same_day_u12_slots_with_pool_seventeen_relocate_one_slot(self):
+        """Five 4-team slots need 20 distinct teams; the 17-team pool hosts four.
+        The fifth slot must move to another legal date instead of overflowing."""
+        same_day = date(2026, 9, 5)
+        other_day = date(2026, 9, 12)
+        scheduled = [(same_day, "U12")] * 5
+
+        new_scheduled, evidence = self._relocate(17, scheduled, [same_day, other_day])
+
+        assert sorted(d for d, _ in new_scheduled) == [same_day] * 4 + [other_day]
+        assert len(new_scheduled) == 5
+        assert not any(e["category"] == "same_date_uniqueness_limit" for e in evidence)
+
+    def test_full_half_impossibility_is_reported_with_alternatives_considered(self):
+        same_day = date(2026, 9, 5)
+        scheduled = [(same_day, "U12")] * 5
+
+        new_scheduled, evidence = self._relocate(17, scheduled, [same_day])
+
+        assert new_scheduled.count((same_day, "U12")) == 5
+        assert len(evidence) == 1
+        assert evidence[0]["unrelocated_slots"] == 1
+        assert evidence[0]["feasible_slots"] == 4
+        assert evidence[0]["alternatives_considered"] == []
