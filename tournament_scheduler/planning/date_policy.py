@@ -21,7 +21,7 @@ single planner.
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Any, Dict, Mapping, Optional, Set
+from typing import Any, Dict, Iterable, Mapping, Optional, Set
 
 import holidays as _holidays
 
@@ -115,6 +115,34 @@ def holiday_exclusions(
     return excluded
 
 
+def effective_holiday_policy(
+    start_date: date,
+    end_date: date,
+    *,
+    exceptions: Iterable[date] = (),
+    banned: Iterable[date] = (),
+    country: str = DEFAULT_COUNTRY,
+) -> Dict[date, str]:
+    """Effective ``{date: reason}`` exclusions for the closed window.
+
+    Precedence is ``derived holiday exclusion < explicit exception < explicit
+    ban``: an exception lifts only the derived exclusion on its own date, and an
+    operator ban inside the window is always excluded. This is the single owner
+    of that composition; the scheduler checker and the planning problem both
+    delegate here.
+    """
+    exception_dates = set(exceptions)
+    out: Dict[date, str] = {
+        excluded: reason
+        for excluded, reason in holiday_exclusions(start_date, end_date, country=country).items()
+        if excluded not in exception_dates
+    }
+    for banned_date in banned:
+        if start_date <= banned_date <= end_date:
+            out[banned_date] = "banned by operator"
+    return out
+
+
 def holiday_excluded_dates(
     start_date: date,
     end_date: date,
@@ -153,13 +181,7 @@ def problem_date_exclusions(problem: Optional[Mapping[str, Any]]) -> Dict[date, 
         }
     start, end = problem_window(problem)
     if start is not None and end is not None:
-        out.update(
-            {
-                excluded: reason
-                for excluded, reason in holiday_exclusions(start, end).items()
-                if excluded not in exception_dates
-            }
-        )
+        out.update(effective_holiday_policy(start, end, exceptions=exception_dates))
     if isinstance(problem, Mapping):
         for entry in problem.get("date_exclusions") or []:
             if not isinstance(entry, Mapping):
