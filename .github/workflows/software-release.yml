@@ -59,10 +59,6 @@ jobs:
         shell: bash
     env:
       REQUESTED_REF: ${{ inputs.ref }}
-      RELEASE_DIR: ${{ runner.temp }}/release
-      BUILD_ROOT: ${{ runner.temp }}/rvv-build
-      SMOKE_ROOT: ${{ runner.temp }}/rvv-smoke
-      SMOKE_DATA_DIR: ${{ runner.temp }}/rvv-smoke-data
       MIN_WRITE: ${{ inputs.minimum_write_version }}
       MIN_SUPPORTED: ${{ inputs.minimum_supported_version }}
     steps:
@@ -71,6 +67,17 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      # The runner context is not available at job level, so scratch paths are
+      # derived from RUNNER_TEMP here and exported to later steps.
+      - name: "Set scratch paths"
+        run: |
+          {
+            echo "RELEASE_DIR=$RUNNER_TEMP/release"
+            echo "BUILD_ROOT=$RUNNER_TEMP/rvv-build"
+            echo "SMOKE_ROOT=$RUNNER_TEMP/rvv-smoke"
+            echo "SMOKE_DATA_DIR=$RUNNER_TEMP/rvv-smoke-data"
+          } >> "$GITHUB_ENV"
 
       - name: "Resolve and verify the source identity"
         run: scripts/software-release-source.sh
@@ -146,7 +153,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_CANDIDATE }}
-          path: ${{ env.RELEASE_DIR }}
+          path: ${{ runner.temp }}/release
           if-no-files-found: error
           retention-days: 14
 
