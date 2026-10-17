@@ -62,11 +62,18 @@ jobs:
       MIN_WRITE: ${{ inputs.minimum_write_version }}
       MIN_SUPPORTED: ${{ inputs.minimum_supported_version }}
     steps:
+      # The Pi prompt filename contains ':', which Windows cannot store. It is
+      # not part of the packaged application, so it is excluded from this
+      # checkout; the sparse setting persists for the source-identity checkout.
       - name: "Check out the workflow revision"
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
+          sparse-checkout: |
+            /*
+            !/.pi/prompts/rvv-miniputt:operate.md
+          sparse-checkout-cone-mode: false
 
       # The runner context is not available at job level, so scratch paths are
       # derived from RUNNER_TEMP here and exported to later steps.
