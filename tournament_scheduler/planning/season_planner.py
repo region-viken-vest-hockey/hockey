@@ -90,13 +90,11 @@ from tournament_scheduler.planning.participant_selection import (
     select_participants as _select_participants,
     target_tournaments_for_age_group as _target_tournaments_for_age_group,
 )
-from tournament_scheduler.placement.participant_relocation import (
-    relocate_structurally_impossible_scheduled_slots as _relocate_structurally_impossible_scheduled_slots,
-)
 from tournament_scheduler.repair.participant_roster import (
     attempt_underfilled_roster_repairs as _attempt_underfilled_roster_repairs,
 )
 from tournament_scheduler.planning.roster_size import (
+    relocate_scheduled_slots_for_planner as _relocate_scheduled_slots_for_planner,
     compute_rebalanced_roster_sizes as _compute_rebalanced_roster_sizes,
 )
 from tournament_scheduler.rules.report import rules_report as _rules_report
@@ -644,8 +642,8 @@ class SeasonPlanner:
         # than its distinct-team pool can support is structurally impossible
         # for *that date* but not necessarily the half, so excess slots are
         # relocated to another legal date *before* host/time assignment runs.
-        scheduled, same_date_relocation_evidence = _relocate_structurally_impossible_scheduled_slots(
-            self.roster, scheduled, free_dates, _period_for_date
+        scheduled, same_date_relocation_evidence = _relocate_scheduled_slots_for_planner(
+            self, scheduled, free_dates, _period_for_date
         )
 
         # issue #300: host/slot placement, participant selection/
