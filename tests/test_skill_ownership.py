@@ -13,7 +13,7 @@ SHARED_OPERATE = SHARED_COMMAND_DIR / "operate.md"
 PI_PROMPTS_DIR = REPO_ROOT / ".pi" / "prompts"
 # Pi derives a prompt command's name from its filename (without .md), so the
 # operator-facing spelling lives in the filename itself.
-PI_OPERATE_PROMPT = PI_PROMPTS_DIR / "rvv-miniputt:operate.md"
+PI_OPERATE_PROMPT = PI_PROMPTS_DIR / "rvv-miniputt-operate.md"
 # Harness command directories that expose RVV operations as one file per command.
 ADAPTER_DIRS = (
     REPO_ROOT / ".claude" / "commands" / "rvv-miniputt",
@@ -81,7 +81,7 @@ def test_no_adapter_file_duplicates_the_checklist_or_defines_its_own_policy():
 def test_pi_operate_prompt_name_is_the_shared_operator_entrypoint() -> None:
     assert PI_OPERATE_PROMPT.exists()
     # Pi names prompt-template commands from the filename stem.
-    assert PI_OPERATE_PROMPT.stem == "rvv-miniputt:operate"
+    assert PI_OPERATE_PROMPT.stem == "rvv-miniputt-operate"
 
 
 def test_pi_operate_prompt_forwards_the_complete_operator_request() -> None:

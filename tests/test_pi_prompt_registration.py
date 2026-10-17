@@ -1,6 +1,6 @@
 r"""Real Pi prompt discovery/expansion smoke check for the shared operate adapter.
 
-A filename matching ``rvv-miniputt:operate`` is not proof that Pi exposes the
+A filename matching ``rvv-miniputt-operate`` is not proof that Pi exposes the
 command or forwards the request, so this check drives Pi's own prompt loader
 (the same ``loadPromptTemplates``/``expandPromptTemplate`` implementation the
 TUI uses) through Node against the project ``.pi/prompts`` directory.
@@ -16,7 +16,7 @@ repository root:
     node --input-type=module -e "<probe>" \\
         "$pi_pkg/dist/core/prompt-templates.js" "$PWD" "$PWD/.pi/prompts"
 
-    -> names: ["implement-issue", "rvv-miniputt:operate"]
+    -> names: ["implement-issue", "rvv-miniputt-operate"]
     -> expanded request contains: move rvv-0037 til 24 januar og bekreft
     -> expanded text references the shared operate procedure and instructions
 """
@@ -71,7 +71,7 @@ const result = loadPromptTemplates({
   includeDefaults: false,
   promptPaths: [process.argv[3]],
 });
-const request = '/rvv-miniputt:operate ' + process.argv[4];
+const request = '/rvv-miniputt-operate ' + process.argv[4];
 console.log(JSON.stringify({
   names: result.templates.map((template) => template.name),
   diagnostics: result.diagnostics.map((diagnostic) => diagnostic.message),
@@ -128,7 +128,7 @@ def _probe() -> dict[str, object]:
 def test_pi_discovers_the_shared_operate_prompt_from_the_project_tree() -> None:
     probe = _probe()
     assert probe["diagnostics"] == []
-    assert "rvv-miniputt:operate" in probe["names"]
+    assert "rvv-miniputt-operate" in probe["names"]
     # The generic coding command stays available but separate from the RVV entry point.
     assert "implement-issue" in probe["names"]
 
@@ -137,7 +137,7 @@ def test_pi_expands_the_operate_prompt_and_forwards_the_complete_request() -> No
     expanded = _probe()["expanded"]
     assert isinstance(expanded, str)
     # A missing template would return the literal request unchanged.
-    assert expanded != f"/rvv-miniputt:operate {MULTIWORD_REQUEST}"
+    assert expanded != f"/rvv-miniputt-operate {MULTIWORD_REQUEST}"
     assert MULTIWORD_REQUEST in expanded
     for reference in SHARED_INSTRUCTIONS:
         assert reference in expanded, reference
