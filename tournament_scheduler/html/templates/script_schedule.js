@@ -52,65 +52,10 @@ function tournamentTeams(t) {
   return Object.values(byLabel);
 }
 
-function teamKey(team) {
-  return [team.c || '', team.g || '', team.l || ''].join('\u001f');
-}
-
-function teamOptionLabel(team) {
-  var label = team.l || '';
-  if (team.c && label !== team.c && label.indexOf(team.c + ' ') !== 0) {
-    label = team.c + ' – ' + label;
-  }
-  if (team.g) return label + ' (' + team.g + ')';
-  return label;
-}
-
 function tournamentHasClub(t, club) {
   if (!club) return true;
   if (t.h === club) return true;
   return tournamentTeams(t).some(function(team) { return team.c === club; });
-}
-
-function tournamentHasTeam(t, selectedTeamKey) {
-  if (!selectedTeamKey) return true;
-  return tournamentTeams(t).some(function(team) { return teamKey(team) === selectedTeamKey; });
-}
-
-function availableTeams(age, club) {
-  const teamsByKey = new Map();
-  TOURNAMENTS.forEach(function(t) {
-    tournamentTeams(t).forEach(function(team) {
-      if (age && team.g !== age) return;
-      if (club && team.c !== club) return;
-      teamsByKey.set(teamKey(team), team);
-    });
-  });
-  return Array.from(teamsByKey.values()).sort(function(a, b) {
-    return (a.c || '').localeCompare(b.c || '') || (a.g || '').localeCompare(b.g || '') || (a.l || '').localeCompare(b.l || '');
-  });
-}
-
-function populateTeamOptions(reconcile) {
-  var teamSel = document.getElementById('filterTeam');
-  if (!teamSel) return;
-  var ageSel = document.getElementById('filterAge');
-  var clubSel = document.getElementById('filterClub');
-  var selected = teamSel.value;
-  var teams = availableTeams(ageSel ? ageSel.value : '', clubSel ? clubSel.value : '');
-  teamSel.innerHTML = '<option value="">Alle lag</option>';
-  teams.forEach(function(team) {
-    var o = document.createElement('option');
-    o.value = teamKey(team);
-    o.textContent = teamOptionLabel(team);
-    o.dataset.club = team.c || '';
-    o.dataset.age = team.g || '';
-    teamSel.appendChild(o);
-  });
-  if (reconcile && selected && teams.some(function(team) { return teamKey(team) === selected; })) {
-    teamSel.value = selected;
-  } else {
-    teamSel.value = '';
-  }
 }
 
 // Populate filter selects
@@ -127,7 +72,6 @@ function populateTeamOptions(reconcile) {
   });
   arenas.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; arenaSel.appendChild(o); });
   [...clubs].sort().forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; clubSel.appendChild(o); });
-  populateTeamOptions(false);
 })();
 
 function buildMatchHTML(matches, byes) {
@@ -181,10 +125,8 @@ function render() {
   var ageSel = document.getElementById('filterAge');
   var arenaSel = document.getElementById('filterArena');
   var clubSel = document.getElementById('filterClub');
-  var teamSel = document.getElementById('filterTeam');
   var searchSel = document.getElementById('filterSearch');
   var approvalSel = document.getElementById('filterApproval');
-  var bookingSel = document.getElementById('filterBooking');
   var timeline = document.getElementById('timeline');
   var totalTournaments = document.getElementById('totalTournaments');
   var visibleCount = document.getElementById('visibleCount');
@@ -194,10 +136,8 @@ function render() {
   var age = ageSel ? ageSel.value : '';
   var arena = arenaSel ? arenaSel.value : '';
   var club = clubSel ? clubSel.value : '';
-  var team = teamSel ? teamSel.value : '';
   var search = searchSel ? searchSel.value.toLowerCase().trim() : '';
   var approval = approvalSel ? approvalSel.value : '';
-  var booking = bookingSel ? bookingSel.value : '';
 
   var html = '';
   var visible = 0;
@@ -207,7 +147,6 @@ function render() {
     if (age && t.g !== age) continue;
     if (arena && t.a !== arena) continue;
     if (!tournamentHasClub(t, club)) continue;
-    if (!tournamentHasTeam(t, team)) continue;
     if (search) {
       var haystack = (t.a + ' ' + t.h + ' ' + t.g + ' ' + t.m.map(function(m) { return m[0] + ' ' + m[1]; }).join(' ')).toLowerCase();
       if (haystack.indexOf(search) === -1) continue;
@@ -215,9 +154,6 @@ function render() {
     if (approval === 'approved' && t.ap !== 'approved') continue;
     if (approval === 'stale' && t.ap !== 'stale_approval') continue;
     if (approval === 'not_approved' && t.ap === 'approved') continue;
-    // Cancelled rows carry no public booking status, so any booking filter
-    // excludes them; they remain visible only when no booking filter is set.
-    if (booking && (t.cx || publicBookingStateOf(t) !== booking)) continue;
 
     visible++;
     if (!timeline) continue;
@@ -298,7 +234,6 @@ function render() {
 var ageFilter = document.getElementById('filterAge');
 var arenaFilter = document.getElementById('filterArena');
 var clubFilter = document.getElementById('filterClub');
-var teamFilter = document.getElementById('filterTeam');
 var searchFilter = document.getElementById('filterSearch');
 var clearFilter = document.getElementById('filterClear');
 var upcomingFilter = document.getElementById('filterUpcoming');
@@ -313,18 +248,12 @@ function applyUpcomingFilter() {
 }
 
 if (upcomingFilter) upcomingFilter.addEventListener('change', applyUpcomingFilter);
-if (ageFilter) ageFilter.addEventListener('change', function() {
-  populateTeamOptions(true);
-  render();
-});
+if (ageFilter) ageFilter.addEventListener('change', render);
 if (arenaFilter) arenaFilter.addEventListener('change', render);
 var approvalFilter = document.getElementById('filterApproval');
 if (approvalFilter) approvalFilter.addEventListener('change', render);
-var bookingFilter = document.getElementById('filterBooking');
-if (bookingFilter) bookingFilter.addEventListener('change', render);
 if (clubFilter) clubFilter.addEventListener('change', function() {
   var club = this.value;
-  populateTeamOptions(true);
   var dashboard = clubDashboard;
   if (club && dashboard && CLUB_STATS[club]) {
     var s = CLUB_STATS[club];
@@ -339,17 +268,13 @@ if (clubFilter) clubFilter.addEventListener('change', function() {
   }
   render();
 });
-if (teamFilter) teamFilter.addEventListener('change', render);
 if (searchFilter) searchFilter.addEventListener('input', render);
 if (clearFilter) clearFilter.addEventListener('click', function() {
   if (ageFilter) ageFilter.value = '';
   if (arenaFilter) arenaFilter.value = '';
   if (clubFilter) clubFilter.value = '';
-  if (teamFilter) teamFilter.value = '';
   if (approvalFilter) approvalFilter.value = '';
-  if (bookingFilter) bookingFilter.value = '';
   if (searchFilter) searchFilter.value = '';
-  populateTeamOptions(false);
   if (clubDashboard) clubDashboard.style.display = 'none';
   if (upcomingFilter) upcomingFilter.checked = true;
   applyUpcomingFilter();
