@@ -7,7 +7,7 @@ thin scheduler adapter over that canonical policy.
 """
 
 from datetime import date, datetime
-from typing import List
+from typing import Iterable, List, Optional
 
 from tournament_scheduler.planning.date_policy import holiday_exclusions
 from tournament_scheduler.interfaces import ConflictChecker
@@ -17,13 +17,25 @@ from tournament_scheduler.models import ConflictContext, ConflictResult
 class HolidayConflictChecker(ConflictChecker):
     """Checks for conflicts with Norwegian public holidays."""
 
-    def __init__(self, country: str = "NO"):
+    def __init__(
+        self,
+        country: str = "NO",
+        *,
+        date_exceptions: Optional[Iterable[date]] = None,
+        banned_dates: Optional[Iterable[date]] = None,
+    ):
         """Initialize holiday checker.
 
         Args:
             country: Country code for holidays
+            date_exceptions: Dates allowed despite a derived holiday exclusion
+                (canonical ``holiday_date_exceptions``).
+            banned_dates: Operator-banned dates. Always excluded; an exception
+                never overrides them.
         """
         self.country = country
+        self.date_exceptions = frozenset(date_exceptions or ())
+        self.banned_dates = frozenset(banned_dates or ())
 
     def check_conflicts(self, dates: List[date], context: ConflictContext) -> ConflictResult:
         """Check for holiday week conflicts and weekends before holidays.
@@ -42,9 +54,13 @@ class HolidayConflictChecker(ConflictChecker):
         excluded_dates = set()
         reasons = {}
         for check_date in dates:
-            reason = exclusions.get(check_date)
-            if reason is None:
-                continue
+            # Precedence: derived exclusion < explicit exception < explicit ban.
+            if check_date in self.banned_dates:
+                reason = "banned by operator"
+            else:
+                reason = exclusions.get(check_date)
+                if reason is None or check_date in self.date_exceptions:
+                    continue
             excluded_dates.add(check_date)
             reasons[check_date] = reason
 
