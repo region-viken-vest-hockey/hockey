@@ -268,11 +268,34 @@ is kept apart from season publication snapshots (#549): separate workflow, separ
 ### One-time repository setup (maintainer)
 
 - Environment `software-release` with required reviewers. It guards the signing and publish jobs.
-- Environment secret `RVV_RELEASE_SIGNING_KEY`: the Ed25519 private key as PEM. It is never stored in
-  the repository or in the application.
-- Repository variable `RVV_RELEASE_KEY_ID`: the key ID, which must match the public key embedded in
-  `trust_roots.py` in a client release. Until a client trusts this key, every published manifest is
-  `untrusted` by design.
+- Environment secret `RVV_RELEASE_SIGNING_KEY`: the Ed25519 private key as PEM (PKCS#8, unencrypted).
+  It is never stored in the repository or in the application.
+- Environment variable `RVV_RELEASE_KEY_ID`: the key ID, which must match the entry in
+  `TRUSTED_RELEASE_KEYS` in `trust_roots.py`. The sign job reads it as `vars.RVV_RELEASE_KEY_ID`
+  inside the `software-release` environment, so it is scoped there, not a repository-wide variable.
+  Until a client trusts this key, every published manifest is `untrusted` by design.
+
+Bootstrap, in order (no step publishes a Release):
+
+1. Generate the key pair once, offline, outside the repository. Write the private PEM to a file
+   with mode `0600` and derive the public value with the repo helper:
+   `python scripts/sign-release-manifest.py --public-key-for-trust-root --private-key-file KEY.pem`.
+2. Commit the key ID and base64 public key to `TRUSTED_RELEASE_KEYS` in `trust_roots.py` through a
+   reviewed commit on `main`. Check that `trust_roots` decodes to 32 bytes.
+3. Create the `software-release` environment with required reviewers. Add the environment secret
+   `RVV_RELEASE_SIGNING_KEY` (paste the whole PEM file) and the environment variable
+   `RVV_RELEASE_KEY_ID=release-2026-01`, or the ID you generated.
+4. Dispatch `mode=build-only` against the commit from step 2. Check that the "Sign the manifest" step
+   completes its built-in signature verification and that `update-manifest.json.sig` names the same key ID.
+5. Only after a separate explicit decision, dispatch `mode=publish`.
+
+Private-key handling: keep an offline backup of the PEM in a password manager or encrypted volume,
+never in the repository, chat, issues or CI logs. Losing it means no new signed release can be
+trusted by existing clients until a new key ID is added to a client release.
+
+Key rotation is additive. Generate a new key ID, add its public value to `TRUSTED_RELEASE_KEYS`
+alongside the old one in a client release, then replace the secret and `RVV_RELEASE_KEY_ID`. Retire
+the old key only in a later release, after clients on the old trust root have updated.
 
 ### Release steps
 

@@ -61,8 +61,9 @@ def _cmd_scrape_llm(args: argparse.Namespace) -> int:
         "i et allerede browser-aktivert harness."
     )
     _console.print(
-        "  Agent-harness (Claude Code, Codex, ChatGPT, Pi): bruk den felles "
-        "[bold]/rvv-miniputt:operate[/bold]-inngangen og følg den delte "
+        "  Agent-harness (Claude Code, Codex, ChatGPT): bruk den felles "
+        "[bold]/rvv-miniputt:operate[/bold]-inngangen; i Pi er den "
+        "[bold]/rvv-miniputt-operate[/bold]. Følg den delte "
         "[bold]scrape-llm[/bold]-prosedyren for browser/navigasjon."
     )
     _console.print(

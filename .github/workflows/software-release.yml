@@ -202,7 +202,7 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$RVV_RELEASE_SIGNING_KEY" || { echo "::error::signing key secret is not configured" >&2; exit 1; }
-          test -n "$RELEASE_KEY_ID" || { echo "::error::repository variable RVV_RELEASE_KEY_ID is not configured" >&2; exit 1; }
+          test -n "$RELEASE_KEY_ID" || { echo "::error::environment variable RVV_RELEASE_KEY_ID is not configured in software-release" >&2; exit 1; }
           python scripts/sign-release-manifest.py \
             --manifest release/update-manifest.json \
             --key-id "$RELEASE_KEY_ID"
