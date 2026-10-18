@@ -22,6 +22,7 @@ import json
 from typing import Any
 
 from tournament_scheduler.hosting.representation import clubs_represent_same_club
+from tournament_scheduler.pipeline.audit_scope import current_delta_tournament_ids
 from tournament_scheduler.repair.capability import COVERAGE_BOUNDED_EXHAUSTED
 from tournament_scheduler.rules.evidence_categories import EVIDENCE_CATEGORIES, EVIDENCE_CATEGORY_BY_NAME
 
@@ -30,7 +31,7 @@ from tournament_scheduler.rules.evidence_categories import EVIDENCE_CATEGORIES, 
 # separately through the query API. Keeping this a committed constant (rather
 # than a runtime heuristic) lets a regression test fail loudly if large
 # top-level lists creep back into the default context.
-AUDIT_CONTEXT_MAX_SERIALIZED_BYTES = 40_000
+AUDIT_CONTEXT_MAX_SERIALIZED_BYTES = 41_000
 
 # How many representative/worst examples a bounded overview category carries.
 EVIDENCE_OVERVIEW_MAX_EXAMPLES = 5
@@ -47,6 +48,12 @@ EVIDENCE_QUERY_MAX_SERIALIZED_BYTES = 500_000
 # so several selectors cannot together re-create a season-sized prompt.
 EVIDENCE_EXPANSION_MAX_BYTES = 60_000
 EVIDENCE_EXPANSION_QUERY_LIMIT = 25
+
+SCOPE_ACTIONABLE = "actionable"
+SCOPE_BACKGROUND = "background"
+SCOPE_BASIS_DELTA = "publication_delta"
+SCOPE_BASIS_UNAVAILABLE = "unavailable"
+_CATEGORY_SCOPE_KEYS = frozenset({"actionable_count", "background_count"})
 
 _SEVERITY_ORDER = {"critical": 0, "major": 1, "minor": 2, "info": 3}
 
@@ -627,6 +634,31 @@ def _extract_records(raw: dict[str, Any]) -> list[dict[str, Any]]:
     return records
 
 
+def _is_actionable(record: dict[str, Any]) -> bool:
+    return record.get("scope", SCOPE_ACTIONABLE) == SCOPE_ACTIONABLE
+
+
+def _classify_scope(
+    records: list[dict[str, Any]], current_delta_ids: frozenset[str] | None
+) -> list[dict[str, Any]]:
+    """Mark each record as current-delta ``actionable`` or pre-existing ``background``.
+
+    A record is background only when it is linked to a tournament that the
+    current publication delta does not touch. Records without a tournament
+    link (club-, season- or global-level findings) stay actionable: they
+    cannot be proven unrelated to the scoped change. With no delta basis
+    everything stays actionable, so visibility never depends on the scope.
+    """
+
+    for record in records:
+        tournament_id = record.get("tournament_id")
+        if current_delta_ids is None or not tournament_id or tournament_id in current_delta_ids:
+            record["scope"] = SCOPE_ACTIONABLE
+        else:
+            record["scope"] = SCOPE_BACKGROUND
+    return records
+
+
 def _category_summaries(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     by_category: dict[str, list[dict[str, Any]]] = {category.name: [] for category in EVIDENCE_CATEGORIES}
     for record in records:
@@ -638,6 +670,7 @@ def _category_summaries(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows = by_category.get(name, [])
         clubs = sorted({club for row in rows for club in (row.get("clubs") or [])})
         age_groups = sorted({row["age_group"] for row in rows if row.get("age_group")})
+        actionable_rows = [row for row in rows if _is_actionable(row)]
         summaries.append(
             {
                 "category": name,
@@ -646,6 +679,8 @@ def _category_summaries(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "unresolved": bool(meta.unresolved),
                 "count": len(rows),
                 "unresolved_count": sum(1 for row in rows if row.get("unresolved")),
+                "actionable_count": len(actionable_rows),
+                "background_count": len(rows) - len(actionable_rows),
                 "clubs_affected": len(clubs),
                 "age_groups_affected": age_groups,
                 "tournament_count": len({row["tournament_id"] for row in rows if row.get("tournament_id")}),
@@ -662,13 +697,16 @@ def build_evidence_index(raw: dict[str, Any]) -> dict[str, Any]:
     never placed in the default audit context. It is bound to the run/export
     fingerprint it was assembled from.
     """
-    records = _extract_records(raw)
+    current_delta_ids = current_delta_tournament_ids(raw.get("publication_scope"))
+    records = _classify_scope(_extract_records(raw), current_delta_ids)
     return {
         "schema_version": 1,
         "run_id": raw.get("run_id"),
         "export_fingerprint": raw.get("export_fingerprint"),
         "source_fingerprints": raw.get("source_fingerprints") or {},
         "record_count": len(records),
+        "scope_basis": SCOPE_BASIS_DELTA if current_delta_ids is not None else SCOPE_BASIS_UNAVAILABLE,
+        "delta_tournament_ids": sorted(current_delta_ids or ()),
         "categories": _category_summaries(records),
         "records": records,
     }
@@ -677,6 +715,8 @@ def build_evidence_index(raw: dict[str, Any]) -> dict[str, Any]:
 def _overview_example(record: dict[str, Any]) -> dict[str, Any]:
     return {
         "severity": record.get("severity"),
+        # Actionable is the default; only background rows carry the marker.
+        **({"scope": SCOPE_BACKGROUND} if not _is_actionable(record) else {}),
         "unresolved": bool(record.get("unresolved")),
         "tournament_id": record.get("tournament_id"),
         "club": record.get("club"),
@@ -700,8 +740,14 @@ def build_evidence_overview(index: dict[str, Any]) -> dict[str, Any]:
     categories: list[dict[str, Any]] = []
     for summary in index.get("categories") or []:
         category = summary["category"]
-        examples = [_overview_example(row) for row in by_category.get(category, [])[:EVIDENCE_OVERVIEW_MAX_EXAMPLES]]
-        categories.append({**summary, "examples": examples})
+        # Actionable examples first, so the bounded examples show what the
+        # current change must address before pre-existing background debt.
+        ordered = sorted(by_category.get(category, []), key=lambda row: not _is_actionable(row))
+        examples = [_overview_example(row) for row in ordered[:EVIDENCE_OVERVIEW_MAX_EXAMPLES]]
+        # Per-category scope counts stay in the full index; the bounded overview
+        # carries the aggregate ``scope`` block instead to respect its budget.
+        overview_summary = {key: value for key, value in summary.items() if key not in _CATEGORY_SCOPE_KEYS}
+        categories.append({**overview_summary, "examples": examples})
 
     tournament_ids = sorted({record["tournament_id"] for record in records if record.get("tournament_id")})
     clubs = _club_selector_values(records)
@@ -714,6 +760,7 @@ def build_evidence_overview(index: dict[str, Any]) -> dict[str, Any]:
         "source_fingerprints": index.get("source_fingerprints") or {},
         "record_count": index.get("record_count", 0),
         "categories": categories,
+        "scope": _scope_overview(records, index),
         "available_selectors": {
             "checklist_items": [int(item["item_id"]) for item in _checklist_item_ids()],
             "categories": [category.name for category in EVIDENCE_CATEGORIES],
@@ -725,6 +772,14 @@ def build_evidence_overview(index: dict[str, Any]) -> dict[str, Any]:
             "unresolved_categories": [category.name for category in EVIDENCE_CATEGORIES if category.unresolved],
         },
         "evidence_commands": dict(_SELECTOR_COMMANDS),
+    }
+
+
+def _scope_overview(records: list[dict[str, Any]], index: dict[str, Any]) -> dict[str, Any]:
+    background = sum(1 for record in records if not _is_actionable(record))
+    return {
+        "basis": index.get("scope_basis", SCOPE_BASIS_UNAVAILABLE),
+        "background_record_count": background,
     }
 
 
