@@ -9,6 +9,7 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "tournament_scheduler"
 PARTICIPATION_DIR = PACKAGE_ROOT / "participation"
 
 PARTICIPATION_MODULES = {
+    "club_age_group_fairness",
     "deviation_repair",
     "fairness_model",
     "fairness_scoring",

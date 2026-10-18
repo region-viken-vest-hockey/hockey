@@ -62,6 +62,17 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
     season_booking_status.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_booking_status.add_argument("--json", action="store_true", help="Print structured JSON")
 
+    season_participation_fairness = season_sub.add_parser(
+        "participation-fairness",
+        help=(
+            "Read-only club x age-group participation fairness over booked reality, "
+            "normalized by registered teams; unconfirmed coverage reported separately"
+        ),
+    )
+    season_participation_fairness.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_participation_fairness.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_participation_fairness.add_argument("--age-group", default=None, help="Optional age group filter, e.g. U11")
+
     season_booking_set = season_sub.add_parser(
         "booking-set",
         help=(
