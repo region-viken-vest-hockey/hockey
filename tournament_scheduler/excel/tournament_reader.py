@@ -1,6 +1,5 @@
 """Excel tournament reader for extracting tournament and team information."""
 
-import sys
 from datetime import date
 from typing import Set, List, Optional
 import openpyxl
@@ -9,6 +8,14 @@ from tournament_scheduler.utils.date_parser import DateParser
 from rich.console import Console
 
 console = Console()
+
+
+class ExcelTournamentError(RuntimeError):
+    """Raised when the Excel source cannot be read or has no tournament for a date.
+
+    Library code raises this instead of terminating the process; the caller
+    decides how to report it and what exit status to use.
+    """
 
 
 class ExcelTournamentReader:
@@ -32,12 +39,10 @@ class ExcelTournamentReader:
             try:
                 self.workbook = openpyxl.load_workbook(self.file_path, data_only=True)
                 self.worksheet = self.workbook.active
-            except FileNotFoundError:
-                console.print(f"[red]Feil: Excel-fil ikke funnet: {self.file_path}[/red]")
-                sys.exit(1)
+            except FileNotFoundError as e:
+                raise ExcelTournamentError(f"Feil: Excel-fil ikke funnet: {self.file_path}") from e
             except Exception as e:
-                console.print(f"[red]Feil: Kunne ikke åpne Excel-fil: {e}[/red]")
-                sys.exit(1)
+                raise ExcelTournamentError(f"Feil: Kunne ikke åpne Excel-fil: {e}") from e
 
     def get_all_tournament_dates(self) -> Set[date]:
         """Get all tournament dates from Excel file.
@@ -66,22 +71,21 @@ class ExcelTournamentReader:
             TournamentInfo with teams and details
 
         Raises:
-            SystemExit: If no tournament found on the specified date
+            ExcelTournamentError: If no tournament found on the specified date
         """
         self._load_workbook()
         teams = self.extract_teams_for_date(tournament_date)
         location = self._extract_location_for_date(tournament_date)
 
         if not teams:
-            available_dates = self.get_all_tournament_dates()
-            console.print(f"\n[red]Feil: Ingen turnering funnet på {tournament_date.strftime('%Y-%m-%d')} i Excel-fil[/red]")
+            available_dates = sorted(self.get_all_tournament_dates())
+            message = f"Feil: Ingen turnering funnet på {tournament_date.strftime('%Y-%m-%d')} i Excel-fil"
             if available_dates:
-                console.print("\n[yellow]Tilgjengelige turneringsdatoer i filen:[/yellow]")
-                for d in sorted(available_dates)[:10]:
-                    console.print(f"  - {d.strftime('%Y-%m-%d')}")
+                listed = "\n".join(f"  - {d.strftime('%Y-%m-%d')}" for d in available_dates[:10])
+                message += f"\nTilgjengelige turneringsdatoer i filen:\n{listed}"
                 if len(available_dates) > 10:
-                    console.print(f"  ... og {len(available_dates) - 10} flere datoer")
-            sys.exit(1)
+                    message += f"\n  ... og {len(available_dates) - 10} flere datoer"
+            raise ExcelTournamentError(message)
 
         # Debug output
         console.print(f"\n[bold]{'='*60}[/bold]")
