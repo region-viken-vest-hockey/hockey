@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 
 from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.booking.candidate_weekends import season_weekend_dates
-from tournament_scheduler.planning.date_policy import problem_date_exclusions
+from tournament_scheduler.planning.date_policy import problem_date_exclusions, problem_forbidden_dates
 from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
     _candidate_start_times,
@@ -72,12 +72,12 @@ def relocate_excluded_date_tournaments(
     """
     working = copy.deepcopy(dict(candidate))
     excluded_reasons = problem_date_exclusions(problem)
-    excluded = set(excluded_reasons)
+    forbidden = set(problem_forbidden_dates(problem))  # targets must also avoid operator bans
     targets = [
         tournament
         for tournament in working.get("tournaments", [])
         if not tournament.get("cancelled")
-        and _parse_date(tournament.get("date")) in excluded
+        and _parse_date(tournament.get("date")) in excluded_reasons
     ]
     # Latest excluded dates have the smallest admissible neighborhood (for
     # example Easter at the very end of the season window), so give them first
@@ -92,7 +92,7 @@ def relocate_excluded_date_tournaments(
         anchor = _parse_date(original_date)
         rejection_reasons: List[Dict[str, Any]] = []
         placement = _find_relocation(
-            working, problem, tournament_id, anchor, excluded, rejection_reasons
+            working, problem, tournament_id, anchor, forbidden, rejection_reasons
         )
         if placement is None:
             unresolved.append(
