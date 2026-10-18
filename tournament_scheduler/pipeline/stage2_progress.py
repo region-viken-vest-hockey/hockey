@@ -39,12 +39,16 @@ class Stage2ProgressTracker:
     ``os.replace``) so a concurrent reader sees either the previous or the new
     snapshot, never a partial file. Persistence failures are swallowed: progress
     is best-effort and must never fail the scrape it describes.
+
+    The file is rewritten on lifecycle transitions only, so it does not carry a
+    live elapsed value for an active source. Instead every active source carries
+    a wall-clock ``started_at``; a poller derives current elapsed time as
+    ``now - started_at`` on each read.
     """
 
     def __init__(self, work_dir: Path, source_names: list[str]) -> None:
         self._path = Path(work_dir) / STAGE2_PROGRESS_FILENAME
         self._lock = threading.Lock()
-        self._started_monotonic = time.monotonic()
         self._started_at = _now_iso()
         self._order = list(source_names)
         self._sources: dict[str, dict[str, Any]] = {
@@ -63,6 +67,7 @@ class Stage2ProgressTracker:
             entry = self._entry(name)
             entry["state"] = SOURCE_ACTIVE
             self._source_started[name] = time.monotonic()
+            entry["started_at"] = _now_iso()
             self._write(finished=False)
 
     def mark_cached(self, name: str, *, event_count: int) -> None:
@@ -113,6 +118,7 @@ class Stage2ProgressTracker:
         with self._lock:
             entry = self._entry(name)
             started = self._source_started.pop(name, None)
+            entry.pop("started_at", None)
             entry["state"] = state
             entry["elapsed_s"] = (
                 round(time.monotonic() - started, 1) if started is not None else 0.0
@@ -125,22 +131,12 @@ class Stage2ProgressTracker:
 
     def _build(self, *, finished: bool) -> dict[str, Any]:
         sources = [dict(self._sources[name]) for name in self._order]
-        # Sources still active carry a live elapsed time so a UI can tell a
-        # slow-but-progressing source from one stuck in the same attempt.
-        now = time.monotonic()
-        for source in sources:
-            if source["state"] == SOURCE_ACTIVE:
-                started = self._source_started.get(source["name"])
-                if started is not None:
-                    source["elapsed_s"] = round(now - started, 1)
-        completed = sum(1 for s in sources if s["state"] in _TERMINAL_STATES)
         return {
             "started_at": self._started_at,
             "updated_at": _now_iso(),
             "finished": finished,
             "total": len(sources),
-            "completed": completed,
-            "elapsed_s": round(now - self._started_monotonic, 1),
+            "completed": sum(1 for s in sources if s["state"] in _TERMINAL_STATES),
             "sources": sources,
         }
 

@@ -1,6 +1,7 @@
 """Tests for Stage 2 structured progress (issue #363)."""
 
-from datetime import datetime
+import time
+from datetime import UTC, datetime
 from unittest.mock import patch
 
 from tournament_scheduler.pipeline import stage2_scraping
@@ -68,14 +69,32 @@ class TestStage2ProgressTracker:
         assert _source_by_name(snapshot, "Cached")["state"] == "cached"
         assert _source_by_name(snapshot, "Cached")["event_count"] == 7
 
-    def test_active_source_reports_live_elapsed_time(self, tmp_path):
+    def test_repeated_polls_of_active_source_show_advancing_elapsed(self, tmp_path):
+        """A poller reading only the persisted file can tell a slow source from a stuck one."""
         tracker = Stage2ProgressTracker(tmp_path, ["Slow"])
-
         tracker.mark_active("Slow")
-        snapshot = tracker.snapshot()
+        now = datetime.now(tz=UTC)
 
-        assert _source_by_name(snapshot, "Slow")["state"] == "active"
-        assert _source_by_name(snapshot, "Slow")["elapsed_s"] is not None
+        first = _source_by_name(read_stage2_progress(tmp_path), "Slow")
+        time.sleep(0.05)
+        second = _source_by_name(read_stage2_progress(tmp_path), "Slow")
+
+        assert first["state"] == second["state"] == "active"
+        assert first["started_at"] == second["started_at"]
+        started = datetime.fromisoformat(first["started_at"])
+        first_elapsed = (now - started).total_seconds()
+        second_elapsed = (datetime.now(tz=UTC) - started).total_seconds()
+        assert second_elapsed > first_elapsed >= 0
+
+    def test_finished_source_drops_started_at_and_keeps_duration(self, tmp_path):
+        tracker = Stage2ProgressTracker(tmp_path, ["A"])
+        tracker.mark_active("A")
+        tracker.mark_result("A", {"blocked": False, "event_count": 2})
+
+        source = _source_by_name(read_stage2_progress(tmp_path), "A")
+
+        assert "started_at" not in source
+        assert source["elapsed_s"] is not None
 
     def test_finish_marks_snapshot_finished(self, tmp_path):
         tracker = Stage2ProgressTracker(tmp_path, ["A"])
