@@ -41,6 +41,7 @@ from typing import Any
 
 from tournament_scheduler.models import SeasonPlan
 from tournament_scheduler.rules.catalog import catalog_id_for_rules_model_entry, rules_model_semantics
+from tournament_scheduler.rules.shortfall_summary import participation_shortfall_summary
 from tournament_scheduler.rules.obligations import (
     external_conflict_rule as _external_conflict_rule,
     hosting_obligation_rule as _hosting_obligation_rule,
@@ -150,13 +151,7 @@ def _participation_shortfall_rule(plan: SeasonPlan) -> dict[str, Any]:
     genuine = [item for item in unresolved if item.get("counts_as_unresolved_shortfall", True)]
     intra_club = [item for item in unresolved if not item.get("counts_as_unresolved_shortfall", True)]
     if genuine:
-        def _label(item: dict[str, Any]) -> str:
-            half = item.get("period")
-            half_suffix = f", {half}" if half else ""
-            return f"{item.get('label', '?')} ({item.get('actual', '?')}/{item.get('target', '?')}{half_suffix})"
-
-        names = ", ".join(_label(item) for item in genuine)
-        status = f"{len(genuine)} avvik: {names}"
+        status = participation_shortfall_summary(genuine)
     else:
         status = "Oppfylt"
     if intra_club:

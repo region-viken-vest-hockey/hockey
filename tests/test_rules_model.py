@@ -370,3 +370,22 @@ def test_render_rules_table_html_renders_columns_and_type_badges():
     assert "<th>Status</th>" in html
     assert "rules-type-badge--required_obligation" in html
     assert "Ringerike" in html
+
+
+def test_participation_shortfall_status_groups_many_teams_by_club_and_age_group():
+    """A capacity-limited season with many under-target teams must not read as
+    one failure per team in the headline; the per-team rows stay in detail."""
+    shortfalls = [
+        {"club": "Kongsberg", "age_group": "U10", "label": f"Kongsberg U10-{index}", "actual": 3, "target": 5}
+        for index in range(8)
+    ] + [
+        {"club": "Jar", "age_group": "U12", "label": "Jar U12-A", "actual": 3, "target": 5},
+        {"club": "Ringerike", "age_group": "U11", "label": "Ringerike U11-A", "actual": 2, "target": 4},
+    ]
+    plan = _plan(unresolved_participation_shortfalls=shortfalls)
+    by_id = {rule["id"]: rule for rule in build_rules_model(plan)}
+
+    rule = by_id["participation_shortfalls"]
+    assert rule["status"].startswith("10 avvik fordelt på 3 klubb/aldersgruppe-kombinasjoner: Kongsberg U10 (8 lag)")
+    assert "Kongsberg U10-0" not in rule["status"]
+    assert len(rule["detail_rows"]["rows"]) == 10

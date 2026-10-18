@@ -17,6 +17,7 @@ RULES_MODULES = {
     "obligations",
     "operational_rules",
     "report",
+    "shortfall_summary",
 }
 
 FLAT_RULES_MODULES = {"rules_model", "rules_model_obligations", "rules_report", "rules_report_capacity_rules", "rules_report_operational_rules"}
