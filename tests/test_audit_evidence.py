@@ -14,6 +14,9 @@ from tournament_scheduler.pipeline.audit_evidence import (
     AUDIT_CONTEXT_MAX_SERIALIZED_BYTES,
     EVIDENCE_OVERVIEW_MAX_EXAMPLES,
     EVIDENCE_QUERY_MAX_RECORDS,
+    build_evidence_index,
+    build_evidence_overview,
+    query_evidence,
 )
 from tournament_scheduler.pipeline.run_manifest import RunManifest
 from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
@@ -399,3 +402,89 @@ def test_inferred_calendar_interpretation_surfaces_as_evidence():
     movable = [r for r in records if r["category"] == "movable_allocations_used"]
     assert movable[0]["detail"]["classification_source"] == "inferred"
 
+
+
+def _scope_raw(publication_scope: dict | None) -> dict:
+    """Raw evidence with stale approvals on a changed and an unrelated tournament."""
+    return {
+        "run_id": "run-scope",
+        "export_fingerprint": "fp-scope",
+        "approval_status": {
+            "stale_approvals": [
+                {"tournament_id": "holmen-1", "age_group": "U12", "club": "Holmen"},
+                {"tournament_id": "tonsberg-9", "age_group": "U10", "club": "Tønsberg"},
+            ]
+        },
+        "publication_scope": publication_scope,
+    }
+
+
+def _delta_scope(*, status: str = "ELIGIBLE", changed: list[str] | None = None) -> dict:
+    return {
+        "status": status,
+        "delta": {
+            "added_tournament_ids": [],
+            "removed_tournament_ids": [],
+            "changed_tournament_ids": list(changed or []),
+        },
+    }
+
+
+def test_findings_outside_the_publication_delta_are_background_debt():
+    index = build_evidence_index(_scope_raw(_delta_scope(changed=["holmen-1"])))
+
+    scopes = {record["tournament_id"]: record["scope"] for record in index["records"]}
+    assert scopes == {"holmen-1": "actionable", "tonsberg-9": "background"}
+    assert index["scope_basis"] == "publication_delta"
+    assert index["delta_tournament_ids"] == ["holmen-1"]
+
+
+def test_background_findings_stay_visible_and_queryable():
+    index = build_evidence_index(_scope_raw(_delta_scope(changed=["holmen-1"])))
+
+    overview = build_evidence_overview(index)
+    assert overview["scope"]["background_record_count"] == 1
+
+    result = query_evidence(index, tournament="tonsberg-9")
+    assert [record["tournament_id"] for record in result["records"]] == ["tonsberg-9"]
+    assert result["records"][0]["scope"] == "background"
+
+
+def test_category_counts_split_actionable_and_background():
+    index = build_evidence_index(_scope_raw(_delta_scope(changed=["holmen-1"])))
+
+    category = next(row for row in index["categories"] if row["category"] == "stale_approvals")
+    assert category["count"] == 2
+    assert category["actionable_count"] == 1
+    assert category["background_count"] == 1
+
+
+def test_without_a_delta_basis_every_finding_stays_actionable():
+    for scope in (None, _delta_scope(status="NOT_CHECKABLE")):
+        index = build_evidence_index(_scope_raw(scope))
+
+        assert {record["scope"] for record in index["records"]} == {"actionable"}
+        assert index["scope_basis"] == "unavailable"
+        assert build_evidence_overview(index)["scope"]["background_record_count"] == 0
+
+
+def test_club_level_findings_without_a_tournament_stay_actionable():
+    raw = _scope_raw(_delta_scope(changed=["holmen-1"]))
+    raw["approval_status"] = {"stale_approvals": [{"club": "Kongsberg", "age_group": "U12"}]}
+
+    index = build_evidence_index(raw)
+
+    assert [record["scope"] for record in index["records"]] == ["actionable"]
+
+
+def test_overview_examples_list_actionable_findings_first():
+    raw = _scope_raw(_delta_scope(changed=["tonsberg-9"]))
+    raw["approval_status"]["stale_approvals"].reverse()
+
+    overview = build_evidence_overview(build_evidence_index(raw))
+
+    category = next(row for row in overview["categories"] if row["category"] == "stale_approvals")
+    # The delta here is tonsberg-9, so it is actionable despite being listed second.
+    assert [example["tournament_id"] for example in category["examples"]] == ["tonsberg-9", "holmen-1"]
+    assert category["examples"][0].get("scope") is None
+    assert category["examples"][1]["scope"] == "background"

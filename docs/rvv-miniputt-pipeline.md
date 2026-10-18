@@ -316,6 +316,8 @@ scripts/rvv-miniputt operator audit-evidence --category participation_shortfalls
 scripts/rvv-miniputt operator audit-evidence --unresolved
 ```
 
+Each evidence record carries a `scope`. On a published season, a record linked to a tournament that the current publication delta does not touch (added, removed or changed relative to the last publication) is `background`: pre-existing debt that stays visible and queryable but is not required follow-up for a scoped republish. Records without a tournament link, and every record when no delta basis exists (`scope_basis: unavailable`), are `actionable`. The overview's `scope` block gives the basis and the background count; examples list actionable findings first.
+
 The harness then submits PASS / REVIEW_REQUIRED / FAIL through `operator audit-submit`. The submitted payload also carries a concise structured `operator_assessment` (overall summary, accepted trade-offs, remaining operator/club actions, limitations). Detailed evidence is fingerprint-bound to the same export/run as the bounded overview. The interactive harness must not create another nested model/audit implementation. Headless CI may use the documented `operator audit-run --backend <name>` path instead.
 
 The audit is an independent semantic safety net, not a second Python rules engine. It looks for suspicious operational patterns, missing rules, export inconsistency and defects the deterministic verifier may share with the scheduler.
