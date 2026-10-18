@@ -1,12 +1,12 @@
 """Search history manager for tournament scheduler."""
 
 import json
+import logging
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Optional
-from rich.console import Console
 
-console = Console()
+logger = logging.getLogger(__name__)
 
 
 class SearchHistory:
@@ -47,7 +47,7 @@ class SearchHistory:
             with open(self.history_file, 'w', encoding='utf-8') as f:
                 json.dump(history, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            console.print(f"  [yellow]⚠[/yellow] Advarsel: Kunne ikke lagre søkehistorikk: {e}", style="yellow")
+            logger.warning("Advarsel: Kunne ikke lagre søkehistorikk: %s", e)
 
     def load_history(self) -> List[Dict]:
         """Load search history from file.
@@ -62,7 +62,7 @@ class SearchHistory:
             with open(self.history_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
-            console.print(f"  [yellow]⚠[/yellow] Advarsel: Kunne ikke laste søkehistorikk: {e}", style="yellow")
+            logger.warning("Advarsel: Kunne ikke laste søkehistorikk: %s", e)
             return []
 
     def format_search_summary(self, search_params: Dict) -> str:
