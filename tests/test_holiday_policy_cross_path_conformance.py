@@ -26,7 +26,8 @@ WINDOW_END = date(2026, 12, 31)
 
 #: Derived holiday weekend (Sat before Christmas) with an accepted exception.
 EXCEPTED = date(2026, 12, 19)
-#: Derived holiday weekend that is also an explicit operator ban.
+#: Derived holiday weekend that is both an accepted exception and an explicit
+#: operator ban. The ban must still win on every path.
 BANNED = date(2026, 12, 20)
 #: Derived holiday-week weekend with neither exception nor ban.
 UNEXCEPTED = date(2026, 12, 26)
@@ -38,14 +39,14 @@ def _problem() -> dict:
     return {
         "start_date": WINDOW_START.isoformat(),
         "end_date": WINDOW_END.isoformat(),
-        "holiday_date_exceptions": [EXCEPTED.isoformat()],
+        "holiday_date_exceptions": [EXCEPTED.isoformat(), BANNED.isoformat()],
         "manual_adjustments": {"banned_dates": [BANNED.isoformat()]},
         "date_exclusions": [],
     }
 
 
 def _checker_excluded() -> set[date]:
-    checker = HolidayConflictChecker(date_exceptions=[EXCEPTED], banned_dates=[BANNED])
+    checker = HolidayConflictChecker(date_exceptions=[EXCEPTED, BANNED], banned_dates=[BANNED])
     context = ConflictContext(
         start_date=datetime.combine(WINDOW_START, datetime.min.time()),
         end_date=datetime.combine(WINDOW_END, datetime.min.time()),
@@ -83,6 +84,18 @@ def test_operator_ban_wins_over_exception_on_every_path() -> None:
 
     assert BANNED in problem_forbidden_dates(problem)
     assert BANNED in _checker_excluded()
+
+
+def test_checker_reports_operator_ban_reason_over_exception() -> None:
+    checker = HolidayConflictChecker(date_exceptions=[BANNED], banned_dates=[BANNED])
+    context = ConflictContext(
+        start_date=datetime.combine(WINDOW_START, datetime.min.time()),
+        end_date=datetime.combine(WINDOW_END, datetime.min.time()),
+    )
+
+    result = checker.check_conflicts([BANNED], context)
+
+    assert result.reasons[BANNED] == "banned by operator"
 
 
 def test_ordinary_date_is_admissible_on_every_path() -> None:
