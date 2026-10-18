@@ -48,6 +48,7 @@ from ..html import CANCELLED_TOURNAMENTS_FILENAME, SEASON_CHANGES_FILENAME
 from .stage1_config import load_effective_config
 from .state import PipelineState, StageName, StageStatus
 from ..serialization.season_plan import season_plan_from_dict
+from .stage4_export_canonical import canonical_decisions_document, export_approvals
 from .stage4_helpers import build_tournament_placement_entries
 from .calendar_viewer import generate_html as _generate_calendars_html
 from .input_viewer import generate_html as _generate_input_html
@@ -98,36 +99,6 @@ def _compute_scrape_age(updated_at: str) -> str:
         return f"{int(delta.total_seconds() // 3600)}t siden"
     return f"{delta.days}d siden"
 
-
-def _export_approvals(effective_config: dict[str, Any], plan_dict: dict[str, Any]) -> dict[str, Any]:
-    """Operator-confirmed placements for the plan's canonical season, if any.
-
-    An explicit approval/placement lock is confirmation: that placement is a
-    real booking even when a scraped calendar disagrees, so normalization must
-    never demote it. Best-effort -- a missing canonical season just means no
-    approval overlay.
-    """
-    try:
-        from ..season.baseline_overlay import resolve_canonical_state
-
-        def _as_date(value: Any):
-            if hasattr(value, "isoformat") and not isinstance(value, str):
-                return value
-            try:
-                return datetime.strptime(str(value), "%Y-%m-%d").date()
-            except (TypeError, ValueError):
-                return None
-
-        start = _as_date(plan_dict.get("start_date") or effective_config.get("start_date"))
-        end = _as_date(plan_dict.get("end_date") or effective_config.get("end_date"))
-        if start is None or end is None:
-            return {}
-        resolved = resolve_canonical_state(effective_config, start, end)
-        if not resolved:
-            return {}
-        return dict(resolved.get("decisions", {}).get("decisions", {}) or {})
-    except Exception:
-        return {}
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -261,7 +232,7 @@ def run(
         normalization_report = normalize_unplaced_placements(
             plan_dict,
             export_problem,
-            approvals=_export_approvals(effective_config, plan_dict),
+            approvals=export_approvals(effective_config, plan_dict),
         )
 
     export_projection_guard: dict[str, Any] | None = None
@@ -365,6 +336,11 @@ def run(
     )
 
     plan = season_plan_from_dict(plan_dict)
+    # The rules report reads the effective holiday/ban policy from the plan, so
+    # carry the canonical decisions onto it rather than the bare checkpoint.
+    from tournament_scheduler.season.holiday_exceptions import project_date_policy_into_plan
+
+    project_date_policy_into_plan(plan, canonical_decisions_document(effective_config, plan_dict))
     # Render the same host-confirmed per-tournament occupied duration the
     # verifier used, so XLSX/HTML/iCal end times cannot disagree with the
     # canonical occupancy contract.

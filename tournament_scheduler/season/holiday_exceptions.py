@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import date as _date
 from typing import Any, Mapping
 
+from tournament_scheduler.season.banned_dates import active_banned_dates
 from tournament_scheduler.season.state import HOLIDAY_DATE_EXCEPTIONS_KEY
 from tournament_scheduler.planning.date_policy import holiday_exclusions, problem_window
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
@@ -174,6 +175,30 @@ def project_exceptions_into_problem(
     return projected
 
 
+def project_date_policy_into_plan(plan: Any, decisions: Mapping[str, Any]) -> None:
+    """Project active holiday exceptions and operator bans into ``plan.manual_adjustments``.
+
+    The rules model reads the effective date policy from the plan it is given,
+    so a report rendered from a plain Stage 3 checkpoint must carry the canonical
+    decisions too. Bans are projected alongside exceptions so the report keeps
+    the same precedence as the planner and verifier: derived exclusion <
+    exception < ban.
+    """
+
+    exceptions = active_exception_dates(decisions)
+    bans = active_banned_dates(decisions)
+    if not exceptions and not bans:
+        return
+    manual = dict(plan.manual_adjustments or {})
+    if exceptions:
+        existing = [str(value) for value in (manual.get("holiday_date_exceptions") or []) if str(value)]
+        manual["holiday_date_exceptions"] = sorted(set(existing) | set(exceptions))
+    if bans:
+        existing = [str(value) for value in (manual.get("banned_dates") or []) if str(value)]
+        manual["banned_dates"] = sorted(set(existing) | set(bans))
+    plan.manual_adjustments = manual
+
+
 __all__ = [
     "ACTIVE",
     "RELEASED",
@@ -186,6 +211,7 @@ __all__ = [
     "exception_records",
     "exception_report",
     "holiday_date_exception_id",
+    "project_date_policy_into_plan",
     "project_exceptions_into_problem",
     "validate_and_normalize",
 ]
