@@ -40,6 +40,7 @@ from .recovery_cli import _cmd_recovery_inject, _cmd_recovery_targets, _cmd_scra
 from .waiver_command import _cmd_waiver
 from .reporting import _cmd_candidates, _cmd_logs, _cmd_status
 from .reporting import _cmd_sources_status  # noqa: F401 (patch point for the `sources` dispatch)
+from .participation_fairness_command import _cmd_season_participation_fairness
 from .season_command import _cmd_season
 from .verification_problem import _canonical_verification_problem  # noqa: F401 (re-exported for CLI callers)
 from .cancel_command import _cmd_cancel
@@ -181,6 +182,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_candidates(args)
     elif args.command == "plan":
         return _cmd_plan(args)
+    elif args.command == "season" and args.season_command == "participation-fairness":
+        return _cmd_season_participation_fairness(args)
     elif args.command == "season":
         return _cmd_season(args)
     elif args.command == "stage3":
