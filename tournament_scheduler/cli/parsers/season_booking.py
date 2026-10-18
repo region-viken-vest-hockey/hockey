@@ -65,7 +65,7 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
     season_participation_fairness = season_sub.add_parser(
         "participation-fairness",
         help=(
-            "Read-only club x age-group participation fairness over booked reality, "
+            "Read-only team and club x age-group participation fairness over booked reality, "
             "normalized by registered teams; unconfirmed coverage reported separately"
         ),
     )

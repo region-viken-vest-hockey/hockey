@@ -174,3 +174,67 @@ def test_participation_without_registered_team_is_flagged_not_silently_normalize
     assert ghost["booked_per_team"] is None
     assert ghost["provisional_reasons"] == ["participation_without_registered_team"]
     assert "U11" not in report["lowest_booked_per_team_by_age_group"]
+
+
+def _team_row(report: dict, club: str, team: str, age_group: str = "U11") -> dict:
+    return next(
+        row for row in report["team_rows"] if row["club"] == club and row["team"] == team and row["age_group"] == age_group
+    )
+
+
+def test_team_rows_report_each_registered_team_separately_from_its_club():
+    teams = [_team("Frisk", "Frisk 1"), _team("Frisk", "Frisk 2"), _team("Frisk", "Frisk 3")]
+    tournaments = [
+        _tournament("t1", "2026-10-10", [teams[0], teams[1]]),
+        _tournament("t2", "2026-10-17", [teams[0]]),
+        _tournament("t3", "2026-10-24", [teams[2]]),
+    ]
+    report = build_club_age_group_participation_report(
+        teams=teams,
+        tournaments=tournaments,
+        booking_states={"t1": "booked", "t2": "booked", "t3": "proposed"},
+        split_date=SPLIT,
+    )
+
+    assert _team_row(report, "Frisk", "Frisk 1")["booked_participations"]["total"] == 2
+    assert _team_row(report, "Frisk", "Frisk 2")["booked_participations"]["total"] == 1
+    third = _team_row(report, "Frisk", "Frisk 3")
+    assert third["booked_participations"]["total"] == 0
+    assert third["unconfirmed_participations"]["total"] == 1
+    assert third["provisional_reasons"] == ["unconfirmed_participations"]
+    assert _row(report, "Frisk")["booked_participations"]["total"] == 3
+
+
+def test_team_rows_exclude_cancelled_and_split_by_half():
+    teams = [_team("Skien", "Skien 1")]
+    tournaments = [
+        _tournament("t1", "2026-12-12", teams, cancelled=True),
+        _tournament("t2", "2026-12-19", teams),
+        _tournament("t3", "2027-01-16", teams),
+    ]
+    report = build_club_age_group_participation_report(
+        teams=teams,
+        tournaments=tournaments,
+        booking_states={"t2": "booked", "t3": "booked"},
+        split_date=SPLIT,
+    )
+
+    row = _team_row(report, "Skien", "Skien 1")
+    assert row["cancelled_excluded"] == 1
+    assert row["booked_participations"]["before_christmas"] == 1
+    assert row["booked_participations"]["after_christmas"] == 1
+    assert row["provisional"] is False
+    assert report["provisional"] is False
+
+
+def test_team_rows_are_filtered_by_age_group():
+    teams = [_team("Jar", "Jar U11", "U11"), _team("Jar", "Jar U10", "U10")]
+    report = build_club_age_group_participation_report(
+        teams=teams,
+        tournaments=[_tournament("t1", "2026-10-10", [teams[1]], age_group="U10")],
+        booking_states={"t1": "booked"},
+        split_date=SPLIT,
+        age_group="U11",
+    )
+
+    assert [row["team"] for row in report["team_rows"]] == ["Jar U11"]

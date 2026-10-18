@@ -56,13 +56,20 @@ def build_club_age_group_participation_report(
     """
 
     split = _split_date(split_date)
+    roster = [
+        (str(team.get("club") or ""), str(team.get("label") or ""), str(team.get("age_group") or ""))
+        for team in teams
+    ]
     registered: Counter[tuple[str, str]] = Counter()
-    for team in teams:
-        registered[(str(team.get("club") or ""), str(team.get("age_group") or ""))] += 1
+    for club, _label, group in roster:
+        registered[(club, group)] += 1
 
     booked: dict[tuple[str, str], dict[str, int]] = defaultdict(_empty_halves)
     unconfirmed: dict[tuple[str, str], dict[str, int]] = defaultdict(_empty_halves)
     cancelled: Counter[tuple[str, str]] = Counter()
+    team_booked: dict[tuple[str, str, str], dict[str, int]] = defaultdict(_empty_halves)
+    team_unconfirmed: dict[tuple[str, str, str], dict[str, int]] = defaultdict(_empty_halves)
+    team_cancelled: Counter[tuple[str, str, str]] = Counter()
     tournament_states: Counter[str] = Counter()
 
     for tournament in tournaments:
@@ -70,20 +77,28 @@ def build_club_age_group_participation_report(
         tournament_age_group = str(tournament.get("age_group") or "")
         if age_group and tournament_age_group != age_group:
             continue
-        team_keys = [
-            (str(team.get("club") or ""), str(team.get("age_group") or tournament_age_group))
+        team_identities = [
+            (
+                str(team.get("club") or ""),
+                str(team.get("label") or ""),
+                str(team.get("age_group") or tournament_age_group),
+            )
             for team in tournament.get("teams") or []
         ]
         if tournament.get("cancelled"):
-            for key in team_keys:
-                cancelled[key] += 1
+            for club, label, group in team_identities:
+                cancelled[(club, group)] += 1
+                team_cancelled[(club, label, group)] += 1
             continue
         state = str(booking_states.get(tournament_id) or "unknown")
         tournament_states[state] += 1
         half = tournament_half(date.fromisoformat(str(tournament["date"])), split)
-        bucket = booked if state == BOOKED_OPERATIONAL_STATE else unconfirmed
-        for key in team_keys:
-            bucket[key][half] += 1
+        is_booked = state == BOOKED_OPERATIONAL_STATE
+        club_bucket = booked if is_booked else unconfirmed
+        team_bucket = team_booked if is_booked else team_unconfirmed
+        for club, label, group in team_identities:
+            club_bucket[(club, group)][half] += 1
+            team_bucket[(club, label, group)][half] += 1
 
     keys = set(registered) | set(booked) | set(unconfirmed) | set(cancelled)
     rows: list[dict[str, Any]] = []
@@ -119,6 +134,34 @@ def build_club_age_group_participation_report(
         )
 
     rows.sort(key=lambda row: (row["age_group"], row["booked_per_team"] is None, row["booked_per_team"] or 0, row["club"]))
+
+    registered_teams = set(roster)
+    team_rows: list[dict[str, Any]] = []
+    for club, label, group in sorted(registered_teams | set(team_booked) | set(team_unconfirmed) | set(team_cancelled)):
+        if age_group and group != age_group:
+            continue
+        team_key = (club, label, group)
+        booked_halves = team_booked.get(team_key, _empty_halves())
+        unconfirmed_halves = team_unconfirmed.get(team_key, _empty_halves())
+        unconfirmed_total = sum(unconfirmed_halves.values())
+        reasons: list[str] = []
+        if unconfirmed_total:
+            reasons.append("unconfirmed_participations")
+        if team_key not in registered_teams:
+            reasons.append("participation_without_registered_team")
+        team_rows.append(
+            {
+                "club": club,
+                "team": label,
+                "age_group": group,
+                "booked_participations": {"total": sum(booked_halves.values()), **booked_halves},
+                "unconfirmed_participations": {"total": unconfirmed_total, **unconfirmed_halves},
+                "cancelled_excluded": team_cancelled.get(team_key, 0),
+                "provisional": bool(reasons),
+                "provisional_reasons": reasons,
+            }
+        )
+    team_rows.sort(key=lambda row: (row["age_group"], row["booked_participations"]["total"], row["club"], row["team"]))
     lowest_by_age_group: dict[str, dict[str, Any]] = {}
     for row in rows:
         if row["booked_per_team"] is None:
@@ -136,7 +179,8 @@ def build_club_age_group_participation_report(
         "counted_operational_states": [BOOKED_OPERATIONAL_STATE],
         "age_group": age_group,
         "tournament_booking_states": dict(sorted(tournament_states.items())),
-        "provisional": any(row["provisional"] for row in rows),
+        "provisional": any(row["provisional"] for row in rows + team_rows),
         "lowest_booked_per_team_by_age_group": dict(sorted(lowest_by_age_group.items())),
         "rows": rows,
+        "team_rows": team_rows,
     }
