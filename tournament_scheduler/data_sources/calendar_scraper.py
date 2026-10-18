@@ -9,7 +9,9 @@ from tournament_scheduler.interfaces import CalendarScraper as BaseCalendarScrap
 from tournament_scheduler.utils.calendar_cache import CalendarCache
 from rich.console import Console
 
-console = Console()
+# Scrape progress and failures go to stderr: scrapers run under machine-readable
+# commands (--json) that own stdout.
+console = Console(stderr=True)
 
 
 class OutlookCalendarScraper(BaseCalendarScraper):
