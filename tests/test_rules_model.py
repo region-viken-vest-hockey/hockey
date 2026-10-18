@@ -389,3 +389,34 @@ def test_participation_shortfall_status_groups_many_teams_by_club_and_age_group(
     assert rule["status"].startswith("10 avvik fordelt på 3 klubb/aldersgruppe-kombinasjoner: Kongsberg U10 (8 lag)")
     assert "Kongsberg U10-0" not in rule["status"]
     assert len(rule["detail_rows"]["rows"]) == 10
+
+
+def _holiday_rule_for(manual_adjustments: dict, on_date: date) -> dict:
+    # 2026-12-19 sits in the derived Christmas weekend exclusion of this window.
+    plan = _plan(
+        start_date=date(2026, 9, 1),
+        end_date=date(2027, 6, 30),
+        tournaments=[Tournament(id="t1", date=on_date, arena="A", age_group="U10", teams=[])],
+        manual_adjustments=manual_adjustments,
+    )
+    return {rule["id"]: rule for rule in build_rules_model(plan)}["holiday_dates_not_used"]
+
+
+def test_holiday_rule_flags_derived_holiday_weekend_without_exception():
+    rule = _holiday_rule_for({}, date(2026, 12, 19))
+    assert rule["ok"] is False
+    assert "t1 (2026-12-19)" in rule["status"]
+
+
+def test_holiday_rule_honours_accepted_holiday_date_exception():
+    rule = _holiday_rule_for({"holiday_date_exceptions": ["2026-12-19"]}, date(2026, 12, 19))
+    assert rule["ok"] is True
+    assert "2026-12-19" not in rule["excluded_dates"]
+
+
+def test_holiday_rule_exception_does_not_lift_explicit_ban():
+    rule = _holiday_rule_for(
+        {"holiday_date_exceptions": ["2026-12-19"], "banned_dates": ["2026-12-19"]},
+        date(2026, 12, 19),
+    )
+    assert rule["ok"] is False
