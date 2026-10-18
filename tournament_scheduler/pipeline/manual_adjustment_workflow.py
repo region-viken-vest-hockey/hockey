@@ -8,7 +8,6 @@ export.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Optional
 
@@ -22,21 +21,14 @@ from tournament_scheduler.planning.planner_warnings import (
     scan_month_load_warnings,
 )
 from .cancellation_workflow import CancellationWorkflow
+from .makeup_date_policy import canonical_date_policy_inputs
+from .manual_adjustment_normalization import NormalizedAdjustments, normalize_adjustments, serialise_adjustments
 from .stage1_config import load_effective_config
 from .stage3_helpers import _build_club_arenas, _build_events_by_club, _build_ice_time, _build_parallel_games, _build_roster, _build_round_length, _make_planner
 from .state import PipelineState, StageName
 from .tournament_updater import TournamentUpdater, UpdateResult
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class _NormalizedAdjustments:
-    locked_dates: set[date] = field(default_factory=set)
-    banned_dates: set[date] = field(default_factory=set)
-    forced_host_clubs: list[str] = field(default_factory=list)
-    excluded_host_clubs: set[str] = field(default_factory=set)
-    pinned_tournament_ids: set[str] = field(default_factory=set)
 
 
 class ManualAdjustmentWorkflow:
@@ -78,8 +70,8 @@ class ManualAdjustmentWorkflow:
         if plan is None:
             plan = self.load_plan()
 
-        adjustments = self._normalize_adjustments(plan.manual_adjustments)
-        plan.manual_adjustments = self._serialise_adjustments(adjustments)
+        adjustments = normalize_adjustments(plan.manual_adjustments)
+        plan.manual_adjustments = serialise_adjustments(adjustments)
 
         summary_lines: list[str] = []
         move_changes: list[dict[str, Any]] = []
@@ -158,7 +150,7 @@ class ManualAdjustmentWorkflow:
             )
 
         # 3) Recalculate metrics and conflicts.
-        planner = self._make_metrics_planner()
+        planner = self._make_metrics_planner(plan)
         self._prime_planner(planner, plan)
         self._refresh_plan_metadata(planner, plan)
 
@@ -191,46 +183,12 @@ class ManualAdjustmentWorkflow:
             success=success,
         )
 
-    def _normalize_adjustments(self, raw: dict[str, Any]) -> _NormalizedAdjustments:
-        def _parse_dates(values: Any) -> set[date]:
-            result: set[date] = set()
-            for value in values or []:
-                if isinstance(value, date):
-                    result.add(value)
-                    continue
-                if isinstance(value, str):
-                    try:
-                        result.add(date.fromisoformat(value))
-                    except ValueError:
-                        continue
-            return result
-
-        forced_hosts = [str(v) for v in (raw.get("forced_host_clubs") or []) if str(v).strip()]
-        excluded_hosts = {str(v) for v in (raw.get("excluded_host_clubs") or []) if str(v).strip()}
-
-        return _NormalizedAdjustments(
-            locked_dates=_parse_dates(raw.get("locked_dates")),
-            banned_dates=_parse_dates(raw.get("banned_dates")),
-            forced_host_clubs=forced_hosts,
-            excluded_host_clubs=excluded_hosts,
-            pinned_tournament_ids={str(v) for v in (raw.get("pinned_tournament_ids") or []) if str(v).strip()},
-        )
-
-    def _serialise_adjustments(self, adjustments: _NormalizedAdjustments) -> dict[str, list[str]]:
-        return {
-            "locked_dates": sorted(d.isoformat() for d in adjustments.locked_dates),
-            "banned_dates": sorted(d.isoformat() for d in adjustments.banned_dates),
-            "forced_host_clubs": list(adjustments.forced_host_clubs),
-            "excluded_host_clubs": sorted(adjustments.excluded_host_clubs),
-            "pinned_tournament_ids": sorted(adjustments.pinned_tournament_ids),
-        }
-
     def _find_replacement_date(
         self,
         cancellation_wf: CancellationWorkflow,
         tournament: Tournament,
         plan: SeasonPlan,
-        adjustments: _NormalizedAdjustments,
+        adjustments: NormalizedAdjustments,
     ) -> Optional[date]:
         suggestions = cancellation_wf.suggest_makeup_dates(tournament, plan)
         for suggestion in suggestions:
@@ -241,7 +199,7 @@ class ManualAdjustmentWorkflow:
             return suggestion.date
         return None
 
-    def _choose_host_club(self, tournament: Tournament, adjustments: _NormalizedAdjustments) -> Optional[str]:
+    def _choose_host_club(self, tournament: Tournament, adjustments: NormalizedAdjustments) -> Optional[str]:
         allowed_forced = [club for club in adjustments.forced_host_clubs if club not in adjustments.excluded_host_clubs]
         allowed = allowed_forced or [team.club for team in tournament.teams if team.club not in adjustments.excluded_host_clubs]
         if not allowed:
@@ -256,7 +214,7 @@ class ManualAdjustmentWorkflow:
 
         return allowed[0]
 
-    def _make_metrics_planner(self):
+    def _make_metrics_planner(self, plan: SeasonPlan):
         cfg = load_effective_config(self.state)
         if not cfg:
             raise ValueError("Ingen Stage 1-konfigurasjon funnet. Kjør pipelinen først.")
@@ -270,6 +228,7 @@ class ManualAdjustmentWorkflow:
         events_by_club = _build_events_by_club(self.state.read_stage(StageName.SCRAPING))
         club_arenas = _build_club_arenas(cfg)
 
+        holidays, bans = canonical_date_policy_inputs(self.state, plan.start_date, plan.end_date)
         return _make_planner(
             roster,
             pg_config,
@@ -282,6 +241,7 @@ class ManualAdjustmentWorkflow:
             cfg.get("target_tournament_count"),
             cfg.get("participation_targets_by_age_group"),
             rounds_per_tournament_config=rounds_per_tournament_config,
+            holiday_date_exceptions=holidays, banned_dates=bans,
         )
 
     def _prime_planner(self, planner, plan: SeasonPlan) -> None:

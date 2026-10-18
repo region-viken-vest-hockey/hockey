@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
-from typing import Any
+from datetime import date, timedelta
+from typing import Any, Iterable
 
 from tournament_scheduler.booking.calendar_availability import classify_club_event, legacy_kind
 from tournament_scheduler.booking.ice_resources import interval_resource_fields
@@ -292,6 +292,8 @@ def _make_planner(
     cheap_baseline: bool = False,
     shared_host_decisions: dict[tuple[str, str], str] | None = None,
     rounds_per_tournament_config: dict[str, int] | None = None,
+    holiday_date_exceptions: Iterable[date] = (),
+    banned_dates: Iterable[date] = (),
 ) -> SeasonPlanner:
     """Construct a :class:`SeasonPlanner` with derived tournament sizing.
 
@@ -304,7 +306,7 @@ def _make_planner(
 
     scheduler = TournamentScheduler(
         calendar_sources=[],
-        conflict_checkers=[HolidayConflictChecker()],
+        conflict_checkers=[HolidayConflictChecker(date_exceptions=holiday_date_exceptions, banned_dates=banned_dates)],
         date_parser=DateParser(),
     )
     return SeasonPlanner(

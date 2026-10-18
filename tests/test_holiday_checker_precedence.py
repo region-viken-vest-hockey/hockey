@@ -45,3 +45,22 @@ def test_ban_overrides_exception_on_same_date() -> None:
 
     assert CHRISTMAS_EXCEPTION in result.excluded_dates
     assert result.reasons[CHRISTMAS_EXCEPTION] == "banned by operator"
+
+
+def test_planner_factory_applies_canonical_exception_and_ban() -> None:
+    from tournament_scheduler.models import Roster
+    from tournament_scheduler.pipeline.stage3_helpers import _make_planner
+
+    planner = _make_planner(
+        Roster(teams=[]),
+        {},
+        {},
+        holiday_date_exceptions=[CHRISTMAS_EXCEPTION],
+        banned_dates=[OTHER_HOLIDAY_WEEKEND],
+    )
+    (checker,) = planner.scheduler.conflict_checkers
+
+    excluded = _excluded(checker, CHRISTMAS_EXCEPTION, OTHER_HOLIDAY_WEEKEND)
+
+    assert CHRISTMAS_EXCEPTION not in excluded
+    assert OTHER_HOLIDAY_WEEKEND in excluded
