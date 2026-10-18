@@ -38,6 +38,7 @@ from ..models import SeasonPlan, Tournament
 from .state import PipelineState, StageName
 from .run_log_paths import resolve_active_run_log_dir
 from .tournament_updater import TournamentUpdater, UpdateResult
+from .makeup_date_policy import make_holiday_scheduler, makeup_date_policy_inputs
 
 logger = logging.getLogger(__name__)
 
@@ -214,8 +215,8 @@ class CancellationWorkflow:
 
         result = None
         try:
-            # Build a lightweight scheduler for holiday checking.
-            scheduler = self._make_lightweight_scheduler()
+            # Holiday checker carries the canonical exceptions and bans for this season.
+            scheduler = self._make_lightweight_scheduler(*makeup_date_policy_inputs(self.state, plan))
             result = scheduler.find_available_dates(
                 start_date=search_start_dt,
                 end_date=search_end_dt,
@@ -351,17 +352,9 @@ class CancellationWorkflow:
         )
 
     @staticmethod
-    def _make_lightweight_scheduler():
-        """Build a lightweight ``TournamentScheduler`` with just a holiday checker."""
-        from ..scheduler import TournamentScheduler
-        from ..conflict_checkers.holiday_checker import HolidayConflictChecker
-        from ..utils.date_parser import DateParser
-
-        return TournamentScheduler(
-            calendar_sources=[],
-            conflict_checkers=[HolidayConflictChecker()],
-            date_parser=DateParser(),
-        )
+    def _make_lightweight_scheduler(exceptions, banned_dates):
+        """Build a lightweight ``TournamentScheduler`` with the canonical holiday checker."""
+        return make_holiday_scheduler(exceptions, banned_dates)
 
     def log_cancellation(
         self,
