@@ -13,6 +13,7 @@ RULES_MODULES = {
     "catalog",
     "catalog_doc",
     "evidence_categories",
+    "holiday_dates_rule",
     "model",
     "obligations",
     "operational_rules",
