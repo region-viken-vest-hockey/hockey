@@ -46,7 +46,7 @@ tournament_scheduler/pipeline/calendar_viewer.py	499
 tournament_scheduler/pipeline/cancellation_workflow.py	407
 tournament_scheduler/pipeline/escalation.py	315
 tournament_scheduler/pipeline/input_workbook.py	307
-tournament_scheduler/pipeline/manual_adjustment_workflow.py	463
+tournament_scheduler/pipeline/manual_adjustment_workflow.py	423
 # operator_action.py grew by 4 lines for issue #325 (semantic safety-net audit
 # gate wiring: one import, a two-line gate check, one registration call) --
 # the bulk of the new logic itself was split into pipeline/operator_action_audit.py.
@@ -63,7 +63,7 @@ tournament_scheduler/pipeline/stage2_scraping.py	915
 # literal) -- not a splittable chunk on its own. Grew by 1 further line for
 # issue #328 (`cross_age_hosting_repairs`, the same pattern).
 tournament_scheduler/pipeline/stage3_helpers.py	340
-tournament_scheduler/pipeline/stage3_planning.py	825
+tournament_scheduler/pipeline/stage3_planning.py	779
 tournament_scheduler/pipeline/stage4_export.py	1283
 tournament_scheduler/pipeline/state.py	505
 tournament_scheduler/pipeline/tournament_updater.py	931

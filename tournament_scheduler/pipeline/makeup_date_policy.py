@@ -22,12 +22,21 @@ from .state import PipelineState
 
 
 def makeup_date_policy_inputs(state: PipelineState, plan: Any) -> tuple[list[date], list[date]]:
-    """Return ``(holiday_date_exceptions, banned_dates)`` for the plan's season.
+    """Return ``(holiday_date_exceptions, banned_dates)`` for the plan's season."""
+    return canonical_date_policy_inputs(state, plan.start_date, plan.end_date)
+
+
+def canonical_date_policy_inputs(
+    state: PipelineState, start: date, end: date
+) -> tuple[list[date], list[date]]:
+    """Return ``(holiday_date_exceptions, banned_dates)`` for a planning window.
 
     Both are empty when no canonical season applies, which is the from-scratch
-    path.
+    path, or when the plan carries no window yet.
     """
-    canonical = resolve_canonical_state(load_effective_config(state), plan.start_date, plan.end_date)
+    if start is None or end is None:
+        return [], []
+    canonical = resolve_canonical_state(load_effective_config(state), start, end)
     if not canonical:
         return [], []
     decisions = canonical["decisions"]

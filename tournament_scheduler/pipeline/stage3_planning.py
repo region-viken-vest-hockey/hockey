@@ -50,6 +50,8 @@ from tournament_scheduler.planning.season_planner import SeasonPlanner
 from .fingerprints import stable_payload_sha256
 from .not_started import NOT_STARTED_MESSAGE
 from .state import PipelineState, StageName, StageStatus
+from .makeup_date_policy import canonical_date_policy_inputs
+from .stage3_config_hints import _extract_planning_critic_hints, _shared_host_choices_from_config
 from .stage3_helpers import (
     _build_club_arenas,
     _build_club_busy_intervals,
@@ -107,39 +109,6 @@ class SharedHostFactsDiscoveryError(RuntimeError):
     caller cannot tell "there is nothing to decide" apart from "we failed to
     look", so it must block/abort rather than continue to Stage 3 with an
     implicit deterministic host choice."""
-
-
-def _extract_planning_critic_hints(config: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, float] | None]:
-    """Return structured planning critic metadata and flat planner penalties.
-
-    ``penalty_hints`` remains backwards compatible as a flat mapping.  New
-    pre-export critic loops may instead pass ``planning_critic_hints`` with a
-    nested ``penalty_hints`` mapping plus metadata such as source, tone, and
-    issues; Stage 3 persists that metadata while sending only the numeric
-    penalties into ``SeasonPlanner``.
-    """
-    structured = config.get("planning_critic_hints")
-    raw_penalties: Any = config.get("penalty_hints")
-
-    if structured is None and isinstance(raw_penalties, dict) and "penalty_hints" in raw_penalties:
-        structured = raw_penalties
-
-    if isinstance(structured, dict):
-        nested = structured.get("penalty_hints")
-        if isinstance(nested, dict):
-            raw_penalties = nested
-
-    if not isinstance(raw_penalties, dict):
-        return structured if isinstance(structured, dict) else None, None
-
-    penalties: dict[str, float] = {}
-    for key, value in raw_penalties.items():
-        try:
-            penalties[str(key)] = float(value)
-        except (TypeError, ValueError):
-            continue
-
-    return structured if isinstance(structured, dict) else None, penalties or None
 
 
 def compute_shared_registration_facts(
@@ -272,23 +241,6 @@ def compute_shared_registration_facts(
         for t in probe_plan.tournaments
     ]
     return shared_registration_facts(team_dicts, tournament_dicts, club_calendar_status)
-
-
-def _shared_host_choices_from_config(config: dict[str, Any]) -> dict[tuple[str, str], str]:
-    """Convert ``config["shared_host_decisions"]`` (a JSON-safe list, since
-    config must round-trip through checkpoints) into the
-    ``{(registration, age_group): chosen_club}`` shape
-    :class:`~..season_planner.SeasonPlanner` expects."""
-    choices: dict[tuple[str, str], str] = {}
-    for entry in config.get("shared_host_decisions") or []:
-        if not isinstance(entry, dict):
-            continue
-        registration = str(entry.get("registration", ""))
-        age_group = str(entry.get("age_group", ""))
-        chosen_club = entry.get("chosen_club")
-        if registration and age_group and chosen_club:
-            choices[(registration, age_group)] = str(chosen_club)
-    return choices
 
 
 # ---------------------------------------------------------------------------
@@ -576,6 +528,7 @@ def run(
 
     n_iters = max(1, iterations)
     seeds: list[int | None] = [None] if n_iters == 1 else list(range(n_iters))
+    holiday_date_exceptions, banned_dates = canonical_date_policy_inputs(state, start_date.date(), end_date.date())
 
     for idx, seed in enumerate(seeds, start=1):
         # Feed the best candidate found so far's weak fairness metrics forward as
@@ -637,6 +590,7 @@ def run(
             cheap_baseline=cheap_baseline,
             shared_host_decisions=shared_host_choices or None,
             rounds_per_tournament_config=rounds_per_tournament_config,
+            holiday_date_exceptions=holiday_date_exceptions, banned_dates=banned_dates,
         )
         stop_heartbeat = threading.Event()
         heartbeat_started = datetime.now()
