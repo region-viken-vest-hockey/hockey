@@ -2,13 +2,13 @@
 
 import hashlib
 import json
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional
 from tournament_scheduler.models_calendar import CalendarEvent, source_identity_to_dict
-from rich.console import Console
 
-console = Console()
+logger = logging.getLogger(__name__)
 
 # Bump when the cached event shape gains fields that old entries cannot supply.
 CACHE_SCHEMA_VERSION = 3
@@ -183,7 +183,7 @@ class CalendarCache:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         except Exception as e:
             # Fail silently but log warning
-            console.print(f"  [yellow]⚠[/yellow] Advarsel: Kunne ikke cache kalenderdata: {e}", style="yellow")
+            logger.warning("Advarsel: Kunne ikke cache kalenderdata: %s", e)
 
     def clear(self) -> None:
         """Clear all cached calendar data."""
