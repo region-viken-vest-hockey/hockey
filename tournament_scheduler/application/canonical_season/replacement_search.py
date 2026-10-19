@@ -280,7 +280,7 @@ def search_participant_replacements(
         "validated": True,
         "filters": {"eligible_clubs": sorted(clubs), "eligible_team_labels": sorted(labels)},
         "booking_evidence": booking_evidence,
-        "ranking_policy": "lexicographic: legality, booked club-age fairness, half/gap quality, clustering, opponent exposure, travel, soft preferences",
+        "ranking_policy": "lexicographic: legality, donor half-season losses, booked club-age fairness, recipient half-season coverage, team continuity, sibling distribution, cadence/clustering, opposing-club exposure and travel",
         "candidate_count": len(candidates),
         "best_candidate": (
             {
