@@ -182,6 +182,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _cmd_candidates(args)
     elif args.command == "plan":
         return _cmd_plan(args)
+    elif args.command == "season" and args.season_command == "preview":
+        from .season_preview_command import _cmd_season_preview
+
+        return _cmd_season_preview(args)
     elif args.command == "season" and args.season_command == "participation-fairness":
         return _cmd_season_participation_fairness(args)
     elif args.command == "season":

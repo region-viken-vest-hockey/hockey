@@ -41,6 +41,7 @@ from .parsers.season_constraints import add_season_constraint_parsers
 from .parsers.season_guest import add_season_guest_parsers
 from .parsers.season_lifecycle import add_season_lifecycle_parsers
 from .parsers.season_mutation import add_season_mutation_parsers
+from .parsers.season_preview import add_season_preview_parser
 from .parsers.season_repair import add_season_repair_parsers
 from .parsers.season_review import add_season_review_parsers
 from .parsers.stage3 import add_stage3_parsers
@@ -86,6 +87,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_season_lifecycle_parsers(season_sub)
     add_season_booking_parsers(season_sub)
     add_season_mutation_parsers(season_sub)
+    add_season_preview_parser(season_sub)
     add_season_constraint_parsers(season_sub)
     add_season_guest_parsers(season_sub)
     add_season_review_parsers(season_sub)

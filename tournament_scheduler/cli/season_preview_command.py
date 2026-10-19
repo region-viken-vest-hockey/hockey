@@ -1,0 +1,85 @@
+"""``rvv-miniputt season preview``: read-only consequence preview transport."""
+
+from __future__ import annotations
+
+import argparse
+
+from ..application.canonical_season.consequence_preview import preview_canonical_operation
+from ..application.canonical_season_service import CanonicalSeasonService
+from .season_canonical_commands import _console, _emit_json, _verification_problem
+
+
+def _preview_arguments(args: argparse.Namespace) -> dict:
+    """Map the operation-specific CLI flags onto the shared preview contract."""
+    if args.operation == "replace":
+        if not (args.tournament_id and args.remove_team and args.add_team):
+            raise ValueError("replace preview needs --tournament-id, --remove-team and --add-team")
+        scoped = {
+            "tournament_id": args.tournament_id,
+            "remove_team_label": args.remove_team,
+            "add_team_label": args.add_team,
+        }
+    elif args.operation == "swap":
+        if not (args.tournament_a_id and args.team_a and args.tournament_b_id and args.team_b):
+            raise ValueError("swap preview needs --tournament-a-id, --team-a, --tournament-b-id and --team-b")
+        scoped = {
+            "tournament_a_id": args.tournament_a_id,
+            "team_a_label": args.team_a,
+            "tournament_b_id": args.tournament_b_id,
+            "team_b_label": args.team_b,
+        }
+    elif args.operation == "move":
+        if not args.tournament_id:
+            raise ValueError("move preview needs --tournament-id")
+        scoped = {
+            "tournament_id": args.tournament_id,
+            "date": args.date,
+            "arena": args.arena,
+            "host_club": args.host_club,
+            "start_time": args.start_time,
+            "allow_cross_half": args.allow_cross_half,
+        }
+    else:
+        if not (args.tournament_ids and args.remove_team):
+            raise ValueError("remove preview needs --tournament-ids and --remove-team")
+        scoped = {
+            "tournament_ids": list(args.tournament_ids),
+            "remove_team_label": args.remove_team,
+            "reconcile_withdrawal": args.reconcile_withdrawal,
+        }
+    return {
+        **scoped,
+        "problem": _verification_problem(args),
+        "actor": args.actor,
+        "note": args.note,
+        "request_id": args.request_id,
+    }
+
+
+def _cmd_season_preview(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season preview``; never writes canonical state."""
+    try:
+        arguments = _preview_arguments(args)
+    except ValueError as exc:
+        _console.print(f"[red]✗[/red] {exc}")
+        return 2
+    result = preview_canonical_operation(
+        CanonicalSeasonService(root=args.root),
+        operation=args.operation,
+        season=args.season,
+        expected_revision=args.expected_revision,
+        **arguments,
+    )
+    if args.json:
+        _emit_json(result)
+    else:
+        verdict = result["verdict"]
+        _console.print(
+            f"{args.operation} preview for {args.season}: {verdict['status']} "
+            f"(revision {result['expected_revision']})"
+        )
+        for blocker in verdict["blockers"]:
+            _console.print(f"  - {blocker}")
+    if args.fail_on_blocked and not result["verdict"]["applicable"]:
+        return 3
+    return 0
