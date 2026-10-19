@@ -10,17 +10,17 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
 from tournament_scheduler.season.request_constraints import team_identity
 from tournament_scheduler.season.state import canonical_state_revision
 
 from .replacement import replace_participant
+from .replacement_refusals import ReplacementRefusal
 from .replacement_comparison import (
     CLASS_HARD_INELIGIBLE,
     CLASS_OUT_OF_SCOPE,
-    blocker_reasons,
     compare_candidates,
     exclusion_reason,
+    gate_reasons,
     pair_key,
 )
 from .replacement_search import _find_tournament, search_participant_replacements
@@ -142,13 +142,15 @@ def explain_replacement_ineligibility(
                 add_team_label=add_team_label,
                 dry_run=True,
             )
-        except SeasonStateError as exc:
+        except ReplacementRefusal as exc:
+            record = exc.record()
             reasons.append(
                 exclusion_reason(
-                    "replacement_precondition",
+                    record["code"],
                     CLASS_HARD_INELIGIBLE,
-                    "canonical_season.replacement_preconditions",
-                    [str(exc)],
+                    record["owner"],
+                    record["evidence"],
+                    message=record["message"],
                 )
             )
         else:
@@ -159,7 +161,13 @@ def explain_replacement_ineligibility(
                     "change_protection_violations": details.get("existing_change_protection_violations") or [],
                     "request_constraint_regressions": details.get("request_constraint_regressions") or [],
                 }
-                reasons.extend(blocker_reasons(verdict.get("blockers") or [], evidence))
+                reasons.extend(
+                    gate_reasons(
+                        verdict.get("blockers") or [],
+                        details.get("refusals"),
+                        evidence,
+                    )
+                )
 
     booking_evidence: dict[str, Any] | None = None
     dominated_by: list[str] = []

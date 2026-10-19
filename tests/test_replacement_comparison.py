@@ -23,6 +23,7 @@ from tournament_scheduler.application.canonical_season.replacement_explanation i
 )
 from tournament_scheduler.application.canonical_season.store_facade import (
     _service,
+    approve_tournament,
     load_schedule,
 )
 
@@ -190,6 +191,7 @@ def test_no_legal_option_reports_owner_tagged_exclusions_without_options() -> No
         "code": "consequences_acceptable",
         "classification": "hard_ineligible",
         "owner": "participation.team_schedule_consequence",
+        "message": None,
         "evidence": [],
     }
     assert reasons[1]["code"] == "replacement_precondition"
@@ -263,15 +265,75 @@ def test_explain_names_canonical_gate_for_blocked_pair(tmp_path: Path) -> None:
         root=root,
     )
 
-    # E1 is already scheduled in another tournament on this date. The dry-run
-    # raises that as a precondition before any gate verdict, so it is reported
-    # as a precondition with the canonical message, not as a gate.
+    # E1 is already scheduled in another tournament on this date. The verifier
+    # rejects it, and the reason carries the catalog code and its owner.
     assert explanation["status"] == "hard_ineligible"
     [reason] = explanation["reasons"]
-    assert reason["code"] == "replacement_precondition"
-    assert reason["owner"] == "canonical_season.replacement_preconditions"
-    assert any("scheduled in 2 tournaments" in str(item) for item in reason["evidence"])
+    assert reason["code"] == "duplicate_participation_same_date"
+    assert reason["classification"] == "hard_ineligible"
+    assert reason["owner"] != "canonical_season.replacement_preconditions"
+    assert "scheduled in 2 tournaments" in str(reason["message"])
     assert explanation["dominated_by"] == []
+
+
+def test_explain_forwards_participant_lock_refusal_with_its_authority(
+    tmp_path: Path,
+) -> None:
+    root = _promote(tmp_path)
+    approve_tournament(
+        season="2026-2027",
+        tournament_id="t1",
+        root=root,
+        actor="tester",
+        participants_locked=True,
+    )
+
+    explanation = _explain(
+        season="2026-2027",
+        tournament_id="t1",
+        remove_team_label="D1",
+        add_team_label="G1",
+        root=root,
+    )
+
+    assert explanation["status"] == "hard_ineligible"
+    [reason] = explanation["reasons"]
+    # The active lock is the catalog's canonical_participants_preserved rule.
+    assert reason["code"] == "canonical_participants_locked"
+    assert reason["owner"] == "tournament_scheduler.season.baseline_overlay"
+    assert reason["evidence"] == [{"tournament_id": "t1"}]
+    assert "active participant lock" in str(reason["message"])
+
+
+def test_explain_forwards_canonical_lock_violation_code(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from tournament_scheduler.season import baseline_overlay
+
+    root = _promote(tmp_path)
+    violation = {
+        "code": "canonical_placement_locked",
+        "tournament_id": "t1",
+        "message": "tournament t1 placement is locked",
+    }
+    monkeypatch.setattr(
+        baseline_overlay, "verify_canonical_locks", lambda baseline, plan: [violation]
+    )
+
+    explanation = _explain(
+        season="2026-2027",
+        tournament_id="t1",
+        remove_team_label="D1",
+        add_team_label="G1",
+        root=root,
+    )
+
+    assert explanation["status"] == "hard_ineligible"
+    [reason] = explanation["reasons"]
+    assert reason["code"] == "canonical_placement_locked"
+    assert reason["owner"] == "tournament_scheduler.season.baseline_overlay"
+    assert reason["evidence"] == [violation]
+    assert reason["message"] == violation["message"]
 
 
 def test_explain_distinguishes_out_of_scope_from_hard_ineligible(tmp_path: Path) -> None:

@@ -56,12 +56,17 @@ def gate_owner(check: str) -> str:
 
 
 def exclusion_reason(
-    code: str, classification: str, owner: str, evidence: Any = None
+    code: str,
+    classification: str,
+    owner: str,
+    evidence: Any = None,
+    message: str | None = None,
 ) -> dict[str, Any]:
     return {
         "code": code,
         "classification": classification,
         "owner": owner,
+        "message": message,
         "evidence": list(evidence or []),
     }
 
@@ -100,6 +105,32 @@ def blocker_reasons(
                 )
             )
     return reasons
+
+
+def gate_reasons(
+    blockers: Sequence[str],
+    refusals: Sequence[Mapping[str, Any]] | None,
+    evidence: Mapping[str, Sequence[Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Exclusion reasons for one blocked dry-run, forwarding structured refusals.
+
+    Early refusals carry their own stable code and owner from the canonical
+    decision point and are forwarded as-is. Gate failures without structured
+    refusals are attributed through the verdict check names.
+    """
+
+    if refusals:
+        return [
+            exclusion_reason(
+                str(item["code"]),
+                CLASS_HARD_INELIGIBLE,
+                str(item["owner"]),
+                item.get("evidence"),
+                message=item.get("message"),
+            )
+            for item in refusals
+        ]
+    return blocker_reasons(blockers, evidence)
 
 
 def pair_key(candidate: Mapping[str, Any]) -> str:
@@ -195,8 +226,9 @@ def compare_candidates(candidates: Sequence[Mapping[str, Any]]) -> dict[str, Any
         {
             "remove_team": dict(item["remove_team"]),
             "add_team": dict(item["add_team"]),
-            "reasons": blocker_reasons(
+            "reasons": gate_reasons(
                 item["verdict"].get("blockers") or [],
+                item.get("refusals"),
                 _evidence_from_candidate(item),
             ),
         }
@@ -259,6 +291,7 @@ __all__ = [
     "COMPARISON_CONTRACT",
     "blocker_reasons",
     "compare_candidates",
+    "gate_reasons",
     "compare_replacement_candidates",
     "exclusion_reason",
     "pair_key",

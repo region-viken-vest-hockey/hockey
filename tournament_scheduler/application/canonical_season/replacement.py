@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 from datetime import date as _date
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from tournament_scheduler.season.baseline_overlay import approval_fingerprint, resolve_approval
 from tournament_scheduler.season.history_summary import verification_summary
@@ -25,6 +25,13 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
 from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning.verification import verify_canonical_candidate
 
+from .replacement_refusals import (
+    ReplacementRefusal,
+    hosting_transfer_refusals,
+    lock_violation_refusals,
+    participant_lock_refusal,
+    verification_refusals,
+)
 from .shared import (
     _operator_identity,
     _now_iso,
@@ -46,10 +53,11 @@ def _apply_replace_participant_to_plan(
     tournaments = plan.get("tournaments", []) or []
     target = next((t for t in tournaments if str(t.get("id") or "") == tournament_id), None)
     if target is None:
-        raise SeasonStateError(f"Unknown tournament id in canonical schedule: {tournament_id}")
+        raise ReplacementRefusal("unknown_tournament", f"Unknown tournament id in canonical schedule: {tournament_id}")
     if target.get("cancelled"):
-        raise SeasonStateError(
-            f"Tournament {tournament_id} is cancelled and cannot participate in a roster replacement"
+        raise ReplacementRefusal(
+            "tournament_cancelled",
+            f"Tournament {tournament_id} is cancelled and cannot participate in a roster replacement",
         )
     age_group = str(target.get("age_group") or "")
 
@@ -59,18 +67,24 @@ def _apply_replace_participant_to_plan(
         if str(team.get("label") or "") == remove_team_label
     ]
     if not matches:
-        raise SeasonStateError(
-            f"Team {remove_team_label!r} is not a participant in tournament {tournament_id}"
+        raise ReplacementRefusal(
+            "not_a_participant",
+            f"Team {remove_team_label!r} is not a participant in tournament {tournament_id}",
+            owner="canonical_season.tournament_roster",
         )
     if len(matches) > 1:
-        raise SeasonStateError(
-            f"Team label {remove_team_label!r} is ambiguous in tournament {tournament_id}"
+        raise ReplacementRefusal(
+            "ambiguous_participant_label",
+            f"Team label {remove_team_label!r} is ambiguous in tournament {tournament_id}",
+            owner="canonical_season.tournament_roster",
         )
     index, removed_team = matches[0]
     if bool(removed_team.get("guest", False)):
-        raise SeasonStateError(
+        raise ReplacementRefusal(
+            "guest_participant_removal",
             f"Team {remove_team_label!r} in tournament {tournament_id} is a guest participant; "
-            "use the guest-slot lifecycle instead"
+            "use the guest-slot lifecycle instead",
+            owner="canonical_season.guest_slots",
         )
 
     def team_identity(team: Mapping[str, Any], fallback_age_group: str) -> tuple[str, str, str]:
@@ -82,9 +96,11 @@ def _apply_replace_participant_to_plan(
 
     removed_identity = team_identity(removed_team, age_group)
     if removed_identity[2] != age_group:
-        raise SeasonStateError(
+        raise ReplacementRefusal(
+            "participant_age_group_mismatch",
             f"Cannot replace {remove_team_label!r}: participant age group "
-            f"{removed_identity[2] or '<missing>'} does not match tournament {age_group}"
+            f"{removed_identity[2] or '<missing>'} does not match tournament {age_group}",
+            owner="canonical_season.registered_team_pool",
         )
 
     registered_matches = [
@@ -95,28 +111,40 @@ def _apply_replace_participant_to_plan(
         and str(team.get("age_group") or "") == age_group
     ]
     if not registered_matches:
-        raise SeasonStateError(
-            f"Incoming team {add_team_label!r} is not a registered {age_group} participant"
+        raise ReplacementRefusal(
+            "not_a_registered_same_age_team",
+            f"Incoming team {add_team_label!r} is not a registered {age_group} participant",
+            owner="canonical_season.registered_team_pool",
         )
     if len(registered_matches) > 1:
-        raise SeasonStateError(
-            f"Incoming team label {add_team_label!r} is ambiguous among registered {age_group} teams"
+        raise ReplacementRefusal(
+            "ambiguous_incoming_label",
+            f"Incoming team label {add_team_label!r} is ambiguous among registered {age_group} teams",
+            owner="canonical_season.registered_team_pool",
         )
     added_team = copy.deepcopy(registered_matches[0])
     if bool(added_team.get("guest", False)):
-        raise SeasonStateError(
-            f"Incoming team {add_team_label!r} is a guest participant; use the guest-slot lifecycle instead"
+        raise ReplacementRefusal(
+            "guest_incoming_team",
+            f"Incoming team {add_team_label!r} is a guest participant; use the guest-slot lifecycle instead",
+            owner="canonical_season.guest_slots",
         )
     added_identity = team_identity(added_team, age_group)
     if added_identity == removed_identity:
-        raise SeasonStateError("Participant replacement would be a no-op")
+        raise ReplacementRefusal(
+            "no_op_replacement",
+            "Participant replacement would be a no-op",
+            owner="canonical_season.tournament_roster",
+        )
 
     for existing_index, existing in enumerate(target.get("teams", []) or []):
         if existing_index == index:
             continue
         if team_identity(existing, age_group) == added_identity:
-            raise SeasonStateError(
-                f"Cannot add {add_team_label!r} to {tournament_id}: that team already participates there"
+            raise ReplacementRefusal(
+                "already_participant",
+                f"Cannot add {add_team_label!r} to {tournament_id}: that team already participates there",
+                owner="canonical_season.tournament_roster",
             )
 
     before_fingerprint = approval_fingerprint(target)
@@ -212,7 +240,7 @@ def blocked_replacement_preview(
     tournament_id: str,
     remove_team_label: str,
     add_team_label: str,
-    reason: str,
+    refusals: Sequence[Mapping[str, Any]],
     request_id: str | None = None,
 ) -> dict[str, Any]:
     """Return the stable dry-run shape for a replacement that cannot be built.
@@ -224,6 +252,7 @@ def blocked_replacement_preview(
     """
 
     before_revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
+    reasons = [str(item["message"]) for item in refusals]
     details = {
         "tournament_id": tournament_id,
         "removed_team": {"label": remove_team_label},
@@ -232,7 +261,8 @@ def blocked_replacement_preview(
         "candidate_revision": None,
         "request_id": str(request_id or ""),
         "can_apply_unchanged": False,
-        "refusal_reasons": [reason],
+        "refusal_reasons": reasons,
+        "refusals": [dict(item) for item in refusals],
     }
     return {
         "season": season,
@@ -248,7 +278,7 @@ def blocked_replacement_preview(
             "status": "blocked",
             "applicable": False,
             "checks": {"candidate_constructed": False},
-            "blockers": [reason],
+            "blockers": reasons,
         },
         "replacement": details,
     }
@@ -326,20 +356,26 @@ def replace_participant(
         decisions.get("decisions", {}).get(tournament_id, {}),
         tournament,
     )
+
+    def blocked(refusals: list[dict[str, Any]]) -> dict[str, Any]:
+        return blocked_replacement_preview(
+            season=season,
+            schedule=schedule,
+            decisions=decisions,
+            tournament_id=tournament_id,
+            remove_team_label=remove_team_label,
+            add_team_label=add_team_label,
+            refusals=refusals,
+            request_id=request_id,
+        )
     if resolved["participants_locked"]:
-        message = f"Tournament {tournament_id} has an active participant lock; unapprove it explicitly first"
+        refusal = participant_lock_refusal(
+            tournament_id,
+            f"Tournament {tournament_id} has an active participant lock; unapprove it explicitly first",
+        )
         if dry_run:
-            return blocked_replacement_preview(
-                season=season,
-                schedule=schedule,
-                decisions=decisions,
-                tournament_id=tournament_id,
-                remove_team_label=remove_team_label,
-                add_team_label=add_team_label,
-                reason=message,
-                request_id=request_id,
-            )
-        raise SeasonStateError(message)
+            return blocked([refusal.record()])
+        raise refusal
 
     try:
         replacement = _apply_replace_participant_to_plan(
@@ -349,18 +385,9 @@ def replace_participant(
             add_team_label=add_team_label,
             problem=resolved_problem,
         )
-    except SeasonStateError as exc:
+    except ReplacementRefusal as exc:
         if dry_run:
-            return blocked_replacement_preview(
-                season=season,
-                schedule=schedule,
-                decisions=decisions,
-                tournament_id=tournament_id,
-                remove_team_label=remove_team_label,
-                add_team_label=add_team_label,
-                reason=str(exc),
-                request_id=request_id,
-            )
+            return blocked([exc.record()])
         raise
     candidate_tournament = replacement["tournament"]
     removed_team = replacement["removed_team"]
@@ -380,16 +407,7 @@ def replace_participant(
         messages = "; ".join(str(v.get("message")) for v in lock_violations)
         message = f"candidate violates canonical locks: {messages}"
         if dry_run:
-            return blocked_replacement_preview(
-                season=season,
-                schedule=schedule,
-                decisions=decisions,
-                tournament_id=tournament_id,
-                remove_team_label=remove_team_label,
-                add_team_label=add_team_label,
-                reason=message,
-                request_id=request_id,
-            )
+            return blocked(lock_violation_refusals(lock_violations))
         raise SeasonStateError(f"Refusing canonical participant replacement: {message}")
 
     result = verify_canonical_candidate(plan, resolved_problem)
@@ -400,16 +418,7 @@ def replace_participant(
         )
         message = f"candidate fails hard verification: {messages}"
         if dry_run:
-            return blocked_replacement_preview(
-                season=season,
-                schedule=schedule,
-                decisions=decisions,
-                tournament_id=tournament_id,
-                remove_team_label=remove_team_label,
-                add_team_label=add_team_label,
-                reason=message,
-                request_id=request_id,
-            )
+            return blocked(verification_refusals(result.get("violations") or [], message))
         raise SeasonStateError(f"Refusing canonical participant replacement: {message}")
 
     from tournament_scheduler.hosting.responsibility import (
@@ -425,16 +434,7 @@ def replace_participant(
         messages = "; ".join(str(entry.get("message")) for entry in transfers)
         message = f"candidate transfers hosting responsibility: {messages}"
         if dry_run:
-            return blocked_replacement_preview(
-                season=season,
-                schedule=schedule,
-                decisions=decisions,
-                tournament_id=tournament_id,
-                remove_team_label=remove_team_label,
-                add_team_label=add_team_label,
-                reason=message,
-                request_id=request_id,
-            )
+            return blocked(hosting_transfer_refusals(transfers))
         raise SeasonStateError(f"Refusing canonical participant replacement: {message}")
 
     before_guest_signature = _guest_reservation_signature(before_plan)
