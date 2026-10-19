@@ -380,7 +380,7 @@ class ManualAdjustmentWorkflow:
         # (rendered from `plan.unresolved_hosting_obligations`) stays correct
         # after operator edits, not just after the original Stage 3 run.
         coverage_teams = [
-            {"club": team.club, "age_group": team.age_group} for team in planner.roster.teams
+            {"club": team.club, "age_group": team.age_group} for team in planner.hosting_pool_teams()
         ]
         coverage_tournaments = [
             {

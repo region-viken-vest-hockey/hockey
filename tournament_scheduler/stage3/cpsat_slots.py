@@ -133,17 +133,29 @@ def _resolve_participation_target(
 ) -> Optional[int]:
     """Resolve the authoritative participation target for *identity* in this half.
 
-    Thin delegate to the canonical
-    :func:`tournament_scheduler.participation.targets.resolve_half_target`, so
-    CP-SAT, the verifier and the rules report share one target/hard-max
-    precedence instead of each re-deriving it. Returns ``None`` when neither a
-    season-wide override nor an age-group half value is configured
-    (non-canonical age group), signalling the caller should fall back to the
-    legacy baseline-lock behavior for that identity.
+    Thin delegate to the canonical participation resolvers
+    (:func:`~tournament_scheduler.participation.targets.resolve_half_target` for
+    a half, :func:`~tournament_scheduler.participation.targets.resolve_season_target`
+    for the ``combined`` season solve), so CP-SAT, the verifier and the rules
+    report share one target precedence instead of each re-deriving it. Returns
+    ``None`` when no target is configured (non-canonical age group), signalling
+    the caller should fall back to the legacy baseline-lock behavior for that
+    identity.
     """
-    from tournament_scheduler.participation.targets import resolve_half_target
+    from tournament_scheduler.participation.targets import (
+        HALVES,
+        resolve_half_target,
+        resolve_season_target,
+    )
 
-    return resolve_half_target(identity, problem, half_label, team=team_map.get(identity))
+    team = team_map.get(identity)
+    if half_label not in HALVES:
+        # Non-decomposed (``combined``) solves target the season total. The
+        # half resolver has no value for that label unless an explicit season
+        # override exists, so an ordinary before/after age group would resolve
+        # to ``None`` and lock the team to its baseline count (#451).
+        return resolve_season_target(identity, problem, team=team)
+    return resolve_half_target(identity, problem, half_label, team=team)
 
 
 def _resolve_split_date(

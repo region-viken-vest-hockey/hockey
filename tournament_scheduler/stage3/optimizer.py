@@ -59,12 +59,11 @@ from tournament_scheduler.hosting.representation import clubs_represent_same_clu
 from tournament_scheduler.hosting.representation import swap_breaks_host_representation as _swap_breaks_host_representation
 from tournament_scheduler.models import Team
 from tournament_scheduler.scoring.pareto import dominates as _dominates
-from tournament_scheduler.scoring.pareto import representative_indices as _representative_indices
+from tournament_scheduler.stage3.pareto_archive import default_pareto_weight_vectors as _default_pareto_weight_vectors
+from tournament_scheduler.stage3.pareto_archive import downselect_archive as _downselect_archive
+from tournament_scheduler.stage3.pareto_archive import objective_vector as _objective_vector
 from tournament_scheduler.scoring.pareto import vectors_equal as _vectors_equal
-from tournament_scheduler.scoring.quality_objectives import (
-    QUALITY_OBJECTIVE_DIMENSIONS,
-    quality_objective_vector,
-)
+from tournament_scheduler.scoring.quality_objectives import QUALITY_OBJECTIVE_DIMENSIONS
 from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.planning.contract import (
     CANDIDATE_SCHEMA_VERSION,
@@ -1836,38 +1835,6 @@ def optimize_candidate(
 _PARETO_DIMENSIONS: Tuple[str, ...] = QUALITY_OBJECTIVE_DIMENSIONS
 
 
-def _objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
-    """Extract a uniformly "lower is better" objective vector from a
-    :func:`tournament_scheduler.planning.contract.score_candidate` result."""
-    return quality_objective_vector(score)
-
-
-def _default_pareto_weight_vectors(base_weights: Dict[str, float]) -> List[Dict[str, float]]:
-    """Build the default set of search-epoch weight vectors: one "corner"
-    per :data:`DEFAULT_WEIGHTS` key (that dimension emphasized, all others
-    zeroed, so the epoch searches purely for that tradeoff extreme) plus one
-    balanced epoch using *base_weights* unchanged."""
-    vectors: List[Dict[str, float]] = []
-    for key in base_weights:
-        vector = {k: 0.0 for k in base_weights}
-        vector[key] = max(base_weights[key], 1.0) * 5.0
-        vectors.append(vector)
-    vectors.append(dict(base_weights))
-    return vectors
-
-
-def _downselect_archive(archive: List[Dict[str, Any]], max_size: int) -> List[Dict[str, Any]]:
-    """Reduce *archive* to at most *max_size* entries via the canonical
-    per-dimension-extreme down-select (see ``scoring.pareto.representative_indices``),
-    so "return a small representative set — extremes plus useful
-    knee/balanced points" is one shared implementation. A no-op when already
-    within budget."""
-    if len(archive) <= max_size or not archive:
-        return archive
-    indices = _representative_indices([entry["vector"] for entry in archive], max_size)
-    return [archive[i] for i in indices]
-
-
 def optimize_candidate_pareto(
     candidate: Dict[str, Any],
     problem: Optional[Dict[str, Any]] = None,
@@ -1904,9 +1871,11 @@ def optimize_candidate_pareto(
       with ``candidate``, ``objective_vector``, ``score`` (the full
       :func:`score_candidate` breakdown), ``weights_used``, ``epoch``,
       ``dominates_baseline``, and an independent ``verify_result`` --
-      :func:`~tournament_scheduler.planning.contract.verify_candidate` is
-      only ever run on archive candidates that survive dominance
-      filtering, never on every internal per-epoch proposal.
+      :func:`~tournament_scheduler.planning.contract.verify_candidate` runs
+      on each epoch's result *before* it is compared with the archive, so
+      only verified candidates can dominate, deduplicate or occupy an archive
+      slot. Each epoch summary records its own ``verify_result`` and
+      ``admitted_to_archive`` flag.
     - ``search_summary``: epoch count and, per epoch, the weights used and
       the underlying :func:`optimize_candidate` call's own search summary.
 
@@ -1949,6 +1918,12 @@ def optimize_candidate_pareto(
         )
         epoch_score = score_candidate(epoch_result, problem=problem)
         epoch_vector = _objective_vector(epoch_score)
+        # Verify before comparing: an illegal proposal with attractive soft
+        # metrics must not dominate, deduplicate or consume a bounded-front
+        # slot that a legal candidate could have held (#450). The verdict is
+        # kept in the epoch summary so rejected epochs stay auditable.
+        epoch_verify = verify_candidate(epoch_result, problem)
+        admitted = bool(epoch_verify.get("ok"))
         epoch_summaries.append(
             {
                 "epoch": epoch,
@@ -1956,8 +1931,12 @@ def optimize_candidate_pareto(
                 "seed": epoch_seed,
                 "objective_vector": epoch_vector,
                 "search_summary": (epoch_result.get("source") or {}).get("search_summary"),
+                "verify_result": epoch_verify,
+                "admitted_to_archive": admitted,
             }
         )
+        if not admitted:
+            continue
         _try_add(
             {
                 "candidate": epoch_result,
@@ -1965,6 +1944,7 @@ def optimize_candidate_pareto(
                 "score": epoch_score,
                 "weights": weights,
                 "epoch": epoch,
+                "verify_result": epoch_verify,
             }
         )
 
@@ -1979,7 +1959,7 @@ def optimize_candidate_pareto(
                 "score": entry["score"],
                 "weights_used": entry["weights"],
                 "epoch": entry["epoch"],
-                "verify_result": verify_candidate(entry["candidate"], problem),
+                "verify_result": entry["verify_result"],
                 "dominates_baseline": (
                     _dominates(entry["vector"], baseline_vector) or _vectors_equal(entry["vector"], baseline_vector)
                 ),

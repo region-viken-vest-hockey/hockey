@@ -13,10 +13,12 @@ STAGE3_MODULES = {
     "cpsat",
     "cpsat_club_cap",
     "cpsat_diagnostics",
+    "cpsat_participation",
     "cpsat_slots",
     "decision",
     "engine",
     "optimizer",
+    "pareto_archive",
     "shadow",
 }
 
