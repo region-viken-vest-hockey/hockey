@@ -744,6 +744,49 @@ class TestOptimizeCandidatePareto:
         assert all(not entry["candidate"].get("_illegal") for entry in result["candidates"])
         assert all(entry["verify_result"]["ok"] for entry in result["candidates"])
 
+    def test_legal_archive_entry_survives_later_illegal_epoch(self, monkeypatch):
+        """#450: a later illegal proposal cannot evict a retained legal result.
+
+        Epoch 0 is legal and admitted. Epoch 1 proposes an illegal candidate
+        whose soft metrics are attractive; it must be rejected before the
+        archive comparison, leaving epoch 0 as the only archived option.
+        """
+        import copy
+
+        import tournament_scheduler.planning.contract as contract
+        import tournament_scheduler.stage3.optimizer as optimizer
+
+        real_verify = contract.verify_candidate
+        real_optimize = optimizer.optimize_candidate
+
+        def fake_optimize(candidate, problem=None, *, seed=0, **kwargs):
+            result = real_optimize(candidate, problem, seed=seed, **kwargs)
+            if seed == 1:
+                result = copy.deepcopy(result)
+                result["_illegal"] = True
+            return result
+
+        def gated_verify(candidate, problem=None):
+            if candidate.get("_illegal"):
+                return {"ok": False, "violations": [{"rule": "test_illegal_later_epoch"}]}
+            return real_verify(candidate, problem)
+
+        monkeypatch.setattr(optimizer, "optimize_candidate", fake_optimize)
+        monkeypatch.setattr(contract, "verify_candidate", gated_verify)
+
+        result = optimize_candidate_pareto(
+            _clustered_candidate(),
+            iterations_per_epoch=50,
+            seed=0,
+            weight_vectors=[{"pair_repeat": 1.0}, {"gap_under_7": 1.0}],
+        )
+
+        epoch0, epoch1 = result["search_summary"]["epoch_summaries"]
+        assert epoch0["admitted_to_archive"] is True
+        assert epoch1["admitted_to_archive"] is False
+        assert [entry["epoch"] for entry in result["candidates"]] == [0]
+        assert result["candidates"][0]["verify_result"]["ok"] is True
+
     def test_custom_weight_vectors_control_epoch_count(self):
         candidate = _clustered_candidate()
         vectors = [{"pair_repeat": 10.0}, {"gap_under_7": 10.0}]

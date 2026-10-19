@@ -14,6 +14,7 @@ HOSTING_MODULES = {
     "candidate_selection",
     "coverage",
     "cross_age_repair",
+    "hosting_pool",
     "cross_age_repair_apply",
     "cross_age_repair_ops",
     "representation",

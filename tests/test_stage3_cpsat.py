@@ -800,3 +800,41 @@ class TestParticipationTargetParity:
                 bucket[team["label"]] = bucket.get(team["label"], 0) + 1
         assert before == {"T1": 2, "T2": 2, "T3": 2, "T4": 2}
         assert after == {"T1": 4, "T2": 4, "T3": 4, "T4": 4}
+
+
+class TestCpSatVerifyScoreParity:
+    """#451: CP-SAT output is judged by the same canonical verifier and scorer
+    as every other candidate, and its half-season deviation is never worse than
+    the baseline it started from."""
+
+    def test_decomposed_solve_passes_verify_and_does_not_worsen_half_deviation(self):
+        teams = {f"T{i}": _team(f"Club{i}", f"T{i}", "U10") for i in range(1, 5)}
+        pool = list(teams.values())
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-11-01", "Arena1", "U10", pool),
+                _tournament("t2", "2026-12-06", "Arena2", "U10", pool),
+                _tournament("t3", "2027-01-10", "Arena3", "U10", pool),
+                _tournament("t4", "2027-02-14", "Arena4", "U10", pool),
+                _tournament("t5", "2027-03-07", "Arena5", "U10", pool),
+                _tournament("t6", "2027-04-11", "Arena6", "U10", pool),
+            ],
+        }
+        problem = {
+            "christmas_split_date": "2026-12-24",
+            "participation_targets_by_age_group": {"U10": {"before_christmas": 3, "after_christmas": 3}},
+        }
+
+        optimized = optimize_candidate_cp_sat(
+            candidate, problem, solve_budget_seconds=5.0, seed=1, decompose_by_half=True
+        )
+
+        assert verify_candidate(optimized, problem)["ok"] is True
+        baseline_half = score_candidate(candidate, problem=problem)["participation"][
+            "half_total_absolute_deviation"
+        ]
+        optimized_half = score_candidate(optimized, problem=problem)["participation"][
+            "half_total_absolute_deviation"
+        ]
+        assert optimized_half <= baseline_half
