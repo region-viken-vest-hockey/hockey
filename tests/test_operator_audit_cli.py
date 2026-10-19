@@ -71,6 +71,13 @@ class TestAuditContextCommand:
         rc = _cmd_operator(_args("audit-context", "--work-dir", str(tmp_path)))
         assert rc == 1
 
+    def test_failure_message_goes_to_stderr_keeping_stdout_clean(self, tmp_path, capsys):
+        rc = _cmd_operator(_args("audit-context", "--work-dir", str(tmp_path)))
+        captured = capsys.readouterr()
+        assert rc == 1
+        assert captured.out == ""
+        assert "Stage 4-eksport" in captured.err
+
 
 class TestAuditEvidenceCommand:
     def _write_plan_with_shortfall(self, work_dir) -> None:
@@ -102,6 +109,13 @@ class TestAuditEvidenceCommand:
     def test_fails_without_an_export(self, tmp_path, capsys):
         rc = _cmd_operator(_args("audit-evidence", "--work-dir", str(tmp_path), "--item", "1"))
         assert rc == 1
+
+    def test_failure_message_goes_to_stderr_keeping_stdout_clean(self, tmp_path, capsys):
+        rc = _cmd_operator(_args("audit-evidence", "--work-dir", str(tmp_path), "--item", "1"))
+        captured = capsys.readouterr()
+        assert rc == 1
+        assert captured.out == ""
+        assert "Stage 4-eksport" in captured.err
 
 
 class TestAuditSubmitCommand:

@@ -22,7 +22,13 @@ import argparse
 import json
 from typing import Any
 
+from rich.console import Console
+
 from ._shared import _console
+
+# audit-context / audit-evidence print JSON on stdout for the harness to parse,
+# so their failure messages must go to stderr to keep stdout parseable.
+_err_console = Console(stderr=True)
 
 
 def _workflow_snapshot(work_dir: str) -> dict[str, Any] | None:
@@ -56,14 +62,14 @@ def _cmd_operator_audit_context(args: argparse.Namespace) -> int:
     try:
         result = DEFAULT_REGISTRY.execute(action, approved=True)
     except UnknownActionError as exc:
-        _console.print(f"[red]✗[/red] {exc}")
+        _err_console.print(f"[red]✗[/red] {exc}")
         return 1
 
     if not result.is_terminal_success:
-        _console.print(f"[red]✗[/red] {result.summary}")
+        _err_console.print(f"[red]✗[/red] {result.summary}")
         return 1
 
-    context_json = result.evidence[0] if result.evidence else "{}"
+    context_json =result.evidence[0] if result.evidence else "{}"
     print(context_json)
     return 0
 
@@ -88,11 +94,11 @@ def _cmd_operator_audit_evidence(args: argparse.Namespace) -> int:
     try:
         result = DEFAULT_REGISTRY.execute(action, approved=True)
     except UnknownActionError as exc:
-        _console.print(f"[red]✗[/red] {exc}")
+        _err_console.print(f"[red]✗[/red] {exc}")
         return 1
 
     if not result.is_terminal_success:
-        _console.print(f"[red]✗[/red] {result.summary}")
+        _err_console.print(f"[red]✗[/red] {result.summary}")
         return 1
 
     print(result.evidence[0] if result.evidence else "{}")
