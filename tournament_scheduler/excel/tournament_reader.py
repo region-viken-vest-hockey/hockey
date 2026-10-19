@@ -2,12 +2,12 @@
 
 from datetime import date
 from typing import Set, List, Optional
+import logging
 import openpyxl
 from tournament_scheduler.models import TournamentInfo
 from tournament_scheduler.utils.date_parser import DateParser
-from rich.console import Console
 
-console = Console()
+logger = logging.getLogger(__name__)
 
 
 class ExcelTournamentError(RuntimeError):
@@ -87,16 +87,14 @@ class ExcelTournamentReader:
                     message += f"\n  ... og {len(available_dates) - 10} flere datoer"
             raise ExcelTournamentError(message)
 
-        # Debug output
-        console.print(f"\n[bold]{'='*60}[/bold]")
-        console.print(f"[bold cyan]TURNERINGSDETALJER FOR {tournament_date.strftime('%Y-%m-%d')}[/bold cyan]")
-        console.print(f"[bold]{'='*60}[/bold]")
-        if location:
-            console.print(f"Lokasjon: {location}")
-        console.print(f"Lag funnet: {len(teams)}")
-        for i, team in enumerate(teams, 1):
-            console.print(f"  {i}. {team}")
-        console.print(f"[bold]{'='*60}[/bold]\n")
+        # Library code must not write to stdout: this runs beneath --json commands.
+        logger.debug(
+            "Turneringsdetaljer for %s: lokasjon=%s, lag=%d (%s)",
+            tournament_date.strftime("%Y-%m-%d"),
+            location or "-",
+            len(teams),
+            ", ".join(teams),
+        )
 
         return TournamentInfo(
             date=tournament_date,

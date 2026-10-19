@@ -28,3 +28,18 @@ def test_date_without_tournament_raises_typed_error(tmp_path) -> None:
 
     with pytest.raises(ExcelTournamentError, match="Ingen turnering funnet på 2026-12-19"):
         reader.get_tournament_info(date(2026, 12, 19))
+
+
+def test_successful_lookup_leaves_stdout_clean(monkeypatch, capsys, caplog) -> None:
+    reader = ExcelTournamentReader("unused.xlsx", DateParser())
+    monkeypatch.setattr(reader, "_load_workbook", lambda: None)
+    monkeypatch.setattr(reader, "extract_teams_for_date", lambda _d: ["Lag A", "Lag B"])
+    monkeypatch.setattr(reader, "_extract_location_for_date", lambda _d: "Hall 1")
+
+    with caplog.at_level("DEBUG", logger="tournament_scheduler.excel.tournament_reader"):
+        info = reader.get_tournament_info(date(2026, 12, 19))
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert info.teams == ["Lag A", "Lag B"]
+    assert any("Lag A, Lag B" in r.getMessage() for r in caplog.records)
