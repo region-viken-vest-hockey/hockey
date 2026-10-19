@@ -6,6 +6,11 @@ from tournament_scheduler.hosting.coverage import hosting_coverage_matrix
 from tournament_scheduler.hosting.same_age_repair import same_age_reallocation_candidates
 from tournament_scheduler.hosting.same_age_repair_apply import attempt_same_age_repairs
 from tournament_scheduler.models import Roster, SeasonPlan, Team, Tournament
+from tournament_scheduler.participation.withdrawals import (
+    build_withdrawal_records,
+    eligible_hosting_teams,
+    project_into_problem,
+)
 from tournament_scheduler.planning.season_planner import SeasonPlanner
 from tournament_scheduler.testing.canonical_input import OfflineScheduler
 
@@ -170,24 +175,45 @@ class TestAttemptSameAgeRepairs:
 
 
 class TestHostingPoolFromCanonicalEligibility:
-    """Issue #511: generation consumers must use the eligible hosting pool.
+    """Issue #511: generation consumers must use the canonical eligible pool.
 
-    A durable age-group withdrawal removes the team from its club x age-group
-    hosting obligation, so a rebuild must not report a phantom obligation for
-    it, while the registered roster stays untouched.
+    The pool comes from the durable withdrawal projection
+    (``project_into_problem`` -> ``eligible_hosting_teams``), not a hand-built
+    list, so a durably withdrawn team creates no phantom hosting obligation
+    while the registered roster stays untouched.
     """
 
     def test_withdrawn_team_creates_no_phantom_hosting_obligation(self):
         planner, plan = _build_repair_scenario()
         plan.tournaments[0].teams = [t for t in plan.tournaments[0].teams if t.club != "Kongsberg"]
         registered = list(planner.roster.teams)
-
-        eligible = [
-            {"club": t.club, "label": t.label, "age_group": t.age_group}
-            for t in registered
-            if (t.club, t.label) != ("Kongsberg", "Kongsberg U10")
-        ]
-        planner.restrict_hosting_pool(eligible)
+        problem = {
+            "teams": [{"club": t.club, "label": t.label, "age_group": t.age_group} for t in registered],
+            "age_groups": ["U10", "JU12"],
+        }
+        withdrawal = build_withdrawal_records(
+            team={"club": "Kongsberg", "label": "Kongsberg U10", "age_group": "U10"},
+            tournament_ids=[plan.tournaments[0].id],
+            request_id="kongsberg-retirement",
+            actor="tester",
+            note="retired",
+            created_at="2027-01-01T00:00:00+00:00",
+            source_revision="rev-1",
+            effective_from="2027-01-16",
+        )
+        plan_view = {
+            "tournaments": [
+                {
+                    "id": plan.tournaments[0].id,
+                    "date": "2027-01-16",
+                    "host_club": "Jar",
+                    "age_group": "U10",
+                    "teams": [{"club": t.club, "label": t.label, "age_group": t.age_group} for t in plan.tournaments[0].teams],
+                }
+            ]
+        }
+        projected = project_into_problem(problem, records=withdrawal, plan=plan_view)
+        planner.restrict_hosting_pool(eligible_hosting_teams(projected))
 
         assert attempt_same_age_repairs(planner, plan) == []
         assert planner.roster.teams == registered
