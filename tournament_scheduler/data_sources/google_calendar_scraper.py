@@ -8,7 +8,9 @@ from tournament_scheduler.models import CalendarEvent
 from tournament_scheduler.interfaces import CalendarScraper
 from rich.console import Console
 
-console = Console()
+# Scrape progress and failures go to stderr: scrapers run under machine-readable
+# commands (--json) that own stdout.
+console = Console(stderr=True)
 
 
 class GoogleCalendarScraper(CalendarScraper):
