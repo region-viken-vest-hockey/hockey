@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from .common import add_operational_opt_in_flags
+from .common import add_operational_opt_in_flags, add_regression_acceptance_flags, add_reviewed_consequence_flag
 
 
 def add_season_preview_parser(season_sub: argparse._SubParsersAction) -> None:
@@ -16,7 +16,7 @@ def add_season_preview_parser(season_sub: argparse._SubParsersAction) -> None:
     season_preview.add_argument(
         "--operation",
         required=True,
-        choices=["replace", "swap", "move", "remove"],
+        choices=["replace", "swap", "move", "remove", "batch"],
         help="Scoped canonical operation to preview",
     )
     season_preview.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
@@ -40,10 +40,23 @@ def add_season_preview_parser(season_sub: argparse._SubParsersAction) -> None:
     season_preview.add_argument("--start-time", default=None, help="Candidate start time (move)")
     season_preview.add_argument("--allow-cross-half", action="store_true", help="Allow a move across the Christmas boundary (move)")
     add_operational_opt_in_flags(season_preview)
+    add_regression_acceptance_flags(season_preview)
+    add_reviewed_consequence_flag(season_preview)
     season_preview.add_argument(
         "--reconcile-withdrawal",
         action="store_true",
         help="Reconcile the withdrawal for a genuine season/age-group withdrawal (remove)",
+    )
+    season_preview.add_argument(
+        "--operations-file",
+        default=None,
+        help="Scenario JSON file for a batch preview (same format as season batch --operations)",
+    )
+    season_preview.add_argument(
+        "--scope",
+        action="append",
+        default=None,
+        help="Affected tournament id for a batch preview (repeatable, comma-separated accepted)",
     )
     season_preview.add_argument("--actor", default=None, help="Operator identity")
     season_preview.add_argument("--note", default="", help="Reason recorded with the previewed operation")

@@ -40,6 +40,8 @@ scripts/rvv-miniputt season batch \
   --dry-run --json
 ```
 
+Apply with the same command without `--dry-run`, adding `--expected-revision <before_canonical_revision>` and `--reviewed-token <reviewed_token>` from the dry-run JSON; apply refuses without both, and refuses if the scenario, scope, request id, gate inputs or candidate differ from the preview.
+
 ### Superseding a withdrawal
 
 A genuine season/age-group withdrawal is **durable**: it reduces the eligible shape pool for the whole age group, so a later maintenance, rebuild or newly materialized tournament cannot silently reintroduce the team. The record is revision-bound and scoped with an `effective_from` date (the earliest affected tournament), so earlier historical/completed tournaments keep the team as provenance. An active withdrawal also makes the team **ineligible** for the age group: a roster that regains the team fails verification with `withdrawn_team_participating` instead of quietly restoring eligibility. Registration reconciliation (removing the team from the authoritative pool) ends the effect automatically; otherwise release the record explicitly:

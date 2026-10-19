@@ -19,9 +19,11 @@ from typing import Any, Callable, Mapping
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
 from tournament_scheduler.season.state import canonical_state_revision
 
+from .batch import batch_maintenance
+
 PREVIEW_CONTRACT = "canonical-consequence-preview/1"
 
-SUPPORTED_OPERATIONS = ("replace", "swap", "move", "remove")
+SUPPORTED_OPERATIONS = ("replace", "swap", "move", "remove", "batch")
 
 STATUS_SAFE_TO_APPLY = "safe_to_apply"
 STATUS_BLOCKED = "blocked"
@@ -84,19 +86,41 @@ def preview_canonical_operation(
         )
 
     details = _operation_details(operation, raw)
-    return _envelope(
+    reviewed_token = None
+    if operation == "batch":
+        verdict = _batch_verdict(raw)
+        changed_ids = sorted(str(item) for item in raw.get("changed_tournament_ids") or changed_ids)
+        reviewed_token = raw.get("reviewed_token")
+    else:
+        verdict = _gate_verdict(details, raw)
+    envelope = _envelope(
         operation=operation,
         season=season,
         current_revision=current_revision,
         candidate_fingerprint=_candidate_fingerprint(raw, details),
         changed_tournament_ids=changed_ids,
-        verdict=_gate_verdict(details, raw),
+        verdict=verdict,
         details=details,
     )
+    envelope["reviewed_token"] = reviewed_token
+    return envelope
+
+
+def _batch_verdict(raw: Mapping[str, Any]) -> dict[str, Any]:
+    # A batch dry-run already composes every gate for the whole candidate, so its
+    # verdict is passed through rather than rebuilt from a subset of fields.
+    reported = dict(raw.get("verdict") or {})
+    status = STATUS_SAFE_TO_APPLY if reported.get("applicable") else STATUS_BLOCKED
+    verdict = _verdict(status, list(reported.get("blockers") or []), checks=reported.get("checks") or {})
+    verdict["not_evaluated"] = []
+    verdict["review"] = dict(reported.get("review") or {})
+    return verdict
 
 
 def _changed_tournament_ids(operation: str, arguments: Mapping[str, Any]) -> list[str]:
-    if operation == "swap":
+    if operation == "batch":
+        ids = list(arguments.get("scope") or [])
+    elif operation == "swap":
         ids = [arguments.get("tournament_a_id"), arguments.get("tournament_b_id")]
     elif operation == "remove":
         ids = list(arguments.get("tournament_ids") or [])
@@ -106,6 +130,8 @@ def _changed_tournament_ids(operation: str, arguments: Mapping[str, Any]) -> lis
 
 
 def _operation_details(operation: str, raw: Mapping[str, Any]) -> dict[str, Any]:
+    if operation == "batch":
+        return dict(raw)
     if operation == "move":
         return dict((raw.get("move_preview") or {}))
     key = {"replace": "replacement", "swap": "swap", "remove": "removal"}[operation]
@@ -116,6 +142,7 @@ def _candidate_fingerprint(raw: Mapping[str, Any], details: Mapping[str, Any]) -
     for value in (
         raw.get("candidate_fingerprint"),
         raw.get("candidate_revision"),
+        raw.get("candidate_schedule_revision"),
         details.get("after_fingerprint"),
     ):
         if value:
@@ -229,9 +256,14 @@ def _remove(service, **kwargs: Any) -> dict[str, Any]:
     return service.remove_participant(**kwargs)
 
 
+def _batch(service, **kwargs: Any) -> dict[str, Any]:
+    return batch_maintenance(service, **kwargs)
+
+
 _DISPATCH: dict[str, Callable[..., dict[str, Any]]] = {
     "replace": _replace,
     "swap": _swap,
     "move": _move,
     "remove": _remove,
+    "batch": _batch,
 }
