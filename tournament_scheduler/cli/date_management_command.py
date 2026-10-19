@@ -145,10 +145,8 @@ def _cmd_season_disallow_holiday_date(args: argparse.Namespace) -> int:
 
 def _cmd_season_holiday_date_exceptions(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season holiday-date-exceptions`` — show holiday-date exceptions."""
-    from ..pipeline.state import PipelineState
     from ..application.canonical_season.store_facade import holiday_date_exception_report
 
-    state = PipelineState(args.work_dir)
     report = holiday_date_exception_report(
         args.season, root=args.root, include_released=bool(args.all)
     )
