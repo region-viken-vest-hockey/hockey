@@ -442,3 +442,51 @@ def test_impacted_teams_report_before_and_after_christmas_booked_distribution(tm
             half: row["after_booked_halves"][half] - row["before_booked_halves"][half]
             for half in row["half_delta"]
         }
+
+
+def test_transient_hard_dip_is_recovered_only_by_the_final_candidate(tmp_path: Path) -> None:
+    from tournament_scheduler.application.canonical_season.store_facade import batch_maintenance as commit_batch
+
+    _work_dir, root = _promote(tmp_path)
+    # Moving A onto B's date fails hard verification on its own, but a
+    # later move in the same batch leaves a valid final candidate.
+    dip = {"op": "move", "tournament_id": DONOR, "date": "2026-09-20"}
+    recover = {"op": "move", "tournament_id": DONOR, "date": "2026-09-01"}
+    scope = [DONOR]
+    service = CanonicalSeasonService(root=root)
+
+    alone = preview_canonical_operation(
+        service,
+        operation="batch",
+        season=SEASON,
+        operations=[dip],
+        scope=scope,
+        request_id="transient-dip-alone",
+        actor="tester",
+    )
+    assert alone["verdict"]["status"] == STATUS_BLOCKED
+    assert "final candidate fails hard verification" in alone["verdict"]["blockers"]
+
+    before = (_schedule_bytes(root), _decisions_bytes(root))
+    recovered = preview_canonical_operation(
+        service,
+        operation="batch",
+        season=SEASON,
+        operations=[dip, recover],
+        scope=scope,
+        request_id="transient-dip-recovered",
+        actor="tester",
+    )
+    assert recovered["verdict"]["status"] == STATUS_SAFE_TO_APPLY
+    assert (_schedule_bytes(root), _decisions_bytes(root)) == before
+
+    result = commit_batch(
+        season=SEASON,
+        root=root,
+        operations=[dip, recover],
+        scope=scope,
+        request_id="transient-dip-recovered",
+        actor="tester",
+    )
+    assert result["committed"] is True
+    assert _tournaments_by_id(root)[DONOR]["date"] == "2026-09-01"
