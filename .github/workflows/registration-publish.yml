@@ -45,6 +45,7 @@ env:
 jobs:
   publish-registered-teams:
     name: "Publiser påmeldte lag"
+    environment: pages-publication
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
