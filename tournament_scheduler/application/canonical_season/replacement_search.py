@@ -20,6 +20,7 @@ from tournament_scheduler.season.request_constraints import (
 from tournament_scheduler.season.state import canonical_state_revision
 
 from .replacement import _apply_replace_participant_to_plan, replace_participant
+from .replacement_refusals import ReplacementRefusal
 from .replacement_search_pool import effective_spacing_delta
 from .replacement_search_evidence import (
     booked_projection,
@@ -159,15 +160,10 @@ def search_participant_replacements(
                     if target_is_booked
                     else copy.deepcopy(booked_before)
                 )
-            except SeasonStateError as exc:
+            except ReplacementRefusal as exc:
                 preview = {
-                    "verdict": {
-                        "status": "blocked",
-                        "applicable": False,
-                        "checks": {},
-                        "blockers": [str(exc)],
-                    },
-                    "replacement": {},
+                    "verdict": {"status": "blocked", "applicable": False, "checks": {}, "blockers": [str(exc)]},
+                    "replacement": {"refusals": [exc.record()]},
                 }
                 candidate_plan, booked_after = copy.deepcopy(plan), copy.deepcopy(booked_before)
 
@@ -215,6 +211,7 @@ def search_participant_replacements(
                 "verdict": preview["verdict"],
                 "safe_to_apply": bool(preview["verdict"].get("applicable")),
                 "blockers": list(preview["verdict"].get("blockers") or []),
+                "refusals": [dict(item) for item in details.get("refusals") or []],
                 "booking_evidence": dict(booking_evidence),
                 "club_age_booked_participation": {
                     "removed_club": {
@@ -280,7 +277,7 @@ def search_participant_replacements(
         "validated": True,
         "filters": {"eligible_clubs": sorted(clubs), "eligible_team_labels": sorted(labels)},
         "booking_evidence": booking_evidence,
-        "ranking_policy": "lexicographic: legality, booked club-age fairness, half/gap quality, clustering, opponent exposure, travel, soft preferences",
+        "ranking_policy": "lexicographic: legality, donor half-season losses, booked club-age fairness, recipient half-season coverage, team continuity, sibling distribution, cadence/clustering, opposing-club exposure and travel",
         "candidate_count": len(candidates),
         "best_candidate": (
             {

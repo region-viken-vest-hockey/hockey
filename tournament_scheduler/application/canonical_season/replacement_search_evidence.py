@@ -231,18 +231,28 @@ def ranking_reason(candidate: Mapping[str, Any]) -> str:
     return reason
 
 
-def rank_key(candidate: Mapping[str, Any]) -> tuple[Any, ...]:
+def priority_vector(candidate: Mapping[str, Any]) -> list[tuple[str, Any]]:
+    """Named lexicographic priority components for one replacement candidate.
+
+    The order is the policy: earlier components dominate later ones and no
+    component is collapsed into a scalar. Numeric components are lower-is-better.
+    The trailing identity components only make ordering deterministic.
+    """
+
     fairness = candidate["club_age_booked_participation"]
     added, removed = fairness["added_club"], fairness["removed_club"]
     coverage = candidate["affected_team_booked_coverage"]
     after = coverage["added_team"]["after"]
     removed_before = coverage["removed_team"]["before"]
     removed_after = coverage["removed_team"]["after"]
-    removed_half_losses = sum(
+    donor_half_losses = sum(
         int(removed_before[half] > 0 and removed_after[half] == 0)
         for half in ("before_christmas", "after_christmas")
     )
-    removed_gap_worsening = max(
+    recipient_missing_halves = int(after["before_christmas"] == 0) + int(
+        after["after_christmas"] == 0
+    )
+    donor_gap_worsening = max(
         0,
         int(removed_after.get("max_inactive_gap_days") or 0)
         - int(removed_before.get("max_inactive_gap_days") or 0),
@@ -257,27 +267,33 @@ def rank_key(candidate: Mapping[str, Any]) -> tuple[Any, ...]:
         - float(added["after"]["normalized_shortfall"])
         - float(removed["after"]["normalized_shortfall"])
     )
-    missing_halves = int(after["before_christmas"] == 0) + int(
-        after["after_christmas"] == 0
-    )
-    return (
-        0 if candidate["verdict"].get("applicable") else 1,
-        -float(added["before"]["normalized_shortfall"]),
-        -net_improvement,
-        removed_half_losses,
-        removed_gap_worsening,
-        missing_halves,
-        int(after.get("max_inactive_gap_days") or 0),
-        max(0, int(spacing["back_to_back_weekends"])),
-        max(0, int(spacing["gaps_under_7_days"])),
-        max(0, int(spacing["gaps_under_14_days"])),
-        len(opponent.get("material_regressions") or []),
-        -int(opponent.get("distinct_clubs_delta") or 0),
-        len(travel.get("warnings") or []),
-        max(0.0, float(travel.get("delta_km") or 0)),
-        max(0, int(preference.get("host_sibling_violations_delta") or 0)),
-        str(candidate["remove_team"]["club"]),
-        str(candidate["remove_team"]["label"]),
-        str(candidate["add_team"]["club"]),
-        str(candidate["add_team"]["label"]),
-    )
+    return [
+        ("legality", 0 if candidate["verdict"].get("applicable") else 1),
+        ("donor_half_season_losses", donor_half_losses),
+        ("added_club_normalized_shortfall", -float(added["before"]["normalized_shortfall"])),
+        ("club_age_net_shortfall_improvement", -net_improvement),
+        ("recipient_missing_half_seasons", recipient_missing_halves),
+        ("donor_max_gap_worsening_days", donor_gap_worsening),
+        ("recipient_max_inactive_gap_days", int(after.get("max_inactive_gap_days") or 0)),
+        ("host_sibling_violations_delta", max(0, int(preference.get("host_sibling_violations_delta") or 0))),
+        ("back_to_back_weekends", max(0, int(spacing["back_to_back_weekends"]))),
+        ("gaps_under_7_days", max(0, int(spacing["gaps_under_7_days"]))),
+        ("gaps_under_14_days", max(0, int(spacing["gaps_under_14_days"]))),
+        ("opponent_material_regressions", len(opponent.get("material_regressions") or [])),
+        ("opponent_distinct_clubs_loss", -int(opponent.get("distinct_clubs_delta") or 0)),
+        ("travel_warnings", len(travel.get("warnings") or [])),
+        ("travel_delta_km", max(0.0, float(travel.get("delta_km") or 0))),
+        ("remove_club", str(candidate["remove_team"]["club"])),
+        ("remove_label", str(candidate["remove_team"]["label"])),
+        ("add_club", str(candidate["add_team"]["club"])),
+        ("add_label", str(candidate["add_team"]["label"])),
+    ]
+
+
+PRIORITY_IDENTITY_COMPONENTS = frozenset(
+    {"remove_club", "remove_label", "add_club", "add_label"}
+)
+
+
+def rank_key(candidate: Mapping[str, Any]) -> tuple[Any, ...]:
+    return tuple(value for _, value in priority_vector(candidate))
