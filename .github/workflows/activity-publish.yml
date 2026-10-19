@@ -38,6 +38,7 @@ env:
 jobs:
   publish-activity-calendar:
     name: "Publiser aktivitetskalender"
+    environment: pages-publication
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
