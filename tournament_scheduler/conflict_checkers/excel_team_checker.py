@@ -1,5 +1,6 @@
 """Excel team conflict checker - checks if teams have other games in Excel."""
 
+import logging
 from datetime import date, timedelta
 from typing import List, Dict
 from tournament_scheduler.interfaces import ConflictChecker
@@ -7,6 +8,8 @@ from tournament_scheduler.models import ConflictContext, ConflictResult
 from tournament_scheduler.utils.date_parser import DateParser
 from tournament_scheduler.utils.rich_output import TournamentOutput
 import openpyxl
+
+logger = logging.getLogger(__name__)
 
 
 class ExcelTeamConflictChecker(ConflictChecker):
@@ -92,16 +95,22 @@ class ExcelTeamConflictChecker(ConflictChecker):
             TournamentOutput.print_success("Ingen samme dag-konflikter i Excel")
 
         if weekend_conflicts:
-            TournamentOutput.print_warning(
-                f"HELGE-KONFLIKTER (samme helg, ulik dag - {len(weekend_conflicts)} advarsler - blokkerer IKKE):"
+            # Warnings are diagnostics: keep them off stdout so --json output stays clean.
+            logger.warning(
+                "HELGE-KONFLIKTER (samme helg, ulik dag - %d advarsler - blokkerer IKKE):",
+                len(weekend_conflicts),
             )
-            from rich.console import Console
-            console = Console()
             for check_date, warning_teams in weekend_conflicts[:10]:
                 for team, event, conflict_date in warning_teams[:2]:
-                    console.print(f"  [yellow]{check_date.strftime('%Y-%m-%d')}: {team} spiller {conflict_date.strftime('%Y-%m-%d')} - {event[:50]}[/yellow]")
+                    logger.warning(
+                        "  %s: %s spiller %s - %s",
+                        check_date.strftime('%Y-%m-%d'),
+                        team,
+                        conflict_date.strftime('%Y-%m-%d'),
+                        event[:50],
+                    )
             if len(weekend_conflicts) > 10:
-                console.print(f"  [yellow]... og {len(weekend_conflicts) - 10} advarsler til[/yellow]")
+                logger.warning("  ... og %d advarsler til", len(weekend_conflicts) - 10)
 
         return ConflictResult(
             excluded_dates=excluded_dates,

@@ -1,12 +1,14 @@
 """Ball hall conflict checker - WARNING ONLY, does not block."""
 
+import logging
 from datetime import date
 from typing import List
 from tournament_scheduler.interfaces import ConflictChecker
 from tournament_scheduler.models import ConflictContext, ConflictResult
 from tournament_scheduler.data_sources.ball_hall_calendar import BallHallCalendar
 from tournament_scheduler.utils.date_parser import DateParser
-from tournament_scheduler.utils.rich_output import TournamentOutput
+
+logger = logging.getLogger(__name__)
 
 
 class BallHallConflictChecker(ConflictChecker):
@@ -53,13 +55,13 @@ class BallHallConflictChecker(ConflictChecker):
 
         # Print warnings if any
         if self.warnings:
-            TournamentOutput.print_warning(
-                f"BALLHALL-ADVARSLER ({len(self.warnings)} advarsler - blokkerer IKKE):"
+            # Warnings are diagnostics: keep them off stdout so --json output stays clean.
+            logger.warning(
+                "BALLHALL-ADVARSLER (%d advarsler - blokkerer IKKE):",
+                len(self.warnings),
             )
-            from rich.console import Console
-            console = Console()
             for warning in self.warnings:
-                console.print(f"  [yellow]{warning}[/yellow]")
+                logger.warning("  %s", warning)
 
         # Return EMPTY excluded_dates - ball hall does not block scheduling
         return ConflictResult(
