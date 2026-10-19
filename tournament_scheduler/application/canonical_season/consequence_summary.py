@@ -34,11 +34,14 @@ def build_consequences(operation: str, details: Mapping[str, Any]) -> dict[str, 
 
     if operation == "batch":
         fairness = dict(details.get("booked_fairness") or {})
+        review = dict((details.get("verdict") or {}).get("review") or {})
+        # The batch review lists the complete material set, independent of any
+        # explicit acceptance, so an accepted regression stays visible here.
         return {
             "basis": "booked_reality",
             "provisional": bool(fairness.get("provisional", True)),
             "affected_teams": [_booked_team_row(row) for row in fairness.get("impacted_teams") or []],
-            "material_regressions": [],
+            "material_regressions": [dict(item) for item in review.get("consequences") or []],
         }
 
     regressions = [
