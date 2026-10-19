@@ -20,6 +20,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import SeasonSta
 from tournament_scheduler.season.state import canonical_state_revision
 
 from .batch import batch_maintenance
+from .consequence_summary import NO_CONSEQUENCES, build_consequences
 
 PREVIEW_CONTRACT = "canonical-consequence-preview/1"
 
@@ -101,6 +102,7 @@ def preview_canonical_operation(
         changed_tournament_ids=changed_ids,
         verdict=verdict,
         details=details,
+        consequences=build_consequences(operation, details),
     )
     envelope["reviewed_token"] = reviewed_token
     return envelope
@@ -226,6 +228,7 @@ def _envelope(
     changed_tournament_ids: list[str],
     verdict: dict[str, Any],
     details: Mapping[str, Any],
+    consequences: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "contract": PREVIEW_CONTRACT,
@@ -236,6 +239,7 @@ def _envelope(
         "candidate_fingerprint": candidate_fingerprint,
         "changed_tournament_ids": changed_tournament_ids,
         "verdict": verdict,
+        "consequences": dict(consequences or NO_CONSEQUENCES),
         "details": dict(details),
     }
 
