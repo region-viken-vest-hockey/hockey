@@ -883,10 +883,10 @@ def batch_maintenance(
     )
     report["reviewed_token"] = reviewed_token
     report["booked_fairness"] = impacted_booked_fairness(
-        service,
-        season=season,
         before_plan=before_plan,
         candidate_plan=candidate_plan,
+        before_decisions=decisions,
+        after_decisions=updated_decisions,
         problem=resolved_problem,
         changed_ids=changed_ids,
     )

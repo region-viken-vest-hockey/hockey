@@ -388,3 +388,57 @@ def test_cli_apply_requires_the_reviewed_token_from_preview(tmp_path: Path, caps
                      "--reviewed-token", preview["reviewed_token"]]) == 0
     donor_labels = {team["label"] for team in _tournaments_by_id(root)[DONOR]["teams"]}
     assert "W1" in donor_labels and "Y1" not in donor_labels
+
+
+def test_moving_a_booked_tournament_off_its_confirmed_slot_removes_it_from_booked_fairness(tmp_path: Path) -> None:
+    from tournament_scheduler.application.canonical_season.store_facade import set_manual_booking_assertion
+
+    _work_dir, root = _promote(tmp_path)
+    set_manual_booking_assertion(
+        season=SEASON,
+        root=root,
+        tournament_id=DONOR,
+        booking_status="booked",
+        source_scope="tournament",
+        reference="email:confirmed-slot",
+        stated_date="2026-09-12",
+        stated_start="10:00",
+        stated_end="12:00",
+        actor="tester",
+    )
+    service = CanonicalSeasonService(root=root)
+    move = [{"op": "move", "tournament_id": DONOR, "date": "2026-09-13"}]
+
+    preview = preview_canonical_operation(
+        service,
+        operation="batch",
+        season=SEASON,
+        operations=move,
+        scope=[DONOR],
+        request_id="move-off-confirmed-slot",
+        actor="tester",
+    )
+
+    rows = {row["team"]: row for row in preview["details"]["booked_fairness"]["impacted_teams"]}
+    donor_teams = {"K1", "X1", "Y1", "Z1"}
+    assert donor_teams <= set(rows)
+    for team in donor_teams:
+        assert rows[team]["before_booked"] == 1, team
+        assert rows[team]["after_booked"] == 0, team
+        assert rows[team]["delta"] == -1, team
+    assert _tournaments_by_id(root)[DONOR]["date"] == "2026-09-12"
+
+
+def test_impacted_teams_report_before_and_after_christmas_booked_distribution(tmp_path: Path) -> None:
+    _work_dir, root = _promote(tmp_path)
+    preview = _rotation_preview(CanonicalSeasonService(root=root))
+
+    for row in preview["details"]["booked_fairness"]["impacted_teams"]:
+        assert set(row["before_booked_halves"]) == {"before_christmas", "after_christmas", "unsplit"}
+        assert set(row["after_booked_halves"]) == {"before_christmas", "after_christmas", "unsplit"}
+        assert sum(row["before_booked_halves"].values()) == row["before_booked"]
+        assert sum(row["after_booked_halves"].values()) == row["after_booked"]
+        assert row["half_delta"] == {
+            half: row["after_booked_halves"][half] - row["before_booked_halves"][half]
+            for half in row["half_delta"]
+        }
