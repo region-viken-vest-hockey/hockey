@@ -219,15 +219,12 @@ class TestOptimizeCandidateCpSat:
 
         optimized = optimize_candidate_cp_sat(candidate, None, solve_budget_seconds=5.0, seed=1)
 
-        assert optimized["source"]["encoded_scope"]["participation"] == "capped_at_configured_target_with_baseline_hint"
+        assert optimized["source"]["encoded_scope"]["participation"] == "goal_with_overshoot_penalty_and_baseline_hint"
 
         optimized_half = optimize_candidate_cp_sat(
             _half_split_candidate(), None, solve_budget_seconds=5.0, seed=1, decompose_by_half=True
         )
-        assert (
-            optimized_half["source"]["encoded_scope"]["participation"]
-            == "per_half_goal_with_overshoot_penalty_and_baseline_hint"
-        )
+        assert optimized_half["source"]["encoded_scope"]["participation"] == "goal_with_overshoot_penalty_and_baseline_hint"
 
     def test_preserves_skeleton_dates_hosts_arenas_and_tournament_count(self):
         candidate = _clustered_candidate()
@@ -741,4 +738,28 @@ class TestParticipationTargetParity:
             for team in tournament["teams"]:
                 counts[team["label"]] = counts.get(team["label"], 0) + 1
         assert counts == {"T1": 2, "T2": 2, "T3": 2, "T4": 2}
-        assert optimized["source"]["encoded_scope"]["participation"] == "per_half_goal_with_overshoot_penalty_and_baseline_hint"
+        assert optimized["source"]["encoded_scope"]["participation"] == "goal_with_overshoot_penalty_and_baseline_hint"
+
+    def test_combined_solve_is_feasible_only_with_season_target_overshoot(self):
+        """Canonical season targets are goals (#451 review): four teams that
+        must all play in both tournaments are forced to exceed a season target
+        of 1. A hard season cap would make this skeleton infeasible; the goal
+        form solves it with overshoot."""
+        teams = {f"T{i}": _team(f"Club{i}", f"T{i}", "U10") for i in range(1, 5)}
+        pool = list(teams.values())
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-01-05", "Arena1", "U10", pool),
+                _tournament("t2", "2026-02-04", "Arena2", "U10", pool),
+            ],
+        }
+        problem = {"target_tournament_count": 1}
+
+        optimized = optimize_candidate_cp_sat(candidate, problem, solve_budget_seconds=5.0, seed=1)
+
+        counts = {}
+        for tournament in optimized["tournaments"]:
+            for team in tournament["teams"]:
+                counts[team["label"]] = counts.get(team["label"], 0) + 1
+        assert counts == {"T1": 2, "T2": 2, "T3": 2, "T4": 2}

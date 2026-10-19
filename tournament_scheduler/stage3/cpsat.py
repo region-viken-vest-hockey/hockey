@@ -406,10 +406,10 @@ def _solve_slot_group(
     # Hinting every decision variable at its baseline value gives the solver
     # a known-mostly-feasible starting point to validate/repair immediately,
     # so a solve that would otherwise time out at UNKNOWN can still return
-    # the baseline (or better) within budget. The participation cap above
-    # means a baseline that *exceeds* its configured target is no longer
-    # itself feasible against this hint -- CP-SAT is expected to repair that
-    # case by searching away from the hint, not reproduce it.
+    # the baseline (or better) within budget. Targets are penalized goals, so
+    # a baseline that over- or under-shoots its configured target stays
+    # feasible against this hint; CP-SAT only moves away from it to reduce the
+    # deficit/overshoot penalties.
     for slot in slots:
         eligible = teams_by_age_group.get(slot.age_group, [])
         baseline_set = set(slot.baseline_team_ids)
@@ -511,12 +511,11 @@ def optimize_candidate_cp_sat(
     * every tournament keeps exactly its baseline roster size;
     * every registered/eligible team's participation is optimized toward its
       configured target (per-team override, or the age group's authoritative
-      before/after-Christmas value for the half) via a deficit objective term,
-      capped at the target for season/combined solves and penalized for
-      overshoot in decomposed per-half solves; an explicit
-      ``participation_hard_max`` is always a hard cap -- an identity with no configured target
-      (non-canonical age groups only) falls back to its exact baseline
-      count instead;
+      before/after-Christmas value for the half or season) via deficit and
+      overshoot objective terms -- targets are goals, not ceilings; only an
+      explicit ``participation_hard_max`` is a hard cap. An identity with no
+      configured target (non-canonical age groups only) falls back to its
+      exact baseline count instead;
     * a team cannot appear in two tournaments on the same date -- enforced
       for every registered/eligible team, not just ones already present in
       the baseline, so CP-SAT cannot introduce a duplicate-date violation of
@@ -534,14 +533,14 @@ def optimize_candidate_cp_sat(
 
     *feasibility_only* (issue #298 Phase 1) builds only the hard constraints
     and stops at the first solution -- proving the model can reach a
-    feasible assignment, isolated from quality search.
+    feasible assignment, isolated from quality search. Participation targets
+    are goals here too, so this mode checks hard requirements only.
 
     *decompose_by_half* (issue #298 Phase 2) solves participant assignment
     independently for each :mod:`planning.half` (before/after Christmas)
     instead of one monolithic model, using ``problem["christmas_split_date"]``
     as the shared boundary. Each half is optimized toward its own configured
-    per-half target as a goal (deficit penalized, overshoot penalized; not a
-    hard ceiling -- #451), so a half with no slots is simply skipped.
+    per-half target as a goal, so a half with no slots is simply skipped.
 
     *solve_budget_seconds* is a **total** wall-clock budget across every
     group actually solved (issue #310), not a per-group budget: it is
@@ -677,11 +676,7 @@ def optimize_candidate_cp_sat(
         "encoded_scope": {
             "moves": ["participant_assignment"],
             "fixed": ["dates", "hosts", "arenas", "start_times", "roster_sizes", "tournament_count"],
-            "participation": (
-                "per_half_goal_with_overshoot_penalty_and_baseline_hint"
-                if decompose_by_half and not feasibility_only
-                else "capped_at_configured_target_with_baseline_hint"
-            ),
+            "participation": "goal_with_overshoot_penalty_and_baseline_hint",
             "same_club_pairings": "no_worse_than_baseline",
             "turnaround": "soft_pairwise_hint_only" if not feasibility_only else "not_modeled",
         },

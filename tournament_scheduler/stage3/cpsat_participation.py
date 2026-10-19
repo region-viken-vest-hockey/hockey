@@ -10,13 +10,13 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional, Tuple
 
-from tournament_scheduler.participation.targets import HALVES, resolve_hard_max
+from tournament_scheduler.participation.targets import resolve_hard_max
 from tournament_scheduler.stage3.cpsat_slots import TeamIdentity, _resolve_participation_target
 
 # Penalty per participation tournament a team is planned *over* its configured
-# per-half target in a decomposed solve. Below the deficit weight (5000) so
-# closing a shortfall still wins, but nonzero so the goal is not unbounded.
-# Explicit ``participation_hard_max`` remains a hard cap.
+# target (per-half or season). Below the deficit weight (5000) so closing a
+# shortfall still wins, but nonzero so the goal is not unbounded. Only an
+# explicit ``participation_hard_max`` is a hard cap.
 PARTICIPATION_OVERSHOOT_PENALTY = 1000
 
 
@@ -52,13 +52,6 @@ def add_participation_terms(
     # age groups) keep the original exact baseline-lock behavior as a
     # defensive fallback.
     #
-    # Per-half targets in a decomposed quality solve are goals, not ceilings
-    # (#451): the independent planning policy lets a team exceed one half's
-    # target when that is needed to meet the other half or the season, so a
-    # hard per-half cap would forbid alternatives the policy accepts. Those
-    # identities get an overshoot penalty instead. Season/combined targets and
-    # feasibility-only solves keep the hard cap.
-    per_half_goal = half_label in HALVES and not feasibility_only
     participation_deficit_terms: "list[Any]" = []
     participation_overshoot_terms: "list[Any]" = []
     for identity in eligible_identities:
@@ -78,12 +71,12 @@ def add_participation_terms(
         if target is None:
             model.Add(count_expr == baseline_count)
             continue
-        if per_half_goal:
-            overshoot = model.NewIntVar(0, len(vars_for_identity), f"participation_overshoot_team{team_index[identity]}")
-            model.Add(overshoot >= count_expr - target)
-            participation_overshoot_terms.append(overshoot)
-        else:
-            model.Add(count_expr <= target)
+        # Targets are goals, not ceilings (#451): the canonical policy lets a
+        # team exceed a half or season target when required roster slots force
+        # it, so that overage is penalized rather than made infeasible.
+        overshoot = model.NewIntVar(0, len(vars_for_identity), f"participation_overshoot_team{team_index[identity]}")
+        model.Add(overshoot >= count_expr - target)
+        participation_overshoot_terms.append(overshoot)
         if not feasibility_only:
             deficit = model.NewIntVar(0, target, f"participation_deficit_team{team_index[identity]}")
             model.Add(deficit >= target - count_expr)
