@@ -36,6 +36,8 @@ Shared agent operating policy lives in [`../.agents/skills/rvv/SKILL.md`](../.ag
 
 See [ADR 0005: reconciliation is not planning](adr/0005-reconciliation-is-not-planning.md) for the binding workflow, evidence, hard-check and effective-projection boundaries. Its implementation is tracked by #504; do not assume current code already conforms.
 
+See [ADR 0008: season maintenance ownership split](adr/0008-season-maintenance-ownership-split.md) for who owns domain rules, CP-SAT search, deterministic repair and operator judgement during maintenance of a promoted season.
+
 ## Architecture decisions
 
 [`adr/`](adr/) contains accepted ADRs. ADRs explain durable decisions and rationale; they are not a backlog or runbook.

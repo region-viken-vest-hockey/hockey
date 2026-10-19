@@ -169,10 +169,8 @@ def _cmd_season_release_infeasibility(args: argparse.Namespace) -> int:
 
 def _cmd_season_infeasibility_report(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season infeasibility-report`` — show infeasibility report."""
-    from ..pipeline.state import PipelineState
-    from ..season.maintenance import placement_infeasibility_report
+    from ..application.canonical_season.store_facade import placement_infeasibility_report
 
-    state = PipelineState(args.work_dir)
     result = placement_infeasibility_report(
         season=args.season,
         root=args.root,
