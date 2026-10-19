@@ -226,7 +226,7 @@ class TestOptimizeCandidateCpSat:
         )
         assert (
             optimized_half["source"]["encoded_scope"]["participation"]
-            == "capped_at_configured_target_per_half_with_baseline_hint"
+            == "per_half_goal_with_overshoot_penalty_and_baseline_hint"
         )
 
     def test_preserves_skeleton_dates_hosts_arenas_and_tournament_count(self):
@@ -695,3 +695,50 @@ class TestOptimizeCandidateCpSat:
         assert diagnostics["slot_count"] == 4
         assert diagnostics["team_count"] == 8
         assert diagnostics["objective_value"] == 0.0
+
+
+class TestParticipationTargetParity:
+    """issue #451: CP-SAT must consume the canonical participation resolvers
+    with the same meaning the verifier and planner use."""
+
+    def test_combined_solve_targets_age_group_before_after_season_total(self):
+        from tournament_scheduler.planning.contract import _team_identity
+        from tournament_scheduler.stage3.cpsat import _resolve_participation_target
+
+        team = _team("ClubT1", "T1", "U10")
+        identity = _team_identity(team)
+        problem = {"participation_targets_by_age_group": {"U10": {"before_christmas": 2, "after_christmas": 3}}}
+
+        # Ordinary before/after values have no ``combined`` key; the season
+        # solve must still see their total, not an unconstrained baseline lock.
+        assert _resolve_participation_target(identity, {identity: team}, problem, "combined") == 5
+        assert _resolve_participation_target(identity, {identity: team}, problem, "before_christmas") == 2
+
+    def test_decomposed_half_target_is_a_goal_not_a_ceiling(self):
+        """Every team must play in both tournaments of the first half, so a
+        per-half target of 1 is unreachable without overshoot. The old hard
+        per-half cap made this model infeasible; the goal form solves it."""
+        teams = {f"T{i}": _team(f"Club{i}", f"T{i}", "U10") for i in range(1, 5)}
+        pool = list(teams.values())
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-01-05", "Arena1", "U10", pool),
+                _tournament("t2", "2026-02-04", "Arena2", "U10", pool),
+            ],
+        }
+        problem = {
+            "christmas_split_date": "2026-12-24",
+            "participation_targets_by_age_group": {"U10": {"before_christmas": 1, "after_christmas": 1}},
+        }
+
+        optimized = optimize_candidate_cp_sat(
+            candidate, problem, solve_budget_seconds=5.0, seed=1, decompose_by_half=True
+        )
+
+        counts = {}
+        for tournament in optimized["tournaments"]:
+            for team in tournament["teams"]:
+                counts[team["label"]] = counts.get(team["label"], 0) + 1
+        assert counts == {"T1": 2, "T2": 2, "T3": 2, "T4": 2}
+        assert optimized["source"]["encoded_scope"]["participation"] == "per_half_goal_with_overshoot_penalty_and_baseline_hint"

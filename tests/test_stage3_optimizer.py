@@ -701,6 +701,49 @@ class TestOptimizeCandidatePareto:
             entry["objective_vector"] for entry in b["candidates"]
         ]
 
+    def test_illegal_epoch_proposal_never_enters_archive(self, monkeypatch):
+        """#450: verification gates dominance, not just the final output.
+
+        Epoch 0 proposes an illegal candidate. Its soft metrics equal the
+        legal baseline, so without a pre-comparison verification gate it would
+        be admitted first and block the legal epochs' identical result.
+        """
+        import copy
+
+        import tournament_scheduler.planning.contract as contract
+        import tournament_scheduler.stage3.optimizer as optimizer
+
+        real_verify = contract.verify_candidate
+        real_optimize = optimizer.optimize_candidate
+
+        def fake_optimize(candidate, problem=None, *, seed=0, **kwargs):
+            result = real_optimize(candidate, problem, seed=seed, **kwargs)
+            if seed == 0:
+                result = copy.deepcopy(result)
+                result["_illegal"] = True
+            return result
+
+        def gated_verify(candidate, problem=None):
+            if candidate.get("_illegal"):
+                return {"ok": False, "violations": [{"rule": "test_illegal_proposal"}]}
+            return real_verify(candidate, problem)
+
+        monkeypatch.setattr(optimizer, "optimize_candidate", fake_optimize)
+        monkeypatch.setattr(contract, "verify_candidate", gated_verify)
+
+        candidate = _clustered_candidate()
+        result = optimize_candidate_pareto(
+            candidate, iterations_per_epoch=50, seed=0, weight_vectors=[{"pair_repeat": 1.0}, {"gap_under_7": 1.0}]
+        )
+
+        epoch0, epoch1 = result["search_summary"]["epoch_summaries"]
+        assert epoch0["admitted_to_archive"] is False
+        assert epoch0["verify_result"]["violations"] == [{"rule": "test_illegal_proposal"}]
+        assert epoch1["admitted_to_archive"] is True
+        assert result["candidates"]
+        assert all(not entry["candidate"].get("_illegal") for entry in result["candidates"])
+        assert all(entry["verify_result"]["ok"] for entry in result["candidates"])
+
     def test_custom_weight_vectors_control_epoch_count(self):
         candidate = _clustered_candidate()
         vectors = [{"pair_repeat": 10.0}, {"gap_under_7": 10.0}]
