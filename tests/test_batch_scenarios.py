@@ -72,6 +72,31 @@ def test_rotation_preview_is_safe_and_writes_nothing(tmp_path: Path) -> None:
     assert (_schedule_bytes(root), _decisions_bytes(root)) == before
 
 
+def test_rotation_preview_reports_booked_consequences_per_affected_team(tmp_path: Path) -> None:
+    _work_dir, root = _promote(tmp_path)
+    service = CanonicalSeasonService(root=root)
+
+    preview = preview_canonical_operation(
+        service,
+        operation="batch",
+        season=SEASON,
+        operations=_rotation_operations(),
+        scope=[DONOR, RECIPIENT],
+        request_id="rotate-y1-w1",
+        actor="tester",
+    )
+
+    consequences = preview["consequences"]
+    assert consequences["basis"] == "booked_reality"
+    assert isinstance(consequences["provisional"], bool)
+    assert consequences["affected_teams"], "rotation must report the teams it touches"
+    for row in consequences["affected_teams"]:
+        for side in ("before", "after"):
+            counts = row[side]
+            assert counts["booked"] == counts["before_christmas"] + counts["after_christmas"] + counts["unsplit"]
+        assert row["delta"]["booked"] == row["after"]["booked"] - row["before"]["booked"]
+
+
 def test_applied_rotation_matches_the_previewed_candidate(tmp_path: Path) -> None:
     _work_dir, root = _promote(tmp_path)
     service = CanonicalSeasonService(root=root)

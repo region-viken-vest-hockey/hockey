@@ -218,6 +218,34 @@ def test_unknown_tournament_is_blocked_without_writing(tmp_path: Path) -> None:
     assert _state_bytes(root) == before
 
 
+def test_removal_preview_reports_planned_consequences_for_affected_teams(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write(root)
+    service = CanonicalSeasonService(root=root)
+
+    preview = preview_canonical_operation(service,
+        operation="remove",
+        season=SEASON,
+        tournament_ids=["u10-a", "u10-b"],
+        remove_team_label="Echo 1",
+        reconcile_withdrawal=True,
+        actor="tester",
+        request_id="preview-echo",
+    )
+
+    consequences = preview["consequences"]
+    assert consequences["basis"] == "planned_schedule"
+    assert consequences["provisional"] is None
+    assert isinstance(consequences["material_regressions"], list)
+    rows = {(row["club"], row["team"]): row for row in consequences["affected_teams"]}
+    echo = rows[("Echo", "Echo 1")]
+    assert echo["after"]["planned"] == echo["before"]["planned"] - 2
+    for side in ("before", "after"):
+        counts = echo[side]
+        assert counts["planned"] == counts["before_christmas"] + counts["after_christmas"] + counts["unsplit"]
+    assert echo["delta"]["planned"] == -2
+
+
 def test_stale_expected_revision_is_refused_without_dry_run(tmp_path: Path) -> None:
     root = tmp_path / "season"
     _write(root)
@@ -238,6 +266,12 @@ def test_stale_expected_revision_is_refused_without_dry_run(tmp_path: Path) -> N
     assert preview["verdict"]["status"] == STATUS_STALE_REVISION
     assert preview["verdict"]["applicable"] is False
     assert preview["candidate_fingerprint"] is None
+    assert preview["consequences"] == {
+        "basis": None,
+        "provisional": None,
+        "affected_teams": [],
+        "material_regressions": [],
+    }
     assert _state_bytes(root) == before
 
 
