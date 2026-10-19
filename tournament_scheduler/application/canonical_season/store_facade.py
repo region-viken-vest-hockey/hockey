@@ -599,13 +599,8 @@ def calendar_booking_findings(
     return _service(root).calendar_booking_findings(season=season, problem=problem)
 
 
-def booking_status_report(
-    *,
-    season: str,
-    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
-    problem: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    return _service(root).booking_status_report(season=season, problem=problem)
+def booking_status_report(*, season: str, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT, problem: dict[str, Any] | None = None, host_club: str | None = None) -> dict[str, Any]:
+    return _service(root).booking_status_report(season=season, problem=problem, host_club=host_club)
 
 
 def tournament_inspection(

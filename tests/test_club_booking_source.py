@@ -1302,3 +1302,37 @@ def test_append_decision_history_does_not_mutate_a_shallow_copy_source():
     )
     assert len(candidate["history"]) == 1
     assert original["history"] == []
+
+
+def test_booking_status_host_club_scopes_rows_counts_and_sources(tmp_path):
+    """``--host-club`` narrows every list to one host's tournaments (issue #719).
+
+    The whole-season projection stays unchanged; the scoped view matches the
+    host case-insensitively and carries only the in-scope club source entries.
+    """
+
+    root = _promote(
+        tmp_path,
+        [
+            _tournament("t1", host="A"),
+            _tournament("t2", host="B", date_str="2026-09-13", teams=_teams(("B", "C", "D", "A"))),
+        ],
+    )
+    problem = _host_a_problem([])
+    source = _source_set(root, club="A")["source"]
+    _interpretation(root, tournament_id="t1", source_id=source["id"], problem=problem)
+
+    full = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assert "host_club" not in full
+    assert {row["tournament_id"] for row in full["tournaments"]} == {"t1", "t2"}
+
+    scoped = booking_status_report(season="2026-2027", root=root, problem=problem, host_club="  a ")
+    assert scoped["host_club"] == "  a "
+    assert [row["tournament_id"] for row in scoped["tournaments"]] == ["t1"]
+    assert scoped["counts"]["manually_booked"] == 1
+    assert [entry["id"] for entry in scoped["club_booking_sources"]] == [source["id"]]
+    assert scoped["club_booking_sources"][0]["tournament_ids"] == ["t1"]
+
+    other = booking_status_report(season="2026-2027", root=root, problem=problem, host_club="B")
+    assert [row["tournament_id"] for row in other["tournaments"]] == ["t2"]
+    assert other["club_booking_sources"] == []

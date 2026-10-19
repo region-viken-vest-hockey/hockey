@@ -209,6 +209,7 @@ class SeasonPlanner:
             label for label, count in Counter(team.label for team in roster.teams).items() if count > 1
         }
         self._duplicate_team_labels = duplicate_labels
+        self._hosting_pool_keys: Optional[Set[Tuple[str, str, str]]] = None
         self._club_load_warnings: List[Tuple[str, str, str, int]] = []
         self._hosting_warnings: List[str] = []
         self._unresolved_hosting_obligations: List[Dict[str, str]] = []
@@ -1358,11 +1359,7 @@ class SeasonPlanner:
         # tournaments here is a genuine unresolved obligation: it must be
         # surfaced for manual placement, never silently treated as covered
         # because another club hosted instead.
-        coverage_teams = [
-            {"club": team.club, "age_group": team.age_group}
-            for team in self.roster.teams
-            if team.age_group not in skipped_age_groups_set
-        ]
+        coverage_teams = [{"club": team.club, "age_group": team.age_group} for team in self.hosting_pool_teams() if team.age_group not in skipped_age_groups_set]
         coverage_tournaments = [
             {
                 "id": t.id,
@@ -1689,6 +1686,14 @@ class SeasonPlanner:
     @property
     def club_load_warnings(self) -> List[Tuple[str, str, str, int]]:
         return list(self._club_load_warnings)
+
+    def restrict_hosting_pool(self, eligible_teams: Optional[Sequence[Dict[str, Any]]]) -> None:
+        """Limit hosting coverage to a canonical eligible pool (``eligible_hosting_teams``); ``None`` restores the roster."""
+        self._hosting_pool_keys = None if eligible_teams is None else {(t.get("club"), t.get("label"), t.get("age_group")) for t in eligible_teams}
+
+    def hosting_pool_teams(self) -> List[Team]:
+        keys = self._hosting_pool_keys
+        return list(self.roster.teams) if keys is None else [t for t in self.roster.teams if (t.club, t.label, t.age_group) in keys]
 
     @property
     def hosting_warnings(self) -> List[str]:
