@@ -21,7 +21,7 @@ from tournament_scheduler.planning.planner_warnings import (
     scan_month_load_warnings,
 )
 from .cancellation_workflow import CancellationWorkflow
-from .makeup_date_policy import canonical_date_policy_inputs
+from .makeup_date_policy import canonical_date_policy_inputs, restrict_to_canonical_hosting_pool
 from .manual_adjustment_normalization import NormalizedAdjustments, normalize_adjustments, serialise_adjustments
 from .stage1_config import load_effective_config
 from .stage3_helpers import _build_club_arenas, _build_events_by_club, _build_ice_time, _build_parallel_games, _build_roster, _build_round_length, _make_planner
@@ -229,7 +229,7 @@ class ManualAdjustmentWorkflow:
         club_arenas = _build_club_arenas(cfg)
 
         holidays, bans = canonical_date_policy_inputs(self.state, plan.start_date, plan.end_date)
-        return _make_planner(
+        return restrict_to_canonical_hosting_pool(_make_planner(
             roster,
             pg_config,
             club_arenas,
@@ -242,7 +242,7 @@ class ManualAdjustmentWorkflow:
             cfg.get("participation_targets_by_age_group"),
             rounds_per_tournament_config=rounds_per_tournament_config,
             holiday_date_exceptions=holidays, banned_dates=bans,
-        )
+        ), self.state, plan.start_date, plan.end_date, roster.teams)
 
     def _prime_planner(self, planner, plan: SeasonPlan) -> None:
         planner._opponent_history = {}

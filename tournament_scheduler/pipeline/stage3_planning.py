@@ -50,7 +50,7 @@ from tournament_scheduler.planning.season_planner import SeasonPlanner
 from .fingerprints import stable_payload_sha256
 from .not_started import NOT_STARTED_MESSAGE
 from .state import PipelineState, StageName, StageStatus
-from .makeup_date_policy import canonical_date_policy_inputs
+from .makeup_date_policy import canonical_date_policy_inputs, restrict_to_canonical_hosting_pool
 from .stage3_config_hints import _extract_planning_critic_hints, _shared_host_choices_from_config
 from .stage3_helpers import (
     _build_club_arenas,
@@ -570,7 +570,7 @@ def run(
             "source_fingerprint": source_fingerprint,
             "penalty_hints": dict(penalty_hints) if penalty_hints else {},
         }
-        planner = _make_planner(
+        planner = restrict_to_canonical_hosting_pool(_make_planner(
             roster,
             pg_config,
             club_arenas,
@@ -591,7 +591,7 @@ def run(
             shared_host_decisions=shared_host_choices or None,
             rounds_per_tournament_config=rounds_per_tournament_config,
             holiday_date_exceptions=holiday_date_exceptions, banned_dates=banned_dates,
-        )
+        ), state, start_date.date(), end_date.date(), roster.teams)
         stop_heartbeat = threading.Event()
         heartbeat_started = datetime.now()
 

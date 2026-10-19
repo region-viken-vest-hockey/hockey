@@ -763,3 +763,40 @@ class TestParticipationTargetParity:
             for team in tournament["teams"]:
                 counts[team["label"]] = counts.get(team["label"], 0) + 1
         assert counts == {"T1": 2, "T2": 2, "T3": 2, "T4": 2}
+
+    def test_cross_half_split_below_per_half_target_is_accepted_as_goal(self):
+        """A fixed skeleton with two pre-Christmas and four post-Christmas
+        tournaments can only give each team 2+4 when every team plays every
+        tournament. Desired per-half targets of 3+3 are goals, so the decomposed
+        solve reports that split as the best legal outcome instead of failing
+        the whole half as infeasible."""
+        teams = {f"T{i}": _team(f"Club{i}", f"T{i}", "U10") for i in range(1, 5)}
+        pool = list(teams.values())
+        candidate = {
+            "schema_version": 1,
+            "tournaments": [
+                _tournament("t1", "2026-11-01", "Arena1", "U10", pool),
+                _tournament("t2", "2026-12-06", "Arena2", "U10", pool),
+                _tournament("t3", "2027-01-10", "Arena3", "U10", pool),
+                _tournament("t4", "2027-02-14", "Arena4", "U10", pool),
+                _tournament("t5", "2027-03-07", "Arena5", "U10", pool),
+                _tournament("t6", "2027-04-11", "Arena6", "U10", pool),
+            ],
+        }
+        problem = {
+            "christmas_split_date": "2026-12-24",
+            "participation_targets_by_age_group": {"U10": {"before_christmas": 3, "after_christmas": 3}},
+        }
+
+        optimized = optimize_candidate_cp_sat(
+            candidate, problem, solve_budget_seconds=5.0, seed=1, decompose_by_half=True
+        )
+
+        before: dict[str, int] = {}
+        after: dict[str, int] = {}
+        for tournament in optimized["tournaments"]:
+            bucket = before if tournament["date"] < "2026-12-24" else after
+            for team in tournament["teams"]:
+                bucket[team["label"]] = bucket.get(team["label"], 0) + 1
+        assert before == {"T1": 2, "T2": 2, "T3": 2, "T4": 2}
+        assert after == {"T1": 4, "T2": 4, "T3": 4, "T4": 4}

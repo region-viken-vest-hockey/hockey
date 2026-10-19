@@ -99,3 +99,26 @@ def test_quality_metric_paths_cover_each_declared_objective_family() -> None:
 
     assert {"participation", "opponent_diversity", "turnaround", "hosting", "temporal"} <= families
     assert all(direction in {"higher", "lower"} for _path, direction in QUALITY_METRIC_PATHS)
+
+
+def test_half_season_shortage_distinguishes_equal_season_aggregates() -> None:
+    """Equal season shortage with a different half-season shortage must stay
+    distinct on the Pareto archive, and every direction stays lower-is-better."""
+
+    def _with_half(half_total: int, half_max: int) -> dict:
+        score = _score()
+        score["participation"]["club_pool_unresolved_season_total_absolute_deviation"] = 5
+        score["participation"]["club_pool_unresolved_half_total_absolute_deviation"] = half_total
+        score["participation"]["club_pool_unresolved_max_team_half_deviation"] = half_max
+        return score
+
+    worse = quality_objective_vector(_with_half(4, 2))
+    better = quality_objective_vector(_with_half(1, 1))
+
+    assert worse["participation_half_deviation"] == 4.0
+    assert worse["participation_max_team_half_deviation"] == 2.0
+    assert worse != better
+    assert all(
+        better[dimension] <= worse[dimension]
+        for dimension in ("participation_half_deviation", "participation_max_team_half_deviation")
+    )
