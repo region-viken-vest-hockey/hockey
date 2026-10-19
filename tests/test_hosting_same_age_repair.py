@@ -167,3 +167,38 @@ class TestAttemptSameAgeRepairs:
         entry = next(e for e in log if e["club"] == "Kongsberg" and e["age_group"] == "U10")
         assert entry["status"] == "unresolved"
         assert entry["rejected_candidates"] == []
+
+
+class TestHostingPoolFromCanonicalEligibility:
+    """Issue #511: generation consumers must use the eligible hosting pool.
+
+    A durable age-group withdrawal removes the team from its club x age-group
+    hosting obligation, so a rebuild must not report a phantom obligation for
+    it, while the registered roster stays untouched.
+    """
+
+    def test_withdrawn_team_creates_no_phantom_hosting_obligation(self):
+        planner, plan = _build_repair_scenario()
+        plan.tournaments[0].teams = [t for t in plan.tournaments[0].teams if t.club != "Kongsberg"]
+        registered = list(planner.roster.teams)
+
+        eligible = [
+            {"club": t.club, "label": t.label, "age_group": t.age_group}
+            for t in registered
+            if (t.club, t.label) != ("Kongsberg", "Kongsberg U10")
+        ]
+        planner.restrict_hosting_pool(eligible)
+
+        assert attempt_same_age_repairs(planner, plan) == []
+        assert planner.roster.teams == registered
+        assert "Kongsberg U10" not in {t.label for t in planner.hosting_pool_teams()}
+
+    def test_registered_team_without_withdrawal_still_requires_hosting(self):
+        planner, plan = _build_repair_scenario()
+        plan.tournaments[0].teams = [t for t in plan.tournaments[0].teams if t.club != "Kongsberg"]
+
+        # Control: with no restriction the registered Kongsberg U10 team still
+        # carries its hosting obligation and is reported unresolved.
+        assert planner.hosting_pool_teams() == planner.roster.teams
+        entry = next(e for e in attempt_same_age_repairs(planner, plan) if e["club"] == "Kongsberg")
+        assert entry["status"] == "unresolved"

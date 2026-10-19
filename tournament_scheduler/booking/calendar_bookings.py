@@ -1601,8 +1601,23 @@ def booking_status_report(
     problem: Mapping[str, Any] | None,
     plan: Mapping[str, Any] | None,
     decisions: Mapping[str, Any] | None,
+    host_club: str | None = None,
 ) -> dict[str, Any]:
+    """Project per-tournament booking evidence, optionally scoped to one host club.
+
+    ``host_club`` narrows every output list (tournament rows, counts, manual
+    queue, club source interpretations and rejected evidence) to tournaments
+    hosted by that club. The assessment still runs over the whole plan so
+    classifications that depend on neighbouring tournaments are unchanged.
+    """
     tournaments = _tournaments_by_id(plan)
+    host_key = _club_match_key(host_club)
+    if host_key:
+        tournaments = {
+            tid: tournament
+            for tid, tournament in tournaments.items()
+            if _club_match_key(tournament.get("host_club")) == host_key
+        }
     active_assoc_ids = {str(record.get("tournament_id") or "") for record in valid_active_associations(decisions, problem=problem, plan=plan)}
     assoc_stale_by_tournament = {
         str(finding.get("tournament_id") or "")
@@ -1832,11 +1847,21 @@ def booking_status_report(
         row["follow_up_reasons"] = follow_up
         row["needs_attention"] = True
     rejected_evidence = sorted(
-        (record for records in rejected_by_tournament.values() for record in records),
+        (
+            record
+            for tid, records in rejected_by_tournament.items()
+            if not host_key or tid in tournaments
+            for record in records
+        ),
         key=lambda record: str(record.get("rejected_at") or ""),
     )
     counts["rejected_bookings"] = len(rejected_evidence)
-    return {
+    club_sources = _club_booking_source_projection(
+        decisions=decisions, rows=rows, plan=plan, problem=problem
+    )
+    if host_key:
+        club_sources = _scope_club_sources(club_sources, set(tournaments))
+    report = {
         "tournaments": rows,
         "counts": counts,
         "rejected_booking_evidence": rejected_evidence,
@@ -1846,10 +1871,54 @@ def booking_status_report(
         "manual_booking_queue": manual_queue,
         # Club-wide source provenance, grouped per provided booking list. A
         # source whose own stated windows overlap is review-required.
-        "club_booking_sources": _club_booking_source_projection(
-            decisions=decisions, rows=rows, plan=plan, problem=problem
-        ),
+        "club_booking_sources": club_sources,
     }
+    if host_key:
+        report["host_club"] = host_club
+    return report
+
+
+def _club_match_key(club: Any) -> str:
+    """Normalise a club name for host filtering (case and surrounding space)."""
+
+    return " ".join(str(club or "").split()).casefold()
+
+
+def _scope_club_sources(
+    sources: list[dict[str, Any]], tournament_ids: set[str]
+) -> list[dict[str, Any]]:
+    """Restrict club source interpretations to tournaments in scope.
+
+    A source keeps only its in-scope tournaments and the overlap pairs between
+    them; a source with no in-scope tournament is dropped. The unprovenanced
+    bucket is narrowed the same way so another club's interpretation never
+    leaks into a host-scoped view.
+    """
+
+    scoped: list[dict[str, Any]] = []
+    for source in sources:
+        if source.get("unprovenanced"):
+            ids = [tid for tid in source.get("tournament_ids") or [] if tid in tournament_ids]
+            if ids:
+                scoped.append({**source, "tournament_ids": ids})
+            continue
+        items = [item for item in source.get("tournaments") or [] if item.get("tournament_id") in tournament_ids]
+        if not items:
+            continue
+        overlaps = [
+            pair for pair in source.get("overlapping_source_intervals") or []
+            if all(tid in tournament_ids for tid in pair)
+        ]
+        scoped.append(
+            {
+                **source,
+                "tournament_ids": [item["tournament_id"] for item in items],
+                "tournaments": items,
+                "overlapping_source_intervals": overlaps,
+                "requires_operator_review": bool(overlaps) or bool(source.get("stale_link")),
+            }
+        )
+    return scoped
 
 
 def association_findings(

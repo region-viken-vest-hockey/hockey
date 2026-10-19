@@ -157,14 +157,10 @@ def calendar_booking_findings(service, *, season: str, problem: dict[str, Any] |
     )
     return {"season": season, "findings": findings, "count": len(findings)}
 
-def booking_status_report(service, *, season: str, problem: dict[str, Any] | None = None) -> dict[str, Any]:
+def booking_status_report(service, *, season: str, problem: dict[str, Any] | None = None, host_club: str | None = None) -> dict[str, Any]:
     snapshot = service.load(season)
     resolved_problem = _resolve_plan_problem(snapshot.schedule, problem, snapshot.decisions)
-    report = _booking_status_report(
-        problem=resolved_problem,
-        plan=snapshot.schedule.get("plan") or {},
-        decisions=snapshot.decisions,
-    )
+    report = _booking_status_report(problem=resolved_problem, plan=snapshot.schedule.get("plan") or {}, decisions=snapshot.decisions, host_club=host_club)
     report["season"] = season
     report["canonical_state_revision"] = canonical_state_revision(snapshot.schedule, snapshot.decisions)
     return report

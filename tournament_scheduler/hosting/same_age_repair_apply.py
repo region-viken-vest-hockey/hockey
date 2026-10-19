@@ -46,7 +46,7 @@ def attempt_same_age_repairs(planner, plan) -> List[Dict[str, Any]]:
     skipped_age_groups = {entry["age_group"] for entry in plan.skipped_age_groups}
     coverage_teams = [
         {"club": t.club, "age_group": t.age_group}
-        for t in planner.roster.teams
+        for t in planner.hosting_pool_teams()
         if t.age_group not in skipped_age_groups
     ]
     coverage_rows = hosting_coverage_matrix(coverage_teams, _coverage_tournament_dicts(plan))
