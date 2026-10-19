@@ -205,9 +205,9 @@ def add_season_mutation_parsers(season_sub: argparse._SubParsersAction) -> None:
         "--operations",
         required=True,
         help=(
-            "Path to a JSON file with an array of operations, e.g. "
-            "[{\"op\": \"move\", \"tournament_id\": \"rvv-0147\", \"date\": \"2027-02-27\"}, "
-            "{\"op\": \"swap_participants\", ...}, {\"op\": \"cancel\", ...}]"
+            "Path to a JSON scenario: either an array of operations, or a "
+            "{\"schema\": \"canonical-scenario/1\", \"scope\": [...], \"operations\": [...]} object. "
+            "Operations: move, swap_participants, cancel, remove_participant"
         ),
     )
     season_batch.add_argument(
@@ -222,6 +222,11 @@ def add_season_mutation_parsers(season_sub: argparse._SubParsersAction) -> None:
         "--request-id",
         required=True,
         help="Stable request id recorded for the whole batch",
+    )
+    season_batch.add_argument(
+        "--expected-revision",
+        default=None,
+        help="Canonical revision the scenario was reviewed against; a changed revision refuses the batch",
     )
     season_batch.add_argument(
         "--dry-run",

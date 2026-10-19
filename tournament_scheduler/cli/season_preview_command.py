@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 
 from ..application.canonical_season.consequence_preview import preview_canonical_operation
 from ..application.canonical_season_service import CanonicalSeasonService
+from ..application.canonical_season.scenario import parse_scenario
+from ..infrastructure.canonical_season_store import SeasonStateError
+from .season_batch_command import _declared_scope
 from .season_canonical_commands import _console, _emit_json, _verification_problem
 
 
@@ -41,6 +45,17 @@ def _preview_arguments(args: argparse.Namespace) -> dict:
             "allow_manual_placement": args.allow_manual_placement,
             "allow_host_confirmation": args.allow_host_confirmation,
         }
+    elif args.operation == "batch":
+        if not args.operations_file:
+            raise ValueError("batch preview needs --operations-file")
+        with open(args.operations_file, "r") as handle:
+            scenario = parse_scenario(json.load(handle))
+        scoped = {
+            "operations": scenario["operations"],
+            "scope": _declared_scope(args.scope, scenario["scope"]),
+            "allow_manual_placement": args.allow_manual_placement,
+            "allow_host_confirmation": args.allow_host_confirmation,
+        }
     else:
         if not (args.tournament_ids and args.remove_team):
             raise ValueError("remove preview needs --tournament-ids and --remove-team")
@@ -62,7 +77,7 @@ def _cmd_season_preview(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season preview``; never writes canonical state."""
     try:
         arguments = _preview_arguments(args)
-    except ValueError as exc:
+    except (OSError, ValueError, SeasonStateError) as exc:
         _console.print(f"[red]✗[/red] {exc}")
         return 2
     result = preview_canonical_operation(

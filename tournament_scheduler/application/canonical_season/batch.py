@@ -21,6 +21,7 @@ from tournament_scheduler.season.request_constraints import (
     compare_request_constraint_violations,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import (
+    CanonicalRevisionConflictError,
     SeasonStateError,
 )
 from tournament_scheduler.season.acceptability import (
@@ -227,6 +228,7 @@ def batch_maintenance(
     accept_regressions: list[Any] | None = None,
     accept_regression_reason: str | None = None,
     accept_reviewed_consequences: str | None = None,
+    expected_revision: str | None = None,
 ) -> dict[str, Any]:
     """Compose several canonical mutations against one in-memory candidate.
 
@@ -245,6 +247,11 @@ def batch_maintenance(
     batch that leaves any active request constraint violated) is refused
     without a partial write. It is generic: nothing here is specific to one
     real-world request or calendar.
+
+    ``expected_revision`` binds the batch to the canonical revision the caller
+    reviewed. A different current revision refuses the batch, and the commit is
+    a compare-and-swap against the same revision, so a writer that lands between
+    this read and the commit also refuses the batch without a partial write.
     """
 
     if not operations:
@@ -310,6 +317,11 @@ def batch_maintenance(
     before_plan = schedule.get("plan") or {}
     before_fingerprint = str(schedule.get("revision") or schedule.get("fingerprint") or "")
     before_canonical_revision = canonical_state_revision(schedule, decisions)
+    if expected_revision is not None and str(expected_revision) != before_canonical_revision:
+        raise SeasonStateError(
+            f"Refusing canonical batch: expected revision {expected_revision} is no longer "
+            f"current ({before_canonical_revision}); preview again against the current revision"
+        )
     before_tournaments = {
         str(tournament.get("id") or ""): tournament
         for tournament in before_plan.get("tournaments", []) or []
@@ -894,7 +906,13 @@ def batch_maintenance(
     )
     updated_snapshot = snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
     service._assert_published_sealed_reconciliation(updated_snapshot, action="batch")
-    committed = service._commit(updated_snapshot)
+    try:
+        committed = service._commit(updated_snapshot, expected_revision=before_canonical_revision)
+    except CanonicalRevisionConflictError as exc:
+        raise SeasonStateError(
+            "Refusing canonical batch: the canonical revision changed while the batch was being "
+            "applied; nothing was written"
+        ) from exc
     report["committed"] = True
     report["revision"] = committed.schedule.get("revision")
     report["canonical_state_revision"] = canonical_state_revision(

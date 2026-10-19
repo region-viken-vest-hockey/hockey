@@ -18,6 +18,41 @@ Distinguish a new tournament obligation from an existing unplaced obligation. Ch
 ## Change roster
 Differentiate one-tournament replacement, true two-tournament swap, removal without replacement, season/age-group withdrawal, guest-place change and registration-set change. Use the matching dry-run in `season.md`; evaluate consequences for every displaced and added team. Never cross age groups or treat the displaced team as free capacity. Use atomic batch for coupled changes; explicit acceptance is required for named material regressions. A team rename uses the identity correction path, not roster replacement.
 
+## Coupled scenarios (atomic batch)
+Use one scenario document for coupled changes such as a donor/recipient rotation or a cancellation plus replacement. Build it on `season batch`; do not sequence single mutations, which expose unsafe intermediate states.
+
+Scenario schema `canonical-scenario/1`:
+
+```json
+{
+  "schema": "canonical-scenario/1",
+  "scope": ["u10-a-20260912", "u10-b-20260920"],
+  "operations": [
+    {"op": "swap_participants", "tournament_a": "u10-a-20260912", "team_a": "Y1",
+     "tournament_b": "u10-b-20260920", "team_b": "W1"}
+  ]
+}
+```
+
+Operations are `move`, `swap_participants`, `cancel` and `remove_participant`. `scope` lists every tournament the scenario may change; any change outside it refuses the batch. A bare JSON array of operations is still accepted, but it carries no scope, so pass `--scope` explicitly. Unknown schema versions and keys are refused.
+
+Preview without writing, binding the preview to the revision you reviewed:
+
+```
+rvv-miniputt season preview --season 2026-2027 --operation batch \
+  --operations-file rotation.json --request-id rotate-y1-w1 \
+  --expected-revision <reviewed-revision> --fail-on-blocked --json
+```
+
+Apply exactly the reviewed scenario with the same revision:
+
+```
+rvv-miniputt season batch --season 2026-2027 --operations rotation.json \
+  --request-id rotate-y1-w1 --expected-revision <reviewed-revision> --actor <operator>
+```
+
+A changed canonical revision refuses the apply before any write, and the commit itself is a compare-and-swap, so a concurrent writer also refuses the batch. The preview verdict is `safe_to_apply`, `blocked` or `stale_revision`; exit code 3 means not `safe_to_apply`. Re-run the preview after any refusal rather than editing the scenario to match a new revision.
+
 ## Team retirement / season-age withdrawal
 Before treating a season/age-group withdrawal as roster removals, determine whether the withdrawing team or club owns any future hosting obligations in that age group. A genuine team retirement is not equivalent to `remove-participant` and must not leave an active home tournament behind with only visiting teams.
 
