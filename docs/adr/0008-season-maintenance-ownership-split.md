@@ -14,7 +14,7 @@ Each kind of logic has one owner:
 4. **Scoring and objective policy** live in the shared quality/Pareto modules. Solvers and providers consume them and do not define their own objectives.
 5. **Harness/semantic layer** decides which problem to solve, compares and explains alternatives, escalates, and interacts with the operator. It does not verify, persist or mutate.
 6. **Canonical maintenance commands are the only mutation boundary.** A candidate becomes canonical only through the atomic, full-season-verified apply path (`application.canonical_season`). Search results are candidates until then.
-7. **Published seasons stay sealed.** Maintenance may change only the mutable dimensions named by the neighbourhood. It must not reopen global planning for a `published_sealed` season, and published locks are projected into solver constraints as fixed values, not as soft preferences.
+7. **Published seasons stay sealed.** Maintenance may change only the mutable dimensions named by the neighbourhood. It must not reopen global planning for a `published_sealed` season. Locks are scope-aware: only the dimensions that are actually locked, or that fall outside the requested mutable scope, are projected into solver constraints as fixed values, and they are not soft preferences. A placement-only lock (for example a booked tournament's date, host, arena or start time) freezes placement and nothing else. Participant locks freeze the roster. Placement-only approval must not freeze participants. Dimensions that are not locked and are inside the mutable scope remain editable.
 
 ## Classification of current logic
 | Area | Classification |
