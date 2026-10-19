@@ -330,3 +330,59 @@ def test_cli_preview_rejects_missing_operation_arguments(tmp_path: Path, capsys:
         == 2
     )
     assert "replace preview needs" in capsys.readouterr().out
+
+
+def _fixed_busy_root(tmp_path: Path) -> tuple[Path, dict]:
+    """Host Nordby is busy on the target date, so a move there needs a manual-placement opt-in."""
+
+    from tests.test_season_maintenance import _plan, _problem, _teams, _tournament, _write_season
+
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _problem(teams)
+    problem["club_calendar_status"] = {"Nordby": "known", "Sorby": "known"}
+    problem["club_busy_intervals"] = {"Nordby": [{"date": "2026-10-17", "start": "07:00", "end": "14:00"}]}
+    plan = _plan(
+        [
+            _tournament("T1", "2026-10-10", "Nordby", teams),
+            _tournament("T2", "2026-11-14", "Sorby", teams),
+        ]
+    )
+    root = tmp_path / "season"
+    _write_season(root, plan, problem)
+    return root, problem
+
+
+def test_move_preview_opt_in_matches_apply(tmp_path: Path) -> None:
+    root, problem = _fixed_busy_root(tmp_path)
+    service = CanonicalSeasonService(root=root)
+    move = {"operation": "move", "season": "2026-2027", "tournament_id": "T1", "date": "2026-10-17", "problem": problem}
+
+    blocked = preview_canonical_operation(service, **move)
+    assert blocked["verdict"]["status"] == STATUS_BLOCKED
+    assert blocked["verdict"]["checks"]["consequences_acceptable"] is False
+
+    opted_in = preview_canonical_operation(service, **move, allow_manual_placement=True)
+    assert opted_in["verdict"]["status"] == STATUS_SAFE_TO_APPLY
+
+    applied = service.move_tournament(
+        season="2026-2027",
+        tournament_id="T1",
+        date="2026-10-17",
+        problem=problem,
+        allow_manual_placement=True,
+    )
+    assert applied["plan"]["tournaments"][0]["date"] == "2026-10-17"
+
+
+def test_cli_move_preview_forwards_manual_placement_opt_in(tmp_path: Path) -> None:
+    from tournament_scheduler.cli.rvv_cli import main as cli_main
+
+    root, _problem_unused = _fixed_busy_root(tmp_path)
+    base = [
+        "season", "preview", "--season", "2026-2027", "--root", str(root),
+        "--operation", "move", "--tournament-id", "T1", "--date", "2026-10-17",
+        "--fail-on-blocked", "--json",
+    ]
+
+    assert cli_main(base) == 3
+    assert cli_main([*base, "--allow-manual-placement"]) == 0

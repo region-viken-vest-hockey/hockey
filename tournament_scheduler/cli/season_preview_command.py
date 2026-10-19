@@ -38,6 +38,8 @@ def _preview_arguments(args: argparse.Namespace) -> dict:
             "host_club": args.host_club,
             "start_time": args.start_time,
             "allow_cross_half": args.allow_cross_half,
+            "allow_manual_placement": args.allow_manual_placement,
+            "allow_host_confirmation": args.allow_host_confirmation,
         }
     else:
         if not (args.tournament_ids and args.remove_team):
