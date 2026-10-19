@@ -21,6 +21,7 @@ from tournament_scheduler.booking.calendar_availability import (
     classify_club_event,
 )
 from tournament_scheduler.clubs.distances import furthest_traveling_team
+from tournament_scheduler.hosting.hosting_pool import hosting_club_team_counts, hosting_teams
 from tournament_scheduler.hosting.coverage import (
     hosting_targets_with_coverage_floor as _hosting_targets_with_coverage_floor,
     proportional_integer_targets as _shared_proportional_integer_targets,
@@ -86,7 +87,7 @@ def assign_hosts(planner, scheduled: Sequence[Tuple[date, str]]) -> List[str]:
     }
 
     clubs_by_age: Dict[str, List[str]] = {}
-    for team in planner.roster.teams:
+    for team in hosting_teams(planner):
         clubs = clubs_by_age.setdefault(team.age_group, [])
         if team.club not in clubs:
             clubs.append(team.club)
@@ -206,11 +207,7 @@ def hosting_coverage_unmet_for_age_group(planner, age_group: str, tournament_cou
 
 
 def _club_team_counts_for_age_group(planner, age_group: str) -> Dict[str, int]:
-    teams = planner.roster.by_age_group(age_group)
-    club_team_counts: Dict[str, int] = {}
-    for team in teams:
-        club_team_counts[team.club] = club_team_counts.get(team.club, 0) + 1
-    return club_team_counts
+    return hosting_club_team_counts(planner, age_group)
 
 
 def proportional_integer_targets(weights: Dict[str, int], total: int) -> Dict[str, int]:

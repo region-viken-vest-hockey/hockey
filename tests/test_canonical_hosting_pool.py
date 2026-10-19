@@ -70,3 +70,33 @@ def test_tournament_scoped_absence_keeps_team_in_hosting_pool(monkeypatch) -> No
     pool = _restricted_pool(None, date(2026, 8, 1), date(2027, 6, 1), _teams())
 
     assert len(pool) == 3
+
+class _PoolPlanner:
+    """Minimal stand-in for ``SeasonPlanner``'s hosting-pool surface."""
+
+    def __init__(self, roster) -> None:
+        self.roster = roster
+        self._keys = None
+
+    def restrict_hosting_pool(self, eligible_teams) -> None:
+        self._keys = {(t["club"], t["label"], t["age_group"]) for t in eligible_teams}
+
+    def hosting_pool_teams(self):
+        return [t for t in self.roster.teams if self._keys is None or (t.club, t.label, t.age_group) in self._keys]
+
+
+def test_rebuild_hosting_targets_exclude_durably_withdrawn_club(monkeypatch) -> None:
+    """After a durable age-group withdrawal, U10 host targets come from the
+    eligible pool: Echo's only U10 team has left, so Echo carries no hosting
+    share, while the registered roster is unchanged (#511)."""
+    from tournament_scheduler.hosting.assignment import hosting_targets_for_age_group
+    from tournament_scheduler.models import Roster, Team
+
+    registered = [Team(club=t.club, label=t.label, age_group=t.age_group) for t in _teams()]
+    planner = _PoolPlanner(Roster(teams=registered))
+    _patch_canonical(monkeypatch, _decisions("age_group"))
+
+    restrict_to_canonical_hosting_pool(planner, None, date(2026, 8, 1), date(2027, 6, 1), registered)
+
+    assert hosting_targets_for_age_group(planner, "U10", 2) == {"Alfa": 2}
+    assert len(planner.roster.teams) == 3
