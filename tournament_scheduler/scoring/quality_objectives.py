@@ -88,6 +88,8 @@ QUALITY_OBJECTIVE_DIMENSIONS: Tuple[str, ...] = (
     "participation_season_deviation",
     "participation_avoidable",
     "participation_club_pool_unresolved_shortfalls",
+    "participation_half_deviation",
+    "participation_max_team_half_deviation",
     "max_pair_repeat",
     "max_club_pair_repeat",
     "max_club_exposure_index",
@@ -195,12 +197,26 @@ def quality_objective_vector(score: Dict[str, Any]) -> Dict[str, float]:
         "club_pool_unresolved_avoidable_deviation_count",
         participation.get("avoidable_deviation_count", 0),
     )
+    # Half-season shortages are a separate guardrail: two candidates with the
+    # same season aggregate but different half-season deficits must stay
+    # distinct on the archive. The club-pool view is preferred for the same
+    # reason as the season totals (no double count of sibling redistribution).
+    half_deviation = participation.get(
+        "club_pool_unresolved_half_total_absolute_deviation",
+        participation.get("half_total_absolute_deviation", 0),
+    )
+    max_team_half_deviation = participation.get(
+        "club_pool_unresolved_max_team_half_deviation",
+        participation.get("max_team_half_deviation", 0),
+    )
     return {
         "participation_season_deviation": float(season_deviation),
         "participation_avoidable": float(avoidable),
         "participation_club_pool_unresolved_shortfalls": float(
             participation.get("club_pool_unresolved_shortfall_count", 0)
         ),
+        "participation_half_deviation": float(half_deviation),
+        "participation_max_team_half_deviation": float(max_team_half_deviation),
         "max_pair_repeat": float(opponent.get("max_pair_repeat", 0)),
         "max_club_pair_repeat": float(opponent.get("max_club_pair_repeat", 0)),
         "max_club_exposure_index": float(opponent.get("max_club_exposure_index", 0)),

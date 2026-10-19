@@ -15,6 +15,7 @@ from typing import Any, Iterable
 from ..conflict_checkers.holiday_checker import HolidayConflictChecker
 from ..season.baseline_overlay import resolve_canonical_state
 from ..season.banned_dates import active_banned_date_records
+from ..participation.withdrawals import eligible_hosting_teams, project_into_problem
 from ..season.holiday_exceptions import active_exception_dates
 from ..utils.date_parser import DateParser
 from .stage1_config import load_effective_config
@@ -47,6 +48,32 @@ def canonical_date_policy_inputs(
         if record.get("date")
     ]
     return exceptions, bans
+
+
+def restrict_to_canonical_hosting_pool(
+    planner: Any, state: PipelineState, start: date | None, end: date | None, teams: Iterable[Any]
+) -> Any:
+    """Limit ``planner``'s hosting coverage to the canonical eligible pool.
+
+    The pool is the shared ``eligible_hosting_teams`` view over the active
+    canonical withdrawals, so a durable age-group withdrawal no longer carries a
+    hosting obligation. With no canonical season for the window the planner
+    keeps the registered roster. Returns the planner for call-site chaining.
+    """
+    if start is None or end is None:
+        return planner
+    canonical = resolve_canonical_state(load_effective_config(state), start, end)
+    if not canonical:
+        return planner
+    problem = {
+        "teams": [
+            {"club": team.club, "label": team.label, "age_group": team.age_group}
+            for team in teams
+        ]
+    }
+    projected = project_into_problem(problem, decisions=canonical["decisions"])
+    planner.restrict_hosting_pool([dict(team) for team in eligible_hosting_teams(projected)])
+    return planner
 
 
 def make_holiday_scheduler(exceptions: Iterable[date], banned_dates: Iterable[date]) -> Any:
