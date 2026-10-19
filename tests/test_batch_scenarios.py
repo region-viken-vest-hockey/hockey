@@ -94,10 +94,12 @@ def test_applied_rotation_matches_the_previewed_candidate(tmp_path: Path) -> Non
         request_id="rotate-y1-w1",
         actor="tester",
         expected_revision=reviewed,
+        expected_token=preview["reviewed_token"],
     )
 
     assert applied["committed"] is True
     assert applied["revision"] == preview["candidate_fingerprint"]
+    assert applied["reviewed_token"] == preview["reviewed_token"]
     rosters = {
         tournament_id: {team["label"] for team in tournament["teams"]}
         for tournament_id, tournament in _tournaments_by_id(root).items()
@@ -224,3 +226,165 @@ def test_cli_preview_reports_stale_scenario_with_exit_three(tmp_path: Path) -> N
 
     assert cli_main([*base]) == 0
     assert cli_main([*base, "--expected-revision", "not-current"]) == 3
+
+
+def _rotation_preview(service: CanonicalSeasonService, **overrides) -> dict:
+    arguments = {
+        "operation": "batch",
+        "season": SEASON,
+        "operations": _rotation_operations(),
+        "scope": [DONOR, RECIPIENT],
+        "request_id": "rotate-y1-w1",
+        "actor": "tester",
+    }
+    arguments.update(overrides)
+    return preview_canonical_operation(service, **arguments)
+
+
+@pytest.mark.parametrize(
+    "changed",
+    [
+        {"operations": [{"op": "move", "tournament_id": DONOR, "date": "2026-09-13"}]},
+        {"scope": [DONOR, RECIPIENT, "u10-c-20261018"]},
+        {"request_id": "rotate-y1-w1-amended"},
+        {"allow_manual_placement": True},
+    ],
+    ids=["different_operations", "different_scope", "different_request_id", "different_gate_inputs"],
+)
+def test_apply_refuses_a_different_scenario_at_the_same_revision(tmp_path: Path, changed: dict) -> None:
+    _work_dir, root = _promote(tmp_path)
+    service = CanonicalSeasonService(root=root)
+    reviewed = _revision(root)
+    preview = _rotation_preview(service, expected_revision=reviewed)
+    before = (_schedule_bytes(root), _decisions_bytes(root))
+
+    arguments = {
+        "season": SEASON,
+        "operations": _rotation_operations(),
+        "scope": [DONOR, RECIPIENT],
+        "request_id": "rotate-y1-w1",
+        "expected_revision": reviewed,
+        "expected_token": preview["reviewed_token"],
+        **changed,
+    }
+    with pytest.raises(SeasonStateError, match="no longer matches the preview"):
+        batch_maintenance(service, **arguments)
+    assert (_schedule_bytes(root), _decisions_bytes(root)) == before
+
+
+def test_preview_reports_booked_fairness_for_every_impacted_team(tmp_path: Path) -> None:
+    _work_dir, root = _promote(tmp_path)
+    preview = _rotation_preview(CanonicalSeasonService(root=root))
+
+    fairness = preview["details"]["booked_fairness"]
+    assert fairness["basis"] == "booked_reality"
+    labels = {row["team"] for row in fairness["impacted_teams"]}
+    assert labels == {"K1", "X1", "Y1", "Z1", "W1", "V1"}
+    for row in fairness["impacted_teams"]:
+        assert isinstance(row["before_booked"], int)
+        assert isinstance(row["after_booked"], int)
+        assert row["delta"] == row["after_booked"] - row["before_booked"]
+    assert fairness["lowest_booked_per_team_by_age_group"]
+
+
+CANCEL_AND_SLOT_REPLACEMENT = [
+    {"op": "cancel", "tournament_id": "u10-c-20261018", "reason": "cancelled by host"},
+    {"op": "move", "tournament_id": DONOR, "date": "2026-10-18"},
+]
+CANCEL_SCOPE = [DONOR, "u10-c-20261018"]
+CANCELLED_TEAMS = {"C1", "C2", "D1", "D2"}
+
+
+def test_cancel_and_slot_replacement_preview_names_every_impacted_team(tmp_path: Path) -> None:
+    _work_dir, root = _promote(tmp_path)
+    service = CanonicalSeasonService(root=root)
+    before = (_schedule_bytes(root), _decisions_bytes(root))
+
+    blocked = preview_canonical_operation(
+        service,
+        operation="batch",
+        season=SEASON,
+        operations=CANCEL_AND_SLOT_REPLACEMENT,
+        scope=CANCEL_SCOPE,
+        request_id="cancel-replace",
+        actor="tester",
+    )
+
+    assert blocked["verdict"]["status"] == STATUS_BLOCKED
+    assert blocked["verdict"]["checks"]["consequences_acceptable"] is False
+    named = {entry["team"] for entry in blocked["verdict"]["review"]["consequences"]}
+    assert named == CANCELLED_TEAMS
+    assert blocked["reviewed_token"]
+    assert (_schedule_bytes(root), _decisions_bytes(root)) == before
+
+
+def test_cancel_and_slot_replacement_applies_only_the_reviewed_consequences(tmp_path: Path) -> None:
+    _work_dir, root = _promote(tmp_path)
+    service = CanonicalSeasonService(root=root)
+    reviewed = _revision(root)
+    review = preview_canonical_operation(
+        service,
+        operation="batch",
+        season=SEASON,
+        operations=CANCEL_AND_SLOT_REPLACEMENT,
+        scope=CANCEL_SCOPE,
+        request_id="cancel-replace",
+        actor="tester",
+    )["verdict"]["review"]
+
+    accepted = preview_canonical_operation(
+        service,
+        operation="batch",
+        season=SEASON,
+        operations=CANCEL_AND_SLOT_REPLACEMENT,
+        scope=CANCEL_SCOPE,
+        request_id="cancel-replace",
+        actor="tester",
+        accept_reviewed_consequences=review["token"],
+        accept_regression_reason="host cancelled; slot reassigned",
+        expected_revision=reviewed,
+    )
+    assert accepted["verdict"]["status"] == STATUS_SAFE_TO_APPLY
+
+    applied = batch_maintenance(
+        service,
+        season=SEASON,
+        operations=CANCEL_AND_SLOT_REPLACEMENT,
+        scope=CANCEL_SCOPE,
+        request_id="cancel-replace",
+        actor="tester",
+        accept_reviewed_consequences=review["token"],
+        accept_regression_reason="host cancelled; slot reassigned",
+        expected_revision=reviewed,
+        expected_token=accepted["reviewed_token"],
+    )
+    assert applied["committed"] is True
+    tournaments = _tournaments_by_id(root)
+    assert tournaments["u10-c-20261018"].get("cancelled") is True
+    assert tournaments[DONOR]["date"] == "2026-10-18"
+
+
+def test_cli_apply_requires_the_reviewed_token_from_preview(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    from tournament_scheduler.cli.rvv_cli import main as cli_main
+
+    _work_dir, root = _promote(tmp_path)
+    scenario = tmp_path / "rotation.json"
+    scenario.write_text(
+        json.dumps({"schema": SCENARIO_SCHEMA, "scope": [DONOR, RECIPIENT], "operations": _rotation_operations()})
+    )
+    root_args = ["--root", str(root)]
+    batch_args = [
+        "season", "batch", "--season", SEASON, "--operations", str(scenario), "--request-id", "cli-rotate", *root_args,
+    ]
+
+    assert cli_main(batch_args) == 2
+    capsys.readouterr()
+
+    assert cli_main(["season", "preview", "--season", SEASON, "--operation", "batch",
+                     "--operations-file", str(scenario), "--request-id", "cli-rotate", *root_args, "--json"]) == 0
+    preview = json.loads(capsys.readouterr().out)
+
+    assert cli_main([*batch_args, "--expected-revision", preview["expected_revision"],
+                     "--reviewed-token", preview["reviewed_token"]]) == 0
+    donor_labels = {team["label"] for team in _tournaments_by_id(root)[DONOR]["teams"]}
+    assert "W1" in donor_labels and "Y1" not in donor_labels

@@ -229,6 +229,11 @@ def add_season_mutation_parsers(season_sub: argparse._SubParsersAction) -> None:
         help="Canonical revision the scenario was reviewed against; a changed revision refuses the batch",
     )
     season_batch.add_argument(
+        "--reviewed-token",
+        default=None,
+        help="reviewed_token from the matching preview; apply refuses unless the scenario still produces it",
+    )
+    season_batch.add_argument(
         "--dry-run",
         action="store_true",
         help="Validate and report every gate without writing canonical state",

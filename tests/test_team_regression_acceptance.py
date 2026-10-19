@@ -797,11 +797,22 @@ def test_cli_batch_reviewed_consequence_round_trip(tmp_path: Path, capsys) -> No
     assert cli_main([*base_args, "--fail-on-blocked"]) == 3
     capsys.readouterr()
 
-    apply_args = [arg for arg in base_args if arg != "--dry-run"] + [
+    accept_flags = [
         "--accept-reviewed-consequences",
         token,
         "--accept-regression-reason",
         "reviewed via the CLI dry-run",
+    ]
+    # The reviewed token covers the gate inputs, so the accepted apply is authorized
+    # by a dry-run that carries the same acceptance flags.
+    assert cli_main([*base_args, *accept_flags]) == 0
+    accepted_preview = json.loads(capsys.readouterr().out)
+
+    apply_args = [arg for arg in base_args if arg != "--dry-run"] + accept_flags + [
+        "--expected-revision",
+        accepted_preview["before_canonical_revision"],
+        "--reviewed-token",
+        accepted_preview["reviewed_token"],
     ]
     assert cli_main(apply_args) == 0
     applied = json.loads(capsys.readouterr().out)

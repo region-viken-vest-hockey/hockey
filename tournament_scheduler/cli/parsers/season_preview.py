@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from .common import add_operational_opt_in_flags
+from .common import add_operational_opt_in_flags, add_regression_acceptance_flags, add_reviewed_consequence_flag
 
 
 def add_season_preview_parser(season_sub: argparse._SubParsersAction) -> None:
@@ -40,6 +40,8 @@ def add_season_preview_parser(season_sub: argparse._SubParsersAction) -> None:
     season_preview.add_argument("--start-time", default=None, help="Candidate start time (move)")
     season_preview.add_argument("--allow-cross-half", action="store_true", help="Allow a move across the Christmas boundary (move)")
     add_operational_opt_in_flags(season_preview)
+    add_regression_acceptance_flags(season_preview)
+    add_reviewed_consequence_flag(season_preview)
     season_preview.add_argument(
         "--reconcile-withdrawal",
         action="store_true",

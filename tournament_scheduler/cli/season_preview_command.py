@@ -55,6 +55,9 @@ def _preview_arguments(args: argparse.Namespace) -> dict:
             "scope": _declared_scope(args.scope, scenario["scope"]),
             "allow_manual_placement": args.allow_manual_placement,
             "allow_host_confirmation": args.allow_host_confirmation,
+            "accept_regressions": args.accept_team_regressions,
+            "accept_regression_reason": args.accept_regression_reason,
+            "accept_reviewed_consequences": args.accept_reviewed_consequences,
         }
     else:
         if not (args.tournament_ids and args.remove_team):
@@ -97,6 +100,8 @@ def _cmd_season_preview(args: argparse.Namespace) -> int:
         )
         for blocker in verdict["blockers"]:
             _console.print(f"  - {blocker}")
+        if result.get("reviewed_token"):
+            _console.print(f"reviewed token: {result['reviewed_token']}")
     if args.fail_on_blocked and not result["verdict"]["applicable"]:
         return 3
     return 0

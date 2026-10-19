@@ -29,6 +29,11 @@ def _declared_scope(cli_scope: list[str] | None, scenario_scope: list[str] | Non
 
 def _cmd_season_batch(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season batch`` — atomically compose several scoped canonical mutations in one commit."""
+    if not args.dry_run and not (args.expected_revision and args.reviewed_token):
+        _console.print(
+            "[red]✗[/red] Apply needs --expected-revision and --reviewed-token from the matching preview"
+        )
+        return 2
     try:
         with open(args.operations, "r") as f:
             scenario = parse_scenario(json.load(f))
@@ -53,6 +58,7 @@ def _cmd_season_batch(args: argparse.Namespace) -> int:
         accept_regression_reason=args.accept_regression_reason,
         accept_reviewed_consequences=args.accept_reviewed_consequences,
         expected_revision=args.expected_revision,
+        expected_token=args.reviewed_token,
     )
 
     if args.json:

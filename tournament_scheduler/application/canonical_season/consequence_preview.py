@@ -86,12 +86,14 @@ def preview_canonical_operation(
         )
 
     details = _operation_details(operation, raw)
+    reviewed_token = None
     if operation == "batch":
         verdict = _batch_verdict(raw)
         changed_ids = sorted(str(item) for item in raw.get("changed_tournament_ids") or changed_ids)
+        reviewed_token = raw.get("reviewed_token")
     else:
         verdict = _gate_verdict(details, raw)
-    return _envelope(
+    envelope = _envelope(
         operation=operation,
         season=season,
         current_revision=current_revision,
@@ -100,6 +102,8 @@ def preview_canonical_operation(
         verdict=verdict,
         details=details,
     )
+    envelope["reviewed_token"] = reviewed_token
+    return envelope
 
 
 def _batch_verdict(raw: Mapping[str, Any]) -> dict[str, Any]:

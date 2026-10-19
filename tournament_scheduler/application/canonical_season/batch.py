@@ -45,7 +45,9 @@ from .shared import (
     _guest_reservation_signature,
     _placement_snapshot,
 )
+from .booked_fairness import impacted_booked_fairness
 from .placements import _apply_move_to_plan
+from .reviewed_scenario import reviewed_scenario_token
 from .removal_policy import (
     evaluate_removal_consequences,
     require_no_avoidable_underfill,
@@ -229,6 +231,7 @@ def batch_maintenance(
     accept_regression_reason: str | None = None,
     accept_reviewed_consequences: str | None = None,
     expected_revision: str | None = None,
+    expected_token: str | None = None,
 ) -> dict[str, Any]:
     """Compose several canonical mutations against one in-memory candidate.
 
@@ -252,6 +255,11 @@ def batch_maintenance(
     reviewed. A different current revision refuses the batch, and the commit is
     a compare-and-swap against the same revision, so a writer that lands between
     this read and the commit also refuses the batch without a partial write.
+
+    Every report carries ``reviewed_token``, which identifies the normalized
+    scenario, its scope, request id, gate inputs and candidate. ``expected_token``
+    makes apply require that exact reviewed identity; a mismatch refuses before
+    any write, even when the revision still matches.
     """
 
     if not operations:
@@ -856,6 +864,38 @@ def batch_maintenance(
         },
     }
 
+    gate_inputs = {
+        "allow_manual_placement": bool(allow_manual_placement),
+        "allow_host_confirmation": bool(allow_host_confirmation),
+        "accept_regressions": list(accept_regressions or []),
+        "accept_regression_reason": str(accept_regression_reason or ""),
+        "accept_reviewed_consequences": str(accept_reviewed_consequences or ""),
+    }
+    reviewed_token = reviewed_scenario_token(
+        season=season,
+        base_revision=before_canonical_revision,
+        candidate_fingerprint=candidate_fingerprint,
+        operations=normalized_operations,
+        scope=sorted(scope_ids),
+        request_id=resolved_request_id,
+        gate_inputs=gate_inputs,
+        problem=resolved_problem,
+    )
+    report["reviewed_token"] = reviewed_token
+    report["booked_fairness"] = impacted_booked_fairness(
+        service,
+        season=season,
+        before_plan=before_plan,
+        candidate_plan=candidate_plan,
+        problem=resolved_problem,
+        changed_ids=changed_ids,
+    )
+    if not dry_run and expected_token is not None and str(expected_token) != reviewed_token:
+        raise SeasonStateError(
+            "Refusing canonical batch: the reviewed scenario no longer matches the preview "
+            "(operations, scope, request id, gate inputs or candidate differ); preview again"
+        )
+
     if dry_run:
         report["committed"] = False
         preview_schedule = {
@@ -902,6 +942,7 @@ def batch_maintenance(
             "verification_ok": bool(verification_result.get("ok", True)),
             "operational_acceptable": bool(operational_acceptability.get("ok")),
             "accepted_regressions": regression_acceptance["accepted_regressions"],
+            "reviewed_token": reviewed_token,
         },
     )
     updated_snapshot = snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
