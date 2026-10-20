@@ -274,3 +274,51 @@ def test_repair_team_consequences_keep_teams_of_a_tournament_the_repair_cancels(
     assert rows[0]["identity"]["club"] == "Alfa"
     assert rows[0]["before"]["season"] == 1
     assert rows[0]["after"]["season"] == 0
+
+
+def _team_plan(tournaments: list[dict]) -> dict:
+    return {"start_date": "2026-10-01", "end_date": "2026-10-31", "tournaments": tournaments}
+
+
+def _team_tournament(tournament_id: str, day: str, teams: list[dict]) -> dict:
+    return {"id": tournament_id, "date": day, "age_group": "U10", "teams": teams, "games": []}
+
+
+def test_repair_team_consequences_report_an_individual_team_regression() -> None:
+    from tournament_scheduler.application.canonical_season.consequence_summary import build_consequences
+    from tournament_scheduler.application.canonical_season.repair_consequences import (
+        repair_team_consequences,
+    )
+
+    alfa = {"club": "Alfa", "label": "Alfa 1", "age_group": "U10"}
+    bravo = {"club": "Bravo", "label": "Bravo 1", "age_group": "U10"}
+    before = _team_plan([_team_tournament("t1", "2026-10-03", [alfa, bravo])])
+    # The repair adds a second tournament for Alfa only, three days after its first:
+    # a serious individual-team regression for Alfa, unrelated to Bravo.
+    after = _team_plan(
+        [
+            _team_tournament("t1", "2026-10-03", [alfa, bravo]),
+            _team_tournament("t2", "2026-10-06", [alfa]),
+        ]
+    )
+
+    result = repair_team_consequences(before, after, None)
+
+    alfa_key = "Alfa:Alfa 1:U10"
+    codes = {item["code"] for item in result["team_consequences"][alfa_key]["material_regressions"]}
+    assert "more_gaps_under_7_days" in codes
+    assert all(
+        not item.get("code") == "more_gaps_under_7_days"
+        for item in result["team_consequences"].get("Bravo:Bravo 1:U10", {}).get("material_regressions", [])
+    )
+
+    # With no season-wide adoption regression, the team regression must still surface.
+    details = {
+        "participation_counts": result["participation_counts"],
+        "team_consequences": result["team_consequences"],
+        "adoption": {"material_regressions": []},
+    }
+    surfaced = build_consequences("repair", details)["material_regressions"]
+    assert any(
+        item["role"] == alfa_key and item["code"] == "more_gaps_under_7_days" for item in surfaced
+    )

@@ -17,7 +17,6 @@ from tournament_scheduler.season.findings import _findings_for_option
 from tournament_scheduler.season.findings import _infer_finding_id
 from tournament_scheduler.season.findings import _require_finding
 from tournament_scheduler.season.findings import construct_findings
-from tournament_scheduler.season.findings import findings_for_plan
 from tournament_scheduler.repair.host_team_missing import candidate_fingerprint
 from tournament_scheduler.season.impact_analysis import _changed_team_ids
 from tournament_scheduler.season.impact_analysis import _changed_tournament_ids
@@ -418,7 +417,7 @@ def apply_repair_to_plan(
     would reject.
     """
     resolved_dimensions = tuple(sorted({str(d) for d in dimensions}))
-    findings = findings_for_plan(plan, problem)
+    findings = construct_findings(plan, problem, verify_candidate(dict(plan), dict(problem)), decisions=decisions)
     if finding_id:
         candidates = [_require_finding(findings, finding_id, age_group=age_group)]
     else:
