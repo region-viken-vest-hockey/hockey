@@ -857,3 +857,116 @@ def test_unparseable_interval_evidence_fails_closed(tmp_path):
 
     assert _tournament_row(result, "t1")["classification"] == "not_checkable"
     assert result["sources"]["A"]["fabricated_placeholder_signal"] is not None
+
+
+def test_booking_status_interval_comparison_reports_exact_plan_vs_calendar_deltas(tmp_path):
+    """Plan-vs-calendar comparison carries exact minute deltas (issue #719)."""
+
+    root = _promote(
+        tmp_path,
+        [_tournament("asker-u10", date_str="2026-09-12", start="10:00", arena="Askerhallen", host="A")],
+    )
+    problem = _problem(
+        [_event("2026-09-12", "13:00", "15:00", title="Miniputt U10", arena="Askerhallen")],
+        complete=True,
+    )
+
+    status_row = _tournament_row(booking_status_report(season="2026-2027", root=root, problem=problem), "asker-u10")
+    comparison = status_row["interval_comparison"]
+
+    assert comparison["status"] == "differs"
+    assert comparison["planned"] == {
+        "date": "2026-09-12",
+        "start": "10:00",
+        "end": status_row["canonical_interval"]["end_time"],
+    }
+    assert comparison["observed"] == {"date": "2026-09-12", "start": "13:00", "end": "15:00"}
+    assert comparison["same_date"] is True
+    assert comparison["start_delta_minutes"] == 180
+    assert comparison["end_delta_minutes"] == 15 * 60 - int(comparison["planned"]["end"][:2]) * 60 - int(
+        comparison["planned"]["end"][3:]
+    )
+
+
+def test_booking_status_interval_comparison_without_observation_is_not_a_match(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00", host="A")])
+
+    status_row = _tournament_row(booking_status_report(season="2026-2027", root=root, problem=_problem([])), "t1")
+
+    assert status_row["interval_comparison"]["status"] == "no_observed_interval"
+    assert status_row["interval_comparison"]["observed"] is None
+    assert status_row["interval_comparison"]["start_delta_minutes"] is None
+
+
+def test_host_club_text_view_shows_plan_and_calendar_intervals(tmp_path, capsys):
+    from tournament_scheduler.cli.booking_status_text import format_host_club_booking_status
+    from tournament_scheduler.cli.rvv_cli import main
+
+    root = _promote(
+        tmp_path,
+        [
+            _tournament("asker-u10", date_str="2026-09-12", start="10:00", arena="Askerhallen", host="A"),
+            _tournament("other", date_str="2026-09-13", start="10:00", host="B", teams=_teams(("B", "C", "D", "A"))),
+        ],
+    )
+    problem = _problem(
+        [_event("2026-09-12", "13:00", "15:00", title="Miniputt U10", arena="Askerhallen")],
+        complete=True,
+    )
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem, host_club="A")
+    text = format_host_club_booking_status(report)
+
+    assert "host club A (2026-2027)" in text
+    assert "asker-u10" in text
+    assert "other" not in text
+    assert "| calendar 2026-09-12 13:00-15:00 | differs: start +180 min" in text
+
+    assert main(
+        [
+            "season", "booking-status",
+            "--season", "2026-2027",
+            "--root", str(root),
+            "--host-club", "A",
+        ]
+    ) == 0
+    # The CLI resolves its problem from stored state, which carries no calendar
+    # events, so the observation is honestly reported as absent.
+    cli_text = capsys.readouterr().out
+    assert cli_text.startswith("Booking status for host club A")
+    assert "calendar: no matched observation" in cli_text
+    assert "asker-u10" in cli_text
+    assert "other" not in cli_text
+
+    assert main(
+        [
+            "season", "booking-status",
+            "--season", "2026-2027",
+            "--root", str(root),
+            "--host-club", "A",
+            "--json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["tournaments"][0]["interval_comparison"]["status"] == "no_observed_interval"
+
+
+def test_interval_comparison_reports_date_shift_as_exact_minutes():
+    """A proximate-date shift is a real distance, not a clock-time difference (PR #776 review)."""
+
+    from tournament_scheduler.booking.status_crosswalk import interval_comparison
+
+    planned = {"date": "2026-09-12", "start_time": "10:00", "end_time": "12:00"}
+    next_day = {"date": "2026-09-13", "start": "10:00", "end": "12:00"}
+    comparison = interval_comparison(planned, next_day)
+
+    assert comparison["status"] == "differs"
+    assert comparison["same_date"] is False
+    assert comparison["start_delta_minutes"] == 24 * 60
+    assert comparison["end_delta_minutes"] == 24 * 60
+
+    earlier_and_shifted = interval_comparison(planned, {"date": "2026-09-11", "start": "09:30", "end": "11:00"})
+    assert earlier_and_shifted["start_delta_minutes"] == -(24 * 60) - 30
+    assert earlier_and_shifted["end_delta_minutes"] == -(24 * 60) - 60
+
+    assert interval_comparison(planned, {"date": "not-a-date", "start": "10:00", "end": "12:00"})["status"] == "not_comparable"

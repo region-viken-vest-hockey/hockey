@@ -13,11 +13,16 @@ from datetime import datetime, timezone
 from typing import Any, Iterable, Mapping
 
 from tournament_scheduler.booking.assessment_candidates import (
+    ASSESSMENT_PRESUMED_UNSCHEDULED,
     RELATION_PROXIMATE_DATE_SHIFT,
     RELATION_SAME_DATE_OVERLAP,
     RELATION_SAME_DATE_TIME_SHIFT,
     assessment_candidate,
     source_supports_negative_absence,
+)
+from tournament_scheduler.booking.status_crosswalk import (
+    assessment_provenance_fields,
+    attach_interval_comparison,
 )
 from tournament_scheduler.booking.ice_resources import COVERAGE_DISJOINT, COVERAGE_PARTIAL
 from tournament_scheduler.booking.interval_facts import (
@@ -92,7 +97,6 @@ ASSESSMENT_PROPOSED_CHANGED_SLOT = "proposed_changed_slot"
 ASSESSMENT_COMPETING_CANDIDATES = "competing_candidates"
 ASSESSMENT_AMBIGUOUS = "ambiguous"
 ASSESSMENT_UNMATCHED = "unmatched"
-ASSESSMENT_PRESUMED_UNSCHEDULED = "presumed_unscheduled"
 ASSESSMENT_NOT_CHECKABLE = "not_checkable"
 
 
@@ -1395,56 +1399,6 @@ def manual_booking_work_item(
     }
 
 
-def _assessment_provenance_fields(assessment_row: Mapping[str, Any] | None) -> dict[str, Any]:
-    """Return the non-binding assessment provenance for one booking-status row.
-
-    The crosswalk is advisory: attaching these fields never changes an accepted
-    booking status or authority. It carries the classification and canonical
-    interval and, only when assessment selected one defensible identity match,
-    that primary calendar observation. A negative or competing finding
-    deliberately carries no observed interval, because unrelated or unresolved
-    evidence must never be presented as this tournament's observed booking.
-    """
-
-    if not assessment_row:
-        return {}
-    fields: dict[str, Any] = {}
-    classification = str(assessment_row.get("classification") or "")
-    if classification:
-        fields["booking_assessment_classification"] = classification
-    canonical_interval = assessment_row.get("canonical_interval")
-    if isinstance(canonical_interval, Mapping):
-        fields["canonical_interval"] = dict(canonical_interval)
-    candidates = [
-        candidate
-        for candidate in assessment_row.get("candidates") or []
-        if isinstance(candidate, Mapping)
-    ]
-    primary_fingerprint = str(assessment_row.get("primary_candidate_event_fingerprint") or "")
-    primary = next(
-        (
-            candidate
-            for candidate in candidates
-            if candidate.get("actionable")
-            and str(candidate.get("event_fingerprint") or "") == primary_fingerprint
-        ),
-        None,
-    )
-    if primary is not None:
-        fields["latest_observed_interval"] = {
-            "date": str(primary.get("date") or ""),
-            "start": str(primary.get("start") or ""),
-            "end": str(primary.get("end") or ""),
-            "event_fingerprint": str(primary.get("event_fingerprint") or ""),
-            "title": str(primary.get("title") or ""),
-            "source_trusted": bool(primary.get("source_trusted")),
-            "actionable": True,
-        }
-    if classification == ASSESSMENT_PRESUMED_UNSCHEDULED:
-        fields["negative_evidence"] = assessment_row.get("negative_evidence")
-    return fields
-
-
 def _club_booking_source_projection(
     *,
     decisions: Mapping[str, Any] | None,
@@ -1767,7 +1721,7 @@ def booking_status_report(
             # latest observed interval, negative evidence) next to a manual
             # authority so a contradicting scrape stays visible without ever
             # demoting the accepted confirmation/rejection.
-            row.update(_assessment_provenance_fields(assessment_by_tournament.get(tid)))
+            row.update(assessment_provenance_fields(assessment_by_tournament.get(tid)))
             if calendar_record:
                 row["calendar_evidence"] = calendar_record
         else:
@@ -1808,7 +1762,7 @@ def booking_status_report(
                 "calendar_status": status,
                 "calendar_stale_reasons": calendar_stale_reasons,
             }
-            row.update(_assessment_provenance_fields(assessment_row))
+            row.update(assessment_provenance_fields(assessment_row))
             if calendar_record:
                 row["evidence"] = calendar_record
         work_item = manual_booking_work_item(
@@ -1822,7 +1776,7 @@ def booking_status_report(
             manual_queue.append(work_item)
         if conflict:
             counts["conflicts"] += 1
-        rows.append(row)
+        rows.append(attach_interval_comparison(row))
         counts.setdefault(status, 0)
         counts[status] += 1
         counts[operational_state] = counts.get(operational_state, 0) + 1
