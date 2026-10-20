@@ -85,18 +85,16 @@ def build_consequences(operation: str, details: Mapping[str, Any]) -> dict[str, 
     }
 
 
-def build_findings(operation: str, details: Mapping[str, Any]) -> dict[str, Any]:
+def build_findings(details: Mapping[str, Any]) -> dict[str, Any]:
     """Hard-finding buckets classified against the pre-operation baseline.
 
-    Only batch dry-runs verify the candidate against the pre-batch baseline, so
-    only they carry ``violation_classification``. Single-operation dry-runs
-    verify the candidate in isolation: their violations are reported under
-    ``details`` and are not classified here, so ``classified`` stays false
-    instead of implying a baseline comparison that never ran.
+    Batch and single-operation dry-runs both verify the candidate against the
+    pre-operation baseline through the shared gate, so each carries the same
+    ``violation_classification`` its writer admits on. ``classified`` stays
+    false only when no baseline comparison ran (for example a refused or stale
+    preview), so no caller infers a comparison that never happened.
     """
 
-    if operation != "batch":
-        return unclassified_findings()
     classification = (details.get("verification_result") or {}).get("violation_classification")
     if not isinstance(classification, Mapping):
         return unclassified_findings()

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 from datetime import date as _date
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 from tournament_scheduler.season.baseline_overlay import approval_fingerprint, resolve_approval
 from tournament_scheduler.season.history_summary import verification_summary
@@ -23,13 +23,14 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
 from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
-from tournament_scheduler.planning.verification import verify_canonical_candidate
+from .single_operation_gate import verify_single_operation_candidate
 
 from .replacement_refusals import (
     ReplacementRefusal,
     hosting_transfer_refusals,
     lock_violation_refusals,
     participant_lock_refusal,
+    blocked_replacement_preview,
     verification_refusals,
 )
 from .shared import (
@@ -232,58 +233,6 @@ def _affected_participation_counts(
     }
 
 
-def blocked_replacement_preview(
-    *,
-    season: str,
-    schedule: Mapping[str, Any],
-    decisions: Mapping[str, Any],
-    tournament_id: str,
-    remove_team_label: str,
-    add_team_label: str,
-    refusals: Sequence[Mapping[str, Any]],
-    request_id: str | None = None,
-) -> dict[str, Any]:
-    """Return the stable dry-run shape for a replacement that cannot be built.
-
-    Dry-run is an operational validation interface, not a mutation probe. Domain
-    infeasibility therefore reports a blocked verdict in the normal preview
-    contract instead of forcing callers to catch exceptions and parse messages.
-    Non-dry-run apply still raises and writes nothing.
-    """
-
-    before_revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
-    reasons = [str(item["message"]) for item in refusals]
-    details = {
-        "tournament_id": tournament_id,
-        "removed_team": {"label": remove_team_label},
-        "added_team": {"label": add_team_label},
-        "before_fingerprint": before_revision,
-        "candidate_revision": None,
-        "request_id": str(request_id or ""),
-        "can_apply_unchanged": False,
-        "refusal_reasons": reasons,
-        "refusals": [dict(item) for item in refusals],
-    }
-    return {
-        "season": season,
-        "dry_run": True,
-        "current_revision": schedule.get("revision"),
-        "current_fingerprint": schedule.get("fingerprint"),
-        "current_canonical_revision": canonical_state_revision(schedule, decisions),
-        "candidate_revision": None,
-        "candidate_fingerprint": None,
-        "verification_result": {"ok": False, "violations": []},
-        "change_cost": None,
-        "verdict": {
-            "status": "blocked",
-            "applicable": False,
-            "checks": {"candidate_constructed": False},
-            "blockers": reasons,
-        },
-        "replacement": details,
-    }
-
-
 def replacement_verdict(
     details: Mapping[str, Any],
     *,
@@ -357,7 +306,7 @@ def replace_participant(
         tournament,
     )
 
-    def blocked(refusals: list[dict[str, Any]]) -> dict[str, Any]:
+    def blocked(refusals: list[dict[str, Any]], verification_result: Mapping[str, Any] | None = None) -> dict[str, Any]:
         return blocked_replacement_preview(
             season=season,
             schedule=schedule,
@@ -367,6 +316,7 @@ def replace_participant(
             add_team_label=add_team_label,
             refusals=refusals,
             request_id=request_id,
+            verification_result=verification_result,
         )
     if resolved["participants_locked"]:
         refusal = participant_lock_refusal(
@@ -410,7 +360,7 @@ def replace_participant(
             return blocked(lock_violation_refusals(lock_violations))
         raise SeasonStateError(f"Refusing canonical participant replacement: {message}")
 
-    result = verify_canonical_candidate(plan, resolved_problem)
+    result = verify_single_operation_candidate(before_plan, plan, resolved_problem)
     if not result.get("ok", True):
         messages = "; ".join(
             str(v.get("message") or v.get("code"))
@@ -418,7 +368,7 @@ def replace_participant(
         )
         message = f"candidate fails hard verification: {messages}"
         if dry_run:
-            return blocked(verification_refusals(result.get("violations") or [], message))
+            return blocked(verification_refusals(result.get("violations") or [], message), result)
         raise SeasonStateError(f"Refusing canonical participant replacement: {message}")
 
     from tournament_scheduler.hosting.responsibility import (

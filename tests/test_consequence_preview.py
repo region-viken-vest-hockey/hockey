@@ -246,7 +246,7 @@ def test_removal_preview_reports_planned_consequences_for_affected_teams(tmp_pat
     assert echo["delta"]["planned"] == -2
 
 
-def test_single_operation_preview_does_not_claim_baseline_classification(tmp_path: Path) -> None:
+def test_single_operation_preview_classifies_findings_against_the_baseline(tmp_path: Path) -> None:
     root = tmp_path / "season"
     _write(root)
     service = CanonicalSeasonService(root=root)
@@ -262,12 +262,12 @@ def test_single_operation_preview_does_not_claim_baseline_classification(tmp_pat
     )
 
     findings = preview["findings"]
-    assert findings["basis"] is None
-    assert findings["classified"] is False
-    assert findings["acceptable"] is None
-    assert findings["blocking"] is None
-    assert all(count == 0 for count in findings["counts"].values())
-    assert all(entries == [] for entries in findings["buckets"].values())
+    assert findings["basis"] == "baseline_verification"
+    assert findings["classified"] is True
+    assert findings["acceptable"] is True
+    assert findings["blocking"] == []
+    classification = preview["details"]["verification_result"]["violation_classification"]
+    assert findings["buckets"] == {bucket: classification[bucket] for bucket in findings["buckets"]}
 
 
 def test_stale_expected_revision_is_refused_without_dry_run(tmp_path: Path) -> None:
