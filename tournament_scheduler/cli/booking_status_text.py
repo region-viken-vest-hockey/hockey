@@ -66,6 +66,14 @@ def format_host_club_booking_status(report: Mapping[str, Any]) -> str:
     for row in rows:
         lines.extend(_row_lines(row))
         lines.append("")
+    unmatched = [event for event in report.get("unmatched_calendar_events") or [] if isinstance(event, Mapping)]
+    lines.append(f"Calendar events with no matching tournament: {len(unmatched)}")
+    for event in unmatched:
+        lines.append(
+            f"  {event.get('date')} {event.get('start')}-{event.get('end')} "
+            f"{event.get('title') or '(untitled)'} ({event.get('availability')})"
+        )
+    lines.append("")
     counts = report.get("counts") or {}
     lines.append(
         f"Tournaments: {len(rows)} | needs attention: {counts.get('needs_attention', 0)} "

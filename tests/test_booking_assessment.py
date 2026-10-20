@@ -970,3 +970,34 @@ def test_interval_comparison_reports_date_shift_as_exact_minutes():
     assert earlier_and_shifted["end_delta_minutes"] == -(24 * 60) - 60
 
     assert interval_comparison(planned, {"date": "not-a-date", "start": "10:00", "end": "12:00"})["status"] == "not_comparable"
+
+
+def test_host_club_view_lists_calendar_events_no_tournament_claims(tmp_path):
+    """Unclaimed calendar events of the host club are shown (issue #719)."""
+    from tournament_scheduler.cli.booking_status_text import format_host_club_booking_status
+
+    root = _promote(
+        tmp_path,
+        [_tournament("asker-u10", date_str="2026-09-12", start="10:00", arena="Askerhallen", host="A")],
+    )
+    problem = _problem(
+        [
+            _event("2026-09-12", "13:00", "15:00", title="Miniputt U10", arena="Askerhallen"),
+            _event("2026-09-20", "18:00", "19:00", title="Lagtrening", club="A", arena="Askerhallen"),
+            _event("2026-09-21", "18:00", "19:00", title="Annet lag", club="B"),
+        ],
+        complete=True,
+    )
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem, host_club="A")
+    unmatched = report["unmatched_calendar_events"]
+
+    assert [(event["date"], event["title"]) for event in unmatched] == [("2026-09-20", "Lagtrening")]
+    assert set(unmatched[0]) == {"event_fingerprint", "date", "start", "end", "title", "availability"}
+    text = format_host_club_booking_status(report)
+    assert "Calendar events with no matching tournament: 1" in text
+    assert "2026-09-20 18:00-19:00 Lagtrening" in text
+    assert "Annet lag" not in text
+
+    whole_season = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assert "unmatched_calendar_events" not in whole_season
