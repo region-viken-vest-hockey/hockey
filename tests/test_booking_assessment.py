@@ -1022,3 +1022,38 @@ def test_host_club_view_lists_an_event_claimed_by_several_tournaments(tmp_path):
 
     reasons = [event["reason"] for event in report["unresolved_calendar_events"] if event["title"] == "Felles hall"]
     assert reasons == ["multiple_tournaments"]
+
+
+HOST_CLUB_JSON_KEYS = {
+    "canonical_state_revision",
+    "club_booking_sources",
+    "counts",
+    "host_club",
+    "manual_booking_queue",
+    "rejected_booking_evidence",
+    "season",
+    "tournaments",
+    "unresolved_calendar_events",
+}
+WHOLE_SEASON_JSON_KEYS = HOST_CLUB_JSON_KEYS - {"host_club", "unresolved_calendar_events"}
+HOST_CLUB_ROW_KEYS = {"tournament_id", "date", "age_group", "arena", "canonical_interval", "latest_observed_interval", "interval_comparison", "operational_state"}
+
+
+def test_host_club_booking_status_json_is_a_stable_api(tmp_path):
+    """The host-scoped JSON is a documented contract, not a reconstructed layout (issue #719)."""
+    root = _promote(
+        tmp_path,
+        [_tournament("asker-u10", date_str="2026-09-12", start="10:00", arena="Askerhallen", host="A")],
+    )
+    problem = _problem(
+        [_event("2026-09-12", "13:00", "15:00", title="Miniputt U10", arena="Askerhallen")],
+        complete=True,
+    )
+
+    scoped = booking_status_report(season="2026-2027", root=root, problem=problem, host_club="A")
+    whole = booking_status_report(season="2026-2027", root=root, problem=problem)
+
+    assert set(scoped) == HOST_CLUB_JSON_KEYS
+    assert set(whole) == WHOLE_SEASON_JSON_KEYS
+    assert HOST_CLUB_ROW_KEYS <= set(scoped["tournaments"][0])
+    assert scoped["host_club"] == "A"
