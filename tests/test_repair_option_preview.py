@@ -255,3 +255,22 @@ def test_repair_preview_lists_each_affected_team_with_its_planned_change(tmp_pat
         assert row["delta"]["planned"] == 1
     assert preview["consequences"]["basis"] == "planned_schedule"
     assert _state_bytes(root) == before
+
+
+def test_repair_team_consequences_keep_teams_of_a_tournament_the_repair_cancels() -> None:
+    from tournament_scheduler.application.canonical_season.repair_consequences import (
+        repair_team_consequences,
+    )
+
+    team = {"club": "Alfa", "label": "Alfa 1", "age_group": "U10"}
+    tournament = {"id": "t1", "date": "2026-10-03", "age_group": "U10", "teams": [team], "games": []}
+    before = {"tournaments": [dict(tournament)]}
+    after = {"tournaments": [{**tournament, "cancelled": True}]}
+
+    result = repair_team_consequences(before, after, None)
+
+    rows = list(result["participation_counts"].values())
+    assert len(rows) == 1
+    assert rows[0]["identity"]["club"] == "Alfa"
+    assert rows[0]["before"]["season"] == 1
+    assert rows[0]["after"]["season"] == 0

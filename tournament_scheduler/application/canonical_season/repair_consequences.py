@@ -71,8 +71,11 @@ def _affected_identities(
 
 
 def _tournaments_by_id(plan: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
+    # Cancelled records are kept: a repair that cancels or revives a tournament
+    # changes its teams' participation, and the counts helper already skips
+    # cancelled tournaments when it measures that participation.
     return {
         str(tournament["id"]): tournament
         for tournament in plan.get("tournaments", []) or []
-        if isinstance(tournament, Mapping) and not tournament.get("cancelled")
+        if isinstance(tournament, Mapping)
     }
