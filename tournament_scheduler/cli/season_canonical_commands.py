@@ -433,9 +433,9 @@ def _cmd_season_release_calendar_booking(args: argparse.Namespace) -> int:
 
 def _cmd_season_booking_status(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season booking-status`` — read-only booking status."""
-    from ..application.canonical_season.store_facade import booking_status_report
+    from .booking_status_text import print_booking_status
 
-    _emit_json(booking_status_report(season=args.season, root=args.root, host_club=args.host_club))
+    print_booking_status(args)
     return 0
 
 

@@ -21,6 +21,7 @@ BOOKING_MODULES = {
     "ice_resources",
     "interval_facts",
     "sandefjord_allocation",
+    "status_crosswalk",
 }
 
 FLAT_BOOKING_MODULES = set(BOOKING_MODULES)

@@ -63,9 +63,16 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
     season_booking_status.add_argument(
         "--host-club",
         default=None,
-        help="Limit the report to tournaments hosted by this club (case-insensitive), e.g. Holmen",
+        help=(
+            "Limit the report to tournaments hosted by this club (case-insensitive), e.g. Holmen; "
+            "prints a human-readable view with plan-vs-calendar intervals unless --json is given"
+        ),
     )
-    season_booking_status.add_argument("--json", action="store_true", help="Print structured JSON")
+    season_booking_status.add_argument(
+        "--json",
+        action="store_true",
+        help="Print structured JSON (the default unless --host-club is given)",
+    )
 
     season_participation_fairness = season_sub.add_parser(
         "participation-fairness",
