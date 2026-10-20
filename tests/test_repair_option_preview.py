@@ -207,3 +207,25 @@ def test_repair_preview_reports_writer_authorization_refusal_as_blocked(tmp_path
     assert preview["verdict"]["applicable"] is False
     assert any("does not change the schedule" in item for item in preview["verdict"]["blockers"])
     assert _state_bytes(root) == before
+
+
+def test_repair_preview_predicts_the_writer_outcome(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    report = _season_with_unplaced_obligation(root)
+    option_id = report["options"][0]["option_id"]
+
+    preview = preview_canonical_operation(
+        CanonicalSeasonService(root=root),
+        operation="repair",
+        season=YEAR,
+        expected_revision=report["revision"],
+        option_id=option_id,
+        finding_id=FINDING,
+    )
+    assert preview["verdict"]["status"] == STATUS_SAFE_TO_APPLY
+
+    applied = apply_repair(YEAR, option_id, report["revision"], root=root, finding_id=FINDING)
+
+    assert applied["ok"] is True, applied
+    assert applied["delta"]["changed_tournament_ids"] == preview["changed_tournament_ids"]
+    assert CanonicalSeasonService(root=root).load(YEAR).schedule["revision"] != report["revision"]
