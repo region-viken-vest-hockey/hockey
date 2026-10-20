@@ -69,3 +69,17 @@ def add_season_preview_parser(season_sub: argparse._SubParsersAction) -> None:
         help="Return exit code 3 unless the preview verdict is safe_to_apply",
     )
     season_preview.add_argument("--json", action="store_true", help="Print the normalized preview as JSON")
+
+    season_swap = season_sub.add_parser(
+        "swap-candidates",
+        help="Read-only, unranked participant-swap discovery over a bounded tournament scope (never writes)",
+    )
+    season_swap.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_swap.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_swap.add_argument(
+        "--tournament-ids",
+        nargs="+",
+        required=True,
+        help="Scoped tournament ids, 2 to 10; only same-age pairs inside this scope are evaluated",
+    )
+    season_swap.add_argument("--json", action="store_true", help="Print the discovery result as JSON")
