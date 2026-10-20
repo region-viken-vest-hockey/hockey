@@ -37,6 +37,10 @@ def unclassified_findings() -> dict[str, Any]:
     return {
         "basis": None,
         "classified": False,
+        # None means unset: no classifier verdict exists, which is not the same
+        # as an empty blocking list.
+        "acceptable": None,
+        "blocking": None,
         "counts": {bucket: 0 for bucket in FINDING_BUCKETS},
         "buckets": {bucket: [] for bucket in FINDING_BUCKETS},
     }
@@ -100,6 +104,10 @@ def build_findings(operation: str, details: Mapping[str, Any]) -> dict[str, Any]
     return {
         "basis": "baseline_verification",
         "classified": True,
+        # The classifier's own admission verdict and blocking list, passed
+        # through so callers never infer policy from bucket names.
+        "acceptable": bool(classification["acceptable"]),
+        "blocking": [dict(item) for item in classification.get("blocking") or []],
         "counts": {bucket: len(entries) for bucket, entries in buckets.items()},
         "buckets": buckets,
     }

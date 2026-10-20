@@ -264,6 +264,8 @@ def test_single_operation_preview_does_not_claim_baseline_classification(tmp_pat
     findings = preview["findings"]
     assert findings["basis"] is None
     assert findings["classified"] is False
+    assert findings["acceptable"] is None
+    assert findings["blocking"] is None
     assert all(count == 0 for count in findings["counts"].values())
     assert all(entries == [] for entries in findings["buckets"].values())
 

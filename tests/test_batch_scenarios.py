@@ -390,6 +390,9 @@ def test_batch_preview_classifies_findings_against_the_pre_batch_baseline(tmp_pa
     classification = blocked["details"]["verification_result"]["violation_classification"]
     for bucket, entries in findings["buckets"].items():
         assert entries == classification[bucket]
+    assert findings["acceptable"] is classification["acceptable"]
+    assert findings["blocking"] == classification["blocking"]
+    assert findings["acceptable"] == (not findings["blocking"])
 
 
 def test_cancel_and_slot_replacement_applies_only_the_reviewed_consequences(tmp_path: Path) -> None:
