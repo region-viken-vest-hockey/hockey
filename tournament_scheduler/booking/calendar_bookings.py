@@ -1611,7 +1611,7 @@ def booking_status_report(
         OPERATIONAL_UNKNOWN: 0,
     }
     assessment_by_tournament: dict[str, dict[str, Any]] = {}
-    unmatched_events: list[dict[str, Any]] = []
+    unresolved_events: list[dict[str, Any]] = []
     try:
         assessment = booking_assessment(
             problem=problem,
@@ -1624,7 +1624,13 @@ def booking_status_report(
             for row in assessment.get("tournaments") or []
             if isinstance(row, Mapping)
         }
-        unmatched_events = [dict(row) for row in assessment.get("events") or [] if isinstance(row, Mapping) and row.get("unmatched")]
+        # The same unresolved set the assessment itself reports: no tournament claims
+        # the event, or more than one does.
+        unresolved_events = [
+            dict(row)
+            for row in assessment.get("events") or []
+            if isinstance(row, Mapping) and (row.get("unmatched") or row.get("one_to_many"))
+        ]
     except Exception:  # noqa: BLE001 - advisory crosswalk failure must not hide persisted booking status.
         assessment_by_tournament = {}
     for tid, tournament in sorted(tournaments.items()):
@@ -1831,11 +1837,14 @@ def booking_status_report(
     }
     if host_key:
         report["host_club"] = host_club
-        # Calendar events for this club that no tournament of the season claims, so
-        # the host view shows what the calendar holds beyond the planned tournaments.
-        report["unmatched_calendar_events"] = [
-            {key: row.get(key) for key in ("event_fingerprint", "date", "start", "end", "title", "availability")}
-            for row in unmatched_events
+        # Calendar events of this club that the assessment leaves unresolved, so the
+        # host view shows every event not cleanly matched to one tournament.
+        report["unresolved_calendar_events"] = [
+            {
+                **{key: row.get(key) for key in ("event_fingerprint", "date", "start", "end", "title", "availability")},
+                "reason": "unmatched" if row.get("unmatched") else "multiple_tournaments",
+            }
+            for row in unresolved_events
             if _club_match_key(row.get("club")) == host_key
         ]
     return report
