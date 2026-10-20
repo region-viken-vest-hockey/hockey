@@ -77,6 +77,7 @@ def test_repair_preview_matches_dry_run_and_writes_nothing(tmp_path: Path) -> No
     assert preview["candidate_fingerprint"]
     assert preview["changed_tournament_ids"]
     assert preview["consequences"]["basis"] == "booked_reality"
+    assert preview["consequences"]["booked_evaluated"] is True
     assert preview["consequences"]["provisional"] is True
     assert preview["consequences"]["affected_teams"]
     assert _state_bytes(root) == before
@@ -382,3 +383,43 @@ def test_repair_booked_fairness_drops_a_manual_booking_the_repair_moves(tmp_path
         assert row["before_booked"] == 1
         assert row["after_booked"] == 0
         assert row["delta"] == -1
+
+
+def test_repair_consequences_do_not_fall_back_to_planned_rows_when_booked_is_unevaluated() -> None:
+    from tournament_scheduler.application.canonical_season.consequence_summary import build_consequences
+
+    details = {
+        "participation_counts": {
+            "k": {
+                "identity": {"club": "Alfa", "label": "Alfa 1", "age_group": "U10"},
+                "before": {"season": 0},
+                "after": {"season": 1},
+            }
+        },
+        "team_consequences": {},
+        "adoption": {"material_regressions": []},
+    }
+
+    consequences = build_consequences("repair", details)
+
+    assert consequences["basis"] == "planned_schedule"
+    assert consequences["booked_evaluated"] is False
+    assert consequences["provisional"] is True
+    assert consequences["affected_teams"] == []
+    assert [row["club"] for row in consequences["planned_affected_teams"]] == ["Alfa"]
+
+
+def test_repair_consequences_with_no_changed_teams_are_evaluated_and_empty(tmp_path: Path) -> None:
+    from tournament_scheduler.application.canonical_season.repair_consequences import repair_team_consequences
+    from tournament_scheduler.application.canonical_season.consequence_summary import build_consequences
+
+    plan = _team_plan([_team_tournament("t1", "2026-10-03", [{"club": "Alfa", "label": "Alfa 1", "age_group": "U10"}])])
+    result = repair_team_consequences(plan, plan, None)
+    consequences = build_consequences(
+        "repair",
+        {"participation_counts": {}, "team_consequences": {}, "booked_fairness": result["booked_fairness"], "adoption": {}},
+    )
+
+    assert consequences["basis"] == "booked_reality"
+    assert consequences["booked_evaluated"] is True
+    assert consequences["affected_teams"] == []

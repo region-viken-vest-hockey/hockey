@@ -33,7 +33,12 @@ def repair_team_consequences(
 
     identities = _affected_identities(before_plan, after_plan)
     if not identities:
-        return {"participation_counts": {}, "team_consequences": {}, "booked_fairness": None}
+        # Nothing changed, so the booked projection is evaluated and empty, not unavailable.
+        return {
+            "participation_counts": {},
+            "team_consequences": {},
+            "booked_fairness": {"basis": "booked_reality", "provisional": False, "impacted_teams": []},
+        }
     changed_ids = sorted(_changed_tournament_ids(before_plan, after_plan))
     return {
         "participation_counts": _affected_participation_counts(

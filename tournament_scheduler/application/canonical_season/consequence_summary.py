@@ -84,16 +84,16 @@ def build_consequences(operation: str, details: Mapping[str, Any]) -> dict[str, 
             for key, analysis in (details.get("team_consequences") or {}).items()
             for item in (analysis or {}).get("material_regressions") or []
         ]
-        # Booked reality is the primary basis when the owner computed it; the planned
-        # rows stay alongside, so a planned gain cannot pass for booked participation.
-        booked = fairness is not None
+        # Booked reality is the basis only when the owner evaluated it. If it was not
+        # evaluated, no planned row is promoted to affected teams and the result is
+        # provisional, so a planned gain cannot pass for booked participation.
+        booked = isinstance(fairness, Mapping)
         return {
             "basis": "booked_reality" if booked else "planned_schedule",
-            "provisional": bool(fairness.get("provisional", True)) if booked else None,
+            "booked_evaluated": booked,
+            "provisional": bool(fairness.get("provisional", True)) if booked else True,
             "affected_teams": (
-                [_booked_team_row(row) for row in fairness.get("impacted_teams") or []]
-                if booked
-                else planned_rows
+                [_booked_team_row(row) for row in fairness.get("impacted_teams") or []] if booked else []
             ),
             "planned_affected_teams": planned_rows,
             "material_regressions": [
