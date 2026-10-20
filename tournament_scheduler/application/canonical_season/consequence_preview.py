@@ -28,6 +28,7 @@ from .consequence_contract import (
     build_preview,
     stale_preview,
 )
+from .repair_consequences import repair_team_consequences
 
 SUPPORTED_OPERATIONS = ("replace", "swap", "move", "remove", "batch", "repair")
 
@@ -158,14 +159,19 @@ def _repair(
 ) -> dict[str, Any]:
     # The repair option is re-derived from the canonical plan by the repair
     # owner. Verification problem and request context are not inputs here.
-    from tournament_scheduler.repair.apply import apply_repair
-    from tournament_scheduler.season.maintenance_context import SeasonMaintenanceError
+    from tournament_scheduler.repair.apply import apply_repair, apply_repair_to_plan
+    from tournament_scheduler.repair.dispatch import DEFAULT_DIMENSIONS
+    from tournament_scheduler.repair.host_team_missing import search_dimensions_from_option_id
+    from tournament_scheduler.season.maintenance_context import (
+        SeasonMaintenanceError,
+        load_maintenance_context,
+    )
 
     options: dict[str, Any] = {}
     if dimensions:
         options["dimensions"] = tuple(dimensions)
     try:
-        return apply_repair(
+        result = apply_repair(
             season,
             option_id,
             expected_revision,
@@ -180,6 +186,27 @@ def _repair(
         )
     except SeasonMaintenanceError as exc:
         return {"ok": False, "reason": "unknown_or_stale_finding", "message": str(exc)}
+    # Reproduce the candidate the writer would build, so rejected repairs also
+    # report which teams they would move. Gates are not re-run here.
+    # The same maintenance context the writer loads, so the candidate matches.
+    schedule, decisions, plan, problem = load_maintenance_context(season, root=str(service.store.root))
+    recovered = search_dimensions_from_option_id(option_id)
+    try:
+        reproduction = apply_repair_to_plan(
+            plan,
+            problem,
+            option_id,
+            finding_id=finding_id,
+            dimensions=recovered or tuple(dimensions or DEFAULT_DIMENSIONS),
+            allow_manual_placement=allow_manual_placement,
+            allow_host_confirmation=allow_host_confirmation,
+            decisions=decisions,
+        )
+    except (SeasonMaintenanceError, SeasonStateError, KeyError, ValueError):
+        reproduction = {"ok": False}
+    if reproduction.get("ok") and isinstance(reproduction.get("candidate"), Mapping):
+        result.update(repair_team_consequences(plan, reproduction["candidate"], problem))
+    return result
 
 
 _DISPATCH: dict[str, Callable[..., dict[str, Any]]] = {
