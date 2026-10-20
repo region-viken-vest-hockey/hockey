@@ -99,7 +99,7 @@ Use `Refs #<n>` unless the PR fully delivers the issue, in which case use `Close
 
 Start with an initial check. Run `orca snapshot` on the current ChatGPT tab (or
 `orca tab list` to find one) and confirm the page is chatgpt.com and logged in: the
-sidebar shows the user's projects and the composer `textbox "Ask ChatGPT"` is present.
+sidebar shows the user's projects and a composer is present: `textbox "New chat in Hockey"` on the Hockey project page, or `textbox "Ask ChatGPT"` in an open chat. Creating a review or consult chat is covered in step 6 and must not start from the top-level page.
 If the page shows a login or sign-up screen, stop and ask the user to log in in Orca.
 Do not attempt to log in for them.
 
@@ -122,6 +122,7 @@ orca snapshot                  # TEST READ: the page is the Hockey project, the 
 
 Test read first. Before typing anything, the snapshot must show:
 - the heading or `button "Hockey"` of the Hockey project,
+- the page URL is the Hockey project (`https://chatgpt.com/g/g-p-6a6859a57a0881919c2f9a9266cec28c-hockey/...`, or the project page URL itself). A sidebar entry or heading named Hockey is not enough: confirm the URL from `orca tab list` before filling the composer,
 - the composer `textbox "New chat in Hockey" [ref=eN]` (or `textbox "Ask ChatGPT"` in an open chat in the project), and
 - no login or sign-up prompt, and no "Sign in" button in place of the composer.
 
@@ -133,7 +134,7 @@ the new chat's page id and title for step 10.
 If the snapshot shows a login page, a missing composer, or an error, stop and tell the user. Do not type the review request into a page that is not ready.
 
 ```bash
-orca snapshot                  # find the composer: textbox "Ask ChatGPT" [ref=eN]
+orca snapshot                  # find the composer: textbox "New chat in Hockey" [ref=eN] on the project page, or textbox "Ask ChatGPT" in an open project chat
 orca fill --element <composer-ref> --value "Use your GitHub connector to review pull request #<pr> in region-viken-vest-hockey/hockey. Focus on correctness bugs, preview/apply divergence, and weak tests. Rank findings by severity, give file and line, the failure scenario and your confidence. If there are no significant findings, say so plainly."
 orca snapshot                  # find button "Send" [ref=eM]
 orca click --element <send-ref>
