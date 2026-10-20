@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import copy
 from datetime import date
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable
 
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
 from tournament_scheduler.participation.team_schedule_quality import (
@@ -19,8 +19,10 @@ from tournament_scheduler.season.request_constraints import (
 )
 from tournament_scheduler.season.state import canonical_state_revision
 
-from .replacement import _apply_replace_participant_to_plan, replace_participant
+from .consequence_contract import blocked_preview, build_preview
+from .replacement import replace_participant
 from .replacement_refusals import ReplacementRefusal
+from .replacement_search_plan import find_tournament, substituted_plan
 from .replacement_search_pool import effective_spacing_delta
 from .replacement_search_evidence import (
     booked_projection,
@@ -34,42 +36,6 @@ from .replacement_search_evidence import (
     temporal_row,
 )
 from .shared import _resolve_plan_problem
-
-
-def _find_tournament(plan: Mapping[str, Any], tournament_id: str) -> dict[str, Any]:
-    tournament = next(
-        (
-            item
-            for item in plan.get("tournaments", []) or []
-            if str(item.get("id") or "") == tournament_id
-        ),
-        None,
-    )
-    if tournament is None:
-        raise SeasonStateError(
-            f"Unknown tournament id in canonical schedule: {tournament_id}"
-        )
-    if tournament.get("cancelled"):
-        raise SeasonStateError(f"Tournament {tournament_id} is cancelled")
-    return tournament
-
-
-def _candidate_plan(
-    plan: Mapping[str, Any],
-    problem: Mapping[str, Any],
-    tournament_id: str,
-    remove: str,
-    add: str,
-) -> dict[str, Any]:
-    candidate = copy.deepcopy(dict(plan))
-    _apply_replace_participant_to_plan(
-        candidate,
-        tournament_id=tournament_id,
-        remove_team_label=remove,
-        add_team_label=add,
-        problem=problem,
-    )
-    return candidate
 
 
 def search_participant_replacements(
@@ -88,7 +54,7 @@ def search_participant_replacements(
     snapshot = service.load(season)
     schedule, decisions = snapshot.schedule, snapshot.decisions
     plan = schedule.get("plan") or {}
-    tournament = _find_tournament(plan, tournament_id)
+    tournament = find_tournament(plan, tournament_id)
     age_group = str(tournament.get("age_group") or "")
     problem = _resolve_plan_problem(schedule, None, decisions)
     if not problem or not (problem.get("teams") or []):
@@ -132,6 +98,7 @@ def search_participant_replacements(
         )
 
     preferences_before = count_host_sibling_preference_violations(plan, decisions)
+    current_revision = canonical_state_revision(schedule, decisions)
     candidates: list[dict[str, Any]] = []
     for removed in removable:
         removed_identity = team_identity(removed, age_group)
@@ -146,11 +113,18 @@ def search_participant_replacements(
                     add_team_label=added_identity[1],
                     dry_run=True,
                 )
-                candidate_plan = _candidate_plan(
+                canonical = build_preview(
+                    "replace",
+                    season=season,
+                    current_revision=current_revision,
+                    changed_tournament_ids=[tournament_id],
+                    raw=preview,
+                )
+                candidate_plan = substituted_plan(
                     plan, problem, tournament_id, removed_identity[1], added_identity[1]
                 )
                 booked_after = (
-                    _candidate_plan(
+                    substituted_plan(
                         booked_before,
                         problem,
                         tournament_id,
@@ -160,11 +134,21 @@ def search_participant_replacements(
                     if target_is_booked
                     else copy.deepcopy(booked_before)
                 )
-            except ReplacementRefusal as exc:
+            except SeasonStateError as exc:
+                # Same refusal the direct replacement preview reports, so a
+                # refused candidate and a refused direct dry-run agree.
+                refusals = [exc.record()] if isinstance(exc, ReplacementRefusal) else []
                 preview = {
                     "verdict": {"status": "blocked", "applicable": False, "checks": {}, "blockers": [str(exc)]},
-                    "replacement": {"refusals": [exc.record()]},
+                    "replacement": {"refusals": refusals},
                 }
+                canonical = blocked_preview(
+                    "replace",
+                    season=season,
+                    current_revision=current_revision,
+                    changed_tournament_ids=[tournament_id],
+                    message=str(exc),
+                )
                 candidate_plan, booked_after = copy.deepcopy(plan), copy.deepcopy(booked_before)
 
             added_before = temporal_row(booked_before, problem, added_identity)
@@ -208,9 +192,10 @@ def search_participant_replacements(
                 ),
                 "remove_team": dict(zip(("club", "label", "age_group"), removed_identity)),
                 "add_team": dict(zip(("club", "label", "age_group"), added_identity)),
-                "verdict": preview["verdict"],
-                "safe_to_apply": bool(preview["verdict"].get("applicable")),
-                "blockers": list(preview["verdict"].get("blockers") or []),
+                "verdict": canonical["verdict"],
+                "safe_to_apply": bool(canonical["verdict"]["applicable"]),
+                "blockers": list(canonical["verdict"]["blockers"]),
+                "canonical_preview": {key: value for key, value in canonical.items() if key != "details"},
                 "refusals": [dict(item) for item in details.get("refusals") or []],
                 "booking_evidence": dict(booking_evidence),
                 "club_age_booked_participation": {
@@ -256,6 +241,10 @@ def search_participant_replacements(
             result["ranking_reason"] = ranking_reason(result)
             result["_rank_key"] = rank_key(result)
             candidates.append(result)
+
+    after = service.load(season)
+    if canonical_state_revision(after.schedule, after.decisions) != current_revision:
+        raise RuntimeError("Replacement candidate discovery changed canonical state; discovery must never write")
 
     candidates.sort(key=lambda item: item["_rank_key"])
     if legal_only:

@@ -23,7 +23,8 @@ from .replacement_comparison import (
     gate_reasons,
     pair_key,
 )
-from .replacement_search import _find_tournament, search_participant_replacements
+from .replacement_search import search_participant_replacements
+from .replacement_search_plan import find_tournament
 from .replacement_search_evidence import eligible_incoming
 from .shared import _resolve_plan_problem
 
@@ -55,7 +56,7 @@ def explain_replacement_ineligibility(
     snapshot = service.load(season)
     schedule, decisions = snapshot.schedule, snapshot.decisions
     plan = schedule.get("plan") or {}
-    tournament = _find_tournament(plan, tournament_id)
+    tournament = find_tournament(plan, tournament_id)
     age_group = str(tournament.get("age_group") or "")
     problem = _resolve_plan_problem(schedule, None, decisions)
     registered = [
