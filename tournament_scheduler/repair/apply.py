@@ -297,6 +297,19 @@ def apply_repair(
             delta=preview,
         )
     preview["adoption"] = adoption
+    # Re-derive the allowed affected ids and exact after-state from the current
+    # canonical plan; the dry-run runs the same gate so previews refuse what the
+    # writer would. The caller cannot widen scope or substitute a candidate.
+    scoped_authorization = authorize_bounded_repair(
+        schedule=schedule,
+        decisions=decisions,
+        candidate=result_candidate,
+        option_id=option_id,
+        finding_id=finding_id,
+        dimensions=resolved_dimensions,
+        allow_manual_placement=allow_manual_placement,
+        allow_host_confirmation=allow_host_confirmation,
+    )
     if dry_run:
         return {
             "season": season,
@@ -312,19 +325,6 @@ def apply_repair(
             "adoption": adoption,
         }
 
-    # Re-derive the allowed affected ids and the exact after-state by
-    # reproducing the bounded repair from the current canonical plan. The
-    # caller cannot widen the scope or substitute a different candidate.
-    scoped_authorization = authorize_bounded_repair(
-        schedule=schedule,
-        decisions=decisions,
-        candidate=result_candidate,
-        option_id=option_id,
-        finding_id=finding_id,
-        dimensions=resolved_dimensions,
-        allow_manual_placement=allow_manual_placement,
-        allow_host_confirmation=allow_host_confirmation,
-    )
     changed_tournament_ids = list(scoped_authorization.affected_tournament_ids)
     updated_schedule, updated_decisions, cost = apply_candidate(
         season=season,

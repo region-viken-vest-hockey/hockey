@@ -178,3 +178,32 @@ def test_season_preview_cli_reports_repair_verdict_without_writing(tmp_path: Pat
     assert result["operation"] == "repair"
     assert result["verdict"]["status"] == STATUS_SAFE_TO_APPLY
     assert _state_bytes(root) == before
+
+
+def test_repair_preview_reports_writer_authorization_refusal_as_blocked(tmp_path: Path, monkeypatch) -> None:
+    from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
+    import tournament_scheduler.repair.apply as repair_apply
+
+    root = tmp_path / "season"
+    report = _season_with_unplaced_obligation(root)
+    option_id = report["options"][0]["option_id"]
+    before = _state_bytes(root)
+
+    def refuse(**_kwargs):
+        raise SeasonStateError("Refusing bounded repair: the operation does not change the schedule")
+
+    monkeypatch.setattr(repair_apply, "authorize_bounded_repair", refuse)
+
+    preview = preview_canonical_operation(
+        CanonicalSeasonService(root=root),
+        operation="repair",
+        season=YEAR,
+        expected_revision=report["revision"],
+        option_id=option_id,
+        finding_id=FINDING,
+    )
+
+    assert preview["verdict"]["status"] == STATUS_BLOCKED
+    assert preview["verdict"]["applicable"] is False
+    assert any("does not change the schedule" in item for item in preview["verdict"]["blockers"])
+    assert _state_bytes(root) == before
