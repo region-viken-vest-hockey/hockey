@@ -76,9 +76,8 @@ def test_repair_preview_matches_dry_run_and_writes_nothing(tmp_path: Path) -> No
     assert preview["verdict"]["checks"]["consequences_acceptable"] is True
     assert preview["candidate_fingerprint"]
     assert preview["changed_tournament_ids"]
-    # Consequences are season-wide for a repair; no per-team rows are invented.
     assert preview["consequences"]["basis"] == "planned_schedule"
-    assert preview["consequences"]["affected_teams"] == []
+    assert preview["consequences"]["affected_teams"]
     assert _state_bytes(root) == before
 
 
@@ -229,3 +228,30 @@ def test_repair_preview_predicts_the_writer_outcome(tmp_path: Path) -> None:
     assert applied["ok"] is True, applied
     assert applied["delta"]["changed_tournament_ids"] == preview["changed_tournament_ids"]
     assert CanonicalSeasonService(root=root).load(YEAR).schedule["revision"] != report["revision"]
+
+
+def test_repair_preview_lists_each_affected_team_with_its_planned_change(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    report = _season_with_unplaced_obligation(root)
+    option_id = report["options"][0]["option_id"]
+    before = _state_bytes(root)
+
+    preview = preview_canonical_operation(
+        CanonicalSeasonService(root=root),
+        operation="repair",
+        season=YEAR,
+        expected_revision=report["revision"],
+        option_id=option_id,
+        finding_id=FINDING,
+    )
+
+    assert preview["verdict"]["status"] == STATUS_SAFE_TO_APPLY
+    rows = preview["consequences"]["affected_teams"]
+    # The materialized tournament hosts Sorby with Nordby: both rostered clubs gain one game.
+    assert {row["club"] for row in rows} == {"Nordby", "Sorby"}
+    for row in rows:
+        assert row["before"]["planned"] == 0
+        assert row["after"]["planned"] == 1
+        assert row["delta"]["planned"] == 1
+    assert preview["consequences"]["basis"] == "planned_schedule"
+    assert _state_bytes(root) == before

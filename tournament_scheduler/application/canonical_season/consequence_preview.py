@@ -28,6 +28,7 @@ from .consequence_contract import (
     build_preview,
     stale_preview,
 )
+from .repair_consequences import repair_team_consequences
 
 SUPPORTED_OPERATIONS = ("replace", "swap", "move", "remove", "batch", "repair")
 
@@ -165,7 +166,7 @@ def _repair(
     if dimensions:
         options["dimensions"] = tuple(dimensions)
     try:
-        return apply_repair(
+        result = apply_repair(
             season,
             option_id,
             expected_revision,
@@ -180,6 +181,12 @@ def _repair(
         )
     except SeasonMaintenanceError as exc:
         return {"ok": False, "reason": "unknown_or_stale_finding", "message": str(exc)}
+    candidate_plan = result.pop("candidate_plan", None)
+    if candidate_plan is not None:
+        snapshot = service.load(season)
+        problem = (snapshot.schedule.get("verification_context") or {}).get("problem")
+        result.update(repair_team_consequences(snapshot.schedule["plan"], candidate_plan, problem))
+    return result
 
 
 _DISPATCH: dict[str, Callable[..., dict[str, Any]]] = {

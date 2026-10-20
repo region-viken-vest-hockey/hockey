@@ -70,17 +70,27 @@ def build_consequences(operation: str, details: Mapping[str, Any]) -> dict[str, 
         }
 
     if operation == "repair":
-        # A repair dry-run measures the whole season through the adoption guard,
-        # not per team, so it reports season-wide material regressions only.
+        # Affected teams are the teams in the tournaments the repair changes, each
+        # compared before and after. Season-wide adoption regressions are listed
+        # separately, so an aggregate gain cannot hide a per-team regression.
         adoption = details.get("adoption") or {}
+        team_regressions = [
+            {"role": key, **dict(item)}
+            for key, analysis in (details.get("team_consequences") or {}).items()
+            for item in (analysis or {}).get("material_regressions") or []
+        ]
         return {
             "basis": "planned_schedule",
             "provisional": None,
-            "affected_teams": [],
+            "affected_teams": [
+                _planned_team_row(entry)
+                for entry in (details.get("participation_counts") or {}).values()
+            ],
             "material_regressions": [
                 {"role": "season", **dict(item)}
                 for item in adoption.get("material_regressions") or []
-            ],
+            ]
+            + team_regressions,
         }
 
     regressions = [
