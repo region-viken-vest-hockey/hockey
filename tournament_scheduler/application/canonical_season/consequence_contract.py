@@ -36,6 +36,9 @@ def build_preview(
         verdict = _batch_verdict(raw)
         changed_ids = sorted(str(item) for item in raw.get("changed_tournament_ids") or changed_ids)
         reviewed_token = raw.get("reviewed_token")
+    elif operation == "repair":
+        verdict = _repair_verdict(raw, details)
+        changed_ids = sorted(str(item) for item in (raw.get("delta") or {}).get("changed_tournament_ids") or [])
     else:
         verdict = _gate_verdict(details, raw)
     envelope = _envelope(
@@ -109,10 +112,40 @@ def _batch_verdict(raw: Mapping[str, Any]) -> dict[str, Any]:
 def _operation_details(operation: str, raw: Mapping[str, Any]) -> dict[str, Any]:
     if operation == "batch":
         return dict(raw)
+    if operation == "repair":
+        return _repair_details(raw)
     if operation == "move":
         return dict((raw.get("move_preview") or {}))
     key = {"replace": "replacement", "swap": "swap", "remove": "removal"}[operation]
     return dict(raw.get(key) or {})
+
+
+def _repair_details(raw: Mapping[str, Any]) -> dict[str, Any]:
+    # Gate fields come from the repair dry-run as the repair owner computed them.
+    # A field the dry-run did not reach stays absent, so it reads as not evaluated.
+    details: dict[str, Any] = {"delta": dict(raw.get("delta") or {})}
+    if isinstance(raw.get("verification"), Mapping):
+        details["verification_result"] = dict(raw["verification"])
+    if isinstance(raw.get("operational_acceptability"), Mapping):
+        details["operational_acceptability"] = dict(raw["operational_acceptability"])
+    if raw.get("ok") or raw.get("reason") == "request_constraint_violation":
+        # Request constraints are checked before the dry-run can succeed.
+        details["request_constraint_acceptable"] = bool(raw.get("ok"))
+    adoption = raw.get("adoption")
+    if isinstance(adoption, Mapping):
+        details["adoption"] = dict(adoption)
+        details["candidate_fingerprint"] = adoption.get("candidate_fingerprint")
+    return details
+
+
+def _repair_verdict(raw: Mapping[str, Any], details: Mapping[str, Any]) -> dict[str, Any]:
+    if not raw.get("ok"):
+        # A rejected repair names its reason; gate fields may be partial.
+        reason = str(raw.get("reason") or "repair_rejected")
+        message = raw.get("message")
+        blockers = [reason] + ([str(message)] if message else [])
+        return _verdict(STATUS_BLOCKED, blockers)
+    return _gate_verdict(details, raw)
 
 
 def _candidate_fingerprint(raw: Mapping[str, Any], details: Mapping[str, Any]) -> str | None:
@@ -121,6 +154,7 @@ def _candidate_fingerprint(raw: Mapping[str, Any], details: Mapping[str, Any]) -
         raw.get("candidate_revision"),
         raw.get("candidate_schedule_revision"),
         details.get("after_fingerprint"),
+        details.get("candidate_fingerprint"),
     ):
         if value:
             return str(value)

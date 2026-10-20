@@ -69,6 +69,20 @@ def build_consequences(operation: str, details: Mapping[str, Any]) -> dict[str, 
             "material_regressions": [dict(item) for item in review.get("consequences") or []],
         }
 
+    if operation == "repair":
+        # A repair dry-run measures the whole season through the adoption guard,
+        # not per team, so it reports season-wide material regressions only.
+        adoption = details.get("adoption") or {}
+        return {
+            "basis": "planned_schedule",
+            "provisional": None,
+            "affected_teams": [],
+            "material_regressions": [
+                {"role": "season", **dict(item)}
+                for item in adoption.get("material_regressions") or []
+            ],
+        }
+
     regressions = [
         {"role": role, **dict(item)}
         for role, analysis in (details.get("team_consequences") or {}).items()

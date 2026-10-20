@@ -45,6 +45,17 @@ def _preview_arguments(args: argparse.Namespace) -> dict:
             "allow_manual_placement": args.allow_manual_placement,
             "allow_host_confirmation": args.allow_host_confirmation,
         }
+    elif args.operation == "repair":
+        if not args.option_id:
+            raise ValueError("repair preview needs --option-id")
+        scoped = {
+            "option_id": args.option_id,
+            "finding_id": args.finding,
+            "allow_manual_placement": args.allow_manual_placement,
+            "allow_host_confirmation": args.allow_host_confirmation,
+            "accept_regressions": args.accept_team_regressions or (),
+            "regression_reason": args.accept_regression_reason,
+        }
     elif args.operation == "batch":
         if not args.operations_file:
             raise ValueError("batch preview needs --operations-file")

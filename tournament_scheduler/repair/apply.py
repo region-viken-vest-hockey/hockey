@@ -307,10 +307,10 @@ def apply_repair(
             "option_id": option_id,
             "finding": resolved_finding,
             "delta": preview,
+            "verification": verification,
             "operational_acceptability": acceptability,
             "adoption": adoption,
         }
-
 
     # Re-derive the allowed affected ids and the exact after-state by
     # reproducing the bounded repair from the current canonical plan. The
