@@ -25,12 +25,12 @@ from typing import Any, Callable
 
 import pytest
 
+from tournament_scheduler.application.canonical_season.store_facade import promote_from_stage3
 from tournament_scheduler.application.canonical_season.consequence_preview import (
     STATUS_BLOCKED,
     STATUS_SAFE_TO_APPLY,
     preview_canonical_operation,
 )
-from tournament_scheduler.application.canonical_season.store_facade import promote_from_stage3
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
 from tournament_scheduler.infrastructure.canonical_season_store import (
     DECISIONS_SCHEMA_VERSION,
@@ -214,6 +214,55 @@ OPERATIONS: dict[str, dict[str, Any]] = {
 }
 
 
+def _sibling_season(tmp_path: Path) -> Path:
+    """Promote the sibling-rebalance season where a replacement passes every gate.
+
+    Mirrors the frisk-asker replacement fixture in test_season_state.py: swapping
+    Frisk Asker 4 for Frisk Asker 3 rebalances U11 siblings before Christmas.
+    """
+
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    state = PipelineState(work_dir)
+
+    def team(label: str, club: str | None = None) -> dict:
+        return {"club": club or label.split()[0], "label": label, "age_group": "U11"}
+
+    candidate = {
+        "schema_version": 1,
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "tournaments": [],
+    }
+    fixtures = [
+        ("kongsberg-20261018", "2026-10-18", "Kongsberg", ["Kongsberg 1", "Frisk Asker 4", "Jar 1", "Jutul 1"]),
+        ("jutul-20261114", "2026-11-14", "Jutul", ["Jutul 1", "Frisk Asker 4", "Jar 1", "Kongsberg 1"]),
+        ("fa4-extra-1", "2026-12-05", "Jar", ["Jar 1", "Frisk Asker 4", "Kongsberg 1", "Jutul 1"]),
+        ("fa4-extra-2", "2026-09-06", "Kongsberg", ["Kongsberg 1", "Frisk Asker 4", "Jar 1", "Jutul 1"]),
+        ("fa4-extra-3", "2026-10-04", "Jutul", ["Jutul 1", "Frisk Asker 4", "Jar 1", "Kongsberg 1"]),
+        ("fa4-extra-4", "2026-11-29", "Jar", ["Jar 1", "Frisk Asker 4", "Kongsberg 1", "Jutul 1"]),
+        ("fa3-current-1", "2026-09-20", "Jar", ["Jar 2", "Frisk Asker 3", "Holmen 1", "Ringerike 1"]),
+        ("fa3-current-2", "2026-12-13", "Jutul", ["Jutul 2", "Frisk Asker 3", "Ski 1", "Skien 1"]),
+    ]
+    for tid, tournament_date, host, labels in fixtures:
+        candidate["tournaments"].append(
+            {
+                "id": tid,
+                "date": tournament_date,
+                "arena": f"{host} Arena",
+                "age_group": "U11",
+                "host_club": host,
+                "teams": [team(label, "Frisk Asker" if label.startswith("Frisk") else label.split()[0]) for label in labels],
+                "games": [],
+                "start_time": "10:00",
+            }
+        )
+    state.write_stage(StageName.PLANNING, {"plan": candidate}, status=StageStatus.DONE)
+    write_reviewed_stage4_export(state)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    return root
+
+
 def _season_for(tmp_path: Path, operation: str) -> Path:
     if OPERATIONS[operation]["season"] == "pipeline":
         return _pipeline_season(tmp_path)
@@ -354,6 +403,33 @@ def test_clean_state_is_safe_to_apply_and_the_writer_applies(tmp_path: Path, deb
     assert findings["basis"] == "baseline_verification"
     assert findings["acceptable"] is True
     assert findings["blocking"] == []
+
+
+def test_clean_replace_is_safe_and_the_writer_applies(tmp_path: Path, debt) -> None:
+    # The sibling season passes every gate, so this is the clean replace case the
+    # four-team fixture cannot reach: the preview must say safe and the write applies.
+    debt(None)
+    root = _sibling_season(tmp_path)
+    service = CanonicalSeasonService(root=root)
+    arguments = {
+        "tournament_id": "kongsberg-20261018",
+        "remove_team_label": "Frisk Asker 4",
+        "add_team_label": "Frisk Asker 3",
+    }
+
+    preview = preview_canonical_operation(
+        service, operation="replace", season=SEASON, actor="tester", request_id="clean-replace", **arguments
+    )
+
+    assert preview["verdict"]["status"] == STATUS_SAFE_TO_APPLY
+    assert preview["findings"]["classified"] is True
+    assert preview["findings"]["acceptable"] is True
+    service.replace_participant(season=SEASON, actor="tester", request_id="clean-replace", **arguments)
+    tournament = next(
+        item for item in service.load(SEASON).schedule["plan"]["tournaments"] if item["id"] == "kongsberg-20261018"
+    )
+    labels = {team["label"] for team in tournament["teams"]}
+    assert "Frisk Asker 3" in labels and "Frisk Asker 4" not in labels
 
 
 @pytest.mark.parametrize("operation", list(OPERATIONS))
