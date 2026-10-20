@@ -162,7 +162,10 @@ def _repair(
     from tournament_scheduler.repair.apply import apply_repair, apply_repair_to_plan
     from tournament_scheduler.repair.dispatch import DEFAULT_DIMENSIONS
     from tournament_scheduler.repair.host_team_missing import search_dimensions_from_option_id
-    from tournament_scheduler.season.maintenance_context import SeasonMaintenanceError
+    from tournament_scheduler.season.maintenance_context import (
+        SeasonMaintenanceError,
+        load_maintenance_context,
+    )
 
     options: dict[str, Any] = {}
     if dimensions:
@@ -185,23 +188,24 @@ def _repair(
         return {"ok": False, "reason": "unknown_or_stale_finding", "message": str(exc)}
     # Reproduce the candidate the writer would build, so rejected repairs also
     # report which teams they would move. Gates are not re-run here.
-    snapshot = service.load(season)
-    problem = (snapshot.schedule.get("verification_context") or {}).get("problem")
+    # The same maintenance context the writer loads, so the candidate matches.
+    schedule, decisions, plan, problem = load_maintenance_context(season, root=str(service.store.root))
     recovered = search_dimensions_from_option_id(option_id)
-    reproduction = apply_repair_to_plan(
-        snapshot.schedule["plan"],
-        problem or {},
-        option_id,
-        finding_id=finding_id,
-        dimensions=recovered or tuple(dimensions or DEFAULT_DIMENSIONS),
-        allow_manual_placement=allow_manual_placement,
-        allow_host_confirmation=allow_host_confirmation,
-        decisions=snapshot.decisions,
-    )
-    if reproduction.get("ok") and isinstance(reproduction.get("candidate"), Mapping):
-        result.update(
-            repair_team_consequences(snapshot.schedule["plan"], reproduction["candidate"], problem)
+    try:
+        reproduction = apply_repair_to_plan(
+            plan,
+            problem,
+            option_id,
+            finding_id=finding_id,
+            dimensions=recovered or tuple(dimensions or DEFAULT_DIMENSIONS),
+            allow_manual_placement=allow_manual_placement,
+            allow_host_confirmation=allow_host_confirmation,
+            decisions=decisions,
         )
+    except (SeasonMaintenanceError, SeasonStateError, KeyError, ValueError):
+        reproduction = {"ok": False}
+    if reproduction.get("ok") and isinstance(reproduction.get("candidate"), Mapping):
+        result.update(repair_team_consequences(plan, reproduction["candidate"], problem))
     return result
 
 
