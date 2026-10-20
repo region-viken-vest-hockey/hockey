@@ -71,3 +71,21 @@ def test_candidate_preview_is_bound_to_the_discovery_revision_and_writes_nothing
         assert preview["changed_tournament_ids"] == ["t1"]
         assert "details" not in preview
         assert preview["candidate_fingerprint"] is not None or preview["verdict"]["status"] == "blocked"
+
+
+def test_applicable_candidate_applies_and_changes_the_schedule(tmp_path: Path) -> None:
+    root = _promote_replacement_ranking_fixture(tmp_path)
+    revision = load_schedule(SEASON, root=root)["revision"]
+    result = search_participant_replacements(_service(root), season=SEASON, tournament_id="t1")
+    applicable = [c for c in result["candidates"] if c["safe_to_apply"]]
+    assert applicable, "fixture must offer at least one applicable candidate"
+    candidate = applicable[0]
+
+    _service(root).replace_participant(
+        season=SEASON,
+        tournament_id="t1",
+        remove_team_label=candidate["remove_team"]["label"],
+        add_team_label=candidate["add_team"]["label"],
+    )
+
+    assert load_schedule(SEASON, root=root)["revision"] != revision
