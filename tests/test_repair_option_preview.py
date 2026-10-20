@@ -76,7 +76,9 @@ def test_repair_preview_matches_dry_run_and_writes_nothing(tmp_path: Path) -> No
     assert preview["verdict"]["checks"]["consequences_acceptable"] is True
     assert preview["candidate_fingerprint"]
     assert preview["changed_tournament_ids"]
-    assert preview["consequences"]["basis"] == "planned_schedule"
+    assert preview["consequences"]["basis"] == "booked_reality"
+    assert preview["consequences"]["booked_evaluated"] is True
+    assert preview["consequences"]["provisional"] is True
     assert preview["consequences"]["affected_teams"]
     assert _state_bytes(root) == before
 
@@ -246,14 +248,21 @@ def test_repair_preview_lists_each_affected_team_with_its_planned_change(tmp_pat
     )
 
     assert preview["verdict"]["status"] == STATUS_SAFE_TO_APPLY
-    rows = preview["consequences"]["affected_teams"]
+    planned = preview["consequences"]["planned_affected_teams"]
     # The materialized tournament hosts Sorby with Nordby: both rostered clubs gain one game.
-    assert {row["club"] for row in rows} == {"Nordby", "Sorby"}
-    for row in rows:
+    assert {row["club"] for row in planned} == {"Nordby", "Sorby"}
+    for row in planned:
         assert row["before"]["planned"] == 0
         assert row["after"]["planned"] == 1
         assert row["delta"]["planned"] == 1
-    assert preview["consequences"]["basis"] == "planned_schedule"
+    # The same teams in booked terms: nothing is booked yet, and the fairness is provisional.
+    booked = preview["consequences"]["affected_teams"]
+    assert {row["club"] for row in booked} == {"Nordby", "Sorby"}
+    for row in booked:
+        assert row["before"]["booked"] == 0
+        assert row["after"]["booked"] == 0
+        assert row["provisional"] is True
+    assert preview["consequences"]["basis"] == "booked_reality"
     assert _state_bytes(root) == before
 
 
@@ -322,3 +331,95 @@ def test_repair_team_consequences_report_an_individual_team_regression() -> None
     assert any(
         item["role"] == alfa_key and item["code"] == "more_gaps_under_7_days" for item in surfaced
     )
+
+
+def test_repair_booked_fairness_drops_a_manual_booking_the_repair_moves(tmp_path: Path) -> None:
+    from datetime import date as _date
+
+    from tournament_scheduler.application.canonical_season.repair_consequences import (
+        repair_team_consequences,
+    )
+    from tournament_scheduler.booking.calendar_bookings import new_manual_assertion_record
+    from tests.test_unplaced_placement_repair import _problem as _repair_problem, _teams
+
+    teams = _teams(["Nordby", "Sorby"])
+    problem = _repair_problem(teams, start=_date(2026, 10, 1), end=_date(2026, 10, 31))
+
+    def tournament(day: str) -> dict:
+        return {
+            "id": "t1",
+            "date": day,
+            "age_group": "U10",
+            "host_club": "Sorby",
+            "arena": "Sorby Arena",
+            "start_time": "10:00",
+            "teams": teams,
+            "games": [],
+        }
+
+    before = _team_plan([tournament("2026-10-03")])
+    after = _team_plan([tournament("2026-10-10")])
+    # The club confirmed the 3 October slot; a repair that moves it to 10 October
+    # must not carry that confirmation along.
+    record = new_manual_assertion_record(
+        tournament=before["tournaments"][0],
+        booking_status="booked",
+        problem=problem,
+        actor="tester",
+        note="club confirmed by email",
+        reference="email-2026-10-01",
+        source_scope="tournament",
+        stated_interval=None,
+        asserted_at="2026-10-01T00:00:00+00:00",
+        source_revision="rev-test",
+    )
+    decisions = {"manual_booking_assertions": [record], "decisions": {}, "history": []}
+
+    result = repair_team_consequences(before, after, problem, decisions)
+
+    rows = result["booked_fairness"]["impacted_teams"]
+    assert {row["club"] for row in rows} == {"Nordby", "Sorby"}
+    for row in rows:
+        assert row["before_booked"] == 1
+        assert row["after_booked"] == 0
+        assert row["delta"] == -1
+
+
+def test_repair_consequences_do_not_fall_back_to_planned_rows_when_booked_is_unevaluated() -> None:
+    from tournament_scheduler.application.canonical_season.consequence_summary import build_consequences
+
+    details = {
+        "participation_counts": {
+            "k": {
+                "identity": {"club": "Alfa", "label": "Alfa 1", "age_group": "U10"},
+                "before": {"season": 0},
+                "after": {"season": 1},
+            }
+        },
+        "team_consequences": {},
+        "adoption": {"material_regressions": []},
+    }
+
+    consequences = build_consequences("repair", details)
+
+    assert consequences["basis"] == "planned_schedule"
+    assert consequences["booked_evaluated"] is False
+    assert consequences["provisional"] is True
+    assert consequences["affected_teams"] == []
+    assert [row["club"] for row in consequences["planned_affected_teams"]] == ["Alfa"]
+
+
+def test_repair_consequences_with_no_changed_teams_are_evaluated_and_empty(tmp_path: Path) -> None:
+    from tournament_scheduler.application.canonical_season.repair_consequences import repair_team_consequences
+    from tournament_scheduler.application.canonical_season.consequence_summary import build_consequences
+
+    plan = _team_plan([_team_tournament("t1", "2026-10-03", [{"club": "Alfa", "label": "Alfa 1", "age_group": "U10"}])])
+    result = repair_team_consequences(plan, plan, None)
+    consequences = build_consequences(
+        "repair",
+        {"participation_counts": {}, "team_consequences": {}, "booked_fairness": result["booked_fairness"], "adoption": {}},
+    )
+
+    assert consequences["basis"] == "booked_reality"
+    assert consequences["booked_evaluated"] is True
+    assert consequences["affected_teams"] == []

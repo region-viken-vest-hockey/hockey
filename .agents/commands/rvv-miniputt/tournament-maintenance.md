@@ -62,7 +62,7 @@ rvv-miniputt season preview --season 2026-2027 --operation repair \
   --expected-revision <reviewed-revision> --fail-on-blocked --json
 ```
 
-Its `consequences` block is `planned_schedule` with season-wide `material_regressions` from the adoption guard; it lists no per-team rows. Apply the option with `season apply-repair` against the same revision.
+Its `consequences` block has basis `booked_reality`: `affected_teams` lists every team in a tournament the repair changes, with booked participation before and after, half-season counts and unconfirmed participations, and `provisional` is true when booking coverage is incomplete. `planned_affected_teams` gives the planned-schedule counts for the same teams. `material_regressions` carries the season-wide adoption regressions and each affected team's own regressions. Apply the option with `season apply-repair` against the same revision.
 
 ## Team retirement / season-age withdrawal
 Before treating a season/age-group withdrawal as roster removals, determine whether the withdrawing team or club owns any future hosting obligations in that age group. A genuine team retirement is not equivalent to `remove-participant` and must not leave an active home tournament behind with only visiting teams.

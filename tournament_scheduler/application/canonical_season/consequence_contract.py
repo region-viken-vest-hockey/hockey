@@ -124,7 +124,7 @@ def _repair_details(raw: Mapping[str, Any]) -> dict[str, Any]:
     # Gate fields come from the repair dry-run as the repair owner computed them.
     # A field the dry-run did not reach stays absent, so it reads as not evaluated.
     details: dict[str, Any] = {"delta": dict(raw.get("delta") or {})}
-    for key in ("participation_counts", "team_consequences"):
+    for key in ("participation_counts", "team_consequences", "booked_fairness"):
         if key in raw:
             details[key] = raw[key]
     if isinstance(raw.get("verification"), Mapping):
