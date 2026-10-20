@@ -14,6 +14,7 @@ from typing import Any, Mapping
 
 from tournament_scheduler.participation.team_schedule_quality import compare_team_schedule_consequence
 
+from .booked_fairness import impacted_booked_fairness
 from .replacement import _affected_participation_counts
 
 
@@ -21,12 +22,19 @@ def repair_team_consequences(
     before_plan: Mapping[str, Any],
     after_plan: Mapping[str, Any],
     problem: Mapping[str, Any] | None,
+    decisions: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Return ``participation_counts`` and ``team_consequences`` for the changed teams."""
+    """Return planned and booked consequences for the teams a repair changes.
+
+    ``booked_fairness`` is the batch owner's booked-reality projection, run against
+    the before and after plans with the same canonical decisions. A repair that
+    moves a confirmed tournament therefore stops counting it as booked.
+    """
 
     identities = _affected_identities(before_plan, after_plan)
     if not identities:
-        return {"participation_counts": {}, "team_consequences": {}}
+        return {"participation_counts": {}, "team_consequences": {}, "booked_fairness": None}
+    changed_ids = sorted(_changed_tournament_ids(before_plan, after_plan))
     return {
         "participation_counts": _affected_participation_counts(
             before_plan, after_plan, tuple(identities), problem
@@ -37,6 +45,24 @@ def repair_team_consequences(
             )
             for identity in identities
         },
+        "booked_fairness": impacted_booked_fairness(
+            before_plan=before_plan,
+            candidate_plan=after_plan,
+            before_decisions=decisions,
+            after_decisions=decisions,
+            problem=problem,
+            changed_ids=changed_ids,
+        ),
+    }
+
+
+def _changed_tournament_ids(before_plan: Mapping[str, Any], after_plan: Mapping[str, Any]) -> set[str]:
+    before = _tournaments_by_id(before_plan)
+    after = _tournaments_by_id(after_plan)
+    return {
+        tournament_id
+        for tournament_id in set(before) | set(after)
+        if before.get(tournament_id) != after.get(tournament_id)
     }
 
 
@@ -45,13 +71,8 @@ def _affected_identities(
 ) -> list[tuple[str, str, str]]:
     before = _tournaments_by_id(before_plan)
     after = _tournaments_by_id(after_plan)
-    changed_ids = {
-        tournament_id
-        for tournament_id in set(before) | set(after)
-        if before.get(tournament_id) != after.get(tournament_id)
-    }
     identities: set[tuple[str, str, str]] = set()
-    for tournament_id in changed_ids:
+    for tournament_id in _changed_tournament_ids(before_plan, after_plan):
         for source in (before, after):
             tournament = source.get(tournament_id)
             if tournament is None:

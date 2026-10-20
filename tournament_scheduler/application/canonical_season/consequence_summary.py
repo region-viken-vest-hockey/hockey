@@ -74,18 +74,28 @@ def build_consequences(operation: str, details: Mapping[str, Any]) -> dict[str, 
         # compared before and after. Season-wide adoption regressions are listed
         # separately, so an aggregate gain cannot hide a per-team regression.
         adoption = details.get("adoption") or {}
+        planned_rows = [
+            _planned_team_row(entry)
+            for entry in (details.get("participation_counts") or {}).values()
+        ]
+        fairness = details.get("booked_fairness")
         team_regressions = [
             {"role": key, **dict(item)}
             for key, analysis in (details.get("team_consequences") or {}).items()
             for item in (analysis or {}).get("material_regressions") or []
         ]
+        # Booked reality is the primary basis when the owner computed it; the planned
+        # rows stay alongside, so a planned gain cannot pass for booked participation.
+        booked = fairness is not None
         return {
-            "basis": "planned_schedule",
-            "provisional": None,
-            "affected_teams": [
-                _planned_team_row(entry)
-                for entry in (details.get("participation_counts") or {}).values()
-            ],
+            "basis": "booked_reality" if booked else "planned_schedule",
+            "provisional": bool(fairness.get("provisional", True)) if booked else None,
+            "affected_teams": (
+                [_booked_team_row(row) for row in fairness.get("impacted_teams") or []]
+                if booked
+                else planned_rows
+            ),
+            "planned_affected_teams": planned_rows,
             "material_regressions": [
                 {"role": "season", **dict(item)}
                 for item in adoption.get("material_regressions") or []

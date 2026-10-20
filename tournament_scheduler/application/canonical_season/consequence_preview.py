@@ -205,7 +205,7 @@ def _repair(
     except (SeasonMaintenanceError, SeasonStateError, KeyError, ValueError):
         reproduction = {"ok": False}
     if reproduction.get("ok") and isinstance(reproduction.get("candidate"), Mapping):
-        result.update(repair_team_consequences(plan, reproduction["candidate"], problem))
+        result.update(repair_team_consequences(plan, reproduction["candidate"], problem, decisions))
     return result
 
 
