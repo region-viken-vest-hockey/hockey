@@ -11,6 +11,15 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 HALF_KEYS = ("before_christmas", "after_christmas", "unsplit")
+FINDING_BUCKETS = (
+    "resolved",
+    "unchanged_accepted",
+    "unchanged_unaccepted",
+    "introduced",
+    "worsened",
+    "materially_modified",
+    "improved",
+)
 
 # Consequences of a preview that never reached a dry-run (stale or refused).
 NO_CONSEQUENCES: dict[str, Any] = {
@@ -19,6 +28,18 @@ NO_CONSEQUENCES: dict[str, Any] = {
     "affected_teams": [],
     "material_regressions": [],
 }
+
+
+
+def unclassified_findings() -> dict[str, Any]:
+    """Findings of a preview with no baseline-classified dry-run behind it."""
+
+    return {
+        "basis": None,
+        "classified": False,
+        "counts": {bucket: 0 for bucket in FINDING_BUCKETS},
+        "buckets": {bucket: [] for bucket in FINDING_BUCKETS},
+    }
 
 
 def build_consequences(operation: str, details: Mapping[str, Any]) -> dict[str, Any]:
@@ -57,6 +78,30 @@ def build_consequences(operation: str, details: Mapping[str, Any]) -> dict[str, 
             for entry in (details.get("participation_counts") or {}).values()
         ],
         "material_regressions": regressions,
+    }
+
+
+def build_findings(operation: str, details: Mapping[str, Any]) -> dict[str, Any]:
+    """Hard-finding buckets classified against the pre-operation baseline.
+
+    Only batch dry-runs verify the candidate against the pre-batch baseline, so
+    only they carry ``violation_classification``. Single-operation dry-runs
+    verify the candidate in isolation: their violations are reported under
+    ``details`` and are not classified here, so ``classified`` stays false
+    instead of implying a baseline comparison that never ran.
+    """
+
+    if operation != "batch":
+        return unclassified_findings()
+    classification = (details.get("verification_result") or {}).get("violation_classification")
+    if not isinstance(classification, Mapping):
+        return unclassified_findings()
+    buckets = {bucket: [dict(item) for item in classification.get(bucket) or []] for bucket in FINDING_BUCKETS}
+    return {
+        "basis": "baseline_verification",
+        "classified": True,
+        "counts": {bucket: len(entries) for bucket, entries in buckets.items()},
+        "buckets": buckets,
     }
 
 
