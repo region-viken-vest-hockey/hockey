@@ -62,6 +62,7 @@ from .removal_policy import (
     require_registered_removal_target,
 )
 from .replacement import _affected_participation_counts
+from .single_operation_gate import refuse_on_verification, verify_single_operation_candidate
 from .shared import (
     _operator_identity,
     _now_iso,
@@ -698,10 +699,14 @@ def remove_participant(
             f"Refusing canonical participant removal: candidate violates canonical locks: {messages}"
         )
 
-    result = verify_candidate(plan, verification_problem)
-    if not result.get("ok", True):
-        messages = "; ".join(str(v.get("message") or v.get("code")) for v in result.get("violations", []))
-        raise SeasonStateError(f"Refusing canonical participant removal: candidate fails hard verification: {messages}")
+    result = verify_single_operation_candidate(
+        before_plan, plan, resolved_problem, candidate_problem=verification_problem
+    )
+    refusal = refuse_on_verification(
+        result, dry_run, season, schedule, "canonical participant removal", "removal", {"tournament_ids": tournament_ids}
+    )
+    if refusal is not None:
+        return refusal
 
     from tournament_scheduler.hosting.responsibility import (
         unexplained_responsibility_transfers,

@@ -11,6 +11,7 @@ from typing import Any, Mapping, Sequence
 
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
 from tournament_scheduler.rules import catalog
+from tournament_scheduler.season.state import canonical_state_revision
 
 PRECONDITION_OWNER = "canonical_season.replacement_preconditions"
 VERIFICATION_OWNER = "planning.verification"
@@ -116,9 +117,65 @@ def hosting_transfer_refusals(transfers: Sequence[Mapping[str, Any]]) -> list[di
 __all__ = [
     "PRECONDITION_OWNER",
     "ReplacementRefusal",
+    "blocked_replacement_preview",
     "catalog_owner",
     "hosting_transfer_refusals",
     "lock_violation_refusals",
     "participant_lock_refusal",
     "verification_refusals",
 ]
+
+
+def blocked_replacement_preview(
+    *,
+    season: str,
+    schedule: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+    tournament_id: str,
+    remove_team_label: str,
+    add_team_label: str,
+    refusals: Sequence[Mapping[str, Any]],
+    request_id: str | None = None,
+    verification_result: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Return the stable dry-run shape for a replacement that cannot be built.
+
+    Dry-run is an operational validation interface, not a mutation probe. Domain
+    infeasibility therefore reports a blocked verdict in the normal preview
+    contract instead of forcing callers to catch exceptions and parse messages.
+    Non-dry-run apply still raises and writes nothing.
+    """
+
+    before_revision = str(schedule.get("revision") or schedule.get("fingerprint") or "")
+    reasons = [str(item["message"]) for item in refusals]
+    details = {
+        "tournament_id": tournament_id,
+        "removed_team": {"label": remove_team_label},
+        "added_team": {"label": add_team_label},
+        "before_fingerprint": before_revision,
+        "candidate_revision": None,
+        "request_id": str(request_id or ""),
+        "can_apply_unchanged": False,
+        "refusal_reasons": reasons,
+        "refusals": [dict(item) for item in refusals],
+    }
+    if verification_result is not None:
+        details["verification_result"] = dict(verification_result)
+    return {
+        "season": season,
+        "dry_run": True,
+        "current_revision": schedule.get("revision"),
+        "current_fingerprint": schedule.get("fingerprint"),
+        "current_canonical_revision": canonical_state_revision(schedule, decisions),
+        "candidate_revision": None,
+        "candidate_fingerprint": None,
+        "verification_result": {"ok": False, "violations": []},
+        "change_cost": None,
+        "verdict": {
+            "status": "blocked",
+            "applicable": False,
+            "checks": {"candidate_constructed": False},
+            "blockers": reasons,
+        },
+        "replacement": details,
+    }

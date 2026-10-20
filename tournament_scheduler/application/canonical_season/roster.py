@@ -21,8 +21,8 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
     SeasonStateError,
 )
 from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
-from tournament_scheduler.planning.verification import verify_canonical_candidate
 
+from .single_operation_gate import refuse_on_verification, verify_single_operation_candidate
 from .shared import (
     _operator_identity,
     _now_iso,
@@ -275,19 +275,18 @@ def swap_participants(
             f"Refusing canonical participant swap: candidate violates canonical locks: {messages}"
         )
 
-    result = (
-        verify_canonical_candidate(plan, resolved_problem)
-        if resolved_problem
-        else verify_canonical_candidate(plan)
+    result = verify_single_operation_candidate(schedule.get("plan") or {}, plan, resolved_problem)
+    refusal = refuse_on_verification(
+        result,
+        dry_run,
+        season,
+        schedule,
+        "canonical participant swap",
+        "swap",
+        {"tournament_a_id": tournament_a_id, "tournament_b_id": tournament_b_id},
     )
-    if not result.get("ok", True):
-        messages = "; ".join(
-            str(v.get("message") or v.get("code"))
-            for v in result.get("violations", [])
-        )
-        raise SeasonStateError(
-            f"Refusing canonical participant swap: candidate fails hard verification: {messages}"
-        )
+    if refusal is not None:
+        return refusal
 
     if resolved_problem:
         from tournament_scheduler.hosting.responsibility import (
@@ -387,7 +386,7 @@ def swap_participants(
             "candidate_revision": candidate_revision,
             "verification_result": result,
             "change_cost": cost,
-            "swap": details,
+            "swap": {**details, "verification_result": result},
         }
 
     if existing_protection_violations:

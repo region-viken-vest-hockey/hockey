@@ -31,6 +31,7 @@ from tournament_scheduler.season.acceptability import (
 from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning.verification import verify_canonical_candidate
 
+from .single_operation_gate import refuse_on_verification
 from .shared import (
     _operator_identity,
     _now_iso,
@@ -216,13 +217,11 @@ def move_tournament(
         if resolved_problem
         else verify_canonical_candidate(plan, baseline_verification=before_verification)
     )
-    if not result.get("ok", True):
-        messages = "; ".join(
-            str(v.get("message") or v.get("code")) for v in result.get("violations", [])
-        )
-        raise SeasonStateError(
-            f"Refusing canonical mutation: candidate fails hard verification: {messages}"
-        )
+    refusal = refuse_on_verification(
+        result, dry_run, season, schedule, "canonical mutation", "move_preview", {"tournament_id": tournament_id}
+    )
+    if refusal is not None:
+        return refusal
     operational_acceptability = check_operational_acceptability(
         schedule.get("plan") or {},
         before_verification,

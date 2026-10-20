@@ -103,7 +103,7 @@ def preview_canonical_operation(
         verdict=verdict,
         details=details,
         consequences=build_consequences(operation, details),
-        findings=build_findings(operation, details),
+        findings=build_findings(details),
     )
     envelope["reviewed_token"] = reviewed_token
     return envelope
