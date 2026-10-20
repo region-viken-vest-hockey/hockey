@@ -10,13 +10,13 @@ from .common import add_operational_opt_in_flags, add_regression_acceptance_flag
 def add_season_preview_parser(season_sub: argparse._SubParsersAction) -> None:
     season_preview = season_sub.add_parser(
         "preview",
-        help="Read-only consequence preview for one scoped canonical operation (replace, swap, move or remove)",
+        help="Read-only consequence preview for one scoped canonical operation (replace, swap, move, remove, batch or repair)",
     )
     season_preview.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
     season_preview.add_argument(
         "--operation",
         required=True,
-        choices=["replace", "swap", "move", "remove", "batch"],
+        choices=["replace", "swap", "move", "remove", "batch", "repair"],
         help="Scoped canonical operation to preview",
     )
     season_preview.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
@@ -39,6 +39,8 @@ def add_season_preview_parser(season_sub: argparse._SubParsersAction) -> None:
     season_preview.add_argument("--host-club", default=None, help="Candidate host club (move)")
     season_preview.add_argument("--start-time", default=None, help="Candidate start time (move)")
     season_preview.add_argument("--allow-cross-half", action="store_true", help="Allow a move across the Christmas boundary (move)")
+    season_preview.add_argument("--option-id", default=None, help="Repair option id from season repair-options (repair)")
+    season_preview.add_argument("--finding", default=None, help="Finding id the repair option resolves (repair, optional)")
     add_operational_opt_in_flags(season_preview)
     add_regression_acceptance_flags(season_preview)
     add_reviewed_consequence_flag(season_preview)

@@ -29,7 +29,7 @@ from .consequence_contract import (
     stale_preview,
 )
 
-SUPPORTED_OPERATIONS = ("replace", "swap", "move", "remove", "batch")
+SUPPORTED_OPERATIONS = ("replace", "swap", "move", "remove", "batch", "repair")
 
 __all__ = [
     "PREVIEW_CONTRACT",
@@ -76,6 +76,12 @@ def preview_canonical_operation(
             changed_tournament_ids=changed_ids,
             expected_revision=str(expected_revision),
         )
+
+    if operation == "repair":
+        # A repair option is reproduced from the canonical revision it was
+        # reviewed against; passing it through makes the dry-run refuse a
+        # revision that changed after the stale check above.
+        arguments = {**arguments, "expected_revision": current_revision}
 
     try:
         raw = _DISPATCH[operation](service, season=season, dry_run=True, **arguments)
@@ -135,10 +141,52 @@ def _batch(service, **kwargs: Any) -> dict[str, Any]:
     return batch_maintenance(service, **kwargs)
 
 
+def _repair(
+    service,
+    *,
+    season: str,
+    dry_run: bool,
+    option_id: str,
+    expected_revision: str,
+    finding_id: str | None = None,
+    dimensions: tuple[str, ...] | None = None,
+    allow_manual_placement: bool = False,
+    allow_host_confirmation: bool = False,
+    accept_regressions: Any = (),
+    regression_reason: str | None = None,
+    **_context: Any,
+) -> dict[str, Any]:
+    # The repair option is re-derived from the canonical plan by the repair
+    # owner. Verification problem and request context are not inputs here.
+    from tournament_scheduler.repair.apply import apply_repair
+    from tournament_scheduler.season.maintenance_context import SeasonMaintenanceError
+
+    options: dict[str, Any] = {}
+    if dimensions:
+        options["dimensions"] = tuple(dimensions)
+    try:
+        return apply_repair(
+            season,
+            option_id,
+            expected_revision,
+            root=str(service.store.root),
+            dry_run=dry_run,
+            finding_id=finding_id,
+            allow_manual_placement=allow_manual_placement,
+            allow_host_confirmation=allow_host_confirmation,
+            accept_regressions=accept_regressions,
+            regression_reason=regression_reason,
+            **options,
+        )
+    except SeasonMaintenanceError as exc:
+        return {"ok": False, "reason": "unknown_or_stale_finding", "message": str(exc)}
+
+
 _DISPATCH: dict[str, Callable[..., dict[str, Any]]] = {
     "replace": _replace,
     "swap": _swap,
     "move": _move,
     "remove": _remove,
     "batch": _batch,
+    "repair": _repair,
 }

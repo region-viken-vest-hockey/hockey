@@ -54,6 +54,16 @@ rvv-miniputt season batch --season 2026-2027 --operations rotation.json \
 
 Apply refuses without both `--expected-revision` and `--reviewed-token`. The token covers the normalized operations, the scope, the request id, the gate inputs (operational opt-ins, regression acceptances and the reviewed-consequence token) and the candidate fingerprint. Editing any of these after the preview refuses the apply before any write, even when the canonical revision still matches. The actor and note are not covered. A changed revision also refuses, and the commit itself is a compare-and-swap, so a concurrent writer refuses the batch. The preview verdict is `safe_to_apply`, `blocked` or `stale_revision`; exit code 3 means not `safe_to_apply`. Re-run the preview after any refusal rather than editing the scenario to match a new revision.
 
+A bounded repair option from `season repair-options` is previewed through the same contract, without writing:
+
+```
+rvv-miniputt season preview --season 2026-2027 --operation repair \
+  --option-id <option-id> --finding <finding-id> \
+  --expected-revision <reviewed-revision> --fail-on-blocked --json
+```
+
+Its `consequences` block is `planned_schedule` with season-wide `material_regressions` from the adoption guard; it lists no per-team rows. Apply the option with `season apply-repair` against the same revision.
+
 ## Team retirement / season-age withdrawal
 Before treating a season/age-group withdrawal as roster removals, determine whether the withdrawing team or club owns any future hosting obligations in that age group. A genuine team retirement is not equivalent to `remove-participant` and must not leave an active home tournament behind with only visiting teams.
 
