@@ -949,3 +949,24 @@ def test_host_club_text_view_shows_plan_and_calendar_intervals(tmp_path, capsys)
     ) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["tournaments"][0]["interval_comparison"]["status"] == "no_observed_interval"
+
+
+def test_interval_comparison_reports_date_shift_as_exact_minutes():
+    """A proximate-date shift is a real distance, not a clock-time difference (PR #776 review)."""
+
+    from tournament_scheduler.booking.status_crosswalk import interval_comparison
+
+    planned = {"date": "2026-09-12", "start_time": "10:00", "end_time": "12:00"}
+    next_day = {"date": "2026-09-13", "start": "10:00", "end": "12:00"}
+    comparison = interval_comparison(planned, next_day)
+
+    assert comparison["status"] == "differs"
+    assert comparison["same_date"] is False
+    assert comparison["start_delta_minutes"] == 24 * 60
+    assert comparison["end_delta_minutes"] == 24 * 60
+
+    earlier_and_shifted = interval_comparison(planned, {"date": "2026-09-11", "start": "09:30", "end": "11:00"})
+    assert earlier_and_shifted["start_delta_minutes"] == -(24 * 60) - 30
+    assert earlier_and_shifted["end_delta_minutes"] == -(24 * 60) - 60
+
+    assert interval_comparison(planned, {"date": "not-a-date", "start": "10:00", "end": "12:00"})["status"] == "not_comparable"

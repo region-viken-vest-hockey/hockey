@@ -8,10 +8,20 @@ the exact planned-versus-observed difference (issue #719).
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Mapping
 
 from tournament_scheduler.booking.assessment_candidates import ASSESSMENT_PRESUMED_UNSCHEDULED
 from tournament_scheduler.booking.interval_facts import _parse_hhmm
+
+_MINUTES_PER_DAY = 24 * 60
+
+
+def _parse_date(value: Any) -> date | None:
+    try:
+        return date.fromisoformat(str(value or ""))
+    except ValueError:
+        return None
 
 
 def assessment_provenance_fields(assessment_row: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -96,14 +106,19 @@ def interval_comparison(canonical: Any, observed: Any) -> dict[str, Any] | None:
         "end": str(observed.get("end") or ""),
     }
     same_date = observed_interval["date"] == planned["date"]
+    planned_day = _parse_date(planned["date"])
+    observed_day = _parse_date(observed_interval["date"])
     planned_start, observed_start = _parse_hhmm(planned["start"]), _parse_hhmm(observed_interval["start"])
     planned_end, observed_end = _parse_hhmm(planned["end"]), _parse_hhmm(observed_interval["end"])
-    if None in (planned_start, observed_start, planned_end, observed_end):
+    if None in (planned_day, observed_day, planned_start, observed_start, planned_end, observed_end):
         start_delta = end_delta = None
         status = "not_comparable"
     else:
-        start_delta = observed_start - planned_start
-        end_delta = observed_end - planned_end
+        # Deltas are taken from full date+time values, so a shifted date is
+        # reported as its real distance rather than as a clock-time difference.
+        day_offset = (observed_day - planned_day).days * _MINUTES_PER_DAY
+        start_delta = day_offset + observed_start - planned_start
+        end_delta = day_offset + observed_end - planned_end
         status = "matches" if same_date and start_delta == 0 and end_delta == 0 else "differs"
     return {
         "status": status,
