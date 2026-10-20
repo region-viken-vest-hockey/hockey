@@ -298,6 +298,7 @@ def apply_candidate(
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
     operation: str = "global_regeneration",
+    _expected_revision: str | None = None,
     _scoped_authorization: ScopedMutationAuthorization | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     """Apply a verified replan candidate to canonical season state.
@@ -559,5 +560,5 @@ def apply_candidate(
     cost = change_cost(baseline, plan, weights=change_weights)
     updated_snapshot = snapshot.with_schedule(updated_schedule).with_decisions(updated_decisions)
     service._assert_published_sealed_reconciliation(updated_snapshot, action=operation)
-    committed = service._commit(updated_snapshot)
+    committed = service._commit(updated_snapshot, expected_revision=_expected_revision)
     return committed.schedule, committed.decisions, cost

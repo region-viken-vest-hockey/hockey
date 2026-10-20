@@ -159,6 +159,11 @@ def add_season_mutation_parsers(season_sub: argparse._SubParsersAction) -> None:
         help="Validate and preview the swap without writing canonical state",
     )
     add_regression_acceptance_flags(season_swap)
+    season_swap.add_argument(
+        "--expected-revision",
+        default=None,
+        help="Canonical revision the swap was reviewed against (e.g. from season swap-candidates); a changed revision refuses the swap",
+    )
     season_swap.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_swap.add_argument("--json", action="store_true", help="Print swap result as JSON")
 
