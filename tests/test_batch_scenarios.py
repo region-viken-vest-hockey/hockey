@@ -366,6 +366,35 @@ def test_batch_preview_exposes_every_material_regression_per_team(tmp_path: Path
     assert blocked["consequences"]["basis"] == "booked_reality"
 
 
+def test_batch_preview_classifies_findings_against_the_pre_batch_baseline(tmp_path: Path) -> None:
+    _work_dir, root = _promote(tmp_path)
+    service = CanonicalSeasonService(root=root)
+
+    blocked = preview_canonical_operation(
+        service,
+        operation="batch",
+        season=SEASON,
+        operations=CANCEL_AND_SLOT_REPLACEMENT,
+        scope=CANCEL_SCOPE,
+        request_id="cancel-replace",
+        actor="tester",
+    )
+
+    findings = blocked["findings"]
+    assert findings["basis"] == "baseline_verification"
+    assert findings["classified"] is True
+    assert set(findings["buckets"]) == set(findings["counts"])
+    for bucket, entries in findings["buckets"].items():
+        assert findings["counts"][bucket] == len(entries)
+        assert all(isinstance(entry, dict) for entry in entries)
+    classification = blocked["details"]["verification_result"]["violation_classification"]
+    for bucket, entries in findings["buckets"].items():
+        assert entries == classification[bucket]
+    assert findings["acceptable"] is classification["acceptable"]
+    assert findings["blocking"] == classification["blocking"]
+    assert findings["acceptable"] == (not findings["blocking"])
+
+
 def test_cancel_and_slot_replacement_applies_only_the_reviewed_consequences(tmp_path: Path) -> None:
     _work_dir, root = _promote(tmp_path)
     service = CanonicalSeasonService(root=root)

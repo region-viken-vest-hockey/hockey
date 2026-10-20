@@ -246,6 +246,30 @@ def test_removal_preview_reports_planned_consequences_for_affected_teams(tmp_pat
     assert echo["delta"]["planned"] == -2
 
 
+def test_single_operation_preview_does_not_claim_baseline_classification(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write(root)
+    service = CanonicalSeasonService(root=root)
+
+    preview = preview_canonical_operation(service,
+        operation="remove",
+        season=SEASON,
+        tournament_ids=["u10-a", "u10-b"],
+        remove_team_label="Echo 1",
+        reconcile_withdrawal=True,
+        actor="tester",
+        request_id="preview-echo-findings",
+    )
+
+    findings = preview["findings"]
+    assert findings["basis"] is None
+    assert findings["classified"] is False
+    assert findings["acceptable"] is None
+    assert findings["blocking"] is None
+    assert all(count == 0 for count in findings["counts"].values())
+    assert all(entries == [] for entries in findings["buckets"].values())
+
+
 def test_stale_expected_revision_is_refused_without_dry_run(tmp_path: Path) -> None:
     root = tmp_path / "season"
     _write(root)
