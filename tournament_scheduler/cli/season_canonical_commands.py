@@ -123,34 +123,6 @@ def _cmd_season_remove_participant(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_season_swap_participants(args: argparse.Namespace) -> int:
-    """Handle ``rvv-miniputt season swap-participants``."""
-    from ..application.canonical_season.store_facade import swap_participants
-
-    result = swap_participants(
-        season=args.season,
-        tournament_a_id=args.tournament_a,
-        problem=_verification_problem(args),
-        team_a_label=args.team_a,
-        tournament_b_id=args.tournament_b,
-        team_b_label=args.team_b,
-        root=args.root,
-        actor=args.actor,
-        note=args.note,
-        dry_run=args.dry_run,
-        request_id=args.request_id,
-        accept_regressions=_split_regression_acceptances(args.accept_team_regressions),
-        accept_regression_reason=args.accept_regression_reason,
-    )
-    if args.json:
-        _emit_json(result)
-    else:
-        _console.print(
-            f"[green]✓[/green] {_dry_run_label(args)} swap of {args.team_a} and {args.team_b} for {args.season}"
-        )
-    return 0
-
-
 def _cmd_season_withdrawal_report(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt season withdrawals`` — read-only withdrawal ledger."""
     from ..application.canonical_season.store_facade import withdrawal_report

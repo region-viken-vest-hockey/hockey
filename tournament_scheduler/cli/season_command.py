@@ -105,7 +105,6 @@ def _cmd_season(args) -> int:
         _cmd_season_move,
         _cmd_season_replace_participant,
         _cmd_season_remove_participant,
-        _cmd_season_swap_participants,
         _cmd_season_withdrawal_report,
         _cmd_season_release_withdrawal,
         _cmd_season_rename_teams,
@@ -219,6 +218,7 @@ def _cmd_season(args) -> int:
             return _cmd_season_replace_participant(args)
 
         if args.season_command == "swap-participants":
+            from .season_swap_command import _cmd_season_swap_participants
             return _cmd_season_swap_participants(args)
 
         if args.season_command == "remove-participant":

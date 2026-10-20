@@ -383,10 +383,15 @@ def swap_participants(
     request_id: str | None = None,
     accept_regressions: list[Any] | None = None,
     accept_regression_reason: str | None = None,
+    expected_revision: str | None = None,
 ) -> dict[str, Any]:
     """Swap one participant between two same-age canonical tournaments."""
 
-    return _service(root).swap_participants(
+    from .roster import swap_participants as _roster_swap
+
+    return _roster_swap(
+        _service(root),
+        expected_revision=expected_revision,
         season=season,
         tournament_a_id=tournament_a_id,
         team_a_label=team_a_label,

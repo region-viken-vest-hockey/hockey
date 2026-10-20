@@ -116,33 +116,3 @@ def _cmd_season_preview(args: argparse.Namespace) -> int:
     if args.fail_on_blocked and not result["verdict"]["applicable"]:
         return 3
     return 0
-
-
-def _cmd_season_swap_candidates(args: argparse.Namespace) -> int:
-    """Handle ``rvv-miniputt season swap-candidates``; never writes canonical state."""
-    from ..application.canonical_season.swap_search import search_participant_swaps
-
-    try:
-        result = search_participant_swaps(
-            CanonicalSeasonService(root=args.root),
-            season=args.season,
-            tournament_ids=list(args.tournament_ids),
-        )
-    except (ValueError, SeasonStateError) as exc:
-        _console.print(f"[red]✗[/red] {exc}")
-        return 2
-    if args.json:
-        _emit_json(result)
-    else:
-        _console.print(
-            f"swap candidates for {args.season}: {result['candidate_count']} evaluated, "
-            f"{result['safe_candidate_count']} safe_to_apply (revision {result['canonical_state_revision']})"
-        )
-        if result["empty_reason"]:
-            _console.print(f"  no candidates: {result['empty_reason']}")
-        for item in result["candidates"]:
-            _console.print(
-                f"  {item['tournament_a_id']} {item['team_a_label']} <-> "
-                f"{item['tournament_b_id']} {item['team_b_label']}: {item['verdict']['status']}"
-            )
-    return 0

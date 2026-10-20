@@ -105,6 +105,9 @@ def search_participant_swaps(
             "max_evaluated_candidates": MAX_EVALUATED_CANDIDATES,
         },
         "truncated": len(combos) > MAX_EVALUATED_CANDIDATES,
+        # True only when every same-age combination in scope was evaluated. A
+        # zero safe count is exhaustive only when this is True.
+        "complete": len(combos) <= MAX_EVALUATED_CANDIDATES,
         "candidate_count": len(candidates),
         "safe_candidate_count": sum(1 for item in candidates if item["safe_to_apply"]),
         "empty_reason": empty_reason,
