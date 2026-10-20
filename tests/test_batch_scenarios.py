@@ -343,6 +343,29 @@ def test_cancel_and_slot_replacement_preview_names_every_impacted_team(tmp_path:
     assert (_schedule_bytes(root), _decisions_bytes(root)) == before
 
 
+def test_batch_preview_exposes_every_material_regression_per_team(tmp_path: Path) -> None:
+    _work_dir, root = _promote(tmp_path)
+    service = CanonicalSeasonService(root=root)
+
+    blocked = preview_canonical_operation(
+        service,
+        operation="batch",
+        season=SEASON,
+        operations=CANCEL_AND_SLOT_REPLACEMENT,
+        scope=CANCEL_SCOPE,
+        request_id="cancel-replace",
+        actor="tester",
+    )
+
+    regressions = blocked["consequences"]["material_regressions"]
+    assert {entry["team"] for entry in regressions} == CANCELLED_TEAMS
+    assert regressions == blocked["verdict"]["review"]["consequences"]
+    for entry in regressions:
+        assert entry["code"]
+        assert entry["club"]
+    assert blocked["consequences"]["basis"] == "booked_reality"
+
+
 def test_cancel_and_slot_replacement_applies_only_the_reviewed_consequences(tmp_path: Path) -> None:
     _work_dir, root = _promote(tmp_path)
     service = CanonicalSeasonService(root=root)
