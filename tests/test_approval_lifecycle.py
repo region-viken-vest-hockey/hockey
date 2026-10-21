@@ -3316,7 +3316,7 @@ def _superseded_by_confirmation(root, manual_id):
     )
 
 
-def test_repeated_supersession_confirmation_is_idempotent(tmp_path):
+def test_retried_supersession_does_not_resupersede_or_duplicate_records(tmp_path):
     root = _promote(tmp_path, [_tournament("t1")])
     manual_id = _positive_manual_on_planned_slot(root)
     first = _superseded_by_confirmation(root, manual_id)
@@ -3334,22 +3334,53 @@ def test_repeated_supersession_confirmation_is_idempotent(tmp_path):
     assert report["tournaments"][0]["status"] == "confirmed_booked"
 
 
-def test_refused_supersession_leaves_schedule_and_decisions_unchanged(tmp_path):
+@pytest.mark.parametrize(
+    ("note", "manual_id_suffix", "match"),
+    [
+        ("", "", "requires a --note"),
+        ("same match moved", "-not-a-real-id", "is not active for tournament t1"),
+    ],
+)
+def test_refused_supersession_leaves_schedule_and_decisions_unchanged(
+    tmp_path, note, manual_id_suffix, match
+):
     root = _promote(tmp_path, [_tournament("t1")])
-    manual_id = _positive_manual_on_planned_slot(root)
+    manual_id = _positive_manual_on_planned_slot(root) + manual_id_suffix
     schedule_before = load_schedule(season="2026-2027", root=root)
     decisions_before = load_decisions(season="2026-2027", root=root)
 
-    with pytest.raises(SeasonStateError, match="requires a --note"):
+    with pytest.raises(SeasonStateError, match=match):
         confirm_calendar_booking(
             season="2026-2027",
             root=root,
             event_fingerprint=event_fingerprint(_CORRECTED_EVENT),
             tournament_id="t1",
             problem=_host_a_problem([_CORRECTED_EVENT]),
-            note="",
+            note=note,
             supersede_manual_assertion_id=manual_id,
         )
 
     assert load_schedule(season="2026-2027", root=root) == schedule_before
     assert load_decisions(season="2026-2027", root=root) == decisions_before
+
+
+def test_retry_after_later_negative_assertion_is_refused(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    manual_id = _positive_manual_on_planned_slot(root)
+    _superseded_by_confirmation(root, manual_id)
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="not-booked",
+        actor="clubrep",
+        note="club now says the slot was not used",
+        reference="email:cancelled",
+        problem=_host_a_problem([_CORRECTED_EVENT]),
+    )
+    decisions_before_retry = load_decisions(season="2026-2027", root=root)
+
+    with pytest.raises(SeasonStateError, match="non-positive manual assertions"):
+        _superseded_by_confirmation(root, manual_id)
+
+    assert load_decisions(season="2026-2027", root=root) == decisions_before_retry

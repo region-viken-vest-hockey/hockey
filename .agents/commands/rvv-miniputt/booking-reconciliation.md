@@ -44,7 +44,7 @@ scripts/rvv-miniputt season confirm-calendar-booking --season <season> --event-f
   --tournament-id <id> --supersede-manual-assertion <manual-booking-id> --note "<why this is the same booking>"
 ```
 
-The command refuses, and writes nothing, when the id is not the tournament's active positive assertion, when another active negative or conflicting assertion exists, when several active positives exist, when the assertion also changed a non-interval fact (date, arena, host), or when `--note` is empty. A dry run returns the same `superseded_manual_assertions` delta without writing. A retried confirmation with the same flag is a no-op. Do not use `booking-clear` to make room for a confirmation when the earlier assertion is actually a separate club confirmation.
+The command refuses, and writes nothing, when the id is not the tournament's active positive assertion, when another active negative or conflicting assertion exists, when several active positives exist, when the assertion also changed a non-interval fact (date, arena, host), or when `--note` is empty. A dry run returns the same `superseded_manual_assertions` delta without writing. A retried confirmation with the same flag does not supersede again or duplicate the manual record, and it still refuses if a conflicting assertion has since appeared. Do not use `booking-clear` to make room for a confirmation when the earlier assertion is actually a separate club confirmation.
 
 ### Source links in operator output
 
