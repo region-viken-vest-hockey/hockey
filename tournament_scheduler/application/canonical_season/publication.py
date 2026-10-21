@@ -241,7 +241,11 @@ def seal_published_season(
         "updated_at": now,
         SEASON_LIFECYCLE_KEY: updated_lifecycle,
     }
-    committed = service._commit(snapshot.with_decisions(updated_decisions))
+    # Compare-and-swap on the revision validated above: a concurrent canonical
+    # change between that check and this write must not be overwritten.
+    committed = service._commit(
+        snapshot.with_decisions(updated_decisions), expected_revision=current_revision
+    )
     return {
         "season": season,
         "state": STATE_PUBLISHED_SEALED,

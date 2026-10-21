@@ -2845,3 +2845,54 @@ def test_seal_retry_after_canonical_change_is_exact_or_refused(tmp_path: Path) -
             **{**seal_kwargs, "publication_canonical_projection": changed},
         )
     assert publication_history(service.load("2026-2027").decisions) == history_before
+
+
+def test_seal_refuses_concurrent_canonical_change_before_commit(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A canonical change landing between the revision check and the commit wins.
+
+    The seal validates the verified revision, then writes. If another writer
+    records a change in that window, the seal must refuse with a revision conflict
+    and leave the newer state unsealed and unmodified, not overwrite it (#564).
+    """
+    from tournament_scheduler.application.canonical_season import publication as publication_module
+    from tournament_scheduler.infrastructure.canonical_season_store import (
+        CanonicalRevisionConflictError,
+    )
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    service = CanonicalSeasonService(root=root)
+    verified_revision = _current_revision(root)
+    projection = _tp({"tournaments": _tournaments_abc()})
+
+    original_build = publication_module.build_baseline_record
+
+    def concurrent_writer_then_build(**kwargs):
+        CanonicalSeasonService(root=root).add_request_constraint(
+            season="2026-2027",
+            type="team_unavailable",
+            request_id="club-request-concurrent",
+            teams=[{"club": "Alpha", "label": "Alpha1", "age_group": "U10"}],
+            date_from="2026-09-12",
+            actor="other-operator",
+        )
+        return original_build(**kwargs)
+
+    monkeypatch.setattr(publication_module, "build_baseline_record", concurrent_writer_then_build)
+    with pytest.raises(CanonicalRevisionConflictError):
+        service.seal_published_season(
+            season="2026-2027",
+            publication_id="2026-09-21T0908",
+            canonical_revision=verified_revision,
+            published_at="2026-09-21T09:14:53+00:00",
+            published_projection=projection,
+            publication_canonical_projection=projection,
+            actor="tester",
+        )
+    monkeypatch.undo()
+
+    snapshot = service.load("2026-2027")
+    assert canonical_state_revision(snapshot.schedule, snapshot.decisions) != verified_revision
+    assert not is_published_sealed(snapshot.decisions)
