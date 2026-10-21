@@ -3171,3 +3171,134 @@ def test_calendar_confirmation_keeps_manual_booking_on_corrected_interval_active
     report = booking_status_report(season="2026-2027", root=root, problem=problem)
     # The stale positive is surfaced for operator resolution, not reported as confirmed_booked.
     assert report["tournaments"][0]["status"] == "stale"
+
+
+def _positive_manual_on_planned_slot(root):
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="clubrep",
+        note="club booked the planned slot",
+        reference="email:booking",
+        problem=_host_a_problem([]),
+    )
+    return load_decisions(season="2026-2027", root=root)["manual_booking_assertions"][0]["id"]
+
+
+_CORRECTED_EVENT = {
+    "date": "2026-09-12",
+    "start": "11:00",
+    "end": "12:30",
+    "availability": "fixed_busy",
+    "calendar_event": "Miniputt U10 bekreftet",
+    "club": "A",
+}
+
+
+def test_explicit_supersession_replaces_named_manual_booking_with_attestation(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    manual_id = _positive_manual_on_planned_slot(root)
+    problem = _host_a_problem([_CORRECTED_EVENT])
+    event_fp = event_fingerprint(_CORRECTED_EVENT)
+
+    result = confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        problem=problem,
+        note="Club confirmed this is the same match moved to 11:00",
+        supersede_manual_assertion_id=manual_id,
+    )
+
+    assert result["superseded_manual_assertions"] == [manual_id]
+    manual = load_decisions(season="2026-2027", root=root)["manual_booking_assertions"]
+    assert manual[0]["status"] == "superseded"
+    assert manual[0]["superseded_by"] == f"calendar_booking:{event_fp}:t1"
+    assert manual[0]["supersede_reason"] == "Club confirmed this is the same match moved to 11:00"
+    assert manual[0]["superseded_stale_reasons"] == [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed",
+        "tournament_start_time_changed",
+    ]
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assert report["tournaments"][0]["status"] == "confirmed_booked"
+
+
+def test_explicit_supersession_dry_run_discloses_without_writing(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    manual_id = _positive_manual_on_planned_slot(root)
+
+    preview = confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint(_CORRECTED_EVENT),
+        tournament_id="t1",
+        problem=_host_a_problem([_CORRECTED_EVENT]),
+        note="same match moved",
+        dry_run=True,
+        supersede_manual_assertion_id=manual_id,
+    )
+
+    assert preview["superseded_manual_assertions"] == [manual_id]
+    manual = load_decisions(season="2026-2027", root=root)["manual_booking_assertions"]
+    assert manual[0]["status"] == "active"
+
+
+def test_explicit_supersession_requires_attestation_note(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    manual_id = _positive_manual_on_planned_slot(root)
+
+    with pytest.raises(SeasonStateError, match="requires a --note"):
+        confirm_calendar_booking(
+            season="2026-2027",
+            root=root,
+            event_fingerprint=event_fingerprint(_CORRECTED_EVENT),
+            tournament_id="t1",
+            problem=_host_a_problem([_CORRECTED_EVENT]),
+            note="",
+            supersede_manual_assertion_id=manual_id,
+        )
+    manual = load_decisions(season="2026-2027", root=root)["manual_booking_assertions"]
+    assert manual[0]["status"] == "active"
+
+
+def test_explicit_supersession_refuses_unknown_assertion_id(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    _positive_manual_on_planned_slot(root)
+
+    with pytest.raises(SeasonStateError, match="is not active for tournament t1"):
+        confirm_calendar_booking(
+            season="2026-2027",
+            root=root,
+            event_fingerprint=event_fingerprint(_CORRECTED_EVENT),
+            tournament_id="t1",
+            problem=_host_a_problem([_CORRECTED_EVENT]),
+            note="same match moved",
+            supersede_manual_assertion_id="manual_booking:t1:not-a-real-id",
+        )
+
+
+def test_explicit_supersession_preview_matches_apply_on_unchanged_state(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    manual_id = _positive_manual_on_planned_slot(root)
+    kwargs = dict(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint(_CORRECTED_EVENT),
+        tournament_id="t1",
+        problem=_host_a_problem([_CORRECTED_EVENT]),
+        note="same match moved",
+        supersede_manual_assertion_id=manual_id,
+    )
+
+    preview = confirm_calendar_booking(dry_run=True, **kwargs)
+    applied = confirm_calendar_booking(**kwargs)
+
+    assert preview["superseded_manual_assertions"] == applied["superseded_manual_assertions"] == [manual_id]
+    assert preview["association"]["id"] == applied["association"]["id"]
+    assert preview["approved"]["status"] == applied["approved"]["status"]
+    manual = load_decisions(season="2026-2027", root=root)["manual_booking_assertions"]
+    assert manual[0]["status"] == "superseded"

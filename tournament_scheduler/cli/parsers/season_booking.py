@@ -44,6 +44,11 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
     season_confirm_booking.add_argument("--actor", default=None, help="Operator identity")
     season_confirm_booking.add_argument("--note", default="", help="Audited rationale for this semantic match")
     season_confirm_booking.add_argument("--dry-run", action="store_true", help="Validate without writing canonical state")
+    season_confirm_booking.add_argument(
+        "--supersede-manual-assertion",
+        default=None,
+        help="Manual booking assertion id this calendar confirmation replaces (requires --note)",
+    )
     season_confirm_booking.add_argument("--json", action="store_true", help="Print structured JSON")
 
     season_booking_findings = season_sub.add_parser(

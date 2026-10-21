@@ -784,9 +784,9 @@ class CanonicalSeasonService:
         actor: str | None = None,
         note: str = "",
         problem: dict[str, Any] | None = None,
-        dry_run: bool = False,
+        dry_run: bool = False, supersede_manual_assertion_id: str | None = None,
     ) -> dict[str, Any]:
-        return _calendars.confirm_calendar_booking(self, season=season, event_fingerprint=event_fingerprint, tournament_id=tournament_id, actor=actor, note=note, problem=problem, dry_run=dry_run)
+        return _calendars.confirm_calendar_booking(self, season=season, event_fingerprint=event_fingerprint, tournament_id=tournament_id, actor=actor, note=note, problem=problem, dry_run=dry_run, supersede_manual_assertion_id=supersede_manual_assertion_id)
 
     def release_calendar_booking(
         self,

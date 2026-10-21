@@ -37,6 +37,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
 )
 from tournament_scheduler.planning.contract import verify_candidate
 
+from .manual_supersession import record_calendar_association
 from ..ice_time import _minimum_override_minutes, _record_override_decision
 from ..shared import (
     APPROVED_STATUS,
@@ -274,7 +275,7 @@ def confirm_calendar_booking(
     actor: str | None = None,
     note: str = "",
     problem: dict[str, Any] | None = None,
-    dry_run: bool = False,
+    dry_run: bool = False, supersede_manual_assertion_id: str | None = None,
 ) -> dict[str, Any]:
     """Bind one scraped calendar event to one canonical tournament and approve it."""
 
@@ -332,7 +333,7 @@ def confirm_calendar_booking(
         )
     ]
     records.append(assoc)
-    updated[CALENDAR_BOOKING_ASSOCIATIONS_KEY] = records
+    updated, superseded_manual_ids = record_calendar_association(updated, records=records, association=assoc, tournament=tournament, problem=updated_problem, now=checked_at, supersede_manual_assertion_id=supersede_manual_assertion_id)
     evidence = new_booking_evidence_record(
         tournament=tournament,
         status=BOOKING_CONFIRMED_BOOKED,
@@ -460,7 +461,7 @@ def confirm_calendar_booking(
     result_preview = {
         "season": season,
         "dry_run": bool(dry_run),
-        "association": assoc,
+        "association": assoc, "superseded_manual_assertions": superseded_manual_ids,
         "approved": record,
         "interval_alignment": interval_alignment,
         "ice_time_override": override_record,
@@ -474,7 +475,7 @@ def confirm_calendar_booking(
     return {
         "season": season,
         "dry_run": False,
-        "association": assoc,
+        "association": assoc, "superseded_manual_assertions": superseded_manual_ids,
         "approved": committed.decisions.get("decisions", {}).get(tournament_id),
         "interval_alignment": interval_alignment,
         "ice_time_override": override_record,

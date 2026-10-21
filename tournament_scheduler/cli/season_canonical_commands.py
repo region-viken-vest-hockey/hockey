@@ -376,6 +376,7 @@ def _cmd_season_confirm_calendar_booking(args: argparse.Namespace) -> int:
         actor=args.actor,
         note=args.note,
         dry_run=args.dry_run,
+        supersede_manual_assertion_id=args.supersede_manual_assertion,
     )
     if args.json:
         _emit_json(result)
