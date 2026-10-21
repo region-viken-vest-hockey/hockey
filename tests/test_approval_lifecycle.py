@@ -3131,3 +3131,43 @@ def test_export_renders_one_operational_badge_with_details(tmp_path):
     assert "manual_booking_stated_end_differs_from_canonical" not in html
     assert "MÅ FØLGES OPP" not in html
     assert '<div class="manual-badge"' not in html
+
+
+def test_calendar_confirmation_keeps_manual_booking_on_corrected_interval_active(tmp_path):
+    """#567: an interval correction alone never supersedes an independent manual positive."""
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="clubrep",
+        note="club booked the planned slot",
+        reference="email:booking",
+        problem=_host_a_problem([]),
+    )
+    event = {
+        "date": "2026-09-12",
+        "start": "11:00",
+        "end": "12:30",
+        "availability": "fixed_busy",
+        "calendar_event": "Miniputt U10 bekreftet",
+        "club": "A",
+    }
+    problem = _host_a_problem([event])
+
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint(event),
+        tournament_id="t1",
+        problem=problem,
+        note="Accepted authoritative calendar interval",
+    )
+
+    manual = load_decisions(season="2026-2027", root=root)["manual_booking_assertions"]
+    assert [record["status"] for record in manual] == ["active"]
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    # The stale positive is surfaced for operator resolution, not reported as confirmed_booked.
+    assert report["tournaments"][0]["status"] == "stale"
