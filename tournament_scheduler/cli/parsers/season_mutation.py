@@ -28,6 +28,11 @@ def add_season_mutation_parsers(season_sub: argparse._SubParsersAction) -> None:
     )
     season_move.add_argument("--work-dir", default=".pipeline", help="Pipeline work directory for verification context")
     season_move.add_argument("--json", action="store_true", help="Print updated schedule.json as JSON")
+    season_move.add_argument(
+        "--expected-revision",
+        default=None,
+        help="Canonical revision the move was reviewed against (e.g. from season move-candidates); a changed revision refuses the move",
+    )
 
 
     season_replace = season_sub.add_parser(

@@ -12,7 +12,7 @@ from tournament_scheduler.application.canonical_season.move_search import search
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
 
-from tests.test_consequence_preview import SEASON, _state_bytes
+from tests.test_consequence_preview import SEASON, _state_bytes, _tournament
 from tests.test_swap_candidates import _tournaments, _write
 
 
@@ -159,3 +159,80 @@ def test_cli_move_candidates_reports_json_without_writing(tmp_path: Path, capsys
     )
     assert _state_bytes(root) == before
     assert '"ranking_policy"' in capsys.readouterr().out
+
+
+def _full_roster_tournaments() -> list[dict]:
+    # Full five-club rosters: a three-team fixture cannot pass the shared gates
+    # for any move, so it cannot exercise a real apply.
+    return [
+        _tournament("u10-a", "2026-10-03", "Alfa"),
+        _tournament("u10-b", "2026-10-10", "Bravo"),
+        _tournament("u10-c", "2026-10-17", "Charlie"),
+    ]
+
+
+def test_applying_a_candidate_at_the_reviewed_revision_commits(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write(root, _full_roster_tournaments())
+    result = search_tournament_moves(_service(root), season=SEASON, tournament_ids=["u10-a"])
+    safe = [c for c in result["candidates"] if c["safe_to_apply"]]
+    assert safe, "fixture must offer at least one safe candidate"
+    candidate = safe[0]
+
+    committed = _service(root).move_tournament(
+        season=SEASON,
+        tournament_id=candidate["tournament_id"],
+        date=candidate["date"],
+        expected_revision=result["canonical_state_revision"],
+    )
+
+    assert committed["revision"] != result["canonical_state_revision"]
+    moved = next(t for t in committed["plan"]["tournaments"] if t["id"] == candidate["tournament_id"])
+    assert moved["date"] == candidate["date"]
+
+
+def test_applying_a_candidate_against_a_stale_reviewed_revision_is_refused(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write(root, _full_roster_tournaments())
+    result = search_tournament_moves(_service(root), season=SEASON, tournament_ids=["u10-a"])
+    safe = [c for c in result["candidates"] if c["safe_to_apply"]]
+    assert safe, "fixture must offer at least one safe candidate"
+    candidate = safe[0]
+    reviewed = result["canonical_state_revision"]
+
+    # A real, safe move of another tournament commits and moves the revision on.
+    other = search_tournament_moves(_service(root), season=SEASON, tournament_ids=["u10-c"])
+    other_safe = [c for c in other["candidates"] if c["safe_to_apply"]]
+    assert other_safe, "fixture must offer a second safe candidate"
+    _service(root).move_tournament(
+        season=SEASON,
+        tournament_id="u10-c",
+        date=other_safe[0]["date"],
+    )
+
+    # The candidate must still pass hard verification in the new state, so the
+    # only reason left to refuse it is the stale reviewed revision.
+    current = search_tournament_moves(_service(root), season=SEASON, tournament_ids=["u10-a"])
+    still_valid = [c for c in current["candidates"] if c["safe_to_apply"]]
+    assert still_valid, "fixture must offer a candidate that is valid after the change"
+
+    before = _state_bytes(root)
+    with pytest.raises(SeasonStateError, match="revision"):
+        _service(root).move_tournament(
+            season=SEASON,
+            tournament_id="u10-a",
+            date=still_valid[0]["date"],
+            expected_revision=reviewed,
+        )
+    assert _state_bytes(root) == before
+
+    # Replaying the originally reviewed candidate with the stale revision is
+    # also refused, and the refused attempt leaves canonical state unchanged.
+    with pytest.raises(SeasonStateError):
+        _service(root).move_tournament(
+            season=SEASON,
+            tournament_id=candidate["tournament_id"],
+            date=candidate["date"],
+            expected_revision=reviewed,
+        )
+    assert _state_bytes(root) == before
