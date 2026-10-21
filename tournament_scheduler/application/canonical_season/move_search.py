@@ -80,6 +80,11 @@ def search_tournament_moves(
         if resolved["placement_locked"]:
             excluded.append({"tournament_id": tournament_id, "reason": "placement_locked"})
             continue
+        # A zero or missing duration would make the free-ice check vacuous, so
+        # the tournament is excluded rather than searched with a guessed length.
+        if _duration_minutes(problem, str(tournament.get("age_group") or "")) <= 0:
+            excluded.append({"tournament_id": tournament_id, "reason": "no_duration_configured"})
+            continue
         eligible.append(tournament)
 
     slots = [

@@ -48,6 +48,7 @@ def test_discovery_proposes_same_host_free_ice_dates_through_the_shared_move_pre
         )
         assert candidate["verdict"] == direct["verdict"]
         assert candidate["candidate_fingerprint"] == direct["candidate_fingerprint"]
+        assert candidate["safe_to_apply"] == direct["verdict"]["applicable"]
 
 
 def test_discovery_writes_nothing_and_keeps_the_revision(tmp_path: Path) -> None:
@@ -97,6 +98,21 @@ def test_no_verified_free_ice_is_reported_as_no_available_ice(tmp_path: Path, mo
 
     assert result["candidates"] == []
     assert result["empty_reason"] == "no_available_ice"
+
+
+def test_tournament_without_a_configured_duration_is_excluded_not_searched(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = tmp_path / "season"
+    _write(root, _tournaments())
+    monkeypatch.setattr(move_search, "_duration_minutes", lambda problem, age_group: 0)
+
+    result = search_tournament_moves(_service(root), season=SEASON, tournament_ids=["u10-a", "u10-b"])
+
+    assert result["candidates"] == []
+    assert result["excluded_tournaments"] == [
+        {"tournament_id": "u10-a", "reason": "no_duration_configured"},
+        {"tournament_id": "u10-b", "reason": "no_duration_configured"},
+    ]
+    assert result["empty_reason"] == "no_eligible_tournaments"
 
 
 def test_evaluated_candidates_are_capped_and_truncation_is_reported(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
