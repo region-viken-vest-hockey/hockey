@@ -216,6 +216,7 @@ def test_applying_a_candidate_against_a_stale_reviewed_revision_is_refused(tmp_p
     still_valid = [c for c in current["candidates"] if c["safe_to_apply"]]
     assert still_valid, "fixture must offer a candidate that is valid after the change"
 
+    before = _state_bytes(root)
     with pytest.raises(SeasonStateError, match="revision"):
         _service(root).move_tournament(
             season=SEASON,
@@ -223,3 +224,15 @@ def test_applying_a_candidate_against_a_stale_reviewed_revision_is_refused(tmp_p
             date=still_valid[0]["date"],
             expected_revision=reviewed,
         )
+    assert _state_bytes(root) == before
+
+    # Replaying the originally reviewed candidate with the stale revision is
+    # also refused, and the refused attempt leaves canonical state unchanged.
+    with pytest.raises(SeasonStateError):
+        _service(root).move_tournament(
+            season=SEASON,
+            tournament_id=candidate["tournament_id"],
+            date=candidate["date"],
+            expected_revision=reviewed,
+        )
+    assert _state_bytes(root) == before
