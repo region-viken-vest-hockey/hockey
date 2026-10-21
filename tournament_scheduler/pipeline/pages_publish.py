@@ -41,7 +41,6 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any
 
 from tournament_scheduler.html.templates import PAGES_EMPTY_INDEX, PAGES_ROOT_INDEX
 
@@ -172,6 +171,19 @@ def _copy_bundle(
             index_path.write_text(PAGES_EMPTY_INDEX, encoding="utf-8")
 
 
+def _snapshot_matches(run_dir: Path, expected: dict[str, bytes]) -> bool:
+    """True when every expected file is already present in *run_dir* with identical bytes.
+
+    Extra files in *run_dir* (for example preserved independent pages that were
+    current when the snapshot was written) do not count as a difference.
+    """
+    for rel, data in expected.items():
+        candidate = run_dir / rel
+        if not candidate.is_file() or candidate.read_bytes() != data:
+            return False
+    return True
+
+
 def _write_root_index(branch_root: Path) -> None:
     (branch_root / "index.html").write_text(PAGES_ROOT_INDEX, encoding="utf-8")
     (branch_root / ".nojekyll").write_text("", encoding="utf-8")
@@ -245,100 +257,6 @@ def _planned_bundle_contents(export_dir: Path) -> dict[str, bytes]:
                 PAGES_EMPTY_INDEX.encode("utf-8")
             )
     return contents
-
-
-# ---------------------------------------------------------------------------
-# Immutable snapshot retention (republish safety)
-# ---------------------------------------------------------------------------
-
-
-def verify_published_run_snapshot(
-    run_id: str,
-    *,
-    repo_dir: str = ".",
-    branch: str = "gh-pages",
-    remote: str = "origin",
-    expected_bundle_fingerprint: str | None = None,
-) -> dict[str, Any]:
-    """Verify one immutable ``/runs/<run_id>/`` snapshot is retained on *branch*.
-
-    Refreshes the authoritative remote target before inspecting it (falling back
-    to a local branch only when no usable remote exists, e.g. a local-only
-    ``push=False`` publication). A retained snapshot is only trustworthy when its
-    embedded ``_meta.json`` names the same run and the recorded public-bundle
-    fingerprint, so a stale local ref or a different bundle cannot masquerade as
-    the rollback target. Read-only: it fetches and inspects, never writes.
-
-    Returns a report with ``verifiable``/``retained`` booleans and ``problems``.
-    ``verifiable=False`` (not a git repo, no inspectable target) and any
-    non-empty ``problems`` must be treated as blocking by callers.
-    """
-
-    report: dict[str, Any] = {
-        "run_id": str(run_id or ""),
-        "verifiable": False,
-        "retained": False,
-        "ref": None,
-        "meta_run_id": None,
-        "meta_bundle_fingerprint": None,
-        "problems": [],
-    }
-    if not report["run_id"]:
-        report["problems"].append("no previous run id to verify")
-        return report
-    try:
-        repo_root = _require_git_repo_root(repo_dir)
-    except PagesPublishError as exc:
-        report["problems"].append(f"not a git repository: {exc}")
-        return report
-
-    compare_ref = _refresh_and_resolve_ref(repo_root, remote=remote, branch=branch)
-    if compare_ref is None:
-        report["problems"].append(
-            f"branch '{branch}' could not be inspected locally or on remote '{remote}'"
-        )
-        return report
-    report["verifiable"] = True
-    report["ref"] = compare_ref
-
-    entries = _git(["ls-tree", "-r", "--name-only", compare_ref, f"runs/{run_id}/"], cwd=repo_root)
-    if entries.returncode != 0 or not entries.stdout.strip():
-        report["problems"].append(f"no immutable /runs/{run_id}/ snapshot on '{branch}'")
-        return report
-    report["retained"] = True
-
-    meta_proc = subprocess.run(
-        ["git", "show", f"{compare_ref}:runs/{run_id}/_meta.json"],
-        cwd=repo_root,
-        capture_output=True,
-        text=True,
-        timeout=_GIT_TIMEOUT_SECONDS,
-    )
-    if meta_proc.returncode != 0:
-        report["problems"].append(
-            f"/runs/{run_id}/_meta.json is missing; the retained bundle identity cannot be verified"
-        )
-        return report
-    try:
-        meta = json.loads(meta_proc.stdout)
-    except json.JSONDecodeError:
-        report["problems"].append(f"/runs/{run_id}/_meta.json is malformed")
-        return report
-    if not isinstance(meta, dict):
-        report["problems"].append(f"/runs/{run_id}/_meta.json is not an object")
-        return report
-    report["meta_run_id"] = str(meta.get("run_id") or "")
-    report["meta_bundle_fingerprint"] = str(meta.get("bundle_fingerprint") or "")
-    if report["meta_run_id"] != report["run_id"]:
-        report["problems"].append(
-            f"/runs/{run_id}/_meta.json names run {report['meta_run_id']!r}, not the requested run"
-        )
-    if expected_bundle_fingerprint and report["meta_bundle_fingerprint"] != expected_bundle_fingerprint:
-        report["problems"].append(
-            "retained bundle fingerprint does not match the recorded publication "
-            f"({report['meta_bundle_fingerprint']!r} != {expected_bundle_fingerprint!r})"
-        )
-    return report
 
 
 def _refresh_and_resolve_ref(repo_root: str, *, remote: str, branch: str) -> str | None:
@@ -535,14 +453,27 @@ def publish(
         )
         run_dir = branch_root / "runs" / run_id
         is_new_run_snapshot = not run_dir.exists()
-        _copy_bundle(branch_root / "latest", run_dir)
-
+        expected = _planned_bundle_contents(export_path)
+        meta_payload = None
         if bundle_fingerprint is not None:
             meta_payload = json.dumps(
                 {"run_id": run_id, "bundle_fingerprint": bundle_fingerprint}, indent=2
             )
+            expected["_meta.json"] = meta_payload.encode("utf-8")
+        if is_new_run_snapshot:
+            _copy_bundle(branch_root / "latest", run_dir)
+        elif not _snapshot_matches(run_dir, expected):
+            # A run snapshot is immutable once written. Changed content needs a new run id.
+            return CapabilityResult.failed(
+                f"Kjøring {run_id} er allerede publisert med annet innhold. Øyeblikksbilder under "
+                "runs/ endres ikke; publiser endret innhold under en ny run-id.",
+                capability="pages_publish",
+            )
+
+        if meta_payload is not None:
             (branch_root / "latest" / "_meta.json").write_text(meta_payload, encoding="utf-8")
-            (run_dir / "_meta.json").write_text(meta_payload, encoding="utf-8")
+            if is_new_run_snapshot:
+                (run_dir / "_meta.json").write_text(meta_payload, encoding="utf-8")
 
         _git(["add", "-A"], cwd=tmp_dir)
         status_proc = _git(["status", "--porcelain"], cwd=tmp_dir)
