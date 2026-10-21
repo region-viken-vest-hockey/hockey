@@ -62,9 +62,11 @@ Lint findings are fixed, not suppressed. A file-length failure is fixed by split
 the file, not by raising its baseline. `make check` runs `scripts/check`, which runs ruff,
 the file-length ratchet, the fast suite, the CLI contracts, the rules sync and the secret scan.
 
-- Setup: `make check` needs the repo's `venv/`. If `venv/` is missing, run `make install`
-  first. It installs from PyPI only and changes no tracked files. Without it, tests fail
-  on imports such as `ortools`, which look like code failures but are not.
+- Setup: `make check` needs a working `venv/`. Run `venv/bin/python3 --version` first. If
+  `venv/` is missing, or `venv/bin/python3` does not run (for example a dangling link to the
+  system Python), run `make install`. It installs from PyPI only and changes no tracked files.
+  Without a working venv, tests fail on imports such as `ortools`, which look like code
+  failures but are not.
 - Focused iteration: `venv/bin/python3 -m pytest --no-cov -q -p no:cacheprovider <files>`.
   Never use the system `python3` for this repo's tests.
 - Lint after moving code: ruff reports `F401` for imports the move left unused. Remove
@@ -87,7 +89,8 @@ gh pr create --base main --head <branch> --title "<title>" --body-file <file>
 - If `-u` fails with "could not lock config file" in the sandbox, the `.git/config.lock`
   mount is the cause. Use `git switch --no-track -c <branch>` and push without `-u`.
   Verify with `git ls-remote --heads origin <branch>` against `git rev-parse HEAD`.
-- Write the PR body to a file in the session scratchpad, not in the repo.
+- Write the PR body to a file in the session scratchpad, not in the repo. Shell variables do
+  not persist between Bash calls, so write the literal scratchpad path, not `$SCRATCHPAD`.
 - `gh pr create` warns about "uncommitted change" when untracked files exist. That is
   harmless if only untracked files that the flow does not touch are present.
 
@@ -169,9 +172,13 @@ before looking for `button "Send"`: the Send button appears only once the compos
 Merge only when **both** hold:
 
 - ChatGPT's latest review says ready to merge, or has no blocking findings.
-- Every CI check on the PR is `pass`. Wait with a Monitor that polls `gh pr checks <pr>`
-  until none is `pending`, then read the full list. A PR can show only one check at first;
-  read the list again once it finishes, and do not merge on a partial list.
+- Every CI check on the PR is `pass`. This `gh` version has no `--json` flag on
+  `gh pr checks`. Poll the plain text output, and treat a `gh` error as not finished:
+  `until ! gh pr checks <pr> 2>/dev/null | grep -q pending; do sleep 30; done; gh pr checks <pr>`.
+  Run it in a Monitor with a timeout of at least 30 minutes. An empty result or an error
+  is never a pass. Read the full list once it finishes, and do not merge on a partial list.
+- ChatGPT may answer "Ready to merge once CI passes" with no blocking findings. That
+  counts as ready to merge; CI still has to pass.
 
 ```bash
 gh pr merge <pr> --squash --delete-branch
