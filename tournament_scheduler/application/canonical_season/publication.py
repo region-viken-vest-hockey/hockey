@@ -79,13 +79,16 @@ def seal_published_season(
     # The seal must bind the revision the publication was verified at. A recorded
     # change after verification is reconciled as history below, so without this
     # check the baseline would name a revision that is no longer the sealed state.
-    # A retry of the same publication that already sealed is still idempotent.
+    # An exact retry of the publication that already sealed stays idempotent. The
+    # projection must match too: the same id with a different projection is not a retry.
     current_revision = canonical_state_revision(snapshot.schedule, decisions)
     active = active_baseline(decisions)
     already_sealed_for_publication = (
         isinstance(active, Mapping)
         and str(active.get("publication_id") or "") == str(publication_id)
         and str(active.get("canonical_revision") or "") == str(canonical_revision)
+        and str(active.get("projection_fingerprint") or "")
+        == projection_fingerprint(published_projection)
     )
     if canonical_revision != current_revision and not already_sealed_for_publication:
         raise PublishedBaselineError(

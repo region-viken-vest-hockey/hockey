@@ -2793,3 +2793,55 @@ def test_seal_refuses_verified_revision_superseded_by_later_canonical_change(tmp
             actor="tester",
         )
     assert not is_published_sealed(service.load("2026-2027").decisions)
+
+
+def test_seal_retry_after_canonical_change_is_exact_or_refused(tmp_path: Path) -> None:
+    """Only an exact retry of the sealed publication bypasses the revision guard.
+
+    After a sealed publication, a decision-only canonical change moves the
+    revision on. An exact retry (same publication, revision and projection) is
+    idempotent and leaves publication history unchanged. The same publication id
+    with a different projection is a different publication and must be refused
+    on the revision guard, not accepted as a retry (#564).
+    """
+    from tournament_scheduler.publication.baseline import publication_history
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    service = CanonicalSeasonService(root=root)
+    sealed_revision = _current_revision(root)
+    projection = _tp({"tournaments": _tournaments_abc()})
+    seal_kwargs = dict(
+        season="2026-2027",
+        publication_id="2026-09-21T0908",
+        published_at="2026-09-21T09:14:53+00:00",
+        publication_canonical_projection=projection,
+        actor="tester",
+    )
+    service.seal_published_season(
+        canonical_revision=sealed_revision, published_projection=projection, **seal_kwargs
+    )
+
+    service.add_request_constraint(
+        season="2026-2027",
+        type="team_unavailable",
+        request_id="club-request-after-seal",
+        teams=[{"club": "Alpha", "label": "Alpha1", "age_group": "U10"}],
+        date_from="2026-09-12",
+        actor="tester",
+    )
+    history_before = publication_history(service.load("2026-2027").decisions)
+
+    service.seal_published_season(
+        canonical_revision=sealed_revision, published_projection=projection, **seal_kwargs
+    )
+    assert publication_history(service.load("2026-2027").decisions) == history_before
+
+    changed = _tp({"tournaments": _tournaments_abc()[:2]})
+    with pytest.raises(PublishedBaselineError, match="verified at canonical revision"):
+        service.seal_published_season(
+            canonical_revision=sealed_revision,
+            published_projection=changed,
+            **{**seal_kwargs, "publication_canonical_projection": changed},
+        )
+    assert publication_history(service.load("2026-2027").decisions) == history_before
