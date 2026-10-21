@@ -190,6 +190,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         from .season_swap_command import _cmd_season_swap_candidates
 
         return _cmd_season_swap_candidates(args)
+    elif args.command == "season" and args.season_command == "move-candidates":
+        from .season_move_command import _cmd_season_move_candidates
+
+        return _cmd_season_move_candidates(args)
     elif args.command == "season" and args.season_command == "participation-fairness":
         return _cmd_season_participation_fairness(args)
     elif args.command == "season":
