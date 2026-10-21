@@ -46,6 +46,7 @@ from typing import Any
 from tournament_scheduler.html.templates import PAGES_EMPTY_INDEX, PAGES_ROOT_INDEX
 
 from .capability_result import CapabilityResult
+from .pages_history import PUBLISH_COMMIT_RE, ROLLBACK_COMMIT_RE, write_history_page
 
 _GIT_TIMEOUT_SECONDS = 120
 
@@ -544,6 +545,7 @@ def publish(
             (branch_root / "latest" / "_meta.json").write_text(meta_payload, encoding="utf-8")
             (run_dir / "_meta.json").write_text(meta_payload, encoding="utf-8")
 
+        when = write_history_page(branch_root, run_id=run_id, kind="publish", git=_git)
         _git(["add", "-A"], cwd=tmp_dir)
         status_proc = _git(["status", "--porcelain"], cwd=tmp_dir)
 
@@ -565,7 +567,7 @@ def publish(
             [
                 "-c", "user.email=rvv-miniputt-operator@localhost",
                 "-c", "user.name=RVV Miniputt operator",
-                "commit", "-m", f"Publish run {run_id}",
+                "commit", "--date", when, "-m", f"Publish run {run_id}",
             ],
             cwd=tmp_dir,
         )
@@ -606,9 +608,6 @@ def publish(
 # ---------------------------------------------------------------------------
 # Rollback and publication history (issue #20)
 # ---------------------------------------------------------------------------
-
-_PUBLISH_COMMIT_RE = re.compile(r"^Publish run (\S+)$")
-_ROLLBACK_COMMIT_RE = re.compile(r"^Rollback latest to run (\S+)$")
 
 
 def rollback_to_run(
@@ -689,6 +688,7 @@ def rollback_to_run(
             latest_dir,
             preserve_existing=_PRESERVED_LATEST_PATHS,
         )
+        when = write_history_page(Path(tmp_dir), run_id=run_id, kind="rollback", git=_git)
 
         _git(["add", "-A"], cwd=tmp_dir)
         status_proc = _git(["status", "--porcelain"], cwd=tmp_dir)
@@ -711,7 +711,7 @@ def rollback_to_run(
             [
                 "-c", "user.email=rvv-miniputt-operator@localhost",
                 "-c", "user.name=RVV Miniputt operator",
-                "commit", "-m", f"Rollback latest to run {run_id}",
+                "commit", "--date", when, "-m", f"Rollback latest to run {run_id}",
             ],
             cwd=tmp_dir,
         )
@@ -785,8 +785,8 @@ def list_publication_history(*, repo_dir: str = ".", branch: str = "gh-pages") -
         if len(parts) != 3:
             continue
         sha, date, subject = parts
-        publish_match = _PUBLISH_COMMIT_RE.match(subject)
-        rollback_match = _ROLLBACK_COMMIT_RE.match(subject)
+        publish_match = PUBLISH_COMMIT_RE.match(subject)
+        rollback_match = ROLLBACK_COMMIT_RE.match(subject)
         if publish_match:
             run_id = publish_match.group(1)
             entry = {"commit_sha": sha, "date": date, "kind": "publish", "run_id": run_id}

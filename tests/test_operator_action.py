@@ -855,6 +855,8 @@ class TestVerifyPagesExecutor:
 
             if url.endswith("_meta.json"):
                 return FetchResponse(status_code=200, text=json.dumps({"bundle_fingerprint": "fp1", "run_id": "run-1"}))
+            if url.endswith("/history/"):
+                return FetchResponse(status_code=200, text='<tr data-run-id="run-1" data-current="true"></tr>')
             return FetchResponse(status_code=200, text="<html></html>")
 
         action = DEFAULT_REGISTRY.build("verify_pages", work_dir=str(tmp_path), fetch=fetch)
@@ -942,6 +944,13 @@ class TestPublishPagesVerifyIntegration:
                     capture_output=True, text=True,
                 )
                 return FetchResponse(status_code=200, text=text.stdout)
+            if url.endswith("/history/"):
+                meta = subprocess.run(
+                    ["git", "-C", str(local), "show", "gh-pages:latest/_meta.json"],
+                    capture_output=True, text=True,
+                )
+                run = json.loads(meta.stdout)["run_id"]
+                return FetchResponse(status_code=200, text=f'<tr data-run-id="{run}" data-current="true"></tr>')
             return FetchResponse(status_code=200, text="<html></html>")
 
         action = DEFAULT_REGISTRY.build(

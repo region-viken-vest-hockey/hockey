@@ -34,6 +34,7 @@ from urllib.parse import urljoin
 import requests
 
 from .capability_result import CapabilityResult
+from .pages_history import HISTORY_DIRECTORY
 
 DEFAULT_MAX_ATTEMPTS = 5
 DEFAULT_RETRY_DELAY_SECONDS = 3.0
@@ -80,6 +81,27 @@ def _check_linked_pages(base_url: str, fetch: FetchFunc) -> str | None:
         if response.error or response.status_code != 200:
             return f"lenke '{href}' ({target}) svarte ikke OK: {response.error or response.status_code}"
     return None
+
+
+def _history_url(latest_url: str) -> str:
+    """``https://<site>/<repo>/latest/`` -> ``https://<site>/<repo>/history/``."""
+    base = latest_url.rstrip("/").removesuffix("/latest")
+    return f"{base}/{HISTORY_DIRECTORY}/"
+
+
+def _check_history_page(history_url: str, run_id: str, fetch: FetchFunc) -> str | None:
+    """Check ``/history/`` loads, its run links resolve, and it marks *run_id* current.
+
+    Returns ``None`` when the history page is consistent with the publication,
+    or a description of the first failure otherwise.
+    """
+    response = fetch(history_url)
+    if response.error or response.status_code != 200:
+        return f"historikksiden {history_url} svarte ikke OK: {response.error or response.status_code}"
+    current_marker = f'data-run-id="{run_id}" data-current="true"'
+    if current_marker not in response.text:
+        return f"historikksiden {history_url} markerer ikke kjøring {run_id} som gjeldende"
+    return _check_linked_pages(history_url, fetch)
 
 
 def verify_publication(
@@ -136,7 +158,9 @@ def verify_publication(
                 elif found_run_id != run_id:
                     last_detail = f"funnet run_id {found_run_id!r} != forventet {run_id!r}"
                 else:
-                    page_failure = _check_linked_pages(latest_url, fetch)
+                    page_failure = _check_linked_pages(latest_url, fetch) or _check_history_page(
+                        _history_url(latest_url), run_id, fetch
+                    )
                     if page_failure is None:
                         artifacts = [latest_url] + ([run_url] if run_url else [])
                         return CapabilityResult.ok(
