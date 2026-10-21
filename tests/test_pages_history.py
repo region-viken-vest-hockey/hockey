@@ -217,6 +217,20 @@ class TestHistoryPageFromPublishing:
         assert published_at == _git_out(local, "log", "-1", "--date=iso-strict", "--format=%ad", "gh-pages")
         assert f'data-published-at="{published_at}" data-current="true"' in _read_history(local)
 
+    def test_publication_time_is_strictly_later_than_the_newest_publication(self, tmp_path):
+        class _Git:
+            def __call__(self, args, cwd):
+                if args[:2] == ["rev-parse", "--verify"]:
+                    return subprocess.CompletedProcess(args, 0, stdout="", stderr="")
+                # Newest publication dated in the future: the clock cannot be ahead of it.
+                line = "2099-01-01T00:00:00+00:00\x1fPublish run run-1"
+                return subprocess.CompletedProcess(args, 0, stdout=line, stderr="")
+
+        when, published_at = write_history_page(tmp_path, run_id="run-2", kind="publish", git=_Git(), record=True)
+
+        assert when == "2099-01-01T00:00:01+00:00"
+        assert published_at == when
+
     def test_history_page_contains_no_local_export_paths(self, tmp_path):
         local = _init_repo_with_remote(tmp_path)
         export_dir = tmp_path / "export"

@@ -16,7 +16,7 @@ import json
 import re
 import subprocess
 from collections.abc import Callable, Iterable, Mapping
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 HISTORY_DIRECTORY = "history"
@@ -72,6 +72,22 @@ def _latest_fingerprint(branch_root: Path) -> str:
     return str(meta.get("bundle_fingerprint", "")) if isinstance(meta, dict) else ""
 
 
+def _publication_time(prior: list[dict[str, str]]) -> str:
+    """Current UTC time, strictly later than the newest publication on the branch.
+
+    Publication times are the event identity that verification matches, so two
+    publications must never share one. The clock has one-second resolution, so a
+    publish that follows another within the same second is bumped to the next
+    second instead of relying on the clock to have moved.
+    """
+    when = datetime.now(timezone.utc).replace(microsecond=0)
+    if prior:
+        newest = datetime.fromisoformat(prior[0]["date"])
+        if when <= newest:
+            when = newest + timedelta(seconds=1)
+    return when.isoformat(timespec="seconds")
+
+
 def write_history_page(
     branch_root: Path, *, run_id: str, kind: str, git: GitRunner, record: bool
 ) -> tuple[str, str]:
@@ -89,9 +105,9 @@ def write_history_page(
     entry's date: the identity of this publication event, which verification
     matches against the history page.
     """
-    when = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    fingerprint = _latest_fingerprint(branch_root)
     prior = publication_log(git, str(branch_root))
+    when = _publication_time(prior)
+    fingerprint = _latest_fingerprint(branch_root)
     if record:
         entries = compose_history(prior, run_id=run_id, kind=kind, date=when, fingerprint=fingerprint)
         published_at = when
