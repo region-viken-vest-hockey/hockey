@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import Any, Iterable, Mapping
 
 from tournament_scheduler.season.ice_time_overrides import active_overrides
+from tournament_scheduler.season.state import canonical_state_revision
 from tournament_scheduler.publication.baseline import (
     SEASON_LIFECYCLE_KEY,
     STATE_PUBLISHED_SEALED,
@@ -74,6 +75,23 @@ def seal_published_season(
     decisions = snapshot.decisions
     resolved_actor = _operator_identity(actor)
     now = _now_iso()
+
+    # The seal must bind the revision the publication was verified at. A recorded
+    # change after verification is reconciled as history below, so without this
+    # check the baseline would name a revision that is no longer the sealed state.
+    # A retry of the same publication that already sealed is still idempotent.
+    current_revision = canonical_state_revision(snapshot.schedule, decisions)
+    active = active_baseline(decisions)
+    already_sealed_for_publication = (
+        isinstance(active, Mapping)
+        and str(active.get("publication_id") or "") == str(publication_id)
+        and str(active.get("canonical_revision") or "") == str(canonical_revision)
+    )
+    if canonical_revision != current_revision and not already_sealed_for_publication:
+        raise PublishedBaselineError(
+            "Refusing to seal: the publication was verified at canonical revision "
+            f"{canonical_revision!r}, but current canonical revision is {current_revision!r}"
+        )
 
     current_projection = effective_projection_from_canonical_schedule(
         snapshot.schedule, decisions
