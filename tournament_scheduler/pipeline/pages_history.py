@@ -72,8 +72,10 @@ def _latest_fingerprint(branch_root: Path) -> str:
     return str(meta.get("bundle_fingerprint", "")) if isinstance(meta, dict) else ""
 
 
-def write_history_page(branch_root: Path, *, run_id: str, kind: str, git: GitRunner, record: bool) -> str:
-    """Write ``/history/index.html`` in the worktree and return the publication time.
+def write_history_page(
+    branch_root: Path, *, run_id: str, kind: str, git: GitRunner, record: bool
+) -> tuple[str, str]:
+    """Write ``/history/index.html`` in the worktree.
 
     ``record=True``: the publication changed the branch, so it is prepended as a
     new event. ``record=False``: nothing changed, and the page only backfills
@@ -81,22 +83,27 @@ def write_history_page(branch_root: Path, *, run_id: str, kind: str, git: GitRun
     page existed). Either way the current entry carries the fingerprint of the
     content under ``latest/``, so verification can tell a cached older page apart.
 
-    The returned time (ISO-8601 UTC) is the commit date the caller must use
-    (``git commit --date``), because :func:`publication_log` reads the author date.
+    Returns ``(commit_time, published_at)``. ``commit_time`` (ISO-8601 UTC) is the
+    author date the caller must commit with (``git commit --date``), because
+    :func:`publication_log` reads the author date. ``published_at`` is the current
+    entry's date: the identity of this publication event, which verification
+    matches against the history page.
     """
     when = datetime.now(timezone.utc).isoformat(timespec="seconds")
     fingerprint = _latest_fingerprint(branch_root)
     prior = publication_log(git, str(branch_root))
     if record:
         entries = compose_history(prior, run_id=run_id, kind=kind, date=when, fingerprint=fingerprint)
+        published_at = when
     else:
         entries = [dict(entry) for entry in prior]
         if entries:
             entries[0]["fingerprint"] = fingerprint
+        published_at = entries[0]["date"] if entries else when
     history_dir = branch_root / HISTORY_DIRECTORY
     history_dir.mkdir(parents=True, exist_ok=True)
     (history_dir / "index.html").write_text(render_history_page(entries), encoding="utf-8")
-    return when
+    return when, published_at
 
 
 def compose_history(
@@ -128,18 +135,21 @@ def compose_history(
 def render_history_page(entries: Iterable[Mapping[str, str]]) -> str:
     """Render the public history page. The first entry is the current publication.
 
-    Each row carries ``data-run-id``, ``data-fingerprint`` and ``data-current`` so
-    that verification can check the current publication without parsing layout.
+    Each row carries ``data-run-id``, ``data-fingerprint``, ``data-published-at``
+    and ``data-current`` so that verification can check the current publication
+    without parsing layout.
     """
     rows: list[str] = []
     for index, entry in enumerate(entries):
         run_id = html.escape(entry.get("run_id", ""))
         fingerprint = html.escape(entry.get("fingerprint", ""))
+        published_at = html.escape(entry.get("date", ""))
         current = "true" if index == 0 else "false"
         label = _KIND_LABELS.get(entry.get("kind", ""), html.escape(entry.get("kind", "")))
         status = "Gjeldende" if index == 0 else "Tidligere"
         rows.append(
-            f'<tr data-run-id="{run_id}" data-fingerprint="{fingerprint}" data-current="{current}">'
+            f'<tr data-run-id="{run_id}" data-fingerprint="{fingerprint}" '
+            f'data-published-at="{published_at}" data-current="{current}">'
             f"<td>{html.escape(entry.get('date', ''))}</td>"
             f"<td>{label} <code>{run_id}</code></td>"
             f"<td>{status}</td>"

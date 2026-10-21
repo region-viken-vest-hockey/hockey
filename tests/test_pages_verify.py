@@ -11,6 +11,7 @@ RUN_URL = "https://acme.github.io/hockey/runs/run-1/"
 HISTORY_URL = "https://acme.github.io/hockey/history/"
 FINGERPRINT = "abc123"
 RUN_ID = "run-1"
+PUBLISHED_AT = "2026-10-21T12:00:00+00:00"
 
 
 def _meta_response(*, fingerprint=FINGERPRINT, run_id=RUN_ID) -> FetchResponse:
@@ -22,10 +23,15 @@ def _ok_page(html: str = "<html><body>plan</body></html>") -> FetchResponse:
 
 
 def _history_page(
-    *, current_run_id: str = RUN_ID, links: tuple[str, ...] = ("run-1",), fingerprint: str = FINGERPRINT,
+    *,
+    current_run_id: str = RUN_ID,
+    links: tuple[str, ...] = ("run-1",),
+    fingerprint: str = FINGERPRINT,
+    published_at: str = PUBLISHED_AT,
 ) -> FetchResponse:
     rows = "".join(
         f'<tr data-run-id="{run}" data-fingerprint="{fingerprint if run == current_run_id else "older"}" '
+        f'data-published-at="{published_at if run == current_run_id else "older"}" '
         f'data-current="{"true" if run == current_run_id else "false"}">'
         f'<td><a href="../runs/{run}/">Vis snapshot</a></td></tr>'
         for run in links
@@ -65,7 +71,7 @@ class TestImmediateSuccess:
     def test_succeeds_on_first_attempt_with_no_links(self):
         sleep = _NoSleep()
         result = verify_publication(
-            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID, published_at=PUBLISHED_AT,
             fetch=_served_fetch(), sleep=sleep,
         )
 
@@ -81,7 +87,7 @@ class TestImmediateSuccess:
         }
 
         result = verify_publication(
-            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID, published_at=PUBLISHED_AT,
             fetch=_served_fetch(pages), sleep=_NoSleep(),
         )
         assert result.status == "ok"
@@ -101,7 +107,7 @@ class TestDelayedAvailability:
 
         sleep = _NoSleep()
         result = verify_publication(
-            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID, published_at=PUBLISHED_AT,
             max_attempts=5, retry_delay_seconds=1.5, fetch=fetch, sleep=sleep,
         )
 
@@ -118,7 +124,7 @@ class TestStalePage:
             return _ok_page()
 
         result = verify_publication(
-            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID, published_at=PUBLISHED_AT,
             max_attempts=2, fetch=fetch, sleep=_NoSleep(),
         )
 
@@ -132,7 +138,7 @@ class TestStalePage:
             return _ok_page()
 
         result = verify_publication(
-            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID, published_at=PUBLISHED_AT,
             max_attempts=2, fetch=fetch, sleep=_NoSleep(),
         )
 
@@ -150,7 +156,7 @@ class TestBrokenAssets:
             return FetchResponse(status_code=404, text="")
 
         result = verify_publication(
-            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID, published_at=PUBLISHED_AT,
             max_attempts=1, fetch=fetch, sleep=_NoSleep(),
         )
 
@@ -161,7 +167,7 @@ class TestBrokenAssets:
 class TestHistoryPage:
     def test_missing_history_page_is_not_counted_as_verified(self):
         result = verify_publication(
-            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID, published_at=PUBLISHED_AT,
             max_attempts=1, fetch=_served_fetch(history=FetchResponse(status_code=404, text="")),
             sleep=_NoSleep(),
         )
@@ -171,7 +177,7 @@ class TestHistoryPage:
 
     def test_history_that_does_not_mark_this_run_current_is_not_verified(self):
         result = verify_publication(
-            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID, published_at=PUBLISHED_AT,
             max_attempts=1,
             fetch=_served_fetch(history=_history_page(current_run_id="some-other-run", links=("run-1",))),
             sleep=_NoSleep(),
@@ -185,7 +191,7 @@ class TestHistoryPage:
             "</table>", '<tr data-run-id="run-1" data-current="true"></tr></table>'
         )
         result = verify_publication(
-            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID, published_at=PUBLISHED_AT,
             max_attempts=1, fetch=_served_fetch(history=_ok_page(page)), sleep=_NoSleep(),
         )
 
@@ -194,7 +200,7 @@ class TestHistoryPage:
 
     def test_cached_history_from_an_earlier_publication_of_the_same_run_is_not_verified(self):
         result = verify_publication(
-            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID, published_at=PUBLISHED_AT,
             max_attempts=1, fetch=_served_fetch(history=_history_page(fingerprint="older-publication")),
             sleep=_NoSleep(),
         )
@@ -202,9 +208,22 @@ class TestHistoryPage:
         assert result.status == "warning"
         assert "fingeravtrykk" in result.problems[0]
 
-    def test_a_broken_run_link_in_history_is_reported(self):
+    def test_cached_history_from_the_first_publication_of_the_same_content_is_not_verified(self):
+        # Publish A, publish B, roll back to A: same fingerprint, new publication time.
         result = verify_publication(
             latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+            published_at=PUBLISHED_AT,
+            max_attempts=1,
+            fetch=_served_fetch(history=_history_page(published_at="2026-10-19T08:00:00+00:00")),
+            sleep=_NoSleep(),
+        )
+
+        assert result.status == "warning"
+        assert "publisert" in result.problems[0]
+
+    def test_a_broken_run_link_in_history_is_reported(self):
+        result = verify_publication(
+            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID, published_at=PUBLISHED_AT,
             max_attempts=1, fetch=_served_fetch(history=_history_page(links=("run-1", "run-gone"))),
             sleep=_NoSleep(),
         )
@@ -225,7 +244,7 @@ class TestTimeout:
 
         sleep = _NoSleep()
         result = verify_publication(
-            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID, published_at=PUBLISHED_AT,
             max_attempts=4, retry_delay_seconds=2.0, fetch=fetch, sleep=sleep,
         )
 

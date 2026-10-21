@@ -37,7 +37,7 @@ def _current_run_ids(page: str) -> list[str]:
     """Run ids of rows marked current, from the page's row attributes."""
     import re
 
-    return re.findall(r'data-run-id="([^"]+)" data-fingerprint="[^"]*" data-current="true"', page)
+    return re.findall(r'data-run-id="([^"]+)"[^>]*data-current="true"', page)
 
 
 class TestComposeHistory:
@@ -205,6 +205,17 @@ class TestHistoryPageFromPublishing:
         assert _current_run_ids(page) == ["run-1"]
         # Backfill records no new publication: the log still has exactly one publish of run-1.
         assert _git_out(local, "log", "--format=%s", "gh-pages").count("Publish run run-1") == 1
+
+    def test_reported_publication_time_is_the_committed_log_time(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        export_dir = tmp_path / "export"
+        _write_export_bundle(export_dir)
+
+        result = publish(export_dir=str(export_dir), run_id="run-1", repo_dir=str(local), push=False)
+
+        published_at = next(e.split("=", 1)[1] for e in result.evidence if e.startswith("published_at="))
+        assert published_at == _git_out(local, "log", "-1", "--date=iso-strict", "--format=%ad", "gh-pages")
+        assert f'data-published-at="{published_at}" data-current="true"' in _read_history(local)
 
     def test_history_page_contains_no_local_export_paths(self, tmp_path):
         local = _init_repo_with_remote(tmp_path)

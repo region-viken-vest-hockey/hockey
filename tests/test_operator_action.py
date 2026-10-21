@@ -845,7 +845,7 @@ class TestVerifyPagesExecutor:
             CR.ok(
                 "Publiserte kjøring run-1 til gh-pages (commit abcdef12)",
                 capability="pages_publish",
-                evidence=["bundle_fingerprint=fp1", "run_id=run-1"],
+                evidence=["bundle_fingerprint=fp1", "run_id=run-1", "published_at=2026-10-21T12:00:00+00:00"],
                 artifacts=["https://acme.github.io/hockey/latest/", "https://acme.github.io/hockey/runs/run-1/"],
             )
         )
@@ -858,7 +858,10 @@ class TestVerifyPagesExecutor:
             if url.endswith("/history/"):
                 return FetchResponse(
                     status_code=200,
-                    text='<tr data-run-id="run-1" data-fingerprint="fp1" data-current="true"></tr>',
+                    text=(
+                        '<tr data-run-id="run-1" data-fingerprint="fp1" '
+                        'data-published-at="2026-10-21T12:00:00+00:00" data-current="true"></tr>'
+                    ),
                 )
             return FetchResponse(status_code=200, text="<html></html>")
 
@@ -953,11 +956,16 @@ class TestPublishPagesVerifyIntegration:
                     capture_output=True, text=True,
                 )
                 fields = json.loads(meta.stdout)
+                published_at = subprocess.run(
+                    ["git", "-C", str(local), "log", "-1", "--date=iso-strict", "--format=%ad", "gh-pages"],
+                    capture_output=True, text=True,
+                ).stdout.strip()
                 return FetchResponse(
                     status_code=200,
                     text=(
                         f'<tr data-run-id="{fields["run_id"]}" '
-                        f'data-fingerprint="{fields["bundle_fingerprint"]}" data-current="true"></tr>'
+                        f'data-fingerprint="{fields["bundle_fingerprint"]}" '
+                        f'data-published-at="{published_at}" data-current="true"></tr>'
                     ),
                 )
             return FetchResponse(status_code=200, text="<html></html>")

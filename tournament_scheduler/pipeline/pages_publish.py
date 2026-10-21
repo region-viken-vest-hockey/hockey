@@ -46,7 +46,7 @@ from typing import Any
 from tournament_scheduler.html.templates import PAGES_EMPTY_INDEX, PAGES_ROOT_INDEX
 
 from .capability_result import CapabilityResult
-from .pages_history import HISTORY_DIRECTORY, PublicationHistoryError, write_history_page
+from .pages_history import HISTORY_DIRECTORY, PublicationHistoryError, publication_log, write_history_page
 
 _GIT_TIMEOUT_SECONDS = 120
 
@@ -557,14 +557,15 @@ def publish(
         history_missing = not (branch_root / HISTORY_DIRECTORY / "index.html").is_file()
         if not changed and not history_missing:
             sha = _git(["rev-parse", "HEAD"], cwd=tmp_dir).stdout.strip()
+            current = publication_log(_git, str(branch_root))
             return CapabilityResult.ok(
                 f"Ingen endringer å publisere for kjøring {run_id} — allerede oppdatert.",
                 capability="pages_publish",
-                evidence=[f"commit_sha={sha}", f"branch={branch}"],
+                evidence=[f"commit_sha={sha}", f"branch={branch}", f"published_at={current[0]['date'] if current else ''}"],
                 artifacts=artifacts,
             )
 
-        when = write_history_page(branch_root, run_id=run_id, kind="publish", git=_git, record=changed)
+        when, published_at = write_history_page(branch_root, run_id=run_id, kind="publish", git=_git, record=changed)
         _git(["add", "-A"], cwd=tmp_dir)
         subject = f"Publish run {run_id}" if changed else "Add publication history page"
         commit_proc = _git(
@@ -600,6 +601,7 @@ def publish(
                 f"commit_sha={sha}",
                 f"branch={branch}",
                 f"new_run_snapshot={is_new_run_snapshot}",
+                f"published_at={published_at}",
             ],
             artifacts=artifacts,
         )
@@ -706,14 +708,15 @@ def rollback_to_run(
         history_missing = not (Path(tmp_dir) / HISTORY_DIRECTORY / "index.html").is_file()
         if not changed and not history_missing:
             sha = _git(["rev-parse", "HEAD"], cwd=tmp_dir).stdout.strip()
+            current = publication_log(_git, str(Path(tmp_dir)))
             return CapabilityResult.ok(
                 f"'/latest/' er allerede kjøring {run_id} — ingen tilbakerulling nødvendig.",
                 capability="pages_publish",
-                evidence=[f"commit_sha={sha}", f"branch={branch}"],
+                evidence=[f"commit_sha={sha}", f"branch={branch}", f"published_at={current[0]['date'] if current else ''}"],
                 artifacts=artifacts,
             )
 
-        when = write_history_page(Path(tmp_dir), run_id=run_id, kind="rollback", git=_git, record=changed)
+        when, published_at = write_history_page(Path(tmp_dir), run_id=run_id, kind="rollback", git=_git, record=changed)
         _git(["add", "-A"], cwd=tmp_dir)
         subject = f"Rollback latest to run {run_id}" if changed else "Add publication history page"
         commit_proc = _git(
@@ -745,7 +748,12 @@ def rollback_to_run(
         return CapabilityResult.ok(
             f"Rullet '/latest/' tilbake til kjøring {run_id} (commit {sha[:8]})",
             capability="pages_publish",
-            evidence=[f"commit_sha={sha}", f"branch={branch}", f"rolled_back_to_run_id={run_id}"],
+            evidence=[
+                f"commit_sha={sha}",
+                f"branch={branch}",
+                f"rolled_back_to_run_id={run_id}",
+                f"published_at={published_at}",
+            ],
             artifacts=artifacts,
         )
     except PublicationHistoryError as exc:
