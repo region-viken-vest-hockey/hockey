@@ -36,6 +36,11 @@ stop the flow. Name them in the final report. Stage files by explicit path, neve
   means by "next". If that is ambiguous, consult ChatGPT (see *When stuck*) with the
   candidates and your most likely reading, then act on its answer only if it names one
   issue and the issue bodies support it.
+- An issue whose comments leave a decision open ("whether X should replace Y", an unset
+  bar) is a consult question, not a stop. Send the consult with the full context: the
+  issue body and comments, the merged slices and their PR titles, and the open decision with
+  its options. ChatGPT settles most of these from that text. Ask the user only when, after
+  one consult, the decision is still a product or policy call (see step 5).
 - Read the issue body and comments with `gh issue view <n> --json title,body,comments`.
   `gh issue view <n> --comments` prints nothing here, because the classic Projects GraphQL
   deprecation error replaces the output, so do not rely on it.
@@ -241,10 +246,12 @@ Procedure:
    state, so the message must carry the facts: the flow step, the candidates or the
    failure text (short), the issue or PR numbers, and the decision needed. Ask it to use
    the GitHub connector to read the named issues and to list every PR that references
-   them, merged and open, including their diffs. Ask it to recommend one option with the
-   reasons and a confidence. Ask it to list every assumption it made about the codebase,
-   labelled as an assumption, and to say which it could not verify. Do not paste diffs,
-   secrets or tokens.
+   them, merged and open, including their diffs. Include the issue comments and the merged
+   slice titles in the message, so ChatGPT judges from the full history and not from the
+   body alone. Ask it to recommend one option with the reasons and a confidence, and to
+   decide any open design or policy question it can settle from the issue text. Ask it to
+   list every assumption it made about the codebase, labelled as an assumption, and to say
+   which it could not verify. Do not paste diffs, secrets or tokens.
 3. Wait for the complete reply (same polling rule as step 6). Read the answer from the
    page text, as step 6 describes, not from the snapshot.
 4. Verify the answer before acting on it. ChatGPT is advisory. Check it against the issue
@@ -254,8 +261,12 @@ Procedure:
    a consult answer that names an issue must pass the merged-PR check before you act on it.
 5. If the answer is supported by the evidence, act on it and record in the final report
    that ChatGPT recommended it and what you checked. If the answer is unsupported,
-   contradicts the code, or asks for a product or policy decision, stop and ask the user.
-   Name ChatGPT's recommendation and say why you did not take it.
+   contradicts the code, or asks for a product or policy decision that the issue text cannot
+   settle, stop and ask the user. Name ChatGPT's recommendation and say why you did not take
+   it. Stop only then, not for an answer that merely leaves a choice open.
+6. When you stop to ask the user after a consult, leave the consult chat and its tab open,
+   record their page id, and name them in the stop message so the user can read the answer
+   in Orca before deciding. Delete the chat at step 10 only once the flow resumes or ends.
 
 Consult at most once per stuck point. If the consult itself fails (no complete answer,
 login prompt, page not ready), stop and tell the user. Do not retry in a loop.
