@@ -29,15 +29,22 @@ _KIND_LABELS = {"publish": "Publisert", "rollback": "Tilbakerullet til"}
 GitRunner = Callable[..., subprocess.CompletedProcess]
 
 
+class PublicationHistoryError(RuntimeError):
+    """The existing publication log could not be read, so history must not be rewritten."""
+
+
 def publication_log(git: GitRunner, cwd: str) -> list[dict[str, str]]:
     """Newest-first ``{date, kind, run_id}`` entries from HEAD's commit log in *cwd*.
 
-    Returns an empty list if HEAD has no commits yet (for example the first
-    publish on an orphan branch), so callers never need to special-case it.
+    Returns an empty list only when HEAD has no commits yet (the first publish
+    on an orphan branch). If HEAD exists but its log cannot be read, raises
+    :class:`PublicationHistoryError` rather than returning a partial history.
     """
+    if git(["rev-parse", "--verify", "--quiet", "HEAD"], cwd=cwd).returncode != 0:
+        return []
     proc = git(["log", "HEAD", "--date=iso-strict", "--format=%ad%x1f%s"], cwd=cwd)
     if proc.returncode != 0:
-        return []
+        raise PublicationHistoryError(f"kunne ikke lese publiseringsloggen: {proc.stderr.strip()}")
     entries: list[dict[str, str]] = []
     for line in proc.stdout.splitlines():
         parts = line.split("\x1f")
@@ -57,9 +64,10 @@ def write_history_page(branch_root: Path, *, run_id: str, kind: str, git: GitRun
     """Write ``/history/index.html`` in the worktree, listing *run_id* as current.
 
     Returns the publication time (ISO-8601 UTC). The caller must commit with that
-    value as the commit date, so re-reading the log later reproduces this page
-    exactly. Must run before the publish or rollback commit, so the page is part
-    of the same commit as the change it describes.
+    value as the author date (``git commit --date``), because :func:`publication_log`
+    reads the author date (``%ad``). That keeps the rendered time identical to the
+    committed log's time. Callers must only invoke this when the publication
+    actually produces a commit, so every history entry matches one commit.
     """
     when = datetime.now(timezone.utc).isoformat(timespec="seconds")
     entries = compose_history(publication_log(git, str(branch_root)), run_id=run_id, kind=kind, date=when)
@@ -78,16 +86,14 @@ def compose_history(
 ) -> list[dict[str, str]]:
     """Return newest-first entries with the new publication prepended.
 
-    *prior* is the existing publication log, newest first. If the newest entry
-    already names *run_id* the publication is a no-op and the log is returned
-    unchanged, so an identical republish keeps the history page byte-identical.
+    *prior* is the existing publication log, newest first. This always adds an
+    entry: whether a publication is a no-op is decided by its content change
+    before the history is written, never by comparing run ids.
     """
     entries = [
         {"date": str(entry.get("date", "")), "kind": str(entry.get("kind", "")), "run_id": str(entry.get("run_id", ""))}
         for entry in prior
     ]
-    if entries and entries[0]["run_id"] == run_id:
-        return entries
     return [{"date": date, "kind": kind, "run_id": run_id}, *entries]
 
 

@@ -177,6 +177,18 @@ class TestHistoryPage:
         assert result.status == "warning"
         assert "gjeldende" in result.problems[0]
 
+    def test_history_with_two_current_rows_is_not_verified(self):
+        page = _history_page(links=("run-1",)).text.replace(
+            "</table>", '<tr data-run-id="run-1" data-current="true"></tr></table>'
+        )
+        result = verify_publication(
+            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+            max_attempts=1, fetch=_served_fetch(history=_ok_page(page)), sleep=_NoSleep(),
+        )
+
+        assert result.status == "warning"
+        assert "eneste gjeldende" in result.problems[0]
+
     def test_a_broken_run_link_in_history_is_reported(self):
         result = verify_publication(
             latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,

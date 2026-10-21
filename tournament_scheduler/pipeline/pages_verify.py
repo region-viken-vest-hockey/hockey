@@ -99,8 +99,8 @@ def _check_history_page(history_url: str, run_id: str, fetch: FetchFunc) -> str 
     if response.error or response.status_code != 200:
         return f"historikksiden {history_url} svarte ikke OK: {response.error or response.status_code}"
     current_marker = f'data-run-id="{run_id}" data-current="true"'
-    if current_marker not in response.text:
-        return f"historikksiden {history_url} markerer ikke kjøring {run_id} som gjeldende"
+    if response.text.count('data-current="true"') != 1 or current_marker not in response.text:
+        return f"historikksiden {history_url} markerer ikke kjøring {run_id} som eneste gjeldende"
     return _check_linked_pages(history_url, fetch)
 
 

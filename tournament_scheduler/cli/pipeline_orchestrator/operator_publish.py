@@ -225,7 +225,7 @@ def _cmd_operator_rollback(args: argparse.Namespace) -> int:
 
 def _cmd_operator_publish_history(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt operator publish-history`` — list Pages publish/rollback events (issue #20)."""
-    from ...pipeline.pages_publish import list_publication_history
+    from ...pipeline.pages_publication_list import list_publication_history
 
     history = list_publication_history(
         repo_dir=getattr(args, "repo_dir", ".") or ".", branch=getattr(args, "branch", "gh-pages") or "gh-pages"
