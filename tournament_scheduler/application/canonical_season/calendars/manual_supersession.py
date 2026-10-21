@@ -77,8 +77,9 @@ def record_calendar_association(
             f"Tournament {tournament_id} has multiple active manual booking assertions "
             f"{[str(record.get('id') or '') for record in active]}; resolve all but one before superseding"
         )
-    # A retry of this same confirmation finds its assertion already superseded by it: nothing new to do.
-    if any(
+    # A retry of this same confirmation finds its assertion already superseded by it, and no other
+    # active assertion has appeared since: nothing new to do. Any remaining active record refuses below.
+    if not active and any(
         str(record.get("id") or "") == supersede_manual_assertion_id
         and str(record.get("tournament_id") or "") == tournament_id
         and str(record.get("status") or "") == MANUAL_ASSERTION_SUPERSEDED

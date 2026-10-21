@@ -3384,3 +3384,25 @@ def test_retry_after_later_negative_assertion_is_refused(tmp_path):
         _superseded_by_confirmation(root, manual_id)
 
     assert load_decisions(season="2026-2027", root=root) == decisions_before_retry
+
+
+def test_retry_after_later_positive_assertion_is_refused(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    manual_id = _positive_manual_on_planned_slot(root)
+    _superseded_by_confirmation(root, manual_id)
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="clubrep",
+        note="club recorded a second booking on another slot",
+        reference="email:second-booking",
+        problem=_host_a_problem([_CORRECTED_EVENT]),
+    )
+    decisions_before_retry = load_decisions(season="2026-2027", root=root)
+
+    with pytest.raises(SeasonStateError, match="is not active for tournament t1"):
+        _superseded_by_confirmation(root, manual_id)
+
+    assert load_decisions(season="2026-2027", root=root) == decisions_before_retry
