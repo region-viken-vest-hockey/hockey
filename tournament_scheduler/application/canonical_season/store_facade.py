@@ -687,7 +687,7 @@ def confirm_calendar_booking(
     actor: str | None = None,
     note: str = "",
     problem: dict[str, Any] | None = None,
-    dry_run: bool = False,
+    dry_run: bool = False, supersede_manual_assertion_id: str | None = None,
 ) -> dict[str, Any]:
     return _service(root).confirm_calendar_booking(
         season=season,
@@ -696,7 +696,7 @@ def confirm_calendar_booking(
         actor=actor,
         note=note,
         problem=problem,
-        dry_run=dry_run,
+        dry_run=dry_run, supersede_manual_assertion_id=supersede_manual_assertion_id,
     )
 
 
