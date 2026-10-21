@@ -3406,3 +3406,30 @@ def test_retry_after_later_positive_assertion_is_refused(tmp_path):
         _superseded_by_confirmation(root, manual_id)
 
     assert load_decisions(season="2026-2027", root=root) == decisions_before_retry
+
+
+def test_repeat_confirmation_keeps_association_provenance(tmp_path):
+    from tournament_scheduler.booking.calendar_bookings import CALENDAR_BOOKING_ASSOCIATIONS_KEY
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = {
+        "start_date": "2026-09-01",
+        "end_date": "2027-04-30",
+        "teams": _teams(),
+        "age_groups": ["U10"],
+        "ice_time_minutes": {"U10": 120},
+        "rounds_per_tournament": {"U10": 3},
+        "parallel_games": {"U10": 2},
+        "club_calendar_status": {"A": "known"},
+        "club_busy_intervals": {"A": [{"date": "2026-09-12", "start": "10:00", "end": "12:00", "availability": "fixed_busy", "calendar_event": "Miniputt"}]},
+    }
+    event_fp = calendar_booking_candidates(season="2026-2027", root=root, club="A", problem=problem)["booking_candidates"][0]["calendar_event"]["fingerprint"]
+    confirm_calendar_booking(season="2026-2027", root=root, event_fingerprint=event_fp, tournament_id="t1", problem=problem, note="first")
+    first = load_decisions(season="2026-2027", root=root)[CALENDAR_BOOKING_ASSOCIATIONS_KEY]
+
+    confirm_calendar_booking(season="2026-2027", root=root, event_fingerprint=event_fp, tournament_id="t1", problem=problem, note="second")
+    second = load_decisions(season="2026-2027", root=root)[CALENDAR_BOOKING_ASSOCIATIONS_KEY]
+
+    assert len(first) == 1
+    assert second == first
+    assert second[0]["note"] == "first"

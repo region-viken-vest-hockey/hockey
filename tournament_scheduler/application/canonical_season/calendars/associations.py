@@ -37,6 +37,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
 )
 from tournament_scheduler.planning.contract import verify_candidate
 
+from .association_retention import retain_repeat_association
 from .manual_supersession import record_calendar_association
 from ..ice_time import _minimum_override_minutes, _record_override_decision
 from ..shared import (
@@ -324,15 +325,9 @@ def confirm_calendar_booking(
         source_revision=canonical_state_revision(schedule, decisions),
         problem=updated_problem,
     )
-    records = [
-        dict(record)
-        for record in (updated.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or [])
-        if not (
-            str(record.get("event_fingerprint") or "") == event_fingerprint
-            and str(record.get("tournament_id") or "") == tournament_id
-        )
-    ]
-    records.append(assoc)
+    assoc, records = retain_repeat_association(
+        updated, event_fingerprint=event_fingerprint, tournament_id=tournament_id, association=assoc
+    )
     updated, superseded_manual_ids = record_calendar_association(updated, records=records, association=assoc, tournament=tournament, problem=updated_problem, now=checked_at, supersede_manual_assertion_id=supersede_manual_assertion_id)
     evidence = new_booking_evidence_record(
         tournament=tournament,
