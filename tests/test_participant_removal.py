@@ -153,7 +153,7 @@ def _write_plan(root: Path, plan: dict, problem: dict, *, sealed: bool, season: 
         service.seal_published_season(
             season=season,
             publication_id="2026-09-22T0908",
-            canonical_revision="rev-published",
+            canonical_revision=canonical_state_revision(schedule, decisions),
             published_at="2026-09-22T09:14:53+00:00",
             published_projection=projection,
             publication_canonical_projection=projection,

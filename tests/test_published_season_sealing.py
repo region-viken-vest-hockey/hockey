@@ -558,13 +558,18 @@ def _tournaments_abc() -> list[dict]:
     ]
 
 
+def _current_revision(root: Path, season: str = "2026-2027") -> str:
+    snapshot = CanonicalSeasonStore(root).load(season)
+    return canonical_state_revision(snapshot.schedule, snapshot.decisions)
+
+
 def _seal_abc(root: Path, *, materialize_three: bool = True) -> dict:
     published = _tp({"tournaments": _tournaments_abc()[:1]})
     publication_canonical = _tp({"tournaments": _tournaments_abc()[:2]})
     return CanonicalSeasonService(root=root).seal_published_season(
         season="2026-2027",
         publication_id="2026-09-21T0908",
-        canonical_revision="rev-published",
+        canonical_revision=_current_revision(root),
         published_at="2026-09-21T09:14:53+00:00",
         published_projection=published,
         publication_canonical_projection=publication_canonical,
@@ -704,7 +709,7 @@ def _write_sealed_repairable_season(
     service.seal_published_season(
         season=season,
         publication_id="2026-09-21T0908",
-        canonical_revision="rev-published",
+        canonical_revision=_current_revision(root),
         published_at="2026-09-21T09:14:53+00:00",
         published_projection=projection,
         publication_canonical_projection=projection,
@@ -829,7 +834,7 @@ def test_seal_fails_closed_on_unsupported_materialization(tmp_path: Path) -> Non
         CanonicalSeasonService(root=root).seal_published_season(
             season="2026-2027",
             publication_id="2026-09-21T0908",
-            canonical_revision="rev-published",
+            canonical_revision=_current_revision(root),
             published_at="2026-09-21T09:14:53+00:00",
             published_projection=published,
             publication_canonical_projection=publication_canonical,
@@ -1316,7 +1321,7 @@ def test_sealed_confirm_calendar_booking_reconciles_shorter_authoritative_interv
     service.seal_published_season(
         season="2026-2027",
         publication_id="2026-09-21T0908",
-        canonical_revision="rev-published",
+        canonical_revision=_current_revision(root),
         published_at="2026-09-21T09:14:53+00:00",
         published_projection=projection,
         publication_canonical_projection=projection,
@@ -1402,7 +1407,7 @@ def test_sealed_confirm_calendar_booking_batch_replays_mixed_override_history(
     service.seal_published_season(
         season="2026-2027",
         publication_id="2026-09-21T0908",
-        canonical_revision="rev-published",
+        canonical_revision=_current_revision(root),
         published_at="2026-09-21T09:14:53+00:00",
         published_projection=projection,
         publication_canonical_projection=projection,
@@ -1530,7 +1535,7 @@ def test_sealed_ice_time_override_reconciles_and_keeps_maintenance_open(tmp_path
     service.seal_published_season(
         season="2026-2027",
         publication_id="2026-09-21T0908",
-        canonical_revision="rev-published",
+        canonical_revision=_current_revision(root),
         published_at="2026-09-21T09:14:53+00:00",
         published_projection=projection,
         publication_canonical_projection=projection,
@@ -1883,7 +1888,7 @@ def test_promote_force_cannot_replace_sealed_season(tmp_path: Path) -> None:
     seal_published_season(
         season=schedule["season"],
         publication_id="2026-09-28T0908",
-        canonical_revision=str(schedule.get("revision")),
+        canonical_revision=_current_revision(root),
         published_at="2026-09-28T09:14:53+00:00",
         published_projection=tournament_projection(schedule.get("plan") or {}, _problem(schedule.get("plan") or {})),
         root=root,
@@ -1942,13 +1947,13 @@ def _seal_full(
 def test_replacement_seal_links_previous_and_records_exact_delta(tmp_path: Path) -> None:
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
-    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision=_current_revision(root), run_id="run-1")
 
     service = CanonicalSeasonService(root=root)
     service.move_tournament(season="2026-2027", tournament_id="rvv-1", start_time="11:00", actor="tester")
 
     report = _seal_full(
-        root, publication_id="2026-09-28T0908", canonical_revision="rev-2", run_id="run-2"
+        root, publication_id="2026-09-28T0908", canonical_revision=_current_revision(root), run_id="run-2"
     )
 
     assert report["publication_evidence"]["run_id"] == "run-2"
@@ -1972,10 +1977,10 @@ def test_replacement_seal_links_previous_and_records_exact_delta(tmp_path: Path)
 def test_replacement_seal_does_not_mutate_canonical_schedule(tmp_path: Path) -> None:
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
-    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision=_current_revision(root), run_id="run-1")
     before = CanonicalSeasonStore(root).load("2026-2027").schedule["plan"]
 
-    _seal_full(root, publication_id="2026-09-28T0908", canonical_revision="rev-2", run_id="run-2")
+    _seal_full(root, publication_id="2026-09-28T0908", canonical_revision=_current_revision(root), run_id="run-2")
 
     after = CanonicalSeasonStore(root).load("2026-2027").schedule["plan"]
     assert after == before
@@ -1996,7 +2001,7 @@ def test_replacement_seal_rejects_mismatched_evidence_fingerprint(tmp_path: Path
         CanonicalSeasonService(root=root).seal_published_season(
             season="2026-2027",
             publication_id="2026-09-21T0908",
-            canonical_revision="rev-1",
+            canonical_revision=_current_revision(root),
             published_at="2026-09-21T09:14:53+00:00",
             published_projection=projection,
             publication_canonical_projection=projection,
@@ -2103,7 +2108,7 @@ def test_publication_guard_refuses_when_previous_run_snapshot_is_missing(
     _seal_full(
         root,
         publication_id="2026-09-21T0908",
-        canonical_revision="rev-1",
+        canonical_revision=_current_revision(root),
         run_id="never-published-run",
     )
     export_dir = _canonical_export_for_current_state(tmp_path, root, "2026-09-28T0908")
@@ -2148,7 +2153,7 @@ def test_publication_guard_blocks_on_unverifiable_previous_snapshot(
     _seal_full(
         root,
         publication_id="2026-09-21T0908",
-        canonical_revision="rev-1",
+        canonical_revision=_current_revision(root),
         run_id="never-published-run",
     )
     export_dir = _canonical_export_for_current_state(tmp_path, root, "2026-09-28T0908")
@@ -2179,7 +2184,7 @@ def test_publication_evidence_report_shows_active_revision_and_delta(tmp_path: P
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
-    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision=_current_revision(root), run_id="run-1")
     CanonicalSeasonService(root=root).move_tournament(
         season="2026-2027", tournament_id="rvv-1", start_time="11:00", actor="tester"
     )
@@ -2233,7 +2238,7 @@ def test_replacement_seal_labels_missing_previous_decision_snapshot(tmp_path: Pa
     CanonicalSeasonService(root=root).seal_published_season(
         season="2026-2027",
         publication_id="2026-09-21T0908",
-        canonical_revision="rev-1",
+        canonical_revision=_current_revision(root),
         published_at="2026-09-21T09:14:53+00:00",
         published_projection=projection,
         publication_canonical_projection=projection,
@@ -2242,7 +2247,7 @@ def test_replacement_seal_labels_missing_previous_decision_snapshot(tmp_path: Pa
     )
 
     report = _seal_full(
-        root, publication_id="2026-09-28T0908", canonical_revision="rev-2", run_id="run-2"
+        root, publication_id="2026-09-28T0908", canonical_revision=_current_revision(root), run_id="run-2"
     )
     changes = report["republish_decision_changes"]
     assert changes["available"] is False
@@ -2258,9 +2263,9 @@ def test_replacement_seal_rejects_conflicting_retained_evidence(tmp_path: Path) 
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
-    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision=_current_revision(root), run_id="run-1")
     report = _seal_full(
-        root, publication_id="2026-09-28T0908", canonical_revision="rev-2", run_id="run-2"
+        root, publication_id="2026-09-28T0908", canonical_revision=_current_revision(root), run_id="run-2"
     )
     # A retry for the same publication and identical content is idempotent.
     retry = write_publication_evidence(
@@ -2489,7 +2494,7 @@ def test_publication_freshness_refuses_stale_revision_with_override(tmp_path: Pa
 def test_reconciliation_identifies_active_override_with_provenance(tmp_path: Path) -> None:
     root = tmp_path / "season"
     _write_canonical(root, [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha", "U12")])
-    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision=_current_revision(root), run_id="run-1")
     service = CanonicalSeasonService(root=root)
     service.set_ice_time_minutes(
         season="2026-2027",
@@ -2571,7 +2576,7 @@ def test_reconciliation_fails_closed_on_unknown_or_nonpositive_override() -> Non
 def test_clearing_override_restores_default_and_reconciles(tmp_path: Path) -> None:
     root = tmp_path / "season"
     _write_canonical(root, [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha", "U12")])
-    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision=_current_revision(root), run_id="run-1")
     service = CanonicalSeasonService(root=root)
     service.set_ice_time_minutes(
         season="2026-2027",
@@ -2597,7 +2602,7 @@ def test_replacement_seal_records_real_override_interval_and_retains_previous(
 ) -> None:
     root = tmp_path / "season"
     _write_canonical(root, [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha", "U12")])
-    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision=_current_revision(root), run_id="run-1")
     service = CanonicalSeasonService(root=root)
     service.set_ice_time_minutes(
         season="2026-2027",
@@ -2649,7 +2654,7 @@ def test_publication_guard_allows_republish_with_active_override(tmp_path: Path)
     _init_local_repo(local)
     root = local / "season"
     _write_canonical(root, [_tournament("rvv-1", "2026-10-11", "10:00", "A", "Alpha", "U12")])
-    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision=_current_revision(root), run_id="run-1")
     service = CanonicalSeasonService(root=root)
     service.set_ice_time_minutes(
         season="2026-2027",
@@ -2722,7 +2727,7 @@ def test_eighteen_active_overrides_pass_reconciliation_and_freshness(tmp_path: P
 
     root = tmp_path / "season"
     _write_canonical(root, tournaments, problem=problem)
-    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision="rev-1", run_id="run-1")
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision=_current_revision(root), run_id="run-1")
     service = CanonicalSeasonService(root=root)
     for tid, (_default, override) in _PRODUCTION_OVERRIDES.items():
         service.set_ice_time_minutes(
@@ -2746,3 +2751,148 @@ def test_eighteen_active_overrides_pass_reconciliation_and_freshness(tmp_path: P
     context = _publication_context(export_dir, repo_dir=tmp_path)
     assert context is not None
     assert len(context["published_projection"]) == 18
+
+
+def test_seal_refuses_verified_revision_superseded_by_later_canonical_change(tmp_path: Path) -> None:
+    """A seal binds the canonical revision it was verified at, not a later one.
+
+    A recorded canonical change after verification advances the revision. The
+    reconciliation accepts that change as recorded history, so without a revision
+    check the seal would stamp the stale verified revision on the baseline while
+    sealing the changed state (#564).
+    """
+    from tournament_scheduler.application.canonical_season.store_facade import (
+        load_decisions,
+        load_schedule,
+    )
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    service = CanonicalSeasonService(root=root)
+    snapshot = service.load("2026-2027")
+    verified_revision = canonical_state_revision(snapshot.schedule, snapshot.decisions)
+
+    service.add_request_constraint(
+        season="2026-2027",
+        type="team_unavailable",
+        request_id="club-request-after-verification",
+        teams=[{"club": "Alpha", "label": "Alpha1", "age_group": "U10"}],
+        date_from="2026-09-12",
+        actor="tester",
+    )
+    assert canonical_state_revision(load_schedule("2026-2027", root=root), load_decisions("2026-2027", root=root)) != verified_revision
+
+    with pytest.raises(PublishedBaselineError, match="revision"):
+        service.seal_published_season(
+            season="2026-2027",
+            publication_id="2026-09-21T0908",
+            canonical_revision=verified_revision,
+            published_at="2026-09-21T09:14:53+00:00",
+            published_projection=_tp({"tournaments": _tournaments_abc()}),
+            publication_canonical_projection=_tp({"tournaments": _tournaments_abc()}),
+            actor="tester",
+        )
+    assert not is_published_sealed(service.load("2026-2027").decisions)
+
+
+def test_seal_retry_after_canonical_change_is_exact_or_refused(tmp_path: Path) -> None:
+    """Only an exact retry of the sealed publication bypasses the revision guard.
+
+    After a sealed publication, a decision-only canonical change moves the
+    revision on. An exact retry (same publication, revision and projection) is
+    idempotent and leaves publication history unchanged. The same publication id
+    with a different projection is a different publication and must be refused
+    on the revision guard, not accepted as a retry (#564).
+    """
+    from tournament_scheduler.publication.baseline import publication_history
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    service = CanonicalSeasonService(root=root)
+    sealed_revision = _current_revision(root)
+    projection = _tp({"tournaments": _tournaments_abc()})
+    seal_kwargs = dict(
+        season="2026-2027",
+        publication_id="2026-09-21T0908",
+        published_at="2026-09-21T09:14:53+00:00",
+        publication_canonical_projection=projection,
+        actor="tester",
+    )
+    service.seal_published_season(
+        canonical_revision=sealed_revision, published_projection=projection, **seal_kwargs
+    )
+
+    service.add_request_constraint(
+        season="2026-2027",
+        type="team_unavailable",
+        request_id="club-request-after-seal",
+        teams=[{"club": "Alpha", "label": "Alpha1", "age_group": "U10"}],
+        date_from="2026-09-12",
+        actor="tester",
+    )
+    history_before = publication_history(service.load("2026-2027").decisions)
+
+    service.seal_published_season(
+        canonical_revision=sealed_revision, published_projection=projection, **seal_kwargs
+    )
+    assert publication_history(service.load("2026-2027").decisions) == history_before
+
+    changed = _tp({"tournaments": _tournaments_abc()[:2]})
+    with pytest.raises(PublishedBaselineError, match="verified at canonical revision"):
+        service.seal_published_season(
+            canonical_revision=sealed_revision,
+            published_projection=changed,
+            **{**seal_kwargs, "publication_canonical_projection": changed},
+        )
+    assert publication_history(service.load("2026-2027").decisions) == history_before
+
+
+def test_seal_refuses_concurrent_canonical_change_before_commit(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A canonical change landing between the revision check and the commit wins.
+
+    The seal validates the verified revision, then writes. If another writer
+    records a change in that window, the seal must refuse with a revision conflict
+    and leave the newer state unsealed and unmodified, not overwrite it (#564).
+    """
+    from tournament_scheduler.application.canonical_season import publication as publication_module
+    from tournament_scheduler.infrastructure.canonical_season_store import (
+        CanonicalRevisionConflictError,
+    )
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    service = CanonicalSeasonService(root=root)
+    verified_revision = _current_revision(root)
+    projection = _tp({"tournaments": _tournaments_abc()})
+
+    original_build = publication_module.build_baseline_record
+
+    def concurrent_writer_then_build(**kwargs):
+        CanonicalSeasonService(root=root).add_request_constraint(
+            season="2026-2027",
+            type="team_unavailable",
+            request_id="club-request-concurrent",
+            teams=[{"club": "Alpha", "label": "Alpha1", "age_group": "U10"}],
+            date_from="2026-09-12",
+            actor="other-operator",
+        )
+        return original_build(**kwargs)
+
+    monkeypatch.setattr(publication_module, "build_baseline_record", concurrent_writer_then_build)
+    with pytest.raises(CanonicalRevisionConflictError):
+        service.seal_published_season(
+            season="2026-2027",
+            publication_id="2026-09-21T0908",
+            canonical_revision=verified_revision,
+            published_at="2026-09-21T09:14:53+00:00",
+            published_projection=projection,
+            publication_canonical_projection=projection,
+            actor="tester",
+        )
+    monkeypatch.undo()
+
+    snapshot = service.load("2026-2027")
+    assert canonical_state_revision(snapshot.schedule, snapshot.decisions) != verified_revision
+    assert not is_published_sealed(snapshot.decisions)
