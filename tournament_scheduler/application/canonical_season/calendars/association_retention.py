@@ -7,7 +7,7 @@ from typing import Any, Mapping
 from tournament_scheduler.booking.calendar_bookings import CALENDAR_BOOKING_ASSOCIATIONS_KEY
 
 _PROVENANCE_KEYS = ("source_revision", "note", "created_at", "created_by")
-_FACT_KEYS = ("tournament_facts", "tournament_interval")
+_LIFECYCLE_KEYS = ("status",)
 
 
 def _matches(record: Any, *, event_fingerprint: str, tournament_id: str) -> bool:
@@ -16,6 +16,12 @@ def _matches(record: Any, *, event_fingerprint: str, tournament_id: str) -> bool
         and str(record.get("event_fingerprint") or "") == event_fingerprint
         and str(record.get("tournament_id") or "") == tournament_id
     )
+
+
+def _same_facts(previous: Mapping[str, Any], candidate: Mapping[str, Any]) -> bool:
+    """True when every non-provenance field of the candidate matches the stored record."""
+    ignored = set(_PROVENANCE_KEYS) | set(_LIFECYCLE_KEYS)
+    return all(previous.get(key) == value for key, value in candidate.items() if key not in ignored)
 
 
 def retain_repeat_association(
@@ -43,7 +49,7 @@ def retain_repeat_association(
         None,
     )
     stored = dict(association)
-    if previous is not None and all(previous.get(key) == stored.get(key) for key in _FACT_KEYS):
+    if previous is not None and _same_facts(previous, stored):
         stored.update({key: previous[key] for key in _PROVENANCE_KEYS if key in previous})
     position = next(
         (
