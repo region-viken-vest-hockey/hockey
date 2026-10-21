@@ -21,9 +21,12 @@ def _ok_page(html: str = "<html><body>plan</body></html>") -> FetchResponse:
     return FetchResponse(status_code=200, text=html)
 
 
-def _history_page(*, current_run_id: str = RUN_ID, links: tuple[str, ...] = ("run-1",)) -> FetchResponse:
+def _history_page(
+    *, current_run_id: str = RUN_ID, links: tuple[str, ...] = ("run-1",), fingerprint: str = FINGERPRINT,
+) -> FetchResponse:
     rows = "".join(
-        f'<tr data-run-id="{run}" data-current="{"true" if run == current_run_id else "false"}">'
+        f'<tr data-run-id="{run}" data-fingerprint="{fingerprint if run == current_run_id else "older"}" '
+        f'data-current="{"true" if run == current_run_id else "false"}">'
         f'<td><a href="../runs/{run}/">Vis snapshot</a></td></tr>'
         for run in links
     )
@@ -188,6 +191,16 @@ class TestHistoryPage:
 
         assert result.status == "warning"
         assert "eneste gjeldende" in result.problems[0]
+
+    def test_cached_history_from_an_earlier_publication_of_the_same_run_is_not_verified(self):
+        result = verify_publication(
+            latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+            max_attempts=1, fetch=_served_fetch(history=_history_page(fingerprint="older-publication")),
+            sleep=_NoSleep(),
+        )
+
+        assert result.status == "warning"
+        assert "fingeravtrykk" in result.problems[0]
 
     def test_a_broken_run_link_in_history_is_reported(self):
         result = verify_publication(

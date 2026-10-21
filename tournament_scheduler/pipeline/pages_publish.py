@@ -46,7 +46,7 @@ from typing import Any
 from tournament_scheduler.html.templates import PAGES_EMPTY_INDEX, PAGES_ROOT_INDEX
 
 from .capability_result import CapabilityResult
-from .pages_history import PublicationHistoryError, write_history_page
+from .pages_history import HISTORY_DIRECTORY, PublicationHistoryError, write_history_page
 
 _GIT_TIMEOUT_SECONDS = 120
 
@@ -553,7 +553,9 @@ def publish(
         )
         artifacts = [url for url in (latest_url, run_url) if url]
 
-        if not status_proc.stdout.strip():
+        changed = bool(status_proc.stdout.strip())
+        history_missing = not (branch_root / HISTORY_DIRECTORY / "index.html").is_file()
+        if not changed and not history_missing:
             sha = _git(["rev-parse", "HEAD"], cwd=tmp_dir).stdout.strip()
             return CapabilityResult.ok(
                 f"Ingen endringer å publisere for kjøring {run_id} — allerede oppdatert.",
@@ -562,13 +564,14 @@ def publish(
                 artifacts=artifacts,
             )
 
-        when = write_history_page(branch_root, run_id=run_id, kind="publish", git=_git)
+        when = write_history_page(branch_root, run_id=run_id, kind="publish", git=_git, record=changed)
         _git(["add", "-A"], cwd=tmp_dir)
+        subject = f"Publish run {run_id}" if changed else "Add publication history page"
         commit_proc = _git(
             [
                 "-c", "user.email=rvv-miniputt-operator@localhost",
                 "-c", "user.name=RVV Miniputt operator",
-                "commit", "--date", when, "-m", f"Publish run {run_id}",
+                "commit", "--date", when, "-m", subject,
             ],
             cwd=tmp_dir,
         )
@@ -699,7 +702,9 @@ def rollback_to_run(
         )
         artifacts = [url for url in (latest_url, run_url) if url]
 
-        if not status_proc.stdout.strip():
+        changed = bool(status_proc.stdout.strip())
+        history_missing = not (Path(tmp_dir) / HISTORY_DIRECTORY / "index.html").is_file()
+        if not changed and not history_missing:
             sha = _git(["rev-parse", "HEAD"], cwd=tmp_dir).stdout.strip()
             return CapabilityResult.ok(
                 f"'/latest/' er allerede kjøring {run_id} — ingen tilbakerulling nødvendig.",
@@ -708,13 +713,14 @@ def rollback_to_run(
                 artifacts=artifacts,
             )
 
-        when = write_history_page(Path(tmp_dir), run_id=run_id, kind="rollback", git=_git)
+        when = write_history_page(Path(tmp_dir), run_id=run_id, kind="rollback", git=_git, record=changed)
         _git(["add", "-A"], cwd=tmp_dir)
+        subject = f"Rollback latest to run {run_id}" if changed else "Add publication history page"
         commit_proc = _git(
             [
                 "-c", "user.email=rvv-miniputt-operator@localhost",
                 "-c", "user.name=RVV Miniputt operator",
-                "commit", "--date", when, "-m", f"Rollback latest to run {run_id}",
+                "commit", "--date", when, "-m", subject,
             ],
             cwd=tmp_dir,
         )

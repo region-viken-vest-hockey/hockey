@@ -25,6 +25,10 @@ def _read_history(local: Path, branch: str = "gh-pages") -> str:
     return proc.stdout
 
 
+def _run(args: list[str], cwd: Path) -> None:
+    subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True)
+
+
 def _git_out(local: Path, *args: str) -> str:
     return subprocess.run(["git", *args], cwd=local, capture_output=True, text=True, check=True).stdout.strip()
 
@@ -33,14 +37,16 @@ def _current_run_ids(page: str) -> list[str]:
     """Run ids of rows marked current, from the page's row attributes."""
     import re
 
-    return re.findall(r'data-run-id="([^"]+)" data-current="true"', page)
+    return re.findall(r'data-run-id="([^"]+)" data-fingerprint="[^"]*" data-current="true"', page)
 
 
 class TestComposeHistory:
     def test_first_publication_is_the_only_current_entry(self):
         entries = compose_history([], run_id="run-1", kind="publish", date="2026-10-21T12:00:00+00:00")
 
-        assert entries == [{"date": "2026-10-21T12:00:00+00:00", "kind": "publish", "run_id": "run-1"}]
+        assert entries == [
+            {"date": "2026-10-21T12:00:00+00:00", "kind": "publish", "run_id": "run-1", "fingerprint": ""}
+        ]
 
     def test_new_publication_is_prepended_newest_first(self):
         prior = [{"date": "2026-10-20T10:00:00+00:00", "kind": "publish", "run_id": "run-1"}]
@@ -175,7 +181,30 @@ class TestHistoryPageFromPublishing:
                 return subprocess.CompletedProcess(args, returncode, stdout="", stderr="boom")
 
         with pytest.raises(PublicationHistoryError):
-            write_history_page(Path("."), run_id="run-1", kind="publish", git=_Git())
+            write_history_page(Path("."), run_id="run-1", kind="publish", git=_Git(), record=True)
+
+    def test_legacy_branch_without_history_page_gets_backfilled_on_identical_republish(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        export_dir = tmp_path / "export"
+        _write_export_bundle(export_dir)
+        publish(export_dir=str(export_dir), run_id="run-1", repo_dir=str(local), push=False)
+
+        # Simulate a gh-pages branch published before the history page existed.
+        worktree = tmp_path / "legacy-wt"
+        _run(["worktree", "add", str(worktree), "gh-pages"], cwd=local)
+        _run(["rm", "-q", "history/index.html"], cwd=worktree)
+        _run(["-c", "user.email=t@example.com", "-c", "user.name=T", "commit", "-q", "-m", "legacy"], cwd=worktree)
+        _run(["worktree", "remove", "--force", str(worktree)], cwd=local)
+        assert "history/index.html" not in _git_out(local, "ls-tree", "-r", "--name-only", "gh-pages")
+
+        result = publish(export_dir=str(export_dir), run_id="run-1", repo_dir=str(local), push=False)
+
+        assert result.status == "ok"
+        assert _git_out(local, "log", "-1", "--format=%s", "gh-pages") == "Add publication history page"
+        page = _read_history(local)
+        assert _current_run_ids(page) == ["run-1"]
+        # Backfill records no new publication: the log still has exactly one publish of run-1.
+        assert _git_out(local, "log", "--format=%s", "gh-pages").count("Publish run run-1") == 1
 
     def test_history_page_contains_no_local_export_paths(self, tmp_path):
         local = _init_repo_with_remote(tmp_path)

@@ -1,17 +1,18 @@
 """Public publication history page for the GitHub Pages site (issue #798).
 
-Pure rendering: :mod:`pages_publish` reads the publication log that it already
-keeps on ``gh-pages`` (one commit per publish or rollback) and passes the
-entries here. Nothing in this module touches git, the filesystem or the
-network.
+:mod:`pages_publish` writes the page into the ``gh-pages`` worktree before each
+publish or rollback commit. The page is derived from the publication log that
+the branch already keeps (one commit per publish or rollback), so no separate
+store exists.
 
-Only public-safe fields are rendered: publication time, run id and kind.
-Source export paths, fingerprints and commit shas are deliberately left out.
+Only public-safe fields are rendered: publication time, run id, kind and the
+bundle fingerprint. Source export paths and commit shas are deliberately left out.
 """
 
 from __future__ import annotations
 
 import html
+import json
 import re
 import subprocess
 from collections.abc import Callable, Iterable, Mapping
@@ -34,10 +35,12 @@ class PublicationHistoryError(RuntimeError):
 
 
 def publication_log(git: GitRunner, cwd: str) -> list[dict[str, str]]:
-    """Newest-first ``{date, kind, run_id}`` entries from HEAD's commit log in *cwd*.
+    """Newest-first ``{date, kind, run_id, fingerprint}`` entries from HEAD's log in *cwd*.
 
-    Returns an empty list only when HEAD has no commits yet (the first publish
-    on an orphan branch). If HEAD exists but its log cannot be read, raises
+    The commit log does not carry the bundle fingerprint, so ``fingerprint`` is
+    left empty here; :func:`write_history_page` fills it for the current entry.
+    Returns an empty list only when HEAD has no commits yet (the first publish on
+    an orphan branch). If HEAD exists but its log cannot be read, raises
     :class:`PublicationHistoryError` rather than returning a partial history.
     """
     if git(["rev-parse", "--verify", "--quiet", "HEAD"], cwd=cwd).returncode != 0:
@@ -54,23 +57,42 @@ def publication_log(git: GitRunner, cwd: str) -> list[dict[str, str]]:
         publish_match = PUBLISH_COMMIT_RE.match(subject)
         rollback_match = ROLLBACK_COMMIT_RE.match(subject)
         if publish_match:
-            entries.append({"date": date, "kind": "publish", "run_id": publish_match.group(1)})
+            entries.append({"date": date, "kind": "publish", "run_id": publish_match.group(1), "fingerprint": ""})
         elif rollback_match:
-            entries.append({"date": date, "kind": "rollback", "run_id": rollback_match.group(1)})
+            entries.append({"date": date, "kind": "rollback", "run_id": rollback_match.group(1), "fingerprint": ""})
     return entries
 
 
-def write_history_page(branch_root: Path, *, run_id: str, kind: str, git: GitRunner) -> str:
-    """Write ``/history/index.html`` in the worktree, listing *run_id* as current.
+def _latest_fingerprint(branch_root: Path) -> str:
+    """Bundle fingerprint of the content currently under ``latest/``, or ``""``."""
+    try:
+        meta = json.loads((branch_root / "latest" / "_meta.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    return str(meta.get("bundle_fingerprint", "")) if isinstance(meta, dict) else ""
 
-    Returns the publication time (ISO-8601 UTC). The caller must commit with that
-    value as the author date (``git commit --date``), because :func:`publication_log`
-    reads the author date (``%ad``). That keeps the rendered time identical to the
-    committed log's time. Callers must only invoke this when the publication
-    actually produces a commit, so every history entry matches one commit.
+
+def write_history_page(branch_root: Path, *, run_id: str, kind: str, git: GitRunner, record: bool) -> str:
+    """Write ``/history/index.html`` in the worktree and return the publication time.
+
+    ``record=True``: the publication changed the branch, so it is prepended as a
+    new event. ``record=False``: nothing changed, and the page only backfills
+    history from the existing log (for example a branch published before this
+    page existed). Either way the current entry carries the fingerprint of the
+    content under ``latest/``, so verification can tell a cached older page apart.
+
+    The returned time (ISO-8601 UTC) is the commit date the caller must use
+    (``git commit --date``), because :func:`publication_log` reads the author date.
     """
     when = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    entries = compose_history(publication_log(git, str(branch_root)), run_id=run_id, kind=kind, date=when)
+    fingerprint = _latest_fingerprint(branch_root)
+    prior = publication_log(git, str(branch_root))
+    if record:
+        entries = compose_history(prior, run_id=run_id, kind=kind, date=when, fingerprint=fingerprint)
+    else:
+        entries = [dict(entry) for entry in prior]
+        if entries:
+            entries[0]["fingerprint"] = fingerprint
     history_dir = branch_root / HISTORY_DIRECTORY
     history_dir.mkdir(parents=True, exist_ok=True)
     (history_dir / "index.html").write_text(render_history_page(entries), encoding="utf-8")
@@ -83,6 +105,7 @@ def compose_history(
     run_id: str,
     kind: str,
     date: str,
+    fingerprint: str = "",
 ) -> list[dict[str, str]]:
     """Return newest-first entries with the new publication prepended.
 
@@ -91,26 +114,32 @@ def compose_history(
     before the history is written, never by comparing run ids.
     """
     entries = [
-        {"date": str(entry.get("date", "")), "kind": str(entry.get("kind", "")), "run_id": str(entry.get("run_id", ""))}
+        {
+            "date": str(entry.get("date", "")),
+            "kind": str(entry.get("kind", "")),
+            "run_id": str(entry.get("run_id", "")),
+            "fingerprint": str(entry.get("fingerprint", "")),
+        }
         for entry in prior
     ]
-    return [{"date": date, "kind": kind, "run_id": run_id}, *entries]
+    return [{"date": date, "kind": kind, "run_id": run_id, "fingerprint": fingerprint}, *entries]
 
 
 def render_history_page(entries: Iterable[Mapping[str, str]]) -> str:
     """Render the public history page. The first entry is the current publication.
 
-    Each row carries ``data-run-id`` and ``data-current`` so that verification
-    can check the current marker without parsing the layout.
+    Each row carries ``data-run-id``, ``data-fingerprint`` and ``data-current`` so
+    that verification can check the current publication without parsing layout.
     """
     rows: list[str] = []
     for index, entry in enumerate(entries):
         run_id = html.escape(entry.get("run_id", ""))
+        fingerprint = html.escape(entry.get("fingerprint", ""))
         current = "true" if index == 0 else "false"
         label = _KIND_LABELS.get(entry.get("kind", ""), html.escape(entry.get("kind", "")))
         status = "Gjeldende" if index == 0 else "Tidligere"
         rows.append(
-            f'<tr data-run-id="{run_id}" data-current="{current}">'
+            f'<tr data-run-id="{run_id}" data-fingerprint="{fingerprint}" data-current="{current}">'
             f"<td>{html.escape(entry.get('date', ''))}</td>"
             f"<td>{label} <code>{run_id}</code></td>"
             f"<td>{status}</td>"

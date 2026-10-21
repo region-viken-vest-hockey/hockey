@@ -89,8 +89,11 @@ def _history_url(latest_url: str) -> str:
     return f"{base}/{HISTORY_DIRECTORY}/"
 
 
-def _check_history_page(history_url: str, run_id: str, fetch: FetchFunc) -> str | None:
-    """Check ``/history/`` loads, its run links resolve, and it marks *run_id* current.
+def _check_history_page(history_url: str, run_id: str, bundle_fingerprint: str, fetch: FetchFunc) -> str | None:
+    """Check ``/history/`` loads, its run links resolve, and its current row is this publication.
+
+    "This publication" is the run id together with the bundle fingerprint, so an
+    older cached history page for a republished run id is not accepted.
 
     Returns ``None`` when the history page is consistent with the publication,
     or a description of the first failure otherwise.
@@ -98,9 +101,12 @@ def _check_history_page(history_url: str, run_id: str, fetch: FetchFunc) -> str 
     response = fetch(history_url)
     if response.error or response.status_code != 200:
         return f"historikksiden {history_url} svarte ikke OK: {response.error or response.status_code}"
-    current_marker = f'data-run-id="{run_id}" data-current="true"'
+    current_marker = f'data-run-id="{run_id}" data-fingerprint="{bundle_fingerprint}" data-current="true"'
     if response.text.count('data-current="true"') != 1 or current_marker not in response.text:
-        return f"historikksiden {history_url} markerer ikke kjøring {run_id} som eneste gjeldende"
+        return (
+            f"historikksiden {history_url} markerer ikke kjøring {run_id} med fingeravtrykk "
+            f"{bundle_fingerprint} som eneste gjeldende"
+        )
     return _check_linked_pages(history_url, fetch)
 
 
@@ -159,7 +165,7 @@ def verify_publication(
                     last_detail = f"funnet run_id {found_run_id!r} != forventet {run_id!r}"
                 else:
                     page_failure = _check_linked_pages(latest_url, fetch) or _check_history_page(
-                        _history_url(latest_url), run_id, fetch
+                        _history_url(latest_url), run_id, bundle_fingerprint, fetch
                     )
                     if page_failure is None:
                         artifacts = [latest_url] + ([run_url] if run_url else [])
