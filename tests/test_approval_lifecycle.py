@@ -3131,3 +3131,54 @@ def test_export_renders_one_operational_badge_with_details(tmp_path):
     assert "manual_booking_stated_end_differs_from_canonical" not in html
     assert "MÅ FØLGES OPP" not in html
     assert '<div class="manual-badge"' not in html
+
+
+def test_calendar_confirmation_supersedes_manual_booking_on_corrected_interval(tmp_path):
+    """#567: an authoritative interval correction supersedes the stale manual positive."""
+
+    from tournament_scheduler.application.canonical_season.calendars.manual_supersession import (
+        CALENDAR_INTERVAL_CORRECTION_REASON,
+    )
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="clubrep",
+        note="club booked the planned slot",
+        reference="email:booking",
+        problem=_host_a_problem([]),
+    )
+    event = {
+        "date": "2026-09-12",
+        "start": "11:00",
+        "end": "12:30",
+        "availability": "fixed_busy",
+        "calendar_event": "Miniputt U10 bekreftet",
+        "club": "A",
+    }
+    problem = _host_a_problem([event])
+    event_fp = event_fingerprint(event)
+
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        problem=problem,
+        note="Accepted authoritative calendar interval",
+    )
+
+    manual = load_decisions(season="2026-2027", root=root)["manual_booking_assertions"]
+    assert [record["status"] for record in manual] == ["superseded"]
+    assert manual[0]["superseded_by"] == f"calendar_booking:{event_fp}:t1"
+    assert manual[0]["supersede_reason"] == CALENDAR_INTERVAL_CORRECTION_REASON
+    assert manual[0]["superseded_stale_reasons"] == [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed",
+        "tournament_start_time_changed",
+    ]
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assert report["tournaments"][0]["status"] == "confirmed_booked"
