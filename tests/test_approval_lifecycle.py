@@ -3279,3 +3279,26 @@ def test_explicit_supersession_refuses_unknown_assertion_id(tmp_path):
             note="same match moved",
             supersede_manual_assertion_id="manual_booking:t1:not-a-real-id",
         )
+
+
+def test_explicit_supersession_preview_matches_apply_on_unchanged_state(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    manual_id = _positive_manual_on_planned_slot(root)
+    kwargs = dict(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint(_CORRECTED_EVENT),
+        tournament_id="t1",
+        problem=_host_a_problem([_CORRECTED_EVENT]),
+        note="same match moved",
+        supersede_manual_assertion_id=manual_id,
+    )
+
+    preview = confirm_calendar_booking(dry_run=True, **kwargs)
+    applied = confirm_calendar_booking(**kwargs)
+
+    assert preview["superseded_manual_assertions"] == applied["superseded_manual_assertions"] == [manual_id]
+    assert preview["association"]["id"] == applied["association"]["id"]
+    assert preview["approved"]["status"] == applied["approved"]["status"]
+    manual = load_decisions(season="2026-2027", root=root)["manual_booking_assertions"]
+    assert manual[0]["status"] == "superseded"

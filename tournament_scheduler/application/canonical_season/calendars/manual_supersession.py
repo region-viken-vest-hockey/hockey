@@ -66,6 +66,13 @@ def record_calendar_association(
             f"Tournament {tournament_id} has active non-positive manual assertions {conflicting}; "
             "resolve them before superseding a positive assertion"
         )
+    # Several active positives would leave an independent one in force after the named
+    # one is superseded, so the operator must resolve them first.
+    if len(active) > 1:
+        raise SeasonStateError(
+            f"Tournament {tournament_id} has multiple active manual booking assertions "
+            f"{[str(record.get('id') or '') for record in active]}; resolve all but one before superseding"
+        )
     target = next(
         (record for record in active if str(record.get("id") or "") == supersede_manual_assertion_id),
         None,
