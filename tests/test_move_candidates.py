@@ -283,3 +283,18 @@ def test_moving_an_unbooked_tournament_keeps_a_confirmed_booking_elsewhere(tmp_p
     assert rows
     assert all(row["delta"]["booked"] == 0 for row in rows)
     assert all(row["before"]["booked"] == 1 for row in rows)
+
+
+def test_refused_move_preview_reports_booked_reality_as_unevaluated_without_raising(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write(root, _full_roster_tournaments())
+    # u10-b already plays on 2026-10-10, so moving u10-a there is refused by verification.
+    preview = preview_canonical_operation(
+        _service(root), operation="move", season=SEASON, tournament_id="u10-a", date="2026-10-10",
+    )
+
+    assert preview["verdict"]["applicable"] is False
+    consequences = preview["consequences"]
+    assert consequences["booked_evaluated"] is False
+    assert consequences["provisional"] is True
+    assert consequences["affected_teams"] == []

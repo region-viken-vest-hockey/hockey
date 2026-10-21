@@ -133,13 +133,17 @@ def _swap(service, **kwargs: Any) -> dict[str, Any]:
 
 
 def _move(service, **kwargs: Any) -> dict[str, Any]:
+    # Read the before-state first and use it only if the move was computed against the
+    # same revision. A commit between the reads leaves booked reality unevaluated.
+    snapshot = service.load(kwargs["season"])
     result = service.move_tournament(**kwargs)
     # A refused or unchanged dry-run has no candidate plan. Booked reality is then
     # left unevaluated, which the consequence layer reports as provisional.
     if "move_preview" not in result or "plan" not in result:
         return result
-    # Dry-run only: the state read here is the state the move was previewed against.
-    snapshot = service.load(kwargs["season"])
+    previewed_against = result["move_preview"].get("before_canonical_revision")
+    if canonical_state_revision(snapshot.schedule, snapshot.decisions) != previewed_against:
+        return result
     result["move_preview"]["booked_fairness"] = move_booked_fairness(
         schedule=snapshot.schedule,
         decisions=snapshot.decisions,
