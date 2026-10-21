@@ -206,8 +206,7 @@ def promote_from_stage3(
     return _service(root).promote(work_dir=work_dir, season=season, actor=actor, force=force)
 
 
-def move_tournament(
-    *,
+def move_tournament(*,
     season: str,
     tournament_id: str,
     root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
@@ -224,6 +223,7 @@ def move_tournament(
     request_id: str | None = None,
     allow_manual_placement: bool = False,
     allow_host_confirmation: bool = False,
+    expected_revision: str | None = None,
 ) -> dict[str, Any]:
     """Apply or preview a bounded placement mutation to canonical state."""
 
@@ -241,8 +241,8 @@ def move_tournament(
         allow_cross_half=allow_cross_half,
         run_id=run_id,
         request_id=request_id,
-        allow_manual_placement=allow_manual_placement,
-        allow_host_confirmation=allow_host_confirmation,
+        allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation,
+        expected_revision=expected_revision,
     )
 
 

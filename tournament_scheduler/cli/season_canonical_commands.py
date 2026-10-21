@@ -57,6 +57,7 @@ def _cmd_season_move(args: argparse.Namespace) -> int:
         request_id=args.request_id,
         allow_manual_placement=args.allow_manual_placement,
         allow_host_confirmation=args.allow_host_confirmation,
+        expected_revision=args.expected_revision,
     )
     if args.json:
         _emit_json(result)

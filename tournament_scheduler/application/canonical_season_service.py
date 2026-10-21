@@ -390,8 +390,7 @@ class CanonicalSeasonService:
         return _candidates.promote(self, work_dir=work_dir, season=season, actor=actor, force=force)
 
     def move_tournament(
-        self,
-        *,
+        self, *,
         season: str,
         tournament_id: str,
         date: str | None = None,
@@ -407,8 +406,9 @@ class CanonicalSeasonService:
         request_id: str | None = None,
         allow_manual_placement: bool = False,
         allow_host_confirmation: bool = False,
+        expected_revision: str | None = None,
     ) -> dict[str, Any]:
-        return _placements.move_tournament(self, season=season, tournament_id=tournament_id, date=date, arena=arena, host_club=host_club, start_time=start_time, problem=problem, actor=actor, note=note, dry_run=dry_run, allow_cross_half=allow_cross_half, run_id=run_id, request_id=request_id, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation)
+        return _placements.move_tournament(self, season=season, tournament_id=tournament_id, date=date, arena=arena, host_club=host_club, start_time=start_time, problem=problem, actor=actor, note=note, dry_run=dry_run, allow_cross_half=allow_cross_half, run_id=run_id, request_id=request_id, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, expected_revision=expected_revision)
 
     def swap_participants(
         self,
