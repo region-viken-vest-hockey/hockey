@@ -143,6 +143,14 @@ orca snapshot                  # find button "Send" [ref=eM]
 orca click --element <send-ref>
 ```
 
+Before every `orca fill` and `orca click`, bring the project tab to the front and confirm its URL:
+`orca tab switch --page <id> --focus`, then `orca tab list`. `fill` and `click` fail with "could not
+protect the user's keyboard focus" when the page is not in front. Read the composer value before
+sending and confirm it holds only the text you intend to send, because a draft can survive navigation.
+
+Resolve each ref and act on it in the same command. If a click or fill returns `Unknown ref`,
+re-snapshot once, resolve the ref again, and retry once. If it fails again, stop and report it.
+
 Wait for the reply with `orca snapshot` until the response is complete. The completion
 marker is the `StaticText "Response complete"` line, which appears only when the newest
 reply has finished. `Copy message` and `Regenerate response` appear under earlier replies
@@ -154,8 +162,12 @@ Do not chain `sleep` loops. Use a Monitor:
 A Monitor expires after about 8 to 15 minutes without an event. If it expires before the
 marker appears, re-arm it. Do not treat an expired Monitor as a result.
 
-Read the verdict from the snapshot text (`StaticText`), not from memory. Fill the composer
-before looking for `button "Send"`: the Send button appears only once the composer has text.
+Read the verdict from the page text, not from the snapshot and not from memory. Long replies
+show only bare `paragraph` nodes in the snapshot, so read the text with
+`orca eval --page <id> --expression "(() => { const m = document.querySelector('main')?.innerText || ''; const i = m.lastIndexOf('ChatGPT said:'); return i < 0 ? '' : m.slice(i); })()"`.
+The reply is complete when that text ends with `ChatGPT can make mistakes` and two reads in a row
+return the same text. Fill the composer before looking for `button "Send"`: the Send button
+appears only once the composer has text.
 
 ## 7. Fix findings, then re-review
 
@@ -172,11 +184,10 @@ before looking for `button "Send"`: the Send button appears only once the compos
 Merge only when **both** hold:
 
 - ChatGPT's latest review says ready to merge, or has no blocking findings.
-- Every CI check on the PR is `pass`. This `gh` version has no `--json` flag on
-  `gh pr checks`. Poll the plain text output, and treat a `gh` error as not finished:
-  `until ! gh pr checks <pr> 2>/dev/null | grep -q pending; do sleep 30; done; gh pr checks <pr>`.
-  Run it in a Monitor with a timeout of at least 30 minutes. An empty result or an error
-  is never a pass. Read the full list once it finishes, and do not merge on a partial list.
+- Every CI check on the PR is `pass`. Wait with a Monitor on
+  `gh pr checks <pr> --watch --fail-fast`, then read the full list with `gh pr checks <pr>`.
+  If the list has no checks at all, record that in the report and rely on the local gate.
+  An error from `gh` is never a pass. Do not merge on a partial list.
 - ChatGPT may answer "Ready to merge once CI passes" with no blocking findings. That
   counts as ready to merge; CI still has to pass.
 
@@ -198,14 +209,15 @@ If a check fails and you cannot see a fix, consult ChatGPT (see *When stuck*).
 
 Delete only the ChatGPT chats this flow created (review and consult chats), and nothing else.
 
-- Identify them by the tab you created. Switch to it with
-  `orca tab switch --page <page-id>` (the id from `orca tab list`), then confirm the first
-  message is a review request or a consult question sent by this flow.
+- Identify them by the first message you sent (the review request or the consult question),
+  not by title. Switch to the tab with `orca tab switch --page <page-id>` (the id from
+  `orca tab list`) and confirm that first message before deleting.
 - Delete from the chat's header, not the sidebar. New tabs open with the sidebar collapsed,
   so the sidebar `Chat actions` button is not reachable. Use the header `button "More"`,
   then `menuitem "Delete"`, then `button "Delete chat"` in the `dialog "Delete chat?"`.
 - Verify the chat is gone: its title no longer appears in the tab list or the snapshot.
-  Then close the flow's tabs with `orca tab close --page <page-id>`.
+  Then close the flow's tabs with `orca tab close --page <page-id>`. A deleted chat's tab otherwise
+  stays open and looks like a live chat.
 - Never delete a chat you did not create in this flow, even if it looks similar.
 
 ## When stuck: consult ChatGPT
@@ -230,9 +242,11 @@ Procedure:
    failure text (short), the issue or PR numbers, and the decision needed. Ask it to use
    the GitHub connector to read the named issues and to list every PR that references
    them, merged and open, including their diffs. Ask it to recommend one option with the
-   reasons and a confidence. Do not paste diffs, secrets or tokens.
+   reasons and a confidence. Ask it to list every assumption it made about the codebase,
+   labelled as an assumption, and to say which it could not verify. Do not paste diffs,
+   secrets or tokens.
 3. Wait for the complete reply (same polling rule as step 6). Read the answer from the
-   snapshot text.
+   page text, as step 6 describes, not from the snapshot.
 4. Verify the answer before acting on it. ChatGPT is advisory. Check it against the issue
    bodies, the code, and the merged-PR check from step 2 (`gh pr list --state merged
    --search "<n>"`, then `gh pr view <pr>`). Its answer is not a merge approval and not a
