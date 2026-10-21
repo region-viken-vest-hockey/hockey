@@ -3302,3 +3302,54 @@ def test_explicit_supersession_preview_matches_apply_on_unchanged_state(tmp_path
     assert preview["approved"]["status"] == applied["approved"]["status"]
     manual = load_decisions(season="2026-2027", root=root)["manual_booking_assertions"]
     assert manual[0]["status"] == "superseded"
+
+
+def _superseded_by_confirmation(root, manual_id):
+    return confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint(_CORRECTED_EVENT),
+        tournament_id="t1",
+        problem=_host_a_problem([_CORRECTED_EVENT]),
+        note="same match moved",
+        supersede_manual_assertion_id=manual_id,
+    )
+
+
+def test_repeated_supersession_confirmation_is_idempotent(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    manual_id = _positive_manual_on_planned_slot(root)
+    first = _superseded_by_confirmation(root, manual_id)
+    manual_after_first = load_decisions(season="2026-2027", root=root)["manual_booking_assertions"]
+
+    second = _superseded_by_confirmation(root, manual_id)
+
+    # The retry supersedes nothing new and does not duplicate the association or the manual record.
+    assert second["association"]["id"] == first["association"]["id"]
+    assert second["superseded_manual_assertions"] == []
+    decisions_after_second = load_decisions(season="2026-2027", root=root)
+    assert len(decisions_after_second["calendar_booking_associations"]) == 1
+    assert decisions_after_second["manual_booking_assertions"] == manual_after_first
+    report = booking_status_report(season="2026-2027", root=root, problem=_host_a_problem([_CORRECTED_EVENT]))
+    assert report["tournaments"][0]["status"] == "confirmed_booked"
+
+
+def test_refused_supersession_leaves_schedule_and_decisions_unchanged(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    manual_id = _positive_manual_on_planned_slot(root)
+    schedule_before = load_schedule(season="2026-2027", root=root)
+    decisions_before = load_decisions(season="2026-2027", root=root)
+
+    with pytest.raises(SeasonStateError, match="requires a --note"):
+        confirm_calendar_booking(
+            season="2026-2027",
+            root=root,
+            event_fingerprint=event_fingerprint(_CORRECTED_EVENT),
+            tournament_id="t1",
+            problem=_host_a_problem([_CORRECTED_EVENT]),
+            note="",
+            supersede_manual_assertion_id=manual_id,
+        )
+
+    assert load_schedule(season="2026-2027", root=root) == schedule_before
+    assert load_decisions(season="2026-2027", root=root) == decisions_before

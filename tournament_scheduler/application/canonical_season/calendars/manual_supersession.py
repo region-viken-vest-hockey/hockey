@@ -43,6 +43,16 @@ def record_calendar_association(
     if not supersede_manual_assertion_id:
         return updated, []
     tournament_id = str(tournament.get("id") or "")
+    association_id = str(association.get("id") or "")
+    # A retried confirmation finds the assertion already superseded by this association: no-op.
+    if any(
+        str(record.get("id") or "") == supersede_manual_assertion_id
+        and str(record.get("status") or "") == MANUAL_ASSERTION_SUPERSEDED
+        and str(record.get("superseded_by") or "") == association_id
+        for record in updated.get(MANUAL_BOOKING_ASSERTIONS_KEY) or []
+        if isinstance(record, Mapping)
+    ):
+        return updated, []
     manual_records = [
         dict(record)
         for record in updated.get(MANUAL_BOOKING_ASSERTIONS_KEY) or []
