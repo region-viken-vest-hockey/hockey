@@ -22,6 +22,35 @@ from tournament_scheduler.participation.club_age_group_fairness import (
     HALVES,
     build_club_age_group_participation_report,
 )
+from .shared import _reconcile_decisions
+
+
+def move_booked_fairness(
+    *,
+    schedule: Mapping[str, Any],
+    decisions: Mapping[str, Any],
+    candidate_plan: Mapping[str, Any],
+    tournament_id: str,
+    problem: Mapping[str, Any] | None,
+    now: str,
+) -> dict[str, Any]:
+    """Booked reality for one placement move, compared with the state it replaces.
+
+    The after decisions are the reconciliation the move write applies, computed on a
+    copy so the preview stays read-only.
+    """
+    projected = {
+        **decisions,
+        "decisions": _reconcile_decisions(dict(decisions.get("decisions", {})), candidate_plan, now=now),
+    }
+    return impacted_booked_fairness(
+        before_plan=schedule.get("plan") or {},
+        candidate_plan=candidate_plan,
+        before_decisions=decisions,
+        after_decisions=projected,
+        problem=problem,
+        changed_ids=[tournament_id],
+    )
 
 
 def impacted_booked_fairness(

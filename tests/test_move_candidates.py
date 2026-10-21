@@ -12,7 +12,8 @@ from tournament_scheduler.application.canonical_season.move_search import search
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
 
-from tests.test_consequence_preview import SEASON, _state_bytes, _tournament
+from tests.test_approval_lifecycle import _host_a_problem, _manual_set, _promote, _tournament as _lifecycle_tournament
+from tests.test_consequence_preview import CLUBS, SEASON, _state_bytes, _tournament
 from tests.test_swap_candidates import _tournaments, _write
 
 
@@ -236,3 +237,64 @@ def test_applying_a_candidate_against_a_stale_reviewed_revision_is_refused(tmp_p
             expected_revision=reviewed,
         )
     assert _state_bytes(root) == before
+
+
+def test_move_preview_reports_booked_reality_for_every_team_in_the_moved_tournament(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write(root, _full_roster_tournaments())
+    preview = preview_canonical_operation(
+        _service(root), operation="move", season=SEASON, tournament_id="u10-a", date="2026-10-04",
+    )
+
+    consequences = preview["consequences"]
+    assert consequences["basis"] == "booked_reality"
+    assert consequences["booked_evaluated"] is True
+    assert {row["club"] for row in consequences["affected_teams"]} == set(CLUBS)
+    assert consequences["provisional"] is True
+
+
+def test_moving_a_manually_booked_tournament_drops_its_old_slot_from_booked_counts(tmp_path: Path) -> None:
+    root = _promote(tmp_path, [_lifecycle_tournament("t1")])
+    problem = _host_a_problem([])
+    _manual_set(root, problem=problem, note="confirmed at current slot")
+    before = _state_bytes(root)
+
+    preview = preview_canonical_operation(
+        _service(root), operation="move", season="2026-2027", tournament_id="t1", date="2026-09-19",
+    )
+
+    rows = preview["consequences"]["affected_teams"]
+    assert rows and all(row["before"]["booked"] == 1 for row in rows)
+    assert all(row["after"]["booked"] == 0 for row in rows)
+    assert all(row["delta"]["booked"] == -1 for row in rows)
+    assert _state_bytes(root) == before
+
+
+def test_moving_an_unbooked_tournament_keeps_a_confirmed_booking_elsewhere(tmp_path: Path) -> None:
+    root = _promote(tmp_path, [_lifecycle_tournament("t1"), _lifecycle_tournament("t2", date_str="2026-09-26")])
+    problem = _host_a_problem([])
+    _manual_set(root, problem=problem, note="confirmed at current slot")
+
+    preview = preview_canonical_operation(
+        _service(root), operation="move", season="2026-2027", tournament_id="t2", date="2026-10-03",
+    )
+
+    rows = preview["consequences"]["affected_teams"]
+    assert rows
+    assert all(row["delta"]["booked"] == 0 for row in rows)
+    assert all(row["before"]["booked"] == 1 for row in rows)
+
+
+def test_refused_move_preview_reports_booked_reality_as_unevaluated_without_raising(tmp_path: Path) -> None:
+    root = tmp_path / "season"
+    _write(root, _full_roster_tournaments())
+    # u10-b already plays on 2026-10-10, so moving u10-a there is refused by verification.
+    preview = preview_canonical_operation(
+        _service(root), operation="move", season=SEASON, tournament_id="u10-a", date="2026-10-10",
+    )
+
+    assert preview["verdict"]["applicable"] is False
+    consequences = preview["consequences"]
+    assert consequences["booked_evaluated"] is False
+    assert consequences["provisional"] is True
+    assert consequences["affected_teams"] == []

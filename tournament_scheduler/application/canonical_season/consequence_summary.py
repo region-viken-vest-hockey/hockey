@@ -69,6 +69,21 @@ def build_consequences(operation: str, details: Mapping[str, Any]) -> dict[str, 
             "material_regressions": [dict(item) for item in review.get("consequences") or []],
         }
 
+    if operation == "move":
+        # A move's booked reality comes from the owner's projection, computed in the
+        # dry-run against the moved placement. Without it, nothing is promoted.
+        fairness = details.get("booked_fairness")
+        booked = isinstance(fairness, Mapping)
+        return {
+            "basis": "booked_reality" if booked else "planned_schedule",
+            "booked_evaluated": booked,
+            "provisional": bool(fairness.get("provisional", True)) if booked else True,
+            "affected_teams": (
+                [_booked_team_row(row) for row in fairness.get("impacted_teams") or []] if booked else []
+            ),
+            "material_regressions": [],
+        }
+
     if operation == "repair":
         # Affected teams are the teams in the tournaments the repair changes, each
         # compared before and after. Season-wide adoption regressions are listed

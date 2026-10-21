@@ -28,7 +28,9 @@ from .consequence_contract import (
     build_preview,
     stale_preview,
 )
+from .booked_fairness import move_booked_fairness
 from .repair_consequences import repair_team_consequences
+from .shared import _resolve_plan_problem
 
 SUPPORTED_OPERATIONS = ("replace", "swap", "move", "remove", "batch", "repair")
 
@@ -131,7 +133,26 @@ def _swap(service, **kwargs: Any) -> dict[str, Any]:
 
 
 def _move(service, **kwargs: Any) -> dict[str, Any]:
-    return service.move_tournament(**kwargs)
+    # Read the before-state first and use it only if the move was computed against the
+    # same revision. A commit between the reads leaves booked reality unevaluated.
+    snapshot = service.load(kwargs["season"])
+    result = service.move_tournament(**kwargs)
+    # A refused or unchanged dry-run has no candidate plan. Booked reality is then
+    # left unevaluated, which the consequence layer reports as provisional.
+    if "move_preview" not in result or "plan" not in result:
+        return result
+    previewed_against = result["move_preview"].get("before_canonical_revision")
+    if canonical_state_revision(snapshot.schedule, snapshot.decisions) != previewed_against:
+        return result
+    result["move_preview"]["booked_fairness"] = move_booked_fairness(
+        schedule=snapshot.schedule,
+        decisions=snapshot.decisions,
+        candidate_plan=result["plan"],
+        tournament_id=kwargs["tournament_id"],
+        problem=_resolve_plan_problem(snapshot.schedule, None, snapshot.decisions),
+        now=result["updated_at"],
+    )
+    return result
 
 
 def _remove(service, **kwargs: Any) -> dict[str, Any]:
