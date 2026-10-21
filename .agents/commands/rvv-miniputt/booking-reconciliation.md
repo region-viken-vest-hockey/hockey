@@ -33,6 +33,19 @@ Keep machine/audit status values intact, but do not expose a conservative intern
 
 Reserve the word **ambiguous** for genuine identity ambiguity. When a low-level command still returns `BOOKING_AMBIGUOUS` solely because explicit `confirm-calendar-booking` authority has not yet been recorded, explain that as an authorization state in audit detail rather than making it the primary human-readable result.
 
+### Replacing a provisional manual booking
+
+A calendar confirmation that corrects a tournament's interval does not by itself replace an earlier manual positive (`booking-set --status booked`) on the old window. Interval staleness alone does not prove that both describe the same booking, so the earlier assertion stays active and is reported as `stale` for an operator to resolve.
+
+To replace it, name the assertion in the same confirmation and record why:
+
+```
+scripts/rvv-miniputt season confirm-calendar-booking --season <season> --event-fingerprint <fp> \
+  --tournament-id <id> --supersede-manual-assertion <manual-booking-id> --note "<why this is the same booking>"
+```
+
+The command refuses, and writes nothing, when the id is not the tournament's active positive assertion, when another active negative or conflicting assertion exists, when several active positives exist, when the assertion also changed a non-interval fact (date, arena, host), or when `--note` is empty. A dry run returns the same `superseded_manual_assertions` delta without writing. A retried confirmation with the same flag does not supersede again or duplicate the manual record, and it still refuses if a conflicting assertion has since appeared. Do not use `booking-clear` to make room for a confirmation when the earlier assertion is actually a separate club confirmation.
+
 ### Source links in operator output
 
 For every calendar event reported as an exact match, likely match, moved-booking candidate, competing candidate or blocking conflict, include the authoritative source link used for the observation in the operator-facing table or immediately adjacent detail. Prefer an evidence-provided event/deep link when one exists. Otherwise print the registered human calendar URL; for a source whose repository-owned contract supports a deterministic date-qualified view, the date-specific calendar URL may be shown as the observation link. Clearly label a generic calendar page as **Source calendar** rather than implying that it is an event-specific link. Never invent or guess an event URL that the source/evidence did not provide. If no usable URL is retained, say **Source URL unavailable in evidence** rather than omitting provenance silently.

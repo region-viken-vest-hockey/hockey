@@ -43,6 +43,9 @@ def record_calendar_association(
     if not supersede_manual_assertion_id:
         return updated, []
     tournament_id = str(tournament.get("id") or "")
+    association_id = str(association.get("id") or "")
+    if not str(association.get("note") or "").strip():
+        raise SeasonStateError("Superseding a manual booking assertion requires a --note attestation")
     manual_records = [
         dict(record)
         for record in updated.get(MANUAL_BOOKING_ASSERTIONS_KEY) or []
@@ -55,7 +58,8 @@ def record_calendar_association(
         and str(record.get("status") or "") == MANUAL_ASSERTION_ACTIVE
     ]
     # A negative or conflicting active assertion is independent club evidence. It is never
-    # superseded by a calendar correction, so the operator must resolve it first.
+    # superseded by a calendar correction, so the operator must resolve it first. These checks
+    # run on a retry too, so a later conflict is not silently accepted.
     conflicting = [
         str(record.get("id") or "")
         for record in active
@@ -73,6 +77,16 @@ def record_calendar_association(
             f"Tournament {tournament_id} has multiple active manual booking assertions "
             f"{[str(record.get('id') or '') for record in active]}; resolve all but one before superseding"
         )
+    # A retry of this same confirmation finds its assertion already superseded by it, and no other
+    # active assertion has appeared since: nothing new to do. Any remaining active record refuses below.
+    if not active and any(
+        str(record.get("id") or "") == supersede_manual_assertion_id
+        and str(record.get("tournament_id") or "") == tournament_id
+        and str(record.get("status") or "") == MANUAL_ASSERTION_SUPERSEDED
+        and str(record.get("superseded_by") or "") == association_id
+        for record in manual_records
+    ):
+        return updated, []
     target = next(
         (record for record in active if str(record.get("id") or "") == supersede_manual_assertion_id),
         None,
@@ -83,8 +97,6 @@ def record_calendar_association(
         )
     if str(target.get("source_scope") or "") != "tournament":
         raise SeasonStateError(f"Manual booking assertion {supersede_manual_assertion_id!r} is not tournament-scoped")
-    if not str(association.get("note") or "").strip():
-        raise SeasonStateError("Superseding a manual booking assertion requires a --note attestation")
     reasons = manual_assertion_stale_reasons(target, problem=problem, tournament=tournament)
     # A changed fact other than the interval may mean two different bookings. Refuse rather than
     # supersede evidence that the calendar correction does not explain.
@@ -95,7 +107,7 @@ def record_calendar_association(
         )
     target["status"] = MANUAL_ASSERTION_SUPERSEDED
     target["superseded_at"] = now
-    target["superseded_by"] = str(association.get("id") or "")
+    target["superseded_by"] = association_id
     target["supersede_reason"] = str(association.get("note") or "").strip()
     target["superseded_stale_reasons"] = list(reasons)
     updated[MANUAL_BOOKING_ASSERTIONS_KEY] = manual_records
