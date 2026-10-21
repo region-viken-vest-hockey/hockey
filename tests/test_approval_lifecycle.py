@@ -3133,12 +3133,8 @@ def test_export_renders_one_operational_badge_with_details(tmp_path):
     assert '<div class="manual-badge"' not in html
 
 
-def test_calendar_confirmation_supersedes_manual_booking_on_corrected_interval(tmp_path):
-    """#567: an authoritative interval correction supersedes the stale manual positive."""
-
-    from tournament_scheduler.application.canonical_season.calendars.manual_supersession import (
-        CALENDAR_INTERVAL_CORRECTION_REASON,
-    )
+def test_calendar_confirmation_keeps_manual_booking_on_corrected_interval_active(tmp_path):
+    """#567: an interval correction alone never supersedes an independent manual positive."""
 
     root = _promote(tmp_path, [_tournament("t1")])
     set_manual_booking_assertion(
@@ -3160,25 +3156,18 @@ def test_calendar_confirmation_supersedes_manual_booking_on_corrected_interval(t
         "club": "A",
     }
     problem = _host_a_problem([event])
-    event_fp = event_fingerprint(event)
 
     confirm_calendar_booking(
         season="2026-2027",
         root=root,
-        event_fingerprint=event_fp,
+        event_fingerprint=event_fingerprint(event),
         tournament_id="t1",
         problem=problem,
         note="Accepted authoritative calendar interval",
     )
 
     manual = load_decisions(season="2026-2027", root=root)["manual_booking_assertions"]
-    assert [record["status"] for record in manual] == ["superseded"]
-    assert manual[0]["superseded_by"] == f"calendar_booking:{event_fp}:t1"
-    assert manual[0]["supersede_reason"] == CALENDAR_INTERVAL_CORRECTION_REASON
-    assert manual[0]["superseded_stale_reasons"] == [
-        "tournament_duration_minutes_changed",
-        "tournament_end_time_changed",
-        "tournament_start_time_changed",
-    ]
+    assert [record["status"] for record in manual] == ["active"]
     report = booking_status_report(season="2026-2027", root=root, problem=problem)
-    assert report["tournaments"][0]["status"] == "confirmed_booked"
+    # The stale positive is surfaced for operator resolution, not reported as confirmed_booked.
+    assert report["tournaments"][0]["status"] == "stale"

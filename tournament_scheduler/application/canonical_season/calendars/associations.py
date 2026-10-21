@@ -18,7 +18,6 @@ from tournament_scheduler.booking.calendar_bookings import (
     tournament_occupancy_interval_facts,
 )
 from tournament_scheduler.season.exception_policy import reclassify_accepted_source_interval
-from .manual_supersession import record_calendar_association
 from tournament_scheduler.booking.calendar_availability import CalendarAvailability, interval_availability
 from tournament_scheduler.season.baseline_overlay import (
     approval_fingerprint,
@@ -333,7 +332,7 @@ def confirm_calendar_booking(
         )
     ]
     records.append(assoc)
-    updated = record_calendar_association(updated, records=records, association=assoc, tournament=tournament, problem=updated_problem, now=checked_at)
+    updated[CALENDAR_BOOKING_ASSOCIATIONS_KEY] = records
     evidence = new_booking_evidence_record(
         tournament=tournament,
         status=BOOKING_CONFIRMED_BOOKED,
