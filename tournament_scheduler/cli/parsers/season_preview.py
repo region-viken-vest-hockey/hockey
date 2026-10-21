@@ -83,3 +83,17 @@ def add_season_preview_parser(season_sub: argparse._SubParsersAction) -> None:
         help="Scoped tournament ids, 2 to 10; only same-age pairs inside this scope are evaluated",
     )
     season_swap.add_argument("--json", action="store_true", help="Print the discovery result as JSON")
+
+    season_move_candidates = season_sub.add_parser(
+        "move-candidates",
+        help="Read-only, unranked same-host free-ice move discovery over a bounded tournament scope (never writes)",
+    )
+    season_move_candidates.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
+    season_move_candidates.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
+    season_move_candidates.add_argument(
+        "--tournament-ids",
+        nargs="+",
+        required=True,
+        help="Scoped tournament ids, 1 to 10; each is moved only to verified free ice on its own host",
+    )
+    season_move_candidates.add_argument("--json", action="store_true", help="Print the discovery result as JSON")
