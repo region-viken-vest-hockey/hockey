@@ -34,6 +34,11 @@ class PublicationHistoryError(RuntimeError):
     """The existing publication log could not be read, so history must not be rewritten."""
 
 
+def _canonical_time(value: str) -> str:
+    """ISO-8601 UTC with an explicit ``+00:00`` offset, at second resolution."""
+    return datetime.fromisoformat(value).astimezone(timezone.utc).isoformat(timespec="seconds")
+
+
 def publication_log(git: GitRunner, cwd: str) -> list[dict[str, str]]:
     """Newest-first ``{date, kind, run_id, fingerprint}`` entries from HEAD's log in *cwd*.
 
@@ -54,6 +59,9 @@ def publication_log(git: GitRunner, cwd: str) -> list[dict[str, str]]:
         if len(parts) != 2:
             continue
         date, subject = parts
+        # git prints UTC as "Z" on some hosts and "+00:00" on others. Normalise so the
+        # publication time is the same string everywhere it is compared.
+        date = _canonical_time(date)
         publish_match = PUBLISH_COMMIT_RE.match(subject)
         rollback_match = ROLLBACK_COMMIT_RE.match(subject)
         if publish_match:

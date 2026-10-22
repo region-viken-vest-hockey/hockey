@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,7 @@ import pytest
 from tournament_scheduler.pipeline.pages_history import (
     PublicationHistoryError,
     compose_history,
+    publication_log,
     render_history_page,
     write_history_page,
 )
@@ -214,8 +216,20 @@ class TestHistoryPageFromPublishing:
         result = publish(export_dir=str(export_dir), run_id="run-1", repo_dir=str(local), push=False)
 
         published_at = next(e.split("=", 1)[1] for e in result.evidence if e.startswith("published_at="))
-        assert published_at == _git_out(local, "log", "-1", "--date=iso-strict", "--format=%ad", "gh-pages")
+        committed = _git_out(local, "log", "-1", "--date=iso-strict", "--format=%ad", "gh-pages")
+        assert datetime.fromisoformat(published_at) == datetime.fromisoformat(committed)
         assert f'data-published-at="{published_at}" data-current="true"' in _read_history(local)
+
+    def test_log_dates_are_normalised_whether_git_prints_z_or_plus_zero(self):
+        class _Git:
+            def __call__(self, args, cwd):
+                if args[:2] == ["rev-parse", "--verify"]:
+                    return subprocess.CompletedProcess(args, 0, stdout="", stderr="")
+                return subprocess.CompletedProcess(args, 0, stdout="2026-10-21T13:28:23Z\x1fPublish run run-1", stderr="")
+
+        entries = publication_log(_Git(), ".")
+
+        assert entries == [{"date": "2026-10-21T13:28:23+00:00", "kind": "publish", "run_id": "run-1", "fingerprint": ""}]
 
     def test_publication_time_is_strictly_later_than_the_newest_publication(self, tmp_path):
         class _Git:

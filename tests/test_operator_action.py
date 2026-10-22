@@ -956,10 +956,14 @@ class TestPublishPagesVerifyIntegration:
                     capture_output=True, text=True,
                 )
                 fields = json.loads(meta.stdout)
-                published_at = subprocess.run(
-                    ["git", "-C", str(local), "log", "-1", "--date=iso-strict", "--format=%ad", "gh-pages"],
-                    capture_output=True, text=True,
-                ).stdout.strip()
+                from datetime import datetime, timezone
+
+                published_at = datetime.fromisoformat(
+                    subprocess.run(
+                        ["git", "-C", str(local), "log", "-1", "--date=iso-strict", "--format=%ad", "gh-pages"],
+                        capture_output=True, text=True,
+                    ).stdout.strip()
+                ).astimezone(timezone.utc).isoformat(timespec="seconds")
                 return FetchResponse(
                     status_code=200,
                     text=(
