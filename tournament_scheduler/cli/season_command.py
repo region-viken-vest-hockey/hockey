@@ -68,8 +68,8 @@ def _cmd_season(args) -> int:
         _cmd_season_normalize_arenas,
         _cmd_season_publication_evidence,
         _cmd_season_reopen_planning,
-        _cmd_season_seal_published,
     )
+    from .season_seal_command import _cmd_season_seal_published
     from .baseline_command import _cmd_season_baseline
     from .repair_command import (
         _cmd_season_repair_options,
