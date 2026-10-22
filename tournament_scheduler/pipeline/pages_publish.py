@@ -172,17 +172,26 @@ def _copy_bundle(
             index_path.write_text(PAGES_EMPTY_INDEX, encoding="utf-8")
 
 
-def _snapshot_matches(run_dir: Path, expected: dict[str, bytes]) -> bool:
-    """True when every expected file is already present in *run_dir* with identical bytes.
+def _is_preserved_path(rel: str) -> bool:
+    return any(rel == root or rel.startswith(f"{root}/") for root in _PRESERVED_LATEST_PATHS)
 
-    Extra files in *run_dir* (for example preserved independent pages that were
-    current when the snapshot was written) do not count as a difference.
+
+def _snapshot_matches(run_dir: Path, expected: dict[str, bytes]) -> bool:
+    """True when *run_dir* holds exactly the *expected* files with identical bytes.
+
+    The comparison is two-way. A file the new bundle lacks, or a file the bundle
+    now contains that the snapshot does not, is a difference. Only the
+    independently preserved pages (see ``_PRESERVED_LATEST_PATHS``) are excluded,
+    because they are published separately and may legitimately change.
     """
-    for rel, data in expected.items():
-        candidate = run_dir / rel
-        if not candidate.is_file() or candidate.read_bytes() != data:
-            return False
-    return True
+    owned = {
+        path.relative_to(run_dir).as_posix()
+        for path in run_dir.rglob("*")
+        if path.is_file() and not _is_preserved_path(path.relative_to(run_dir).as_posix())
+    }
+    if owned != set(expected):
+        return False
+    return all((run_dir / rel).read_bytes() == data for rel, data in expected.items())
 
 
 def _write_root_index(branch_root: Path) -> None:
