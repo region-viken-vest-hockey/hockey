@@ -927,8 +927,12 @@ def run(
 
     # --- Main HTML pages (season_plan.html + season_plan_report.html) ---
     _manual_schedule_path: str | None = None
-    try:
-        _progress("Genererer HTML-rapport")
+    from .pages_publish import resolve_history_url
+
+    _history_url = resolve_history_url()
+
+    def _write_season_html(*, manual_schedule_path: str | None = None, changes_path: str | None = None) -> None:
+        """Write season_plan.html and its report, linking the optional companion pages."""
         HtmlExporter().export(
             plan,
             html_path,
@@ -938,12 +942,19 @@ def run(
             age_groups=configured_age_groups,
             calendars_path=_calendars_path,
             input_html_path=_input_html_path,
+            manual_schedule_path=manual_schedule_path,
+            changes_path=changes_path,
+            history_url=_history_url,
         )
         output_files["html"] = html_path
         output_files["html_report"] = str(Path(html_path).with_name(f"{Path(html_path).stem}_report{Path(html_path).suffix}"))
         _cancelled_html = Path(html_path).with_name(CANCELLED_TOURNAMENTS_FILENAME)
         if _cancelled_html.exists():
             output_files["cancelled_html"] = str(_cancelled_html)
+
+    try:
+        _progress("Genererer HTML-rapport")
+        _write_season_html()
     except Exception as exc:  # noqa: BLE001
         errors.append(f"HTML-eksport feilet: {exc}")
 
@@ -1019,23 +1030,7 @@ def run(
     if (_manual_schedule_path or _changes_path) and not errors:
         try:
             _progress("Genererer HTML-rapport med manuell-lenke")
-            HtmlExporter().export(
-                plan,
-                html_path,
-                    output_files=output_files,
-                pipeline_meta=pipeline_meta,
-                ice_time_for_age_group=ice_time_for_age_group,
-                age_groups=configured_age_groups,
-                calendars_path=_calendars_path,
-                input_html_path=_input_html_path,
-                manual_schedule_path=_manual_schedule_path,
-                changes_path=_changes_path,
-            )
-            output_files["html"] = html_path
-            output_files["html_report"] = str(Path(html_path).with_name(f"{Path(html_path).stem}_report{Path(html_path).suffix}"))
-            _cancelled_html = Path(html_path).with_name(CANCELLED_TOURNAMENTS_FILENAME)
-            if _cancelled_html.exists():
-                output_files["cancelled_html"] = str(_cancelled_html)
+            _write_season_html(manual_schedule_path=_manual_schedule_path, changes_path=_changes_path)
         except Exception as exc:  # noqa: BLE001
             errors.append(f"HTML-eksport (manuell-oppfølgingsvisning) feilet: {exc}")
 

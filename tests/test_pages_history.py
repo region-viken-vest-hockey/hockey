@@ -15,7 +15,7 @@ from tournament_scheduler.pipeline.pages_history import (
     render_history_page,
     write_history_page,
 )
-from tournament_scheduler.pipeline.pages_publish import publish, rollback_to_run
+from tournament_scheduler.pipeline.pages_publish import publish, resolve_history_url, rollback_to_run
 from tests.test_pages_publish import _init_repo_with_remote, _write_export_bundle
 
 
@@ -256,3 +256,16 @@ class TestHistoryPageFromPublishing:
         page = _read_history(local)
         assert str(tmp_path) not in page
         assert "export" not in page.lower()
+
+
+class TestResolveHistoryUrl:
+    def test_github_remote_gives_the_absolute_pages_history_url(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        _run(["remote", "set-url", "origin", "https://github.com/acme/hockey.git"], cwd=local)
+
+        assert resolve_history_url(repo_dir=str(local)) == "https://acme.github.io/hockey/history/"
+
+    def test_non_github_remote_gives_none(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+
+        assert resolve_history_url(repo_dir=str(local)) is None
