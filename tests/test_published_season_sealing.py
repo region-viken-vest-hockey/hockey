@@ -2896,3 +2896,76 @@ def test_seal_refuses_concurrent_canonical_change_before_commit(
     snapshot = service.load("2026-2027")
     assert canonical_state_revision(snapshot.schedule, snapshot.decisions) != verified_revision
     assert not is_published_sealed(snapshot.decisions)
+
+
+def test_confirmed_short_booking_seals_and_replacement_baseline_records_accepted_interval(
+    tmp_path: Path,
+) -> None:
+    """A host-confirmed short interval must seal through the real seal entry point (#564).
+
+    Confirm first, then seal the revision that holds the accepted interval. The
+    replacement baseline must record the interval actually confirmed (80 minutes,
+    below the 120-minute governing floor), not the planning default.
+    """
+
+    from tournament_scheduler.booking.calendar_bookings import iter_events
+
+    root = tmp_path / "season"
+    tournaments = [_tournament("rvv-1", "2026-10-11", "10:00", "Alpha Arena", "Alpha")]
+    problem = _problem({"tournaments": tournaments})
+    problem["clubs"] = {"Alpha": "Alpha Arena"}
+    problem["club_calendar_status"] = {"Alpha": "known"}
+    problem["club_busy_intervals"] = {
+        "Alpha": [
+            {
+                "date": "2026-10-11",
+                "start": "10:00",
+                "end": "11:20",
+                "availability": "fixed_busy",
+                "calendar_event": "Serierunde U10",
+            }
+        ]
+    }
+    _write_canonical(root, tournaments, problem=problem)
+    service = CanonicalSeasonService(root=root)
+    snapshot = service.load("2026-2027")
+    projection = tournament_projection(snapshot.schedule["plan"], problem)
+    service.seal_published_season(
+        season="2026-2027",
+        publication_id="2026-09-21T0908",
+        canonical_revision=_current_revision(root),
+        published_at="2026-09-21T09:14:53+00:00",
+        published_projection=projection,
+        publication_canonical_projection=projection,
+        materializations=[],
+        actor="tester",
+    )
+
+    event = next(iter(iter_events(problem)))
+    confirmed = service.confirm_calendar_booking(
+        season="2026-2027",
+        event_fingerprint=event["fingerprint"],
+        tournament_id="rvv-1",
+        note="host confirmed the actual booking",
+        actor="tester",
+    )
+    assert confirmed["ice_time_override"]["minutes"] == 80
+
+    effective = _effective_projection(root)
+    service.seal_published_season(
+        season="2026-2027",
+        publication_id="2026-09-28T0908",
+        canonical_revision=_current_revision(root),
+        published_at="2026-09-28T09:08:00+00:00",
+        published_projection=effective,
+        publication_canonical_projection=effective,
+        materializations=[],
+        actor="tester",
+    )
+
+    lifecycle = CanonicalSeasonStore(root).load("2026-2027").decisions["season_lifecycle"]
+    replacement = lifecycle["published_baseline"]["tournaments"][0]
+    assert replacement["start_time"] == "10:00"
+    assert replacement["duration_minutes"] == 80
+    history_ids = [entry["publication_id"] for entry in lifecycle["publication_history"]]
+    assert history_ids == ["2026-09-21T0908", "2026-09-28T0908"]
