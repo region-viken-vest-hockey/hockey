@@ -20,13 +20,15 @@ If any precondition fails, stop and tell the user which one. Do not work around 
 
 ## Ask ChatGPT before you ask the user
 
-This is a hard rule, not a fallback. Before you write any question to the user about behaviour,
-scope, priority, UX copy, design, or which of several semantic options to implement, consult
-ChatGPT first (see *When stuck*). This applies inside the flow and to work outside it.
+Before you write a question to the user about how to implement an issue (design, UX copy, which
+of several semantic readings to take), consult ChatGPT first (see *When stuck*). ChatGPT's answer is
+advisory and is recorded in the PR. It never authorises new product semantics, scope beyond the
+issue's acceptance criteria, changes to repo policy or git guards, or irreversible or external
+actions. Those go to the user, after you have named ChatGPT's recommendation.
 
 The user is asked only when:
-- the decision is one only the user can make: a legal, tax, payment or go-live approval, or a
-  change to repo policy or git guards;
+- the decision is one only the user can make: a legal, tax, payment or go-live approval, a change
+  to repo policy or git guards, or new product semantics;
 - the consult failed (no complete answer, login prompt, page not ready); or
 - the consult's answer is contradicted by the code.
 
@@ -68,8 +70,9 @@ stop the flow. Name them in the final report. Stage files by explicit path, neve
 - An issue already partly delivered by open or merged PRs is a *slice*. Name the slice
   you are taking in the PR body.
 - Never skip an issue because of its priority label (P3, P4 or any other). Priority orders the
-  work; it does not exclude it. If you skip a candidate, say why in one line in the report. If a
-  candidate is blocked, pick the next one instead of stopping.
+  work; it does not exclude it. If you skip a candidate, say why in one line in the report.
+- Automatic selection only: if the best candidate is blocked, take the next one. If the user named
+  the issue, never change scope. Report the blocker with its exact error and stop.
 
 ## 3. Implement
 
@@ -142,8 +145,10 @@ can only find and clean up chats the flow created when they are in one known pla
 Do not use the top-level `chatgpt.com/` new chat.
 
 Before every `orca fill` and every `orca click` on Send, run `orca tab list` and confirm the active
-tab's URL contains `-hockey/`. After Send, the URL must point at a chat inside the project
-(`.../g/g-p-6a6859a57a0881919c2f9a9266cec28c-hockey/c/<id>`). If it does not, stop and report it.
+tab's URL contains the project ID `g-p-6a6859a57a0881919c2f9a9266cec28c`. The project URL may or may
+not carry the `-hockey` slug, so match the ID, not the slug. After Send, the URL must point at a chat
+inside the project (`.../g/g-p-6a6859a57a0881919c2f9a9266cec28c[-hockey]/c/<id>`). Record that chat
+ID from the URL right after Send. If the check fails, stop and report it.
 Do not keep typing. Refs change between snapshots: resolve a ref and act on it in the same command.
 Never type into, send to, or delete a chat this flow did not start, even one with a similar title.
 
@@ -201,14 +206,14 @@ marker appears, re-arm it. Do not treat an expired Monitor as a result.
 Read the verdict from the page text, not from the snapshot and not from memory. Long replies
 show only bare `paragraph` nodes in the snapshot, so read the text with
 `orca eval --page <id> --expression "(() => { const m = document.querySelector('main')?.innerText || ''; const i = m.lastIndexOf('ChatGPT said:'); return i < 0 ? '' : m.slice(i); })()"`.
-The reply is complete when that text ends with `ChatGPT can make mistakes` and two reads in a row
-return the same text. Fill the composer before looking for `button "Send"`: the Send button
+One completion predicate: the reply is complete when the newest response has finished, which the
+text shows as the disclaimer `ChatGPT can make mistakes`, and two reads in a row return the same text.
+Act on it at once, without another waiting cycle. Do not use any other completion test. Fill the composer before looking for `button "Send"`: the Send button
 appears only once the composer has text.
 
 Polling is a real read each time, with a separate `orca eval` call. Empty output means the reply
 has not started yet, not that the read failed. If the page shows `Working for` or `Searching`, the
-answer is still in progress. When a read shows the complete reply, act on it in the same turn.
-Never report that you are still waiting for a reply that a read has already returned. Never run
+answer is still in progress. Never report that you are still waiting for a reply that a read has already returned. Never run
 `orca click` in the background, since a ref can go stale while it waits.
 
 ## 7. Fix findings, then re-review
@@ -238,7 +243,8 @@ gh pr merge <pr> --squash --delete-branch
 git checkout main && git pull --ff-only
 ```
 
-These two conditions are the whole merge gate. Do not add an authority fingerprint, a custom
+These two conditions are the whole merge gate, and repository safeguards (branch protection,
+required checks, CODEOWNERS) still apply on top of them. Do not add an authority fingerprint, a custom
 finalize step or any other precondition the repo's docs do not require. Read the exit status of
 `gh pr checks <pr> --watch --fail-fast`. Do not parse its output with `--json` or any flag that
 `gh pr checks --help` does not list: an unsupported flag can make a check look passed.
@@ -266,9 +272,9 @@ Delete only the ChatGPT chats this flow created (review and consult chats), and 
   Then close the flow's tabs with `orca tab close --page <page-id>`. A deleted chat's tab otherwise
   stays open and looks like a live chat.
 - Never delete a chat you did not create in this flow, even if it looks similar.
-- The sidebar can list one chat twice (under the project and under Recents). Delete it once, then
-  re-read the sidebar and confirm no entry with that first message remains. Verify each deletion
-  by re-reading the sidebar, not from the click result.
+- Verify each deletion by the chat ID recorded at creation: the chat's `/c/<id>` URL must no longer
+  open, and no tab may point at it. Sidebar titles are supplementary evidence only. The sidebar can
+  list one chat twice (under the project and under Recents), so delete it once.
 - Include flow chats outside the project. A review sent to a top-level `chatgpt.com/c/<id>` by
   mistake is still a flow chat and must be deleted.
 - Close the tab of each deleted chat with `orca tab close --page <id>`, then confirm with
