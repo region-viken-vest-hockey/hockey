@@ -845,7 +845,7 @@ class TestVerifyPagesExecutor:
             CR.ok(
                 "Publiserte kjøring run-1 til gh-pages (commit abcdef12)",
                 capability="pages_publish",
-                evidence=["bundle_fingerprint=fp1", "run_id=run-1"],
+                evidence=["bundle_fingerprint=fp1", "run_id=run-1", "published_at=2026-10-21T12:00:00+00:00"],
                 artifacts=["https://acme.github.io/hockey/latest/", "https://acme.github.io/hockey/runs/run-1/"],
             )
         )
@@ -855,6 +855,14 @@ class TestVerifyPagesExecutor:
 
             if url.endswith("_meta.json"):
                 return FetchResponse(status_code=200, text=json.dumps({"bundle_fingerprint": "fp1", "run_id": "run-1"}))
+            if url.endswith("/history/"):
+                return FetchResponse(
+                    status_code=200,
+                    text=(
+                        '<tr data-run-id="run-1" data-fingerprint="fp1" '
+                        'data-published-at="2026-10-21T12:00:00+00:00" data-current="true"></tr>'
+                    ),
+                )
             return FetchResponse(status_code=200, text="<html></html>")
 
         action = DEFAULT_REGISTRY.build("verify_pages", work_dir=str(tmp_path), fetch=fetch)
@@ -942,6 +950,28 @@ class TestPublishPagesVerifyIntegration:
                     capture_output=True, text=True,
                 )
                 return FetchResponse(status_code=200, text=text.stdout)
+            if url.endswith("/history/"):
+                meta = subprocess.run(
+                    ["git", "-C", str(local), "show", "gh-pages:latest/_meta.json"],
+                    capture_output=True, text=True,
+                )
+                fields = json.loads(meta.stdout)
+                from datetime import datetime, timezone
+
+                published_at = datetime.fromisoformat(
+                    subprocess.run(
+                        ["git", "-C", str(local), "log", "-1", "--date=iso-strict", "--format=%ad", "gh-pages"],
+                        capture_output=True, text=True,
+                    ).stdout.strip()
+                ).astimezone(timezone.utc).isoformat(timespec="seconds")
+                return FetchResponse(
+                    status_code=200,
+                    text=(
+                        f'<tr data-run-id="{fields["run_id"]}" '
+                        f'data-fingerprint="{fields["bundle_fingerprint"]}" '
+                        f'data-published-at="{published_at}" data-current="true"></tr>'
+                    ),
+                )
             return FetchResponse(status_code=200, text="<html></html>")
 
         action = DEFAULT_REGISTRY.build(

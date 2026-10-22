@@ -6,10 +6,10 @@ import subprocess
 from pathlib import Path
 
 
+from tournament_scheduler.pipeline.pages_publication_list import list_publication_history
 from tournament_scheduler.pipeline.pages_publish import (
     bundle_fingerprint,
     diff_latest,
-    list_publication_history,
     publish,
     resolve_urls,
     rollback_to_run,

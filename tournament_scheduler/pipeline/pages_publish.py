@@ -46,6 +46,7 @@ from typing import Any
 from tournament_scheduler.html.templates import PAGES_EMPTY_INDEX, PAGES_ROOT_INDEX
 
 from .capability_result import CapabilityResult
+from .pages_history import HISTORY_DIRECTORY, PublicationHistoryError, publication_log, write_history_page
 
 _GIT_TIMEOUT_SECONDS = 120
 
@@ -552,20 +553,26 @@ def publish(
         )
         artifacts = [url for url in (latest_url, run_url) if url]
 
-        if not status_proc.stdout.strip():
+        changed = bool(status_proc.stdout.strip())
+        history_missing = not (branch_root / HISTORY_DIRECTORY / "index.html").is_file()
+        if not changed and not history_missing:
             sha = _git(["rev-parse", "HEAD"], cwd=tmp_dir).stdout.strip()
+            current = publication_log(_git, str(branch_root))
             return CapabilityResult.ok(
                 f"Ingen endringer å publisere for kjøring {run_id} — allerede oppdatert.",
                 capability="pages_publish",
-                evidence=[f"commit_sha={sha}", f"branch={branch}"],
+                evidence=[f"commit_sha={sha}", f"branch={branch}", f"published_at={current[0]['date'] if current else ''}"],
                 artifacts=artifacts,
             )
 
+        when, published_at = write_history_page(branch_root, run_id=run_id, kind="publish", git=_git, record=changed)
+        _git(["add", "-A"], cwd=tmp_dir)
+        subject = f"Publish run {run_id}" if changed else "Add publication history page"
         commit_proc = _git(
             [
                 "-c", "user.email=rvv-miniputt-operator@localhost",
                 "-c", "user.name=RVV Miniputt operator",
-                "commit", "-m", f"Publish run {run_id}",
+                "commit", "--date", when, "-m", subject,
             ],
             cwd=tmp_dir,
         )
@@ -594,9 +601,12 @@ def publish(
                 f"commit_sha={sha}",
                 f"branch={branch}",
                 f"new_run_snapshot={is_new_run_snapshot}",
+                f"published_at={published_at}",
             ],
             artifacts=artifacts,
         )
+    except PublicationHistoryError as exc:
+        return CapabilityResult.failed(str(exc), capability="pages_publish")
     finally:
         if worktree_added:
             _git(["worktree", "remove", "--force", tmp_dir], cwd=repo_root)
@@ -606,9 +616,6 @@ def publish(
 # ---------------------------------------------------------------------------
 # Rollback and publication history (issue #20)
 # ---------------------------------------------------------------------------
-
-_PUBLISH_COMMIT_RE = re.compile(r"^Publish run (\S+)$")
-_ROLLBACK_COMMIT_RE = re.compile(r"^Rollback latest to run (\S+)$")
 
 
 def rollback_to_run(
@@ -689,7 +696,6 @@ def rollback_to_run(
             latest_dir,
             preserve_existing=_PRESERVED_LATEST_PATHS,
         )
-
         _git(["add", "-A"], cwd=tmp_dir)
         status_proc = _git(["status", "--porcelain"], cwd=tmp_dir)
 
@@ -698,20 +704,26 @@ def rollback_to_run(
         )
         artifacts = [url for url in (latest_url, run_url) if url]
 
-        if not status_proc.stdout.strip():
+        changed = bool(status_proc.stdout.strip())
+        history_missing = not (Path(tmp_dir) / HISTORY_DIRECTORY / "index.html").is_file()
+        if not changed and not history_missing:
             sha = _git(["rev-parse", "HEAD"], cwd=tmp_dir).stdout.strip()
+            current = publication_log(_git, str(Path(tmp_dir)))
             return CapabilityResult.ok(
                 f"'/latest/' er allerede kjøring {run_id} — ingen tilbakerulling nødvendig.",
                 capability="pages_publish",
-                evidence=[f"commit_sha={sha}", f"branch={branch}"],
+                evidence=[f"commit_sha={sha}", f"branch={branch}", f"published_at={current[0]['date'] if current else ''}"],
                 artifacts=artifacts,
             )
 
+        when, published_at = write_history_page(Path(tmp_dir), run_id=run_id, kind="rollback", git=_git, record=changed)
+        _git(["add", "-A"], cwd=tmp_dir)
+        subject = f"Rollback latest to run {run_id}" if changed else "Add publication history page"
         commit_proc = _git(
             [
                 "-c", "user.email=rvv-miniputt-operator@localhost",
                 "-c", "user.name=RVV Miniputt operator",
-                "commit", "-m", f"Rollback latest to run {run_id}",
+                "commit", "--date", when, "-m", subject,
             ],
             cwd=tmp_dir,
         )
@@ -736,69 +748,17 @@ def rollback_to_run(
         return CapabilityResult.ok(
             f"Rullet '/latest/' tilbake til kjøring {run_id} (commit {sha[:8]})",
             capability="pages_publish",
-            evidence=[f"commit_sha={sha}", f"branch={branch}", f"rolled_back_to_run_id={run_id}"],
+            evidence=[
+                f"commit_sha={sha}",
+                f"branch={branch}",
+                f"rolled_back_to_run_id={run_id}",
+                f"published_at={published_at}",
+            ],
             artifacts=artifacts,
         )
+    except PublicationHistoryError as exc:
+        return CapabilityResult.failed(str(exc), capability="pages_publish")
     finally:
         if worktree_added:
             _git(["worktree", "remove", "--force", tmp_dir], cwd=repo_root)
         shutil.rmtree(tmp_dir, ignore_errors=True)
-
-
-def list_publication_history(*, repo_dir: str = ".", branch: str = "gh-pages") -> list[dict[str, str]]:
-    """Read-only, newest-first publication history parsed from *branch*'s commit log.
-
-    Each entry includes ``commit_sha``, ``date``, ``kind`` (``publish`` or
-    ``rollback``), ``run_id`` and, when available, matching source export
-    lifecycle metadata (path/fingerprint/status). Returns an empty list if
-    *repo_dir* isn't a git repo or *branch* doesn't exist yet — never raises.
-    """
-    try:
-        repo_root = _require_git_repo_root(repo_dir)
-    except PagesPublishError:
-        return []
-    if not _branch_exists_locally(repo_root, branch):
-        return []
-
-    proc = _git(["log", branch, "--date=iso-strict", "--format=%H%x1f%ad%x1f%s"], cwd=repo_root)
-    if proc.returncode != 0:
-        return []
-
-    source_exports: dict[str, dict[str, str]] = {}
-    try:
-        from tournament_scheduler.publication.export_lifecycle import find_export_manifests
-
-        for record in find_export_manifests(Path(repo_root) / "export"):
-            pages_run_id = str(record.get("pages_run_id") or "")
-            if pages_run_id:
-                source_exports[pages_run_id] = {
-                    "source_export_dir": str(record.get("export_dir") or ""),
-                    "source_export_fingerprint": str(record.get("export_fingerprint") or ""),
-                    "source_export_status": str(record.get("lifecycle_status") or ""),
-                }
-    except Exception:
-        source_exports = {}
-
-    history: list[dict[str, str]] = []
-    for line in proc.stdout.splitlines():
-        parts = line.split("\x1f")
-        if len(parts) != 3:
-            continue
-        sha, date, subject = parts
-        publish_match = _PUBLISH_COMMIT_RE.match(subject)
-        rollback_match = _ROLLBACK_COMMIT_RE.match(subject)
-        if publish_match:
-            run_id = publish_match.group(1)
-            entry = {"commit_sha": sha, "date": date, "kind": "publish", "run_id": run_id}
-            entry.update(source_exports.get(run_id, {}))
-            history.append(entry)
-        elif rollback_match:
-            run_id = rollback_match.group(1)
-            entry = {"commit_sha": sha, "date": date, "kind": "rollback", "run_id": run_id}
-            entry.update(source_exports.get(run_id, {}))
-            history.append(entry)
-    if history:
-        current_run_id = history[0].get("run_id")
-        for entry in history:
-            entry["current"] = "true" if entry.get("run_id") == current_run_id else "false"
-    return history

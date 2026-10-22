@@ -75,7 +75,7 @@ This separation is deliberate: **raw export != public site**.
 
 ## GitHub Pages layout
 
-The publication code manages static Pages snapshots on the `gh-pages` branch, including the current `latest/` view and retained run/history material needed for verification/rollback.
+The publication code manages static Pages snapshots on the `gh-pages` branch, including the current `latest/` view and retained run/history material needed for verification/rollback. A public `history/` page lists every publish and rollback newest first, marks the current run, and links each entry to its immutable `runs/<run-id>/` snapshot; it is generated from the `gh-pages` commit log by `pipeline/pages_history.py`, and verification checks it.
 
 Canonical season publication fails closed unless the written `season_plan.html`, cancellation companion, `season_plan.xlsx`, and `season_plan_spond.xlsx` bytes reconstruct equivalent operational projections. The Spond workbook deliberately excludes cancelled tournaments; its import rows must otherwise contain exactly one row per active participant. The same repository-owned verifier can inspect the current remote `gh-pages:latest/` bytes without rebuilding or republishing:
 

@@ -38,6 +38,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Callable
 
 from .operator_action_audit import apply_publish_audit_gate as _apply_publish_audit_gate, register_audit_actions as _register_audit_actions
+from .operator_verify_pages import _execute_verify_pages
 from .run_manifest import is_durable as _manifest_is_durable
 
 if TYPE_CHECKING:
@@ -977,11 +978,16 @@ def _execute_publish_pages(
                 verify_kwargs["fetch"] = fetch
             if sleep is not None:
                 verify_kwargs["sleep"] = sleep
+            published_at = next(
+                (item.split("=", 1)[1] for item in publish_result.evidence if item.startswith("published_at=")),
+                "",
+            )
             verify_result = pages_verify.verify_publication(
                 latest_url=latest_url,
                 run_url=run_url,
                 bundle_fingerprint=bundle_fp,
                 run_id=run_id,
+                published_at=published_at,
                 **verify_kwargs,
             )
             publish_result.evidence = list(publish_result.evidence) + [f"verify_status={verify_result.status}"] + list(
@@ -1026,64 +1032,6 @@ def _evidence_value(entry: dict[str, Any], key: str) -> str | None:
         if isinstance(item, str) and item.startswith(prefix):
             return item[len(prefix):]
     return None
-
-
-def _execute_verify_pages(
-    *,
-    work_dir: str,
-    latest_url: str | None = None,
-    run_url: str | None = None,
-    bundle_fingerprint: str | None = None,
-    run_id: str | None = None,
-    max_attempts: int | None = None,
-    retry_delay_seconds: float | None = None,
-    fetch: "Callable[[str], Any] | None" = None,
-    sleep: "Callable[[float], None] | None" = None,
-) -> "CapabilityResult":
-    """Verify the last published GitHub Pages content is reachable (issue #20).
-
-    Resolves *latest_url*/*run_url*/*bundle_fingerprint*/*run_id* from the
-    run manifest's last recorded ``pages_publish`` capability result when
-    not given explicitly, so ``rvv-miniputt operator verify`` with no
-    arguments re-checks whatever was published most recently.
-    """
-    from . import pages_verify
-    from .capability_result import CapabilityResult
-
-    if latest_url is None or bundle_fingerprint is None or run_id is None:
-        last = _last_ok_pages_publish_capability(work_dir)
-        if last is None:
-            return CapabilityResult.failed(
-                "Ingen tidligere Pages-publisering funnet å verifisere.", capability="pages_verify"
-            )
-        urls = [a for a in (last.get("artifacts") or []) if isinstance(a, str) and a.startswith("http")]
-        latest_url = latest_url or (urls[0] if urls else None)
-        run_url = run_url or (urls[1] if len(urls) > 1 else None)
-        bundle_fingerprint = bundle_fingerprint or _evidence_value(last, "bundle_fingerprint")
-        run_id = run_id or _evidence_value(last, "run_id")
-        if not latest_url or not bundle_fingerprint or not run_id:
-            return CapabilityResult.failed(
-                "Kunne ikke utlede URL, fingeravtrykk eller run_id fra siste Pages-publisering.",
-                capability="pages_verify",
-            )
-
-    verify_kwargs: dict[str, Any] = {}
-    if max_attempts is not None:
-        verify_kwargs["max_attempts"] = max_attempts
-    if retry_delay_seconds is not None:
-        verify_kwargs["retry_delay_seconds"] = retry_delay_seconds
-    if fetch is not None:
-        verify_kwargs["fetch"] = fetch
-    if sleep is not None:
-        verify_kwargs["sleep"] = sleep
-
-    return pages_verify.verify_publication(
-        latest_url=latest_url,
-        run_url=run_url,
-        bundle_fingerprint=bundle_fingerprint,
-        run_id=run_id,
-        **verify_kwargs,
-    )
 
 
 def _execute_rollback_pages(

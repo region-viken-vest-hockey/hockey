@@ -197,7 +197,7 @@ def _build_status_text(work_dir: Path) -> str:
         export_records = []
     if export_records:
         try:
-            from ..pipeline.pages_publish import list_publication_history
+            from ..pipeline.pages_publication_list import list_publication_history
 
             history = list_publication_history(repo_dir=str(work_dir.parent), branch="gh-pages")
             current_pages_run_id = history[0].get("run_id") if history else None
