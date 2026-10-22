@@ -14,8 +14,8 @@ from tournament_scheduler.pipeline.pages_publish import (
     resolve_urls,
     rollback_to_run,
     target_fingerprint,
-    verify_published_run_snapshot,
 )
+from tournament_scheduler.pipeline.pages_snapshot import verify_published_run_snapshot
 
 
 def _git(args: list[str], cwd: Path) -> subprocess.CompletedProcess:
@@ -527,3 +527,61 @@ class TestPublishedRunSnapshotVerification:
 
         assert verify_published_run_snapshot("run-1", repo_dir=str(local))["retained"] is True
         assert verify_published_run_snapshot("run-2", repo_dir=str(local))["retained"] is True
+
+
+class TestRunSnapshotsAreImmutable:
+    def test_republishing_changed_content_under_an_existing_run_id_is_refused(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        export_dir = tmp_path / "export"
+        _write_export_bundle(export_dir, content="<h1>Original</h1>")
+        assert publish(export_dir=str(export_dir), run_id="run-1", repo_dir=str(local), push=False).status == "ok"
+        head_before = _git(["rev-parse", "gh-pages"], cwd=local).stdout.strip()
+
+        _write_export_bundle(export_dir, content="<h1>Changed</h1>")
+        result = publish(export_dir=str(export_dir), run_id="run-1", repo_dir=str(local), push=False)
+
+        assert result.status == "failed"
+        assert "ny run-id" in result.summary
+        assert _git(["rev-parse", "gh-pages"], cwd=local).stdout.strip() == head_before
+        snapshot = _git(["show", "gh-pages:runs/run-1/season_plan.html"], cwd=local).stdout
+        assert snapshot == "<h1>Original</h1>"
+
+    def test_a_file_missing_from_the_bundle_is_refused_and_the_snapshot_keeps_it(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        export_dir = tmp_path / "export"
+        _write_export_bundle(export_dir)
+        (export_dir / "extra.txt").write_text("only in run-1", encoding="utf-8")
+        assert publish(export_dir=str(export_dir), run_id="run-1", repo_dir=str(local), push=False).status == "ok"
+        head_before = _git(["rev-parse", "gh-pages"], cwd=local).stdout.strip()
+
+        (export_dir / "extra.txt").unlink()
+        result = publish(export_dir=str(export_dir), run_id="run-1", repo_dir=str(local), push=False)
+
+        assert result.status == "failed"
+        assert _git(["rev-parse", "gh-pages"], cwd=local).stdout.strip() == head_before
+        assert _git(["show", "gh-pages:runs/run-1/extra.txt"], cwd=local).stdout == "only in run-1"
+
+    def test_a_file_added_to_the_bundle_is_refused_under_an_existing_run_id(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        export_dir = tmp_path / "export"
+        _write_export_bundle(export_dir)
+        assert publish(export_dir=str(export_dir), run_id="run-1", repo_dir=str(local), push=False).status == "ok"
+
+        (export_dir / "added.txt").write_text("new", encoding="utf-8")
+        result = publish(export_dir=str(export_dir), run_id="run-1", repo_dir=str(local), push=False)
+
+        assert result.status == "failed"
+        assert "ny run-id" in result.summary
+
+    def test_changed_content_under_a_new_run_id_is_published(self, tmp_path):
+        local = _init_repo_with_remote(tmp_path)
+        export_dir = tmp_path / "export"
+        _write_export_bundle(export_dir, content="<h1>Original</h1>")
+        publish(export_dir=str(export_dir), run_id="run-1", repo_dir=str(local), push=False)
+
+        _write_export_bundle(export_dir, content="<h1>Changed</h1>")
+        result = publish(export_dir=str(export_dir), run_id="run-2", repo_dir=str(local), push=False)
+
+        assert result.status == "ok"
+        assert _git(["show", "gh-pages:runs/run-1/season_plan.html"], cwd=local).stdout == "<h1>Original</h1>"
+        assert _git(["show", "gh-pages:runs/run-2/season_plan.html"], cwd=local).stdout == "<h1>Changed</h1>"

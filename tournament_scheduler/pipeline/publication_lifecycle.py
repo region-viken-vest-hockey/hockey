@@ -309,9 +309,9 @@ def _previous_publication_recoverability(
             "replacing the public snapshot."
         )
 
-    from . import pages_publish
+    from . import pages_snapshot
 
-    snapshot = pages_publish.verify_published_run_snapshot(
+    snapshot = pages_snapshot.verify_published_run_snapshot(
         run_id,
         repo_dir=str(repo_dir),
         branch=branch,

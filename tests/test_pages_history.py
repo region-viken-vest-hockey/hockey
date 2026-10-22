@@ -158,7 +158,7 @@ class TestHistoryPageFromPublishing:
         assert _git_out(local, "rev-parse", "gh-pages") == head_before
         assert _read_history(local) == page_before
 
-    def test_rollback_then_republish_of_the_rolled_back_run_records_a_new_publication(self, tmp_path):
+    def test_publish_after_a_rollback_records_a_new_publication(self, tmp_path):
         local = _init_repo_with_remote(tmp_path)
         export_dir = tmp_path / "export"
         _write_export_bundle(export_dir)
@@ -168,12 +168,13 @@ class TestHistoryPageFromPublishing:
         publish(export_dir=str(export_dir), run_id="run-2", repo_dir=str(local), push=False)
         rollback_to_run(run_id="run-1", repo_dir=str(local), push=False)
         _write_export_bundle(export_dir, content="<h1>Corrected</h1>")
-        result = publish(export_dir=str(export_dir), run_id="run-1", repo_dir=str(local), push=False)
+        # A changed bundle needs a new run id; run-1's snapshot is immutable.
+        result = publish(export_dir=str(export_dir), run_id="run-3", repo_dir=str(local), push=False)
 
         assert result.status == "ok"
         page = _read_history(local)
-        assert _current_run_ids(page) == ["run-1"]
-        assert page.count('data-run-id="run-1"') == 3
+        assert _current_run_ids(page) == ["run-3"]
+        assert page.count('data-run-id="run-1"') == 2
         assert "Publisert" in page.split('data-current="true"')[1].split("</tr>")[0]
 
     def test_unreadable_existing_log_raises_instead_of_dropping_history(self):
