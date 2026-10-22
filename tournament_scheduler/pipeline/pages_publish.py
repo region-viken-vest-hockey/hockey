@@ -248,6 +248,23 @@ def resolve_urls(*, repo_dir: str, remote: str, run_id: str) -> tuple[str, str] 
     return _pages_urls(owner_repo[0], owner_repo[1], run_id) if owner_repo else None
 
 
+def resolve_history_url(*, repo_dir: str = ".", remote: str = "origin") -> str | None:
+    """Absolute public URL of the publication history page, or ``None``.
+
+    Derived from *remote*'s GitHub URL the same way :func:`resolve_urls` derives
+    the Pages URLs, so the link in an export points at the page publish writes.
+    """
+    try:
+        repo_root = _require_git_repo_root(repo_dir)
+    except PagesPublishError:
+        return None
+    owner_repo = _parse_owner_repo(_remote_url(repo_root, remote))
+    if owner_repo is None:
+        return None
+    owner, repo = owner_repo
+    return f"https://{owner}.github.io/{repo}/{HISTORY_DIRECTORY}/"
+
+
 def _planned_bundle_contents(export_dir: Path) -> dict[str, bytes]:
     """Relative path -> bytes as :func:`_copy_bundle` would actually write them.
 

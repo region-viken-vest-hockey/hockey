@@ -90,6 +90,7 @@ class HtmlExporter:
         input_html_path: str | None = None,
         manual_schedule_path: str | None = None,
         changes_path: str | None = None,
+        history_url: str | None = None,
     ) -> str:
         """Write an interactive HTML overview to *path*, return the path.
 
@@ -112,6 +113,9 @@ class HtmlExporter:
             provided and the file exists, a navbar link to the manual scheduling view is included.
         changes_path: Absolute path to the generated season_changes.html file. When provided
             and the file exists, a navbar link to the season change-request view is included.
+        history_url: Absolute public URL of the publication history page. When provided, a
+            navbar link to it is included. Absolute because the page is reached from both
+            ``latest/`` and ``runs/<run-id>/``, which sit at different depths.
         """
         pipeline = pipeline_meta or {}
         approval_status = pipeline.get("approval_status") if isinstance(pipeline.get("approval_status"), dict) else {}
@@ -362,6 +366,10 @@ class HtmlExporter:
                 "$CANCELLED_NAV_ITEM$": (
                     f'<a href="{cancelled_href}" class="{"active" if active_page == "cancelled" else ""}"><span class="nav-icon">{ICON_WARNING}</span> Avlyste turneringer</a>'
                     if cancelled_href else ""
+                ),
+                "$HISTORY_NAV_ITEM$": (
+                    f'<a href="{_html_escape(history_url, quote=True)}"><span class="nav-icon">{ICON_CLIPBOARD}</span> Publiseringshistorikk</a>'
+                    if history_url else ""
                 ),
                 "$CHANGES_NAV_ITEM$": (
                     f'<a href="{changes_href}" class="{"active" if active_page == "changes" else ""}"><span class="nav-icon">{ICON_CLIPBOARD}</span> Forespurte endringer</a>'

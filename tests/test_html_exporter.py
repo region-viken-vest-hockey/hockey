@@ -1434,6 +1434,19 @@ class TestSeasonChangesNav:
         assert f'href="{SEASON_CHANGES_FILENAME}"' in html
         assert "Forespurte endringer" in html
 
+    def test_history_nav_link_present_when_a_url_is_given(self, tmp_path: Path):
+        out_path = tmp_path / "season_plan.html"
+        url = "https://acme.github.io/hockey/history/"
+        HtmlExporter().export(_make_minimal_plan(), out_path, age_groups=["U10"], history_url=url)
+        html = out_path.read_text(encoding="utf-8")
+        assert f'href="{url}"' in html
+        assert "Publiseringshistorikk" in html
+
+    def test_history_nav_link_absent_without_a_url(self, tmp_path: Path):
+        out_path = tmp_path / "season_plan.html"
+        HtmlExporter().export(_make_minimal_plan(), out_path, age_groups=["U10"])
+        assert "Publiseringshistorikk" not in out_path.read_text(encoding="utf-8")
+
     def test_changes_nav_link_absent_without_page(self, tmp_path: Path):
         from tournament_scheduler.html import SEASON_CHANGES_FILENAME
 
