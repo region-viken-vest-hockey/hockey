@@ -28,7 +28,8 @@ actions. Those go to the user, after you have named ChatGPT's recommendation.
 
 The user is asked only when:
 - the decision is one only the user can make: a legal, tax, payment or go-live approval, a change
-  to repo policy or git guards, or new product semantics;
+  to repo policy or git guards, new product semantics, scope beyond the issue's acceptance
+  criteria, or an irreversible or external action;
 - the consult failed (no complete answer, login prompt, page not ready); or
 - the consult's answer is contradicted by the code.
 
