@@ -18,6 +18,25 @@ never pastes the diff: ChatGPT reads the PR through its GitHub connector.
 
 If any precondition fails, stop and tell the user which one. Do not work around it.
 
+## Ask ChatGPT before you ask the user
+
+This is a hard rule, not a fallback. Before you write any question to the user about behaviour,
+scope, priority, UX copy, design, or which of several semantic options to implement, consult
+ChatGPT first (see *When stuck*). This applies inside the flow and to work outside it.
+
+The user is asked only when:
+- the decision is one only the user can make: a legal, tax, payment or go-live approval, or a
+  change to repo policy or git guards;
+- the consult failed (no complete answer, login prompt, page not ready); or
+- the consult's answer is contradicted by the code.
+
+When you do ask the user, name the consult's recommendation and say why you did not take it.
+Inside this flow, do not use AskUserQuestion for anything else.
+
+A run ends in one of two ways: a merged PR, or a written blocker in the final report that names
+the failed precondition, the failed consult or the failing check, with its exact error. Do not end
+a run without one of them.
+
 ## 1. Start from main
 
 ```bash
@@ -48,11 +67,22 @@ stop the flow. Name them in the final report. Stage files by explicit path, neve
   a merged PR and recommended work that was already delivered.
 - An issue already partly delivered by open or merged PRs is a *slice*. Name the slice
   you are taking in the PR body.
+- Never skip an issue because of its priority label (P3, P4 or any other). Priority orders the
+  work; it does not exclude it. If you skip a candidate, say why in one line in the report. If a
+  candidate is blocked, pick the next one instead of stopping.
 
 ## 3. Implement
 
 - Branch: `agent/<issue>-<short-slug>`.
 - Follow `AGENTS.md` for ownership and placement. Add focused tests at the owner boundary.
+- Before editing, write down the issue's acceptance criteria and any documented decision that
+  bears on the change (issue comments, `AGENTS.md`, existing tests). If the criteria contradict a
+  documented decision, consult ChatGPT before coding.
+- For each behaviour change, write the regression test first and run it against the unfixed code.
+  It must fail for the expected assertion, not for an import or key error. Only then implement the
+  fix. A test that would pass under more than one behaviour is not a regression test.
+- If a fix changes the meaning of data that other code reads (a count, a status, an occupancy),
+  check every consumer with `rg` first. Consult ChatGPT if the consumers disagree.
 - Commit with the trailer `Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>`.
 
 ## 4. Local gate
@@ -110,6 +140,12 @@ Every chat this flow creates (review, follow-up and consult) must live in the Ch
 project **Hockey**. A chat outside that project is wrong, even when it works, because step 10
 can only find and clean up chats the flow created when they are in one known place.
 Do not use the top-level `chatgpt.com/` new chat.
+
+Before every `orca fill` and every `orca click` on Send, run `orca tab list` and confirm the active
+tab's URL contains `-hockey/`. After Send, the URL must point at a chat inside the project
+(`.../g/g-p-6a6859a57a0881919c2f9a9266cec28c-hockey/c/<id>`). If it does not, stop and report it.
+Do not keep typing. Refs change between snapshots: resolve a ref and act on it in the same command.
+Never type into, send to, or delete a chat this flow did not start, even one with a similar title.
 
 The Hockey project's URL is `https://chatgpt.com/g/g-p-6a6859a57a0881919c2f9a9266cec28c/project`.
 Its sidebar entry is the `button "Hockey"` under `Projects`, and its composer is the
@@ -169,6 +205,12 @@ The reply is complete when that text ends with `ChatGPT can make mistakes` and t
 return the same text. Fill the composer before looking for `button "Send"`: the Send button
 appears only once the composer has text.
 
+Polling is a real read each time, with a separate `orca eval` call. Empty output means the reply
+has not started yet, not that the read failed. If the page shows `Working for` or `Searching`, the
+answer is still in progress. When a read shows the complete reply, act on it in the same turn.
+Never report that you are still waiting for a reply that a read has already returned. Never run
+`orca click` in the background, since a ref can go stale while it waits.
+
 ## 7. Fix findings, then re-review
 
 - Treat every P1/P2/P3 finding as a comment to address. Verify each one against the code
@@ -196,6 +238,11 @@ gh pr merge <pr> --squash --delete-branch
 git checkout main && git pull --ff-only
 ```
 
+These two conditions are the whole merge gate. Do not add an authority fingerprint, a custom
+finalize step or any other precondition the repo's docs do not require. Read the exit status of
+`gh pr checks <pr> --watch --fail-fast`. Do not parse its output with `--json` or any flag that
+`gh pr checks --help` does not list: an unsupported flag can make a check look passed.
+
 Never merge with a failing check, an open blocking finding, or an unresolved "changes requested".
 If a check fails and you cannot see a fix, consult ChatGPT (see *When stuck*).
 
@@ -219,6 +266,13 @@ Delete only the ChatGPT chats this flow created (review and consult chats), and 
   Then close the flow's tabs with `orca tab close --page <page-id>`. A deleted chat's tab otherwise
   stays open and looks like a live chat.
 - Never delete a chat you did not create in this flow, even if it looks similar.
+- The sidebar can list one chat twice (under the project and under Recents). Delete it once, then
+  re-read the sidebar and confirm no entry with that first message remains. Verify each deletion
+  by re-reading the sidebar, not from the click result.
+- Include flow chats outside the project. A review sent to a top-level `chatgpt.com/c/<id>` by
+  mistake is still a flow chat and must be deleted.
+- Close the tab of each deleted chat with `orca tab close --page <id>`, then confirm with
+  `orca tab list` that no tab still points at a deleted chat.
 
 ## When stuck: consult ChatGPT
 
@@ -257,6 +311,11 @@ Procedure:
    contradicts the code, or asks for a product or policy decision, stop and ask the user.
    Name ChatGPT's recommendation and say why you did not take it.
 
+Consult outside the flow the same way: a product, UX or design question that comes up while you
+work is consulted in a project chat, with the same URL and draft checks. Verify its factual claims
+against the code, and delete the chat afterwards. Only the decisions in *Ask ChatGPT before you ask
+the user* go to the user.
+
 Consult at most once per stuck point. If the consult itself fails (no complete answer,
 login prompt, page not ready), stop and tell the user. Do not retry in a loop.
 
@@ -265,3 +324,6 @@ login prompt, page not ready), stop and tell the user. Do not retry in a loop.
 Finish with: the PR number and URL, the merge commit, the ChatGPT verdict and the findings
 fixed, every ChatGPT consult (question, answer, and whether you acted on it), the issue
 action taken, the chats deleted, and the untracked files noted. State anything skipped.
+
+If the run did not reach a merged PR, the report must name the single blocker: the failed
+precondition, the failed consult, or the failing check, with its exact error.
