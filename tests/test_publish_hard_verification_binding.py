@@ -32,7 +32,14 @@ from tournament_scheduler.pipeline.verification_context import (
     build_verification_context,
     resolve_publish_verification_context,
 )
+from tournament_scheduler.application.canonical_season.store_facade import (
+    confirm_calendar_booking,
+    promote_from_stage3,
+)
+from tournament_scheduler.booking.calendar_bookings import event_fingerprint
 from tournament_scheduler.planning.contract import extract_candidate, verify_candidate
+from tournament_scheduler.season.maintenance import load_context
+from tournament_scheduler.testing.reviewed_export import write_reviewed_stage4_export
 
 
 # ---------------------------------------------------------------------------
@@ -61,15 +68,16 @@ def _publish(work_dir, **overrides):
     return DEFAULT_REGISTRY.execute(action, approved=True)
 
 
-def _write_bound_export(work_dir, *, plan: dict, problem: dict) -> str:
+def _write_bound_export(work_dir, *, plan: dict, problem: dict, verify=verify_candidate) -> str:
     """Write a reviewed, provenance-bound Stage 4 checkpoint.
 
-    The stored ``verify_result`` uses the planning-contract verifier, exactly
-    as Stage 4 itself does; the publish gate layers the stricter final verifier
-    on the same bound problem.
+    The stored ``verify_result`` comes from ``verify`` (the planning-contract
+    verifier by default). Stage 4 export itself stores ``verify_final_candidate``
+    (``stage4_export.py``); pass it when the fixture must be hard-valid under the
+    production verifier, such as a host-confirmed short booking.
     """
     candidate = extract_candidate({"plan": plan})
-    verify_result = verify_candidate(candidate, problem)
+    verify_result = verify(candidate, problem)
     fingerprint = stable_payload_sha256(candidate.get("tournaments", []))
     context = build_verification_context(
         run_id=RunManifest(work_dir).read().get("run_id"),
@@ -480,3 +488,84 @@ class TestPreflightProvenanceReport:
             e.startswith("hard_verification_violation_counts=") and "round_robin_missing_pair" in e
             for e in evidence
         )
+
+
+class TestConfirmedShortBookingReachesPreflight:
+    """The publish preflight must accept a host-confirmed short interval that
+    was persisted through the real canonical confirm path and reloaded (#564).
+    """
+
+    def test_confirmed_short_interval_passes_publish_preflight(self, tmp_path):
+        event = {
+            "date": "2026-09-12",
+            "start": "11:00",
+            "end": "12:30",
+            "availability": "fixed_busy",
+            "calendar_event": "Miniputt U10 bekreftet",
+            "club": "A",
+        }
+        teams = [
+            {"club": club, "label": f"{club}1", "age_group": "U10"}
+            for club in ("A", "B", "C", "D")
+        ]
+        labels = [team["label"] for team in teams]
+        games = [
+            {"home": labels[0], "away": labels[1], "parallel_slot": 0, "round_number": 1},
+            {"home": labels[2], "away": labels[3], "parallel_slot": 1, "round_number": 1},
+            {"home": labels[0], "away": labels[2], "parallel_slot": 0, "round_number": 2},
+            {"home": labels[1], "away": labels[3], "parallel_slot": 1, "round_number": 2},
+            {"home": labels[0], "away": labels[3], "parallel_slot": 0, "round_number": 3},
+            {"home": labels[1], "away": labels[2], "parallel_slot": 1, "round_number": 3},
+        ]
+        tournament = {
+            "id": "t1",
+            "date": "2026-09-12",
+            "arena": "Arena A",
+            "age_group": "U10",
+            "host_club": "A",
+            "teams": teams,
+            "games": games,
+            "start_time": "10:00",
+        }
+        plan = {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": [tournament]}
+        problem = {
+            "start_date": "2026-09-01",
+            "end_date": "2027-04-30",
+            "teams": teams,
+            "age_groups": ["U10"],
+            "ice_time_minutes": {"U10": 120},
+            "rounds_per_tournament": {"U10": 3},
+            "parallel_games": {"U10": 2},
+            "club_calendar_status": {"A": "known"},
+            "club_busy_intervals": {"A": [event]},
+        }
+        root = tmp_path / "season"
+        state = PipelineState(tmp_path)
+        state.write_stage(StageName.PLANNING, {"plan": plan}, status=StageStatus.DONE)
+        write_reviewed_stage4_export(state, problem=problem)
+        promote_from_stage3(work_dir=tmp_path, root=root, actor="tester")
+        confirm_calendar_booking(
+            season="2026-2027",
+            root=root,
+            event_fingerprint=event_fingerprint(event),
+            tournament_id="t1",
+            actor="tester",
+            note="host confirmed a 90-minute window",
+            problem=problem,
+        )
+
+        # Reload canonical state fresh, as a later publish run would.
+        _, _, reloaded_plan, reloaded_problem = load_context("2026-2027", root=root)
+        assert reloaded_problem["ice_time_minutes_overrides"] == {"t1": 90}
+
+        _write_bound_export(
+            tmp_path,
+            plan=reloaded_plan,
+            problem=reloaded_problem,
+            verify=verify_final_candidate,
+        )
+        stored =PipelineState(tmp_path).read_stage(StageName.EXPORT)["verify_result"]
+        assert stored["ok"] is True, stored["violations"]
+        _write_pass_audit(tmp_path)
+        report = current_hard_verification(str(tmp_path))
+        assert report["verifiable"] is True and report["ok"] is True, report["error"]
