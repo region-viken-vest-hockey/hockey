@@ -2967,4 +2967,5 @@ def test_confirmed_short_booking_seals_and_replacement_baseline_records_accepted
     replacement = lifecycle["published_baseline"]["tournaments"][0]
     assert replacement["start_time"] == "10:00"
     assert replacement["duration_minutes"] == 80
-    assert lifecycle["publication_history"][0]["publication_id"] == "2026-09-21T0908"
+    history_ids = [entry["publication_id"] for entry in lifecycle["publication_history"]]
+    assert history_ids == ["2026-09-21T0908", "2026-09-28T0908"]
