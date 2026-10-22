@@ -132,8 +132,33 @@ jobs:
       - name: Compile Python sources
         run: python -m compileall -q tournament_scheduler tests
 
+      # The browser binary is keyed on requirements.lock, which pins Playwright.
+      # On a hit, skip apt (the slow step on the runner) and rely on the image's
+      # system libraries; the layout test fails hard under CI if Chromium cannot
+      # launch, so a missing library cannot pass silently.
+      - name: Restore Playwright Chromium cache
+        id: playwright-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('requirements.lock') }}
+
       - name: Install Chromium for browser layout tests
-        run: python -m playwright install --with-deps chromium
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            python -m playwright install chromium
+          else
+            python -m playwright install --with-deps chromium
+          fi
+
+      # Save straight after the install, not in the post step: a job that hits
+      # its timeout cancels post steps, so a late save never lands.
+      - name: Save Playwright Chromium cache
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('requirements.lock') }}
 
       - name: Run fast test suite without coverage
         run: scripts/check quick
