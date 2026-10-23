@@ -101,6 +101,77 @@ def test_source_confirmed_below_floor_booking_reclassifies_to_finding():
     assert any(item["code"] == "booking_feasibility_warnings" for item in informational)
 
 
+def _accepted_short_booking_problem() -> dict:
+    # A source-confirmed 110-minute booking below the 120-minute governing floor,
+    # the same accepted interval as the reclassification test above.
+    return {
+        **_problem(),
+        "ice_time_minutes": {"U10": 120},
+        "ice_time_minutes_overrides": {"t1": 110},
+        "calendar_booking_associations": [
+            {
+                "id": "calendar_booking:event:t1",
+                "status": "active",
+                "event_fingerprint": "event",
+                "tournament_id": "t1",
+                "club": "Jar",
+                "date": "2026-02-01",
+                "start": "10:00",
+                "end": "11:50",
+                "tournament_facts": {
+                    "host_club": "Jar",
+                    "arena": "Jarahallen",
+                    "date": "2026-02-01",
+                    "start_time": "10:00",
+                    "age_group": "U10",
+                },
+                "tournament_interval": {
+                    "date": "2026-02-01",
+                    "start_time": "10:00",
+                    "duration_minutes": "110",
+                    "end_time": "11:50",
+                },
+            }
+        ],
+    }
+
+
+def test_accepted_short_booking_does_not_mask_independent_team_double_booking():
+    # Accepting a short interval must not hide a separate hard planning violation:
+    # the same team plays twice in round 1 of the accepted tournament.
+    games = [
+        {"home": "Jar 1", "away": "Jar 2", "parallel_slot": 0, "round_number": 1},
+        {"home": "Jar 1", "away": "Jar 3", "parallel_slot": 1, "round_number": 1},
+        {"home": "Jar 2", "away": "Jar 3", "parallel_slot": 0, "round_number": 2},
+    ]
+
+    result = verify_final_candidate(_candidate(games=games), _accepted_short_booking_problem())
+
+    assert result["ok"] is False
+    hard_codes = {violation["code"] for violation in result["violations"]}
+    assert "team_double_booked_in_round" in hard_codes
+    assert "ice_time_governing_minimum" not in hard_codes
+    assert [w["code"] for w in result["booking_feasibility_warnings"]] == [
+        "ice_time_governing_minimum"
+    ]
+
+
+def test_accepted_short_booking_does_not_mask_actual_playing_shortfall():
+    # An accepted short interval is not a licence to play fewer games: dropping the
+    # round-3 pairing is a real playing shortfall and must stay a hard violation.
+    games = [
+        {"home": "Jar 1", "away": "Jar 2", "parallel_slot": 0, "round_number": 1},
+        {"home": "Jar 1", "away": "Jar 3", "parallel_slot": 0, "round_number": 2},
+    ]
+
+    result = verify_final_candidate(_candidate(games=games), _accepted_short_booking_problem())
+
+    assert result["ok"] is False
+    hard_codes = {violation["code"] for violation in result["violations"]}
+    assert hard_codes
+    assert "ice_time_governing_minimum" not in hard_codes
+
+
 def test_stale_or_wrong_source_authority_does_not_reclassify_below_floor():
     # Exact source evidence is required: an association whose recorded date no
     # longer matches the candidate interval (stale/wrong authority) must not
