@@ -214,3 +214,36 @@ def test_export_of_a_clean_plan_is_unchanged(tmp_path):
     assert [t["id"] for t in state.read_stage(StageName.PLANNING)["plan"]["tournaments"]] == [
         "u10-a-20260912"
     ]
+
+
+def test_canonical_season_export_refuses_a_demotion_and_writes_nothing(tmp_path):
+    """A canonical season export must not demote a tournament to hide a calendar conflict (#823).
+
+    The pipeline export above keeps its normalization because promotion depends on it.
+    A canonical season export stands for canonical state, so a demotion would make
+    the export differ from the schedule it claims to publish. It must refuse before
+    writing anything and leave the workspace's planning checkpoint untouched.
+    """
+
+    work_dir = tmp_path / ".pipeline"
+    state = PipelineState(work_dir)
+    RunManifest(work_dir).start_run("canonical export", input_fingerprint={})
+    candidate = _candidate()
+    problem = _conflicting_problem(candidate)
+    state.write_stage(StageName.PLANNING, {"plan": candidate}, status=StageStatus.DONE)
+    export_dir = tmp_path / "export"
+
+    with pytest.raises(ExportProjectionError) as refused:
+        run_export(
+            {"plan": candidate},
+            state,
+            export_dir=str(export_dir),
+            timestamped_export=False,
+            verification_problem=problem,
+            effective_config_override=_config(),
+            refuse_placement_demotion=True,
+        )
+
+    assert refused.value.report["removed_tournament_ids"] == ["u10-a-20260912"]
+    assert not (export_dir / "season_plan.html").exists()
+    assert state.read_stage(StageName.PLANNING)["plan"]["tournaments"] != []
