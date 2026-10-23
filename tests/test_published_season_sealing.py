@@ -3092,6 +3092,68 @@ def test_confirmed_short_booking_republish_delta_reports_exact_duration_change(
     assert record["republish_delta"]["delta"]["duration_changes"] == delta["duration_changes"]
 
 
+def test_confirmed_short_booking_republish_delta_is_scoped_to_its_tournament(
+    tmp_path: Path,
+) -> None:
+    """Only the tournament with the accepted short booking changes on republish (#564).
+
+    Two tournaments are published. Only ``rvv-1`` has a host-confirmed 80-minute
+    booking. The replacement publication's delta must report exactly that one
+    duration change and leave the unrelated ``rvv-2`` unchanged, so an
+    incremental republish does not disturb tournaments it did not touch.
+    """
+
+    from tournament_scheduler.booking.calendar_bookings import iter_events
+    from tournament_scheduler.publication.evidence import read_publication_evidence
+
+    root = tmp_path / "season"
+    tournaments = [
+        _tournament("rvv-1", "2026-10-11", "10:00", "Alpha Arena", "Alpha"),
+        _tournament("rvv-2", "2026-10-18", "10:00", "Beta Arena", "Beta"),
+    ]
+    problem = _problem({"tournaments": tournaments})
+    problem["clubs"] = {"Alpha": "Alpha Arena", "Beta": "Beta Arena"}
+    problem["club_calendar_status"] = {"Alpha": "known", "Beta": "known"}
+    problem["club_busy_intervals"] = {
+        "Alpha": [
+            {
+                "date": "2026-10-11",
+                "start": "10:00",
+                "end": "11:20",
+                "availability": "fixed_busy",
+                "calendar_event": "Serierunde U10",
+            }
+        ],
+        "Beta": [],
+    }
+    _write_canonical(root, tournaments, problem=problem)
+    _publication_export(tmp_path, root, "2026-09-21T0908", _effective_projection(root))
+    first = record_publication_seal(tmp_path / "export" / "2026-09-21T0908", repo_dir=tmp_path)
+    assert first is not None and first["state"] == "published_sealed"
+
+    event = next(iter(iter_events(problem)))
+    CanonicalSeasonService(root=root).confirm_calendar_booking(
+        season="2026-2027",
+        event_fingerprint=event["fingerprint"],
+        tournament_id="rvv-1",
+        note="host confirmed the actual booking",
+        actor="tester",
+    )
+
+    _publication_export(tmp_path, root, "2026-09-28T0908", _effective_projection(root))
+    report = record_publication_seal(tmp_path / "export" / "2026-09-28T0908", repo_dir=tmp_path)
+
+    assert report is not None and report["state"] == "published_sealed"
+    delta = report["republish_delta"]["delta"]
+    assert report["republish_delta"]["summary"]["changed"] == 1
+    assert report["republish_delta"]["summary"]["unchanged"] == 1
+    assert [entry["tournament_id"] for entry in delta["duration_changes"]] == ["rvv-1"]
+
+    record = read_publication_evidence(root, "2026-2027", "2026-09-28T0908")
+    assert record is not None
+    assert record["republish_delta"]["delta"]["duration_changes"] == delta["duration_changes"]
+
+
 def _publication_export(tmp_path: Path, root: Path, publication_id: str, projection: dict) -> None:
     snapshot = CanonicalSeasonStore(root).load("2026-2027")
     export_dir = tmp_path / "export" / publication_id
