@@ -144,6 +144,7 @@ def _render_canonical_season_export(
             use_pipeline_metadata=False,
             public_export_context=public_export_context,
             allow_placement_normalization=latest_published_export is None,
+            refuse_placement_demotion=True,
             canonical_schedule_plan=schedule.get("plan") if latest_published_export else None,
             published_export_guard=latest_published_export,
             published_canonical_plan=published_canonical_plan,

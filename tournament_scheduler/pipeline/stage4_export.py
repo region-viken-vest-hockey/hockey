@@ -38,7 +38,11 @@ from tournament_scheduler.booking.assessment_export import normalize_booking_rec
 from ..planning.verification import verify_final_candidate
 from ..planning.contract import extract_candidate
 from tournament_scheduler.publication.export_lifecycle import EXPORT_LIFECYCLE_FILENAME, write_draft_manifest
-from tournament_scheduler.publication.projection_guard import assert_export_preserves_canonical_plan, tournament_projection
+from tournament_scheduler.publication.projection_guard import (
+    ExportProjectionError,
+    assert_export_preserves_canonical_plan,
+    tournament_projection,
+)
 from .fingerprints import stable_payload_sha256
 from ..excel.plan_exporter import SeasonPlanExporter
 from ..ical.ical_exporter import ICalExporter
@@ -120,6 +124,7 @@ def run(
     public_export_context: dict[str, Any] | None = None,
     supersedes: dict[str, Any] | None = None,
     allow_placement_normalization: bool = True,
+    refuse_placement_demotion: bool = False,
     canonical_schedule_plan: dict[str, Any] | None = None,
     published_export_guard: dict[str, Any] | None = None,
     published_canonical_plan: dict[str, Any] | None = None,
@@ -234,6 +239,27 @@ def run(
             export_problem,
             approvals=export_approvals(effective_config, plan_dict),
         )
+        removed = list(normalization_report.get("removed_tournament_ids") or [])
+        if refuse_placement_demotion and removed:
+            # A canonical season export stands for canonical state. Demoting a
+            # tournament here would publish a schedule that differs from it, so
+            # refuse before any export file or corrected planning checkpoint is written.
+            state.write_stage(
+                StageName.EXPORT,
+                {"placement_normalization": normalization_report},
+                status=StageStatus.FAILED,
+            )
+            raise ExportProjectionError(
+                {
+                    "summary": (
+                        f"Refusing canonical season export: {len(removed)} tournament(s) conflict with "
+                        "fixed external calendar intervals and would be demoted from the export. "
+                        "Resolve each conflict with an explicit canonical decision, then export again."
+                    ),
+                    "removed_tournament_ids": removed,
+                    "obligation_count": normalization_report.get("obligation_count"),
+                }
+            )
 
     export_projection_guard: dict[str, Any] | None = None
     if canonical_schedule_plan is not None:
