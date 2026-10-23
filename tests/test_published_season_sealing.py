@@ -3154,6 +3154,42 @@ def test_confirmed_short_booking_republish_delta_is_scoped_to_its_tournament(
     assert record["republish_delta"]["delta"]["duration_changes"] == delta["duration_changes"]
 
 
+def test_export_verified_before_decision_only_change_cannot_seal_changed_state(tmp_path: Path) -> None:
+    """A verified export cannot seal a canonical state that changed after verification (#564).
+
+    The export is verified at the current revision. A later decision-only
+    canonical change (a team request) moves the revision but not the schedule
+    projection, so the projection-drift check alone would not catch it. The real
+    publication seal entry point must still refuse, and must leave no sealed
+    state or publication history behind.
+    """
+
+    from tournament_scheduler.application.canonical_season.store_facade import load_decisions
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _publication_export(tmp_path, root, "2026-09-21T0908", _effective_projection(root))
+    export_dir = tmp_path / "export" / "2026-09-21T0908"
+
+    CanonicalSeasonService(root=root).add_request_constraint(
+        season="2026-2027",
+        type="team_unavailable",
+        request_id="request-after-verification",
+        teams=[{"club": "Alpha", "label": "Alpha1", "age_group": "U10"}],
+        date_from="2026-09-12",
+        actor="tester",
+    )
+
+    with pytest.raises(RuntimeError, match="current canonical revision"):
+        assert_publication_allowed(export_dir, repo_dir=tmp_path)
+    with pytest.raises(RuntimeError, match="current canonical revision"):
+        record_publication_seal(export_dir, repo_dir=tmp_path)
+
+    decisions = load_decisions("2026-2027", root=root)
+    assert not is_published_sealed(decisions)
+    assert "publication_history" not in (decisions.get("season_lifecycle") or {})
+
+
 def _publication_export(tmp_path: Path, root: Path, publication_id: str, projection: dict) -> None:
     snapshot = CanonicalSeasonStore(root).load("2026-2027")
     export_dir = tmp_path / "export" / publication_id
