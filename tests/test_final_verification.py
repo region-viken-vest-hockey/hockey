@@ -187,6 +187,113 @@ def test_accepted_short_booking_with_valid_schedule_is_publishable_with_warning_
     ]
 
 
+def _ara_team(label: str) -> dict:
+    return {"club": "Ara", "label": label, "age_group": "U10"}
+
+
+def _second_tournament_same_arena(start_time: str) -> dict:
+    # A different club's teams, so only the hall overlap is under test and no
+    # same-date participation blocker is introduced.
+    return {
+        "id": "t2",
+        "date": "2026-02-01",
+        "arena": "Jarahallen",
+        "host_club": "Ara",
+        "age_group": "U10",
+        "start_time": start_time,
+        "teams": [_ara_team("Ara 1"), _ara_team("Ara 2"), _ara_team("Ara 3")],
+        "games": [
+            {"home": "Ara 1", "away": "Ara 2", "parallel_slot": 0, "round_number": 1},
+            {"home": "Ara 1", "away": "Ara 3", "parallel_slot": 0, "round_number": 2},
+            {"home": "Ara 2", "away": "Ara 3", "parallel_slot": 0, "round_number": 3},
+        ],
+    }
+
+
+def _accepted_short_booking_two_club_problem() -> dict:
+    problem = _accepted_short_booking_problem()
+    problem["teams"] = problem["teams"] + [_ara_team("Ara 1"), _ara_team("Ara 2"), _ara_team("Ara 3")]
+    problem["club_calendar_status"] = {"Jar": "known", "Ara": "known"}
+    return problem
+
+
+def test_accepted_short_booking_does_not_mask_real_arena_overlap():
+    # The accepted 110-minute t1 interval (10:00-11:50) overlaps t2 in the same
+    # hall at 11:00. That is a real arena conflict and must stay hard even though
+    # the short interval is accepted.
+    candidate = _candidate()
+    candidate["tournaments"].append(_second_tournament_same_arena("11:00"))
+
+    result = verify_final_candidate(candidate, _accepted_short_booking_two_club_problem())
+
+    assert result["ok"] is False
+    hard_codes = {violation["code"] for violation in result["violations"]}
+    assert "arena_interval_conflict" in hard_codes
+    assert "ice_time_governing_minimum" not in hard_codes
+    assert [w["code"] for w in result["booking_feasibility_warnings"]] == [
+        "ice_time_governing_minimum"
+    ]
+
+
+def test_arena_collision_uses_exact_accepted_interval_at_the_boundary():
+    # t1 is accepted at 110 minutes (10:00-11:50). A second hall booking at 11:55
+    # is clear of that interval, but would collide with a default 120-minute end
+    # (12:00). Only the exact accepted interval gives no collision, and a start at
+    # 11:00 still collides under the accepted interval.
+    from tournament_scheduler.booking.arena_conflicts import find_arena_interval_collisions
+    from tournament_scheduler.serialization.season_plan import tournament_from_dict
+
+    ice_time = {"U10": 120}
+    accepted = {"t1": 110}
+
+    def collisions(second_start: str, overrides: dict) -> list:
+        tournaments = [
+            tournament_from_dict(_candidate()["tournaments"][0]),
+            tournament_from_dict(_second_tournament_same_arena(second_start)),
+        ]
+        return find_arena_interval_collisions(tournaments, ice_time, overrides_by_tournament=overrides)
+
+    assert collisions("11:55", accepted) == []
+    assert collisions("11:55", {}) != []
+    assert collisions("11:00", accepted) != []
+
+
+def test_rejected_calendar_association_is_not_publication_authority():
+    # A rejected source association is evidence the host refused. It must not
+    # reclassify the below-floor override into an accepted feasibility finding.
+    problem = _accepted_short_booking_problem()
+    problem["calendar_booking_associations"][0]["status"] = "rejected"
+
+    result = verify_final_candidate(_candidate(), problem)
+
+    assert "ice_time_governing_minimum" in {v["code"] for v in result["violations"]}
+    assert result["booking_feasibility_warnings"] == []
+
+
+def test_host_busy_conflict_beside_accepted_booking_is_unresolved_not_silently_clear():
+    # A fixed external busy interval over the accepted 10:00-11:50 window is a
+    # host-calendar double-booking. The verifier surfaces it for manual placement
+    # rather than hard-blocking, so it must not look publishable-clean either.
+    problem = _accepted_short_booking_problem()
+    problem["club_busy_intervals"] = {
+        "Jar": [
+            {
+                "date": "2026-02-01",
+                "start": "10:30",
+                "end": "11:00",
+                "availability": "fixed_busy",
+                "calendar_event": "Annen aktivitet",
+            }
+        ]
+    }
+
+    result = verify_final_candidate(_candidate(), problem)
+
+    assert result["publication_readiness"]["status"] == "REVIEW_REQUIRED"
+    assert [row["tournament_id"] for row in result["manual_external_conflict_placements"]] == ["t1"]
+    assert "ice_time_governing_minimum" not in {v["code"] for v in result["violations"]}
+
+
 def test_stale_or_wrong_source_authority_does_not_reclassify_below_floor():
     # Exact source evidence is required: an association whose recorded date no
     # longer matches the candidate interval (stale/wrong authority) must not
