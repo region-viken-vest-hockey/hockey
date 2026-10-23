@@ -3201,17 +3201,16 @@ def test_confirmed_short_booking_agrees_across_findings_audit_export_preflight_a
     read the same accepted interval (10:00-11:20) and report the same duration.
     """
 
-    from tournament_scheduler.booking.calendar_bookings import (
-        iter_events,
-        project_associations_into_problem,
-    )
+    from tournament_scheduler.booking.calendar_bookings import iter_events
     from tournament_scheduler.pipeline.audit_context import build_audit_context
+    from tournament_scheduler.pipeline.stage4_export_verification import (
+        _build_export_verification_problem,
+    )
     from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
     from tournament_scheduler.planning.contract import extract_candidate
     from tournament_scheduler.planning.verification import verify_final_candidate
     from tournament_scheduler.publication.export_lifecycle import promote_export_manifest
     from tournament_scheduler.publication.projection_guard import tournament_projection
-    from tournament_scheduler.season.ice_time_overrides import project_overrides_into_problem
 
     root = tmp_path / "season"
     tournaments = [_tournament("rvv-1", "2026-10-11", "10:00", "Alpha Arena", "Alpha")]
@@ -3245,12 +3244,17 @@ def test_confirmed_short_booking_agrees_across_findings_audit_export_preflight_a
     # Persist and reload: every surface below reads the state back from disk.
     snapshot = CanonicalSeasonStore(root).load("2026-2027")
     plan = snapshot.schedule["plan"]
-    base_problem = snapshot.schedule["verification_context"]["problem"]
-    verified_problem = project_associations_into_problem(
-        project_overrides_into_problem(base_problem, snapshot.decisions),
-        snapshot.decisions,
-        plan,
-    )
+
+    # The verifier problem comes from the production Stage 4 builder, not a hand-built copy.
+    work_dir = tmp_path / "work"
+    state = PipelineState(work_dir)
+    config = dict(problem)
+    config["canonical_season_root"] = str(root)
+    config["start_date"] = "2026-09-01"
+    config["end_date"] = "2027-04-30"
+    state.write_stage(StageName.CONFIG, config, status=StageStatus.DONE)
+    verified_problem = _build_export_verification_problem(config, state)
+    assert verified_problem is not None
     assert verified_problem["ice_time_minutes_overrides"] == {"rvv-1": 80}
     assert len(verified_problem["calendar_booking_associations"]) == 1
 
@@ -3262,7 +3266,6 @@ def test_confirmed_short_booking_agrees_across_findings_audit_export_preflight_a
     assert "80" in str(warning) and "11:20" in str(warning)
 
     # Semantic audit: the audit context sees the same 80-minute interval.
-    work_dir = tmp_path / "work"
     PipelineState(work_dir).write_stage(
         StageName.EXPORT,
         {
@@ -3287,6 +3290,15 @@ def test_confirmed_short_booking_agrees_across_findings_audit_export_preflight_a
 
     # Preflight then seal: an unsealed season passes the pre-push gate, and the seal
     # records the accepted interval as the baseline.
+    # Negative first: an export that carries a 120-minute interval for the accepted
+    # 80-minute booking must be refused by the pre-push gate.
+    altered = copy.deepcopy(_effective_projection(root))
+    altered["rvv-1"]["duration_minutes"] = 120
+    altered["rvv-1"]["end_time"] = "12:00"
+    altered_dir = _publication_export(tmp_path, root, "2026-09-21T0908-altered", altered)
+    with pytest.raises(RuntimeError, match="no longer matches the current canonical schedule"):
+        assert_publication_allowed(altered_dir, repo_dir=tmp_path)
+
     export_dir = _publication_export(tmp_path, root, "2026-09-21T0908", _effective_projection(root))
     promote_export_manifest(
         export_dir,
@@ -3317,7 +3329,7 @@ def _tree_bytes(path: Path) -> dict[str, bytes]:
 
 
 def test_refused_seal_after_canonical_change_leaves_no_partial_mutation(tmp_path: Path) -> None:
-    """A refused seal writes nothing: canonical state, evidence and export are unchanged (#564)."""
+    """A seal refused for a stale canonical revision leaves canonical and export files unchanged (#564)."""
 
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())
