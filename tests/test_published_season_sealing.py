@@ -2969,3 +2969,81 @@ def test_confirmed_short_booking_seals_and_replacement_baseline_records_accepted
     assert replacement["duration_minutes"] == 80
     history_ids = [entry["publication_id"] for entry in lifecycle["publication_history"]]
     assert history_ids == ["2026-09-21T0908", "2026-09-28T0908"]
+
+
+def test_record_publication_seal_retains_evidence_for_confirmed_short_booking(
+    tmp_path: Path,
+) -> None:
+    """The publication wrapper seals a host-confirmed short interval with evidence (#564).
+
+    The replacement export carries the effective projection with the 80-minute
+    accepted interval. The wrapper must seal it, and the retained evidence must
+    bind to that projection rather than the planned 120-minute default.
+    """
+
+    from tournament_scheduler.booking.calendar_bookings import iter_events
+    from tournament_scheduler.publication.baseline import projection_fingerprint
+    from tournament_scheduler.publication.evidence import read_publication_evidence
+
+    root = tmp_path / "season"
+    tournaments = [_tournament("rvv-1", "2026-10-11", "10:00", "Alpha Arena", "Alpha")]
+    problem = _problem({"tournaments": tournaments})
+    problem["clubs"] = {"Alpha": "Alpha Arena"}
+    problem["club_calendar_status"] = {"Alpha": "known"}
+    problem["club_busy_intervals"] = {
+        "Alpha": [
+            {
+                "date": "2026-10-11",
+                "start": "10:00",
+                "end": "11:20",
+                "availability": "fixed_busy",
+                "calendar_event": "Serierunde U10",
+            }
+        ]
+    }
+    _write_canonical(root, tournaments, problem=problem)
+    first_projection = _effective_projection(root)
+    _publication_export(tmp_path, root, "2026-09-21T0908", first_projection)
+    first = record_publication_seal(tmp_path / "export" / "2026-09-21T0908", repo_dir=tmp_path)
+    assert first is not None and first["state"] == "published_sealed"
+
+    event = next(iter(iter_events(problem)))
+    CanonicalSeasonService(root=root).confirm_calendar_booking(
+        season="2026-2027",
+        event_fingerprint=event["fingerprint"],
+        tournament_id="rvv-1",
+        note="host confirmed the actual booking",
+        actor="tester",
+    )
+
+    replacement_projection = _effective_projection(root)
+    assert projection_fingerprint(replacement_projection) != projection_fingerprint(first_projection)
+    _publication_export(tmp_path, root, "2026-09-28T0908", replacement_projection)
+    report = record_publication_seal(tmp_path / "export" / "2026-09-28T0908", repo_dir=tmp_path)
+
+    assert report is not None and report["state"] == "published_sealed"
+    assert report["evidence_files"]["json"]
+    record = read_publication_evidence(root, "2026-2027", "2026-09-28T0908")
+    assert record is not None
+    assert record["publication_evidence"]["projection_fingerprint"] == projection_fingerprint(
+        replacement_projection
+    )
+    lifecycle = CanonicalSeasonStore(root).load("2026-2027").decisions["season_lifecycle"]
+    replacement = lifecycle["published_baseline"]["tournaments"][0]
+    assert replacement["duration_minutes"] == 80
+
+
+def _publication_export(tmp_path: Path, root: Path, publication_id: str, projection: dict) -> None:
+    snapshot = CanonicalSeasonStore(root).load("2026-2027")
+    export_dir = tmp_path / "export" / publication_id
+    export_dir.mkdir(parents=True)
+    write_draft_manifest(
+        export_dir,
+        export_id=publication_id,
+        generated_at="2026-09-28T09:08:01+00:00",
+        export_fingerprint="fp",
+        source_run_id="run",
+        canonical_season="2026-2027",
+        canonical_revision=canonical_state_revision(snapshot.schedule, snapshot.decisions),
+        schedule_projection=projection,
+    )
