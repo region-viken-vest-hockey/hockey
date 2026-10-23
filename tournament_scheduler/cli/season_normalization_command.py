@@ -35,7 +35,7 @@ def _cmd_season_normalize_placements(args: argparse.Namespace) -> int:
         "dry_run": bool(args.dry_run),
         "changed": changed,
         "removed_tournament_ids": list(report.get("removed_tournament_ids") or []),
-        "obligation_count": report.get("obligation_count", 0),
+        "obligation_count": len((schedule.get("plan") or {}).get("unresolved_tournament_placements") or []),
         "revision": schedule.get("revision"),
     }
     if args.json:

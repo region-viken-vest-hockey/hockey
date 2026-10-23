@@ -1124,14 +1124,19 @@ def test_normalize_placements_cli_second_run_reports_no_change(tmp_path: Path, c
 
     assert _cmd_season_normalize_placements(_normalize_args(root, dry_run=False, as_json=True)) == 0
     first = _json.loads(capsys.readouterr().out)
+    obligations = load_schedule("2026-2027", root=root)["plan"]["unresolved_tournament_placements"]
     assert first["changed"] is True
-    assert len(first["removed_tournament_ids"]) == 1
+    assert first["removed_tournament_ids"] == [obligations[0]["source_tournament_id"]]
+    assert first["obligation_count"] == len(obligations) == 1
 
+    before = _tree_digest(root)
     assert _cmd_season_normalize_placements(_normalize_args(root, dry_run=False, as_json=True)) == 0
     second = _json.loads(capsys.readouterr().out)
     assert second["changed"] is False
     assert second["removed_tournament_ids"] == []
-    assert second["obligation_count"] == 0
+    # The outstanding obligation is still reported, and nothing was written.
+    assert second["obligation_count"] == 1
+    assert _tree_digest(root) == before
 
 
 def test_normalize_placements_cli_dry_run_json_names_the_proposed_demotion(tmp_path: Path, capsys) -> None:
@@ -1150,4 +1155,5 @@ def test_normalize_placements_cli_dry_run_json_names_the_proposed_demotion(tmp_p
     assert summary["dry_run"] is True
     assert summary["changed"] is True
     assert len(summary["removed_tournament_ids"]) == 1
+    assert summary["obligation_count"] == 1
     assert load_schedule("2026-2027", root=root)["plan"]["tournaments"] != []
