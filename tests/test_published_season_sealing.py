@@ -3190,7 +3190,171 @@ def test_export_verified_before_decision_only_change_cannot_seal_changed_state(t
     assert "publication_history" not in (decisions.get("season_lifecycle") or {})
 
 
-def _publication_export(tmp_path: Path, root: Path, publication_id: str, projection: dict) -> None:
+def test_confirmed_short_booking_agrees_across_findings_audit_export_preflight_and_seal(
+    tmp_path: Path,
+) -> None:
+    """One persisted, reloaded booking gives the same interval on every surface (#564).
+
+    A host confirms an 80-minute booking below the 120-minute floor before the
+    first publication. The state is reloaded from disk, and then the findings,
+    semantic audit, Stage 4 export projection, publication preflight and seal each
+    read the same accepted interval (10:00-11:20) and report the same duration.
+    """
+
+    from tournament_scheduler.booking.calendar_bookings import iter_events
+    from tournament_scheduler.pipeline.audit_context import build_audit_context
+    from tournament_scheduler.pipeline.stage4_export_verification import (
+        _build_export_verification_problem,
+    )
+    from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
+    from tournament_scheduler.planning.contract import extract_candidate
+    from tournament_scheduler.planning.verification import verify_final_candidate
+    from tournament_scheduler.publication.export_lifecycle import promote_export_manifest
+    from tournament_scheduler.publication.projection_guard import tournament_projection
+
+    root = tmp_path / "season"
+    tournaments = [_tournament("rvv-1", "2026-10-11", "10:00", "Alpha Arena", "Alpha")]
+    tournaments[0]["games"] = [
+        {"home": "Alpha1", "away": "G-rvv-1", "parallel_slot": 0, "round_number": 1}
+    ]
+    problem = _problem({"tournaments": tournaments})
+    problem["clubs"] = {"Alpha": "Alpha Arena"}
+    problem["club_calendar_status"] = {"Alpha": "known"}
+    problem["club_busy_intervals"] = {
+        "Alpha": [
+            {
+                "date": "2026-10-11",
+                "start": "10:00",
+                "end": "11:20",
+                "availability": "fixed_busy",
+                "calendar_event": "Serierunde U10",
+            }
+        ]
+    }
+    _write_canonical(root, tournaments, problem=problem)
+    event = next(iter(iter_events(problem)))
+    CanonicalSeasonService(root=root).confirm_calendar_booking(
+        season="2026-2027",
+        event_fingerprint=event["fingerprint"],
+        tournament_id="rvv-1",
+        note="host confirmed the actual booking",
+        actor="tester",
+    )
+
+    # Persist and reload: every surface below reads the state back from disk.
+    snapshot = CanonicalSeasonStore(root).load("2026-2027")
+    plan = snapshot.schedule["plan"]
+
+    # The verifier problem comes from the production Stage 4 builder, not a hand-built copy.
+    work_dir = tmp_path / "work"
+    state = PipelineState(work_dir)
+    config = dict(problem)
+    config["canonical_season_root"] = str(root)
+    config["start_date"] = "2026-09-01"
+    config["end_date"] = "2027-04-30"
+    state.write_stage(StageName.CONFIG, config, status=StageStatus.DONE)
+    verified_problem = _build_export_verification_problem(config, state)
+    assert verified_problem is not None
+    assert verified_problem["ice_time_minutes_overrides"] == {"rvv-1": 80}
+    assert len(verified_problem["calendar_booking_associations"]) == 1
+
+    # Findings: the accepted interval is a warning, not a hard violation.
+    findings = verify_final_candidate(extract_candidate({"plan": plan}), verified_problem)
+    assert findings["ok"] is True, findings["violations"]
+    warning = findings["booking_feasibility_warnings"][0]
+    assert warning["code"] == "ice_time_governing_minimum"
+    assert "80" in str(warning) and "11:20" in str(warning)
+
+    # Semantic audit: the audit context sees the same 80-minute interval.
+    PipelineState(work_dir).write_stage(
+        StageName.EXPORT,
+        {
+            "export_dir": str(tmp_path / "export" / "2026-09-21T0908"),
+            "output_files": {},
+            "verify_result": {"ok": True, "violations": []},
+            "export_fingerprint": "fp-hermetic",
+            "reviewed_plan": plan,
+            "verification_context": {"problem": verified_problem},
+        },
+        status=StageStatus.DONE,
+    )
+    duration = build_audit_context(work_dir=work_dir)["plan_audit_summary"]["duration_summary"]
+    assert duration["longest_examples"][0]["required_duration_minutes"] == 80
+    assert duration["longest_examples"][0]["end_time"] == "11:20"
+
+    # Stage 4 export projection equals the effective projection the seal records.
+    export_projection = tournament_projection(plan, verified_problem)
+    assert export_projection["rvv-1"]["duration_minutes"] == 80
+    assert export_projection["rvv-1"]["end_time"] == "11:20"
+    assert export_projection == _effective_projection(root)
+
+    # Preflight then seal: an unsealed season passes the pre-push gate, and the seal
+    # records the accepted interval as the baseline.
+    # Negative first: an export that carries a 120-minute interval for the accepted
+    # 80-minute booking must be refused by the pre-push gate.
+    altered = copy.deepcopy(_effective_projection(root))
+    altered["rvv-1"]["duration_minutes"] = 120
+    altered["rvv-1"]["end_time"] = "12:00"
+    altered_dir = _publication_export(tmp_path, root, "2026-09-21T0908-altered", altered)
+    with pytest.raises(RuntimeError, match="no longer matches the current canonical schedule"):
+        assert_publication_allowed(altered_dir, repo_dir=tmp_path)
+
+    export_dir = _publication_export(tmp_path, root, "2026-09-21T0908", _effective_projection(root))
+    promote_export_manifest(
+        export_dir,
+        expected_export_fingerprint="fp",
+        source_run_id="run",
+        pages_run_id="run-1",
+        pages_bundle_fingerprint="bundle-1",
+        pages_commit="commit-1",
+        pages_branch="gh-pages",
+    )
+    assert assert_publication_allowed(export_dir, repo_dir=tmp_path) is None
+    report = record_publication_seal(export_dir, repo_dir=tmp_path)
+    assert report is not None and report["state"] == "published_sealed"
+    baseline = CanonicalSeasonStore(root).load("2026-2027").decisions["season_lifecycle"][
+        "published_baseline"
+    ]["tournaments"][0]
+    assert baseline["start_time"] == "10:00"
+    assert baseline["duration_minutes"] == 80
+
+
+
+def _tree_bytes(path: Path) -> dict[str, bytes]:
+    return {
+        str(file.relative_to(path)): file.read_bytes()
+        for file in sorted(path.rglob("*"))
+        if file.is_file()
+    }
+
+
+def test_refused_seal_after_canonical_change_leaves_no_partial_mutation(tmp_path: Path) -> None:
+    """A seal refused for a stale canonical revision leaves canonical and export files unchanged (#564)."""
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _publication_export(tmp_path, root, "2026-09-21T0908", _effective_projection(root))
+    export_dir = tmp_path / "export" / "2026-09-21T0908"
+
+    CanonicalSeasonService(root=root).add_request_constraint(
+        season="2026-2027",
+        type="team_unavailable",
+        request_id="request-before-refused-seal",
+        teams=[{"club": "Alpha", "label": "Alpha1", "age_group": "U10"}],
+        date_from="2026-09-12",
+        actor="tester",
+    )
+    before_root = _tree_bytes(root)
+    before_export = _tree_bytes(export_dir)
+
+    with pytest.raises(RuntimeError, match="current canonical revision"):
+        record_publication_seal(export_dir, repo_dir=tmp_path)
+
+    assert _tree_bytes(root) == before_root
+    assert _tree_bytes(export_dir) == before_export
+
+
+def _publication_export(tmp_path: Path, root: Path, publication_id: str, projection: dict) -> Path:
     snapshot = CanonicalSeasonStore(root).load("2026-2027")
     export_dir = tmp_path / "export" / publication_id
     export_dir.mkdir(parents=True)
@@ -3204,3 +3368,4 @@ def _publication_export(tmp_path: Path, root: Path, publication_id: str, project
         canonical_revision=canonical_state_revision(snapshot.schedule, snapshot.decisions),
         schedule_projection=projection,
     )
+    return export_dir
