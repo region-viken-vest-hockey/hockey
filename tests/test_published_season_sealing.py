@@ -3416,3 +3416,18 @@ def test_normalization_dry_run_keeps_an_accepted_short_booking_a_warning(tmp_pat
     schedule, _decisions = normalize_placements(season="2026-2027", root=root, actor="tester", dry_run=True)
 
     assert schedule["placement_normalization"]["removed_tournament_ids"] == ["rvv-1"]
+    # The accepted interval stays an informational warning for the surviving tournament.
+    from tournament_scheduler.booking.calendar_bookings import project_associations_into_problem
+    from tournament_scheduler.planning.contract import extract_candidate
+    from tournament_scheduler.planning.verification import verify_final_candidate
+    from tournament_scheduler.season.ice_time_overrides import project_overrides_into_problem
+
+    snapshot = CanonicalSeasonStore(root).load("2026-2027")
+    effective = project_associations_into_problem(
+        project_overrides_into_problem(snapshot.schedule["verification_context"]["problem"], snapshot.decisions),
+        snapshot.decisions,
+        snapshot.schedule["plan"],
+    )
+    result = verify_final_candidate(extract_candidate({"plan": schedule["plan"]}), effective)
+    warnings = [w for w in result["booking_feasibility_warnings"] if w["code"] == "ice_time_governing_minimum"]
+    assert [w["tournament_id"] for w in warnings] == ["rvv-2"]
