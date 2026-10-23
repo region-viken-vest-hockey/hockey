@@ -21,6 +21,7 @@ from tournament_scheduler.infrastructure.canonical_season_store import (
 )
 from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
 from tournament_scheduler.planning.contract import verify_candidate
+from tournament_scheduler.planning.verification import verify_final_candidate
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
 
 from .shared import (
@@ -68,12 +69,11 @@ def normalize_placements(
             "tournaments. '--dry-run' remains available as a diagnostic; a real "
             "conflict must be resolved with an explicit move/cancel/booking decision."
         )
-    verification_context = schedule.get("verification_context")
-    resolved_problem = problem
-    if resolved_problem is None and isinstance(verification_context, Mapping):
-        candidate_problem = verification_context.get("problem")
-        if isinstance(candidate_problem, Mapping):
-            resolved_problem = dict(candidate_problem)
+    # The shared owner projects the season's exceptions, overrides and overlays
+    # into the problem, so this check agrees with every other canonical boundary.
+    from .shared import _resolve_plan_problem
+
+    resolved_problem = _resolve_plan_problem(schedule, problem, decisions)
 
     plan = copy.deepcopy(schedule["plan"])
     approvals = decisions.get("decisions", {})
@@ -81,11 +81,9 @@ def normalize_placements(
     if not report.get("changed"):
         return schedule, decisions
 
-    result = (
-        verify_candidate(plan, resolved_problem)
-        if resolved_problem
-        else verify_candidate(plan)
-    )
+    # The final verifier is the one publication uses: it keeps an accepted short
+    # booking a warning instead of a hard governing-minimum violation.
+    result = verify_final_candidate(plan, resolved_problem)
     if not result.get("ok", True):
         messages = "; ".join(
             str(v.get("message") or v.get("code")) for v in result.get("violations", [])
