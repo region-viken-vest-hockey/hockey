@@ -1054,3 +1054,57 @@ def test_move_protects_requested_placement_until_explicit_release(tmp_path: Path
         note="replacement request",
     )
     assert moved_again["plan"]["tournaments"][0]["date"] == "2026-09-14"
+
+
+def _tree_digest(root: Path) -> dict[str, str]:
+    import hashlib
+
+    return {
+        str(file.relative_to(root)): hashlib.sha256(file.read_bytes()).hexdigest()
+        for file in sorted(root.rglob("*"))
+        if file.is_file()
+    }
+
+
+def _normalize_args(root: Path, *, dry_run: bool, as_json: bool = False):
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        season="2026-2027", root=str(root), actor="tester", note="", json=as_json, dry_run=dry_run
+    )
+
+
+def test_normalize_placements_cli_dry_run_writes_no_canonical_state(tmp_path: Path, capsys) -> None:
+    """`--dry-run` previews the demotion and changes no canonical file (#824)."""
+    from tournament_scheduler.cli.season_normalization_command import _cmd_season_normalize_placements
+
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    _stage_plan(PipelineState(work_dir), _legacy_unplaced_candidate())
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    before = _tree_digest(root)
+
+    assert _cmd_season_normalize_placements(_normalize_args(root, dry_run=True)) == 0
+
+    assert _tree_digest(root) == before
+    assert load_schedule("2026-2027", root=root)["plan"]["tournaments"] != []
+    assert "dry" in capsys.readouterr().out.lower()
+
+
+def test_normalize_placements_cli_real_run_commits_without_crashing(tmp_path: Path, capsys) -> None:
+    """A real run commits the demotion and prints a summary (#824).
+
+    The handler used to read the service's (schedule, decisions) tuple as a dict,
+    so the non-JSON output raised after the write.
+    """
+    from tournament_scheduler.cli.season_normalization_command import _cmd_season_normalize_placements
+
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    _stage_plan(PipelineState(work_dir), _legacy_unplaced_candidate())
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    assert _cmd_season_normalize_placements(_normalize_args(root, dry_run=False)) == 0
+
+    assert load_schedule("2026-2027", root=root)["plan"]["tournaments"] == []
+    assert "normalized placements" in capsys.readouterr().out.lower()
