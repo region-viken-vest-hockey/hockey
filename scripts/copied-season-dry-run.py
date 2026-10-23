@@ -60,9 +60,13 @@ def choose_scratch(value: str | None) -> tuple[Path, bool]:
     """Return (scratch, created_by_us). A supplied path must be new or empty and outside the repo."""
 
     if value is None:
-        return Path(tempfile.mkdtemp(prefix="season-dry-run-")), True
+        scratch = Path(tempfile.mkdtemp(prefix="season-dry-run-")).resolve()
+        if scratch.is_relative_to(ROOT):
+            shutil.rmtree(scratch, ignore_errors=True)
+            raise SystemExit(f"the temporary directory is inside the repository ({scratch}); pass --scratch outside it")
+        return scratch, True
     scratch = Path(value).resolve()
-    if scratch == ROOT or ROOT in scratch.parents or scratch in ROOT.parents or scratch.is_relative_to(ROOT):
+    if scratch.is_relative_to(ROOT) or ROOT.is_relative_to(scratch):
         raise SystemExit(f"--scratch must be outside the repository: {scratch}")
     if scratch.exists():
         if not scratch.is_dir() or any(scratch.iterdir()):
@@ -125,10 +129,14 @@ def run_publication_path(args: argparse.Namespace, report: dict, scratch: Path) 
         return False
 
     try:
-        assert_publication_allowed(export_dir, repo_dir=repo)
-        step(report, "preflight", True, "pre-push gate accepted the export")
+        reconciliation = assert_publication_allowed(export_dir, repo_dir=repo)
     except RuntimeError as exc:
         return step(report, "preflight", False, str(exc))
+    # The copy is a sealed season, so the pre-push gate must reconcile against its baseline.
+    # None means that did not happen, and the run must not count that as a pass.
+    if reconciliation is None:
+        return step(report, "preflight", False, "pre-push gate returned no sealed reconciliation for a sealed season")
+    step(report, "preflight", True, "pre-push gate reconciled the export against the sealed baseline")
 
     try:
         seal = record_publication_seal(export_dir, repo_dir=repo)
