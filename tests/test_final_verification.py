@@ -167,9 +167,24 @@ def test_accepted_short_booking_does_not_mask_actual_playing_shortfall():
     result = verify_final_candidate(_candidate(games=games), _accepted_short_booking_problem())
 
     assert result["ok"] is False
-    hard_codes = {violation["code"] for violation in result["violations"]}
-    assert hard_codes
-    assert "ice_time_governing_minimum" not in hard_codes
+    assert [violation["code"] for violation in result["violations"]] == [
+        "round_robin_missing_pair"
+    ]
+    assert [w["code"] for w in result["booking_feasibility_warnings"]] == [
+        "ice_time_governing_minimum"
+    ]
+
+
+def test_accepted_short_booking_with_valid_schedule_is_publishable_with_warning_only():
+    # Baseline for the two tests above: with a complete, valid schedule the accepted
+    # short interval must produce no hard violation, only the informational warning.
+    result = verify_final_candidate(_candidate(), _accepted_short_booking_problem())
+
+    assert result["ok"] is True, result["violations"]
+    assert result["violations"] == []
+    assert [w["code"] for w in result["booking_feasibility_warnings"]] == [
+        "ice_time_governing_minimum"
+    ]
 
 
 def test_stale_or_wrong_source_authority_does_not_reclassify_below_floor():
