@@ -758,3 +758,54 @@ def test_cancelled_tournament_without_games_is_not_a_missing_duration_defect():
 
     assert [row["id"] for row in facts["duration_examples"]] == ["rvv-live"]
     assert facts["missing_duration"] == []
+
+
+def test_semantic_audit_uses_host_confirmed_duration_override_for_tournament(tmp_path):
+    """The audit must see the accepted short interval the publication seals (#564).
+
+    A host-confirmed 80-minute booking for ``t1`` is carried in the verified
+    problem as a per-tournament override over the 120-minute age-group default.
+    The publication projection occupies 80 minutes, so the semantic audit must
+    report the same duration and end time rather than the configured default.
+    """
+    tournament = {
+        "id": "t1",
+        "date": "2026-10-11",
+        "age_group": "U10",
+        "arena": "Alpha Arena",
+        "host_club": "Alpha",
+        "start_time": "10:00",
+        "teams": [
+            {"label": "A", "club": "Alpha", "age_group": "U10"},
+            {"label": "B", "club": "Guest", "age_group": "U10"},
+        ],
+        "games": [{"home": "A", "away": "B", "round_number": 1}],
+    }
+    export_dir = tmp_path / "export"
+    export_dir.mkdir(exist_ok=True)
+    PipelineState(tmp_path).write_stage(
+        StageName.EXPORT,
+        {
+            "export_dir": str(export_dir),
+            "output_files": {},
+            "verify_result": {"ok": True, "violations": []},
+            "export_fingerprint": "fp-1",
+            "reviewed_plan": {"tournaments": [tournament]},
+            "verification_context": {
+                "problem": {
+                    "ice_time_minutes": {"U10": 120},
+                    "ice_time_minutes_overrides": {"t1": 80},
+                    "teams": [],
+                }
+            },
+        },
+        status=StageStatus.DONE,
+    )
+
+    context = build_audit_context(work_dir=tmp_path)
+    duration = context["plan_audit_summary"]["duration_summary"]
+    example = duration["longest_examples"][0]
+
+    assert duration["max_minutes"] == 80
+    assert example["required_duration_minutes"] == 80
+    assert example["end_time"] == "11:20"

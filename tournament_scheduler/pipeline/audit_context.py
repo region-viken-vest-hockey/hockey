@@ -36,6 +36,7 @@ from tournament_scheduler.planning.derived_state import (
 from ..planning.contract import HARD_MAX_CLUB_TEAMS_PER_TOURNAMENT
 from tournament_scheduler.participation.targets import INTRA_CLUB_DISTRIBUTION
 from tournament_scheduler.participation.withdrawals import withdrawn_team_count_for_tournament
+from tournament_scheduler.season.ice_time_overrides import overrides_from_problem
 from . import audit_evidence
 from .calendar_evidence import calendar_evidence_coverage, summarize_scraping_checkpoint
 from .audit_result import current_export_fingerprint, current_run_id
@@ -287,6 +288,9 @@ def _collect_plan_audit_facts(
                 registered_teams.append(team)
                 registered_count_by_age_group[str(team["age_group"])] += 1
 
+    # A host-confirmed booking overrides the age-group default in the verified
+    # problem, and the publication projection occupies that accepted interval.
+    duration_overrides = overrides_from_problem(shape_problem if isinstance(shape_problem, dict) else None)
     duration_examples: list[dict[str, Any]] = []
     missing_duration: list[dict[str, Any]] = []
     duration_values: list[int] = []
@@ -300,12 +304,13 @@ def _collect_plan_audit_facts(
         round_count = max([int(g.get("round_number") or 0) for g in games] or [0])
         age_group = str(tournament.get("age_group") or "")
         ice_time = ice_times.get(age_group)
+        override = duration_overrides.get(str(tournament.get("id") or ""))
         round_buffer_minutes = 5 * round_count
         start_time = tournament.get("start_time")
         duration_minutes = None
         end_time = None
-        if round_count > 0 and isinstance(ice_time, int) and ice_time > 0:
-            duration_minutes = ice_time
+        if round_count > 0 and ((override or 0) > 0 or (isinstance(ice_time, int) and ice_time > 0)):
+            duration_minutes = override or ice_time
             duration_values.append(duration_minutes)
             if start_time:
                 try:
