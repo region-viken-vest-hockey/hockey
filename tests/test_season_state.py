@@ -1108,3 +1108,46 @@ def test_normalize_placements_cli_real_run_commits_without_crashing(tmp_path: Pa
 
     assert load_schedule("2026-2027", root=root)["plan"]["tournaments"] == []
     assert "normalized placements" in capsys.readouterr().out.lower()
+
+
+def test_normalize_placements_cli_second_run_reports_no_change(tmp_path: Path, capsys) -> None:
+    """A repeated run changes nothing and must say so, even though the stored schedule still
+    carries the earlier run's normalized_from (#824 review)."""
+    import json as _json
+
+    from tournament_scheduler.cli.season_normalization_command import _cmd_season_normalize_placements
+
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    _stage_plan(PipelineState(work_dir), _legacy_unplaced_candidate())
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    assert _cmd_season_normalize_placements(_normalize_args(root, dry_run=False, as_json=True)) == 0
+    first = _json.loads(capsys.readouterr().out)
+    assert first["changed"] is True
+    assert len(first["removed_tournament_ids"]) == 1
+
+    assert _cmd_season_normalize_placements(_normalize_args(root, dry_run=False, as_json=True)) == 0
+    second = _json.loads(capsys.readouterr().out)
+    assert second["changed"] is False
+    assert second["removed_tournament_ids"] == []
+    assert second["obligation_count"] == 0
+
+
+def test_normalize_placements_cli_dry_run_json_names_the_proposed_demotion(tmp_path: Path, capsys) -> None:
+    import json as _json
+
+    from tournament_scheduler.cli.season_normalization_command import _cmd_season_normalize_placements
+
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    _stage_plan(PipelineState(work_dir), _legacy_unplaced_candidate())
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+
+    assert _cmd_season_normalize_placements(_normalize_args(root, dry_run=True, as_json=True)) == 0
+    summary = _json.loads(capsys.readouterr().out)
+
+    assert summary["dry_run"] is True
+    assert summary["changed"] is True
+    assert len(summary["removed_tournament_ids"]) == 1
+    assert load_schedule("2026-2027", root=root)["plan"]["tournaments"] != []
