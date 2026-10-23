@@ -85,7 +85,10 @@ def main() -> int:
         ],
         cwd=str(ROOT),
     )
-    step(report, "export", export.returncode == 0, export.stderr.strip().splitlines()[-1] if export.returncode else "export written")
+    output_lines = (export.stdout + "\n" + export.stderr).strip().splitlines()
+    refusal = next((line.strip() for line in output_lines if "Refusing" in line), "")
+    export_detail = (refusal or (output_lines[-1] if output_lines else "export failed")) if export.returncode else "export written"
+    step(report, "export", export.returncode == 0, export_detail)
     if export.returncode != 0:
         return finish(report, live_season, live_before, args.keep, scratch, 1)
 
