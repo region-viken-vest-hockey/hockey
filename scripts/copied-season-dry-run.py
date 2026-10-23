@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """Hermetic publication dry run on a copy of the canonical season (#820).
 
-Copies the live season state and the gh-pages history into a scratch repo, then
-runs export, audit-context build, publication preflight and the seal there. The
-live season is hashed before and after; any change to it fails the run.
+Copies the live season state, pipeline state and gh-pages history into a scratch
+repo, then runs export, audit-context build, publication preflight and the seal
+there. The live season and pipeline state are hashed before and after, and any
+change to them fails the run.
 
-Nothing is published, and no operational season or Pages branch is written.
-Exit status is 0 only when every step passes. A refusal at any step is reported
-with its exact message and fails the run.
+Nothing is published, and no operational season, pipeline state or Pages branch
+is written. The run passes only if every step passes and the live state is
+unchanged. A refusal or an unexpected error at any step is reported with its
+message and fails the run.
 
 Usage:
     scripts/copied-season-dry-run.py [--season 2026-2027] [--scratch DIR] [--keep]
+
+--scratch must name a directory that does not exist yet, or an empty directory,
+outside the repository. The script deletes only a scratch directory it created,
+and only unless --keep is given.
 """
 
 from __future__ import annotations
@@ -22,6 +28,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import traceback
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -30,6 +37,8 @@ RVV = ROOT / "scripts" / "rvv-miniputt"
 
 def tree_digest(path: Path) -> str:
     digest = hashlib.sha256()
+    if not path.exists():
+        return "absent"
     for file in sorted(path.rglob("*")):
         if file.is_file():
             digest.update(str(file.relative_to(path)).encode())
@@ -37,113 +46,120 @@ def tree_digest(path: Path) -> str:
     return digest.hexdigest()
 
 
-def run(args: list[str], **kwargs) -> subprocess.CompletedProcess:
-    return subprocess.run(args, check=False, capture_output=True, text=True, **kwargs)
+def live_state() -> dict[str, str]:
+    return {"season": tree_digest(ROOT / "season"), "pipeline": tree_digest(ROOT / ".pipeline")}
 
 
-def step(report: dict, name: str, ok: bool, detail: str) -> None:
+def step(report: dict, name: str, ok: bool, detail: str) -> bool:
     report["steps"].append({"step": name, "ok": ok, "detail": detail})
     print(f"[{'PASS' if ok else 'FAIL'}] {name}: {detail}", flush=True)
+    return ok
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--season", default="2026-2027")
-    parser.add_argument("--scratch", help="Scratch directory (default: a new temporary directory)")
-    parser.add_argument("--keep", action="store_true", help="Keep the scratch directory after the run")
-    args = parser.parse_args()
+def choose_scratch(value: str | None) -> tuple[Path, bool]:
+    """Return (scratch, created_by_us). A supplied path must be new or empty and outside the repo."""
 
-    live_season = ROOT / "season"
-    live_pipeline = ROOT / ".pipeline"
-    origin = run(["git", "-C", str(ROOT), "remote", "get-url", "origin"]).stdout.strip()
-    scratch = Path(args.scratch) if args.scratch else Path(tempfile.mkdtemp(prefix="season-dry-run-"))
-    scratch.mkdir(parents=True, exist_ok=True)
-    report: dict = {"season": args.season, "scratch": str(scratch), "steps": []}
+    if value is None:
+        return Path(tempfile.mkdtemp(prefix="season-dry-run-")), True
+    scratch = Path(value).resolve()
+    if scratch == ROOT or ROOT in scratch.parents or scratch in ROOT.parents or scratch.is_relative_to(ROOT):
+        raise SystemExit(f"--scratch must be outside the repository: {scratch}")
+    if scratch.exists():
+        if not scratch.is_dir() or any(scratch.iterdir()):
+            raise SystemExit(f"--scratch must be a new or empty directory: {scratch}")
+        return scratch, False
+    scratch.mkdir(parents=True)
+    return scratch, True
 
-    live_before = tree_digest(live_season)
+
+def run_publication_path(args: argparse.Namespace, report: dict, scratch: Path) -> bool:
+    origin = subprocess.run(
+        ["git", "-C", str(ROOT), "remote", "get-url", "origin"], check=False, capture_output=True, text=True
+    )
+    if origin.returncode != 0 or not origin.stdout.strip():
+        return step(report, "origin", False, "no origin remote to clone gh-pages from")
+
     repo = scratch / "repo"
     work = scratch / "work"
-    export_root = repo / "export"
+    clone = subprocess.run(
+        ["git", "clone", "-q", "--single-branch", "--branch", "gh-pages", origin.stdout.strip(), str(repo)],
+        check=False, capture_output=True, text=True,
+    )
+    if not step(report, "clone gh-pages history", clone.returncode == 0, clone.stderr.strip() or "scratch repo cloned"):
+        return False
 
-    clone = run(["git", "clone", "-q", "--single-branch", "--branch", "gh-pages", origin, str(repo)])
-    step(report, "clone gh-pages history", clone.returncode == 0, clone.stderr.strip() or "scratch repo cloned")
-    if clone.returncode != 0:
-        return finish(report, live_season, live_before, args.keep, scratch, 1)
-
-    shutil.copytree(live_season, repo / "season")
-    if live_pipeline.exists():
-        shutil.copytree(live_pipeline, work)
+    shutil.copytree(ROOT / "season", repo / "season")
+    if (ROOT / ".pipeline").exists():
+        shutil.copytree(ROOT / ".pipeline", work)
     else:
         work.mkdir(parents=True)
-    step(report, "copy season and pipeline state", True, f"season copied to {repo / 'season'}")
+    step(report, "copy season and pipeline state", True, f"copied into {scratch}")
 
-    export = run(
+    export = subprocess.run(
         [
             str(RVV), "season", "export", "--season", args.season,
             "--root", str(repo / "season"), "--work-dir", str(work),
-            "--export-dir", str(export_root / "dry-run"), "--json",
+            "--export-dir", str(repo / "export" / "dry-run"), "--json",
         ],
-        cwd=str(ROOT),
+        cwd=str(repo), check=False, capture_output=True, text=True,
     )
     output_lines = (export.stdout + "\n" + export.stderr).strip().splitlines()
     refusal = next((line.strip() for line in output_lines if "Refusing" in line), "")
     export_detail = (refusal or (output_lines[-1] if output_lines else "export failed")) if export.returncode else "export written"
-    step(report, "export", export.returncode == 0, export_detail)
-    if export.returncode != 0:
-        return finish(report, live_season, live_before, args.keep, scratch, 1)
+    if not step(report, "export", export.returncode == 0, export_detail):
+        return False
 
-    manifests = sorted(export_root.glob("dry-run/*/export_manifest.json"))
+    manifests = sorted((repo / "export" / "dry-run").glob("*/export_manifest.json"))
     if not manifests:
-        step(report, "export manifest", False, "no export_manifest.json under the scratch export")
-        return finish(report, live_season, live_before, args.keep, scratch, 1)
+        return step(report, "export manifest", False, "no export_manifest.json in the scratch export")
     export_dir = manifests[-1].parent
 
     sys.path.insert(0, str(ROOT))
     from tournament_scheduler.pipeline.audit_context import build_audit_context
-    from tournament_scheduler.pipeline.publication_lifecycle import (
-        assert_publication_allowed,
-        record_publication_seal,
-    )
+    from tournament_scheduler.pipeline.publication_lifecycle import assert_publication_allowed, record_publication_seal
 
     manifest = json.loads(manifests[-1].read_text(encoding="utf-8"))
     projected = len(manifest.get("schedule_projection") or {})
-    context = build_audit_context(work_dir=work)
-    audited = context["plan_audit_summary"]["tournament_count"]
-    step(
-        report,
-        "audit context",
-        audited == projected,
-        f"audited {audited} tournaments, export projection holds {projected}",
-    )
+    audited = build_audit_context(work_dir=work)["plan_audit_summary"]["tournament_count"]
+    if not step(report, "audit context", audited == projected, f"audited {audited} tournaments, export projection holds {projected}"):
+        return False
 
     try:
         assert_publication_allowed(export_dir, repo_dir=repo)
         step(report, "preflight", True, "pre-push gate accepted the export")
     except RuntimeError as exc:
-        step(report, "preflight", False, str(exc))
-        return finish(report, live_season, live_before, args.keep, scratch, 1)
+        return step(report, "preflight", False, str(exc))
 
     try:
         seal = record_publication_seal(export_dir, repo_dir=repo)
-        ok = seal is not None and seal.get("state") == "published_sealed"
-        step(report, "seal", ok, f"state {seal.get('state') if seal else None}")
     except RuntimeError as exc:
-        step(report, "seal", False, str(exc))
-        return finish(report, live_season, live_before, args.keep, scratch, 1)
-
-    return finish(report, live_season, live_before, args.keep, scratch, 0)
+        return step(report, "seal", False, str(exc))
+    return step(report, "seal", seal is not None and seal.get("state") == "published_sealed", f"state {seal.get('state') if seal else None}")
 
 
-def finish(report: dict, live_season: Path, live_before: str, keep: bool, scratch: Path, code: int) -> int:
-    live_unchanged = tree_digest(live_season) == live_before
-    step(report, "live season unchanged", live_unchanged, "live season hash matches before the run" if live_unchanged else "LIVE SEASON CHANGED")
-    if not live_unchanged:
-        code = 1
-    report["passed"] = code == 0 and live_unchanged
-    print(json.dumps(report, ensure_ascii=False, indent=2))
-    if not keep:
-        shutil.rmtree(scratch, ignore_errors=True)
-    return code
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--season", default="2026-2027")
+    parser.add_argument("--scratch", help="New or empty directory outside the repository (default: a temporary one)")
+    parser.add_argument("--keep", action="store_true", help="Keep the scratch directory after the run")
+    args = parser.parse_args()
+
+    scratch, created = choose_scratch(args.scratch)
+    report: dict = {"season": args.season, "scratch": str(scratch), "steps": []}
+    before = live_state()
+    passed = False
+    try:
+        passed = run_publication_path(args, report, scratch)
+    except Exception:  # noqa: BLE001 - every failure must reach the report and the live check
+        step(report, "unexpected error", False, traceback.format_exc(limit=3).strip().splitlines()[-1])
+    finally:
+        live_unchanged = live_state() == before
+        step(report, "live state unchanged", live_unchanged, "season and pipeline hashes match before the run" if live_unchanged else "LIVE STATE CHANGED")
+        if created and not args.keep:
+            shutil.rmtree(scratch, ignore_errors=True)
+        report["passed"] = bool(passed and live_unchanged and all(item["ok"] for item in report["steps"]))
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+    return 0 if report["passed"] else 1
 
 
 if __name__ == "__main__":
