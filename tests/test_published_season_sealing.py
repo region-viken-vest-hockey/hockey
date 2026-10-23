@@ -3369,3 +3369,65 @@ def _publication_export(tmp_path: Path, root: Path, publication_id: str, project
         schedule_projection=projection,
     )
     return export_dir
+
+
+def test_normalization_dry_run_keeps_an_accepted_short_booking_a_warning(tmp_path: Path) -> None:
+    """Placement normalization must not refuse because of an accepted short booking (#829).
+
+    rvv-1 overlaps a fixed external busy interval, so normalization proposes a
+    demotion. rvv-2 is a host-confirmed 80-minute booking below the governing floor.
+    The dry run must report the demotion, not refuse on the accepted interval.
+    """
+
+    from tournament_scheduler.application.canonical_season.store_facade import normalize_placements
+
+    root = tmp_path / "season"
+    tournaments = [
+        _tournament("rvv-1", "2026-10-11", "10:00", "Alpha Arena", "Alpha"),
+        _tournament("rvv-2", "2026-10-18", "10:00", "Beta Arena", "Beta"),
+    ]
+    for tournament in tournaments:
+        tournament["games"] = [
+            {"home": f"{tournament['host_club']}1", "away": f"G-{tournament['id']}", "parallel_slot": 0, "round_number": 1}
+        ]
+    problem = _problem({"tournaments": tournaments})
+    problem["clubs"] = {"Alpha": "Alpha Arena", "Beta": "Beta Arena"}
+    problem["club_calendar_status"] = {"Alpha": "known", "Beta": "known"}
+    problem["club_busy_intervals"] = {
+        "Alpha": [
+            {"date": "2026-10-11", "start": "10:00", "end": "11:20", "availability": "fixed_busy", "calendar_event": "Serierunde U10"}
+        ],
+        "Beta": [
+            {"date": "2026-10-18", "start": "10:00", "end": "11:20", "availability": "fixed_busy", "calendar_event": "Beta booking U10"}
+        ],
+    }
+    _write_canonical(root, tournaments, problem=problem)
+    from tournament_scheduler.booking.calendar_bookings import iter_events
+
+    event = next(event for event in iter_events(problem) if event.get("date") == "2026-10-18")
+    CanonicalSeasonService(root=root).confirm_calendar_booking(
+        season="2026-2027",
+        event_fingerprint=event["fingerprint"],
+        tournament_id="rvv-2",
+        note="host confirmed the actual booking",
+        actor="tester",
+    )
+
+    schedule, _decisions = normalize_placements(season="2026-2027", root=root, actor="tester", dry_run=True)
+
+    assert schedule["placement_normalization"]["removed_tournament_ids"] == ["rvv-1"]
+    # The accepted interval stays an informational warning for the surviving tournament.
+    from tournament_scheduler.booking.calendar_bookings import project_associations_into_problem
+    from tournament_scheduler.planning.contract import extract_candidate
+    from tournament_scheduler.planning.verification import verify_final_candidate
+    from tournament_scheduler.season.ice_time_overrides import project_overrides_into_problem
+
+    snapshot = CanonicalSeasonStore(root).load("2026-2027")
+    effective = project_associations_into_problem(
+        project_overrides_into_problem(snapshot.schedule["verification_context"]["problem"], snapshot.decisions),
+        snapshot.decisions,
+        snapshot.schedule["plan"],
+    )
+    result = verify_final_candidate(extract_candidate({"plan": schedule["plan"]}), effective)
+    warnings = [w for w in result["booking_feasibility_warnings"] if w["code"] == "ice_time_governing_minimum"]
+    assert [w["tournament_id"] for w in warnings] == ["rvv-2"]

@@ -1157,3 +1157,31 @@ def test_normalize_placements_cli_dry_run_json_names_the_proposed_demotion(tmp_p
     assert len(summary["removed_tournament_ids"]) == 1
     assert summary["obligation_count"] == 1
     assert load_schedule("2026-2027", root=root)["plan"]["tournaments"] != []
+
+
+def test_normalize_placements_honours_a_recorded_holiday_exception(tmp_path: Path) -> None:
+    """A tournament on a holiday date with a recorded exception is not a hard violation (#829).
+
+    Normalization verified its candidate against the stored problem, which does not
+    carry the season's holiday exceptions, so a permitted date was reported as an
+    excluded holiday and the dry run refused.
+    """
+    from tournament_scheduler.application.canonical_season.store_facade import allow_holiday_date, move_tournament
+
+    work_dir = tmp_path / ".pipeline"
+    root = tmp_path / "season"
+    candidate = _legacy_unplaced_candidate()
+    other = dict(candidate["tournaments"][0])
+    other.pop("manual_booking_reason", None)
+    other.update({"id": "u10-other", "date": "2026-09-19", "arena": "Arena B", "host_club": "B"})
+    candidate["tournaments"].append(other)
+    _stage_plan(PipelineState(work_dir), candidate)
+    promote_from_stage3(work_dir=work_dir, root=root, actor="tester")
+    allow_holiday_date(
+        season="2026-2027", date="2026-12-19", reason="RVV permits this weekend", root=root, actor="tester"
+    )
+    move_tournament(season="2026-2027", tournament_id="u10-other", date="2026-12-19", root=root, actor="tester")
+
+    schedule, _ = normalize_placements(season="2026-2027", root=root, actor="tester", dry_run=True)
+
+    assert schedule["placement_normalization"]["removed_tournament_ids"] == ["u10-a-20260912"]
