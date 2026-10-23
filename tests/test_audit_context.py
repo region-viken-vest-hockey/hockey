@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from tournament_scheduler.pipeline.audit_context import (
     AUDIT_CHECKLIST,
     build_audit_context,
@@ -760,7 +762,17 @@ def test_cancelled_tournament_without_games_is_not_a_missing_duration_defect():
     assert facts["missing_duration"] == []
 
 
-def test_semantic_audit_uses_host_confirmed_duration_override_for_tournament(tmp_path):
+@pytest.mark.parametrize(
+    ("overrides", "expected_minutes", "expected_end"),
+    [
+        ({"t1": 80}, 80, "11:20"),
+        ({}, 120, "12:00"),
+    ],
+    ids=["override_present", "override_absent_uses_age_group_default"],
+)
+def test_semantic_audit_uses_host_confirmed_duration_override_for_tournament(
+    tmp_path, overrides, expected_minutes, expected_end
+):
     """The audit must see the accepted short interval the publication seals (#564).
 
     A host-confirmed 80-minute booking for ``t1`` is carried in the verified
@@ -794,7 +806,7 @@ def test_semantic_audit_uses_host_confirmed_duration_override_for_tournament(tmp
             "verification_context": {
                 "problem": {
                     "ice_time_minutes": {"U10": 120},
-                    "ice_time_minutes_overrides": {"t1": 80},
+                    "ice_time_minutes_overrides": overrides,
                     "teams": [],
                 }
             },
@@ -806,6 +818,6 @@ def test_semantic_audit_uses_host_confirmed_duration_override_for_tournament(tmp
     duration = context["plan_audit_summary"]["duration_summary"]
     example = duration["longest_examples"][0]
 
-    assert duration["max_minutes"] == 80
-    assert example["required_duration_minutes"] == 80
-    assert example["end_time"] == "11:20"
+    assert duration["max_minutes"] == expected_minutes
+    assert example["required_duration_minutes"] == expected_minutes
+    assert example["end_time"] == expected_end
