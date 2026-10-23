@@ -45,7 +45,8 @@ Each scenario in the required regression contract maps to a test that locks the 
 | Actual playing shortfall stays hard | `tests/test_final_verification.py::test_accepted_short_booking_does_not_mask_actual_playing_shortfall` |
 | Host busy conflict is surfaced, not silently cleared | `tests/test_final_verification.py::test_host_busy_conflict_beside_accepted_booking_is_unresolved_not_silently_clear` |
 | Rejected operation leaves no partial mutation | `tests/test_approval_lifecycle.py::test_confirm_calendar_booking_refuses_cancelled_tournament_atomically`; `tests/test_published_season_sealing.py::test_refused_seal_after_canonical_change_leaves_no_partial_mutation` |
-| Retained conflicting evidence is refused at seal | `tests/test_published_season_sealing.py::test_replacement_seal_rejects_conflicting_retained_evidence` |
+| Retained booking evidence is kept at the source boundary when rejected | `tests/test_club_booking_source.py::test_source_confirmed_moved_day_double_booked_team_is_rejected_and_evidence_retained`; `tests/test_club_booking_source.py::test_wrong_calendar_owner_retains_exact_rejected_source_fact` |
+| Conflicting publication evidence for the same publication id is refused | `tests/test_published_season_sealing.py::test_replacement_seal_rejects_conflicting_retained_evidence` (publication-evidence revision conflict, not booking evidence) |
 | Verification bound to the canonical revision | `tests/test_published_season_sealing.py::test_seal_refuses_verified_revision_superseded_by_later_canonical_change`; `tests/test_published_season_sealing.py::test_export_verified_before_decision_only_change_cannot_seal_changed_state` |
 
 ### Known gaps
