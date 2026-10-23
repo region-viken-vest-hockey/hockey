@@ -2634,6 +2634,31 @@ def test_below_floor_booking_stage4_export_builder_stays_hard_valid(tmp_path):
     ]
     assert verification["publication_readiness"]["status"] == "REVIEW_REQUIRED"
 
+    # Export parity: the projection the Stage 4 export rebuilds is the canonical
+    # effective projection that publication seals, so the accepted 90-minute
+    # interval is the same fact on both sides (#564).
+    from tournament_scheduler.infrastructure.canonical_season_store import CanonicalSeasonStore
+    from tournament_scheduler.publication.baseline import (
+        effective_projection_from_canonical_schedule,
+        projection_fingerprint,
+    )
+    from tournament_scheduler.publication.projection_guard import tournament_projection
+
+    snapshot = CanonicalSeasonStore(root).load("2026-2027")
+    sealed_projection = effective_projection_from_canonical_schedule(
+        snapshot.schedule, snapshot.decisions
+    )
+    export_projection = tournament_projection(canonical_plan, built)
+    assert sealed_projection["t1"]["duration_minutes"] == 90
+    assert export_projection["t1"]["duration_minutes"] == 90
+    assert projection_fingerprint(export_projection) == projection_fingerprint(sealed_projection)
+
+    # The rendered HTML, not only the projection, must show the accepted 90-minute
+    # interval (11:00-12:30), so a stale renderer would fail here.
+    html = _export_html_with_booking_report(root, problem, tmp_path)
+    assert '"s": "11:00"' in html
+    assert '"e": "12:30"' in html
+
 
 def test_manual_assertion_stated_duration_is_exported_as_canonical_html(tmp_path):
     """The HTML export must render the accepted source interval, not the default."""
