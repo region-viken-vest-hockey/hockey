@@ -148,7 +148,7 @@ def add_operator_gate_parsers(operator_sub: argparse._SubParsersAction) -> None:
         default=None,
         metavar="REVISION",
         help="Publish only if the export was built at this canonical revision (issue #682); "
-        "requires --expected-fingerprint and --export-dir",
+        "requires --expected-content-sha256 and --export-dir",
     )
     op_publish.add_argument(
         "--expected-content-sha256",
