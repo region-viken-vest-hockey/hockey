@@ -123,6 +123,36 @@ def mark_export_superseded(
     return current
 
 
+def assert_export_binding(
+    export_dir: str | Path,
+    *,
+    expected_export_fingerprint: str,
+    expected_canonical_revision: str,
+) -> dict[str, Any]:
+    """Refuse unless *export_dir* is the export that was reviewed (issue #682).
+
+    Publication names both the export fingerprint and the canonical revision it
+    was reviewed at. A different fingerprint or revision is a different artifact,
+    so it must never be published under the reviewed label.
+    """
+    current = read_export_manifest(export_dir)
+    if current is None:
+        raise ValueError(f"Export lifecycle manifest missing in {export_dir}")
+    actual_fp = current.get("export_fingerprint")
+    if actual_fp != expected_export_fingerprint:
+        raise ValueError(
+            "Export fingerprint mismatch: "
+            f"manifest has {actual_fp!r}, expected {expected_export_fingerprint!r}"
+        )
+    actual_revision = current.get("canonical_revision")
+    if actual_revision != expected_canonical_revision:
+        raise ValueError(
+            "Canonical revision mismatch: "
+            f"export was built at {actual_revision!r}, expected {expected_canonical_revision!r}"
+        )
+    return current
+
+
 def promote_export_manifest(
     export_dir: str | Path,
     *,

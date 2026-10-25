@@ -127,8 +127,40 @@ def _append_publish_outcome_to_run_log(work_dir: str, state: "Any", result: "Any
         pass
 
 
+def _export_binding_refusal(args: argparse.Namespace) -> str | None:
+    """Return why publication must not proceed, or ``None`` when no binding was asked for.
+
+    Issue #682: an operator who names the reviewed export and its revision gets a
+    hard refusal unless that exact export is still what would be published.
+    """
+    expected_revision = getattr(args, "expected_revision", None)
+    expected_fingerprint = getattr(args, "expected_fingerprint", None)
+    if expected_revision is None and expected_fingerprint is None:
+        return None
+    if not (expected_revision and expected_fingerprint):
+        return "--expected-revision og --expected-fingerprint må oppgis sammen."
+    if not getattr(args, "export_dir", None):
+        return "--expected-revision krever --export-dir, slik at publiseringen er knyttet til den godkjente eksporten."
+
+    from ...publication.export_lifecycle import assert_export_binding
+
+    try:
+        assert_export_binding(
+            args.export_dir,
+            expected_export_fingerprint=expected_fingerprint,
+            expected_canonical_revision=expected_revision,
+        )
+    except ValueError as exc:
+        return f"Publisering avbrutt: {exc}"
+    return None
+
+
 def _cmd_operator_publish(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt operator publish`` — publish the exported plan to GitHub Pages (issue #17)."""
+    refusal = _export_binding_refusal(args)
+    if refusal is not None:
+        _console.print(f"[red]✗[/red] {refusal}")
+        return 1
     result = _execute_operator_publish(args)
     if result is None:
         return 1
