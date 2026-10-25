@@ -46,6 +46,7 @@ from tournament_scheduler.publication.evidence import (
     diff_decision_snapshot,
     list_publication_evidence,
 )
+from .evidence_gap import retained_evidence_gap
 
 
 def _reconcile(
@@ -170,10 +171,12 @@ def publication_evidence_report(service, *, season: str) -> dict[str, Any]:
         "published_to_canonical_delta": None,
         "decision_changes": None,
         "retained_evidence": list_publication_evidence(season_root, season),
+        "evidence_gap": None,
     }
     baseline = active_baseline(decisions)
     if baseline is None:
         return report
+    report["evidence_gap"] = retained_evidence_gap(season_root, season, baseline)
 
     published_projection, _attested = published_baseline_reconciliation(
         service,

@@ -146,6 +146,16 @@ def _cmd_season_publication_evidence(args: argparse.Namespace) -> int:
         _console.print(
             f"[bold]Publiseringsevidence {args.season}[/bold]: {report['state']}"
         )
+        gap = report.get("evidence_gap")
+        if gap:
+            problem = (
+                "mangler lagret evidens"
+                if gap["reason"] == "missing_retained_evidence"
+                else "lagret evidens er ugyldig"
+            )
+            _console.print(
+                f"  [red]{problem} for aktiv publisering {gap['publication_id']}[/red]"
+            )
         if active is None:
             _console.print("  Ingen aktiv publisert basislinje.")
         else:
