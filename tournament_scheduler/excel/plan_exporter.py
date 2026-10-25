@@ -14,13 +14,13 @@ builds a workbook with:
 The resulting workbook is saved to a user-specified `.xlsx` path.
 """
 
+import logging
 from datetime import date
 from typing import Any, Dict, List, Mapping, Optional
 
 import openpyxl
 from openpyxl.styles import PatternFill
 from openpyxl.worksheet.worksheet import Worksheet
-from rich.console import Console
 
 from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.clubs.distances import furthest_traveling_team
@@ -28,8 +28,7 @@ from tournament_scheduler.participation.fairness_model import SeasonFairnessMode
 from tournament_scheduler.models import SeasonPlan, Tournament
 from tournament_scheduler.shape.occupancy import tournament_end_time
 
-console = Console()
-
+logger = logging.getLogger(__name__)
 
 # Norwegian weekday names (Monday=0 .. Sunday=6), matching the project's
 # Norwegian-language interactive CLI conventions.
@@ -146,7 +145,7 @@ class SeasonPlanExporter:
             self._write_club_summary_sheet(sheet, plan, club)
 
         self.workbook.save(output_path)
-        console.print(f"[green]Sesongplanen ble eksportert til[/green] [bold]{output_path}[/bold]")
+        logger.info("Sesongplanen ble eksportert til %s", output_path)
         return output_path
 
     # ------------------------------------------------------------------

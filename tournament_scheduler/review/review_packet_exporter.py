@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,13 +11,14 @@ from typing import Any, Iterable, Optional
 
 import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
-from rich.console import Console
 
 from ..clubs.distances import compute_team_travel_distances
 from tournament_scheduler.shape.guest_slots import guest_slot_summary
 from ..models import SeasonPlan, Tournament, find_duplicate_labels, team_key
 from tournament_scheduler.shape.occupancy import tournament_end_time
 from ..spond.spond_exporter import SpondExporter
+
+logger = logging.getLogger(__name__)
 
 
 def _guest_slot_label(tournament: Tournament) -> str:
@@ -34,8 +36,6 @@ def _guest_slot_label(tournament: Tournament) -> str:
         count = int(summary["released"])
         parts.append(f"{count} frigitt gjesteplass" if count == 1 else f"{count} frigitte gjesteplasser")
     return ", ".join(parts)
-
-console = Console()
 
 
 @dataclass(frozen=True)
@@ -190,7 +190,7 @@ class ReviewPacketExporter:
             )
 
             written[club] = str(packet_dir)
-            console.print(f"[green]Club review packet lagret til[/green] [bold]{packet_dir}[/bold]")
+            logger.info("Club review packet lagret til %s", packet_dir)
 
         return written
 
