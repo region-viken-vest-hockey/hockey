@@ -2195,6 +2195,76 @@ def test_publication_evidence_report_shows_active_revision_and_delta(tmp_path: P
     assert report["published_to_canonical_delta"]["summary"]["changed"] == 1
 
 
+def _retain_publication_evidence(root: Path, *, publication_id: str, canonical_revision: str) -> None:
+    """Write the retained evidence record that record_publication_seal writes after a seal."""
+
+    from tournament_scheduler.publication.baseline import projection_fingerprint
+    from tournament_scheduler.publication.evidence import (
+        build_publication_evidence,
+        write_publication_evidence,
+    )
+
+    evidence = build_publication_evidence(
+        run_id="run-1",
+        canonical_revision=canonical_revision,
+        projection_fingerprint=projection_fingerprint(_full_projection(root)),
+        bundle_fingerprint="bundle-run-1",
+        pages_branch="gh-pages",
+        pages_commit="commit-run-1",
+        published_at="2026-09-21T09:14:53+00:00",
+    )
+    write_publication_evidence(
+        season_root=root,
+        season="2026-2027",
+        publication_id=publication_id,
+        evidence=evidence,
+        previous_publication=None,
+        republish_delta=None,
+        canonical_revision=canonical_revision,
+    )
+
+
+def test_publication_evidence_report_flags_active_publication_without_retained_record(
+    tmp_path: Path,
+) -> None:
+    """A sealed publication whose evidence record is missing must be visible to the operator."""
+
+    import shutil
+
+    from tournament_scheduler.application.canonical_season.store_facade import publication_evidence_report
+    from tournament_scheduler.publication.evidence import evidence_directory
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision=_current_revision(root), run_id="run-1")
+    _retain_publication_evidence(
+        root, publication_id="2026-09-21T0908", canonical_revision=_current_revision(root)
+    )
+    shutil.rmtree(evidence_directory(root, "2026-2027", "2026-09-21T0908"))
+
+    report = publication_evidence_report("2026-2027", root=root)
+
+    assert report["evidence_gap"] == {
+        "publication_id": "2026-09-21T0908",
+        "reason": "missing_retained_evidence",
+    }
+
+
+def test_publication_evidence_report_has_no_gap_when_active_record_is_retained(tmp_path: Path) -> None:
+    from tournament_scheduler.application.canonical_season.store_facade import publication_evidence_report
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision=_current_revision(root), run_id="run-1")
+    _retain_publication_evidence(
+        root, publication_id="2026-09-21T0908", canonical_revision=_current_revision(root)
+    )
+
+    report = publication_evidence_report("2026-2027", root=root)
+
+    assert report["evidence_gap"] is None
+
+
 def test_publication_guard_refuses_sealed_state_without_a_baseline(tmp_path: Path) -> None:
     root = tmp_path / "season"
     _write_canonical(root, _tournaments_abc())

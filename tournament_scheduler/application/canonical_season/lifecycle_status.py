@@ -45,6 +45,7 @@ from tournament_scheduler.publication.evidence import (
     decision_snapshot,
     diff_decision_snapshot,
     list_publication_evidence,
+    read_publication_evidence,
 )
 
 
@@ -144,6 +145,25 @@ def verify_sealed_reconciliation(service, *, season: str) -> dict[str, Any]:
     return report
 
 
+def _retained_evidence_gap(
+    season_root: Any, season: str, baseline: Mapping[str, Any]
+) -> dict[str, str] | None:
+    """Name the active publication when its retained evidence record is missing.
+
+    A seal commits the baseline before its evidence is written, so a failed write
+    leaves a publication that looks complete in history but has no record.
+    """
+
+    publication_id = str(baseline.get("publication_id") or "")
+    try:
+        record = read_publication_evidence(season_root, season, publication_id)
+    except PublicationEvidenceError:
+        record = None
+    if record is None or record.get("publication_id") != publication_id:
+        return {"publication_id": publication_id, "reason": "missing_retained_evidence"}
+    return None
+
+
 def publication_evidence_report(service, *, season: str) -> dict[str, Any]:
     """Read-only republish evidence: what a replacement publication would change.
 
@@ -170,10 +190,12 @@ def publication_evidence_report(service, *, season: str) -> dict[str, Any]:
         "published_to_canonical_delta": None,
         "decision_changes": None,
         "retained_evidence": list_publication_evidence(season_root, season),
+        "evidence_gap": None,
     }
     baseline = active_baseline(decisions)
     if baseline is None:
         return report
+    report["evidence_gap"] = _retained_evidence_gap(season_root, season, baseline)
 
     published_projection, _attested = published_baseline_reconciliation(
         service,
