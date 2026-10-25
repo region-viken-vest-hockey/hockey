@@ -83,7 +83,7 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
     - ``policy_gate``: only metrics with ``provenance`` ``"hard_invariant"``
       (a physically impossible schedule, e.g. an arena double-booking) or
       ``"configured"`` (a threshold actually threaded through from Stage 1
-      config, e.g. ``maxHostingDeviation`` — not merely present as a code
+      config, e.g. ``max_hosting_deviation`` — not merely present as a code
       default). This is the only part of this return value the canonical
       LLM-directed decision path may treat as acceptance/control authority.
     - ``measurements``: every other metric — raw value/threshold/detail for
@@ -313,7 +313,7 @@ def build_fairness_gate(planner, plan: SeasonPlan) -> Dict[str, object]:
         severity="warn" if hosting_capacity_explained else "fail",
         detail=hosting_detail or "Aldersgruppevis fordeling av hjemmeturneringer ligger innenfor terskelen.",
         # Configured policy: max_hosting_deviation is threaded through from
-        # Stage 1 config (cfg["maxHostingDeviation"]) into the planner
+        # Stage 1 config (cfg["max_hosting_deviation"]) into the planner
         # constructor in the main pipeline, unlike max_game_count_spread.
         provenance="configured",
     )

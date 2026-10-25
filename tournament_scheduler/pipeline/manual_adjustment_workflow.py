@@ -233,7 +233,7 @@ class ManualAdjustmentWorkflow:
             roster,
             pg_config,
             club_arenas,
-            cfg.get("maxHostingDeviation", 1),
+            cfg.get("max_hosting_deviation", 1),
             round_length_config,
             ice_time_config,
             events_by_club,

@@ -237,7 +237,7 @@ def build_planning_problem(
         "rounds_per_tournament": config.get("rounds_per_tournament") or {},
         "round_length_minutes": _build_round_length(config),
         "ice_time_minutes": _build_ice_time(config),
-        "max_hosting_deviation": config.get("maxHostingDeviation", 1),
+        "max_hosting_deviation": config.get("max_hosting_deviation", 1),
         # Explicit season-wide override only; never populated by the
         # canonical workbook (see the `teams` comment above). Omitted when
         # unset instead of emitted as `null` alongside the authoritative

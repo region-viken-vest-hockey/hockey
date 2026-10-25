@@ -188,7 +188,7 @@ def compute_shared_registration_facts(
                 roster,
                 _build_parallel_games(config),
                 _build_club_arenas(config),
-                config.get("maxHostingDeviation", 1),
+                config.get("max_hosting_deviation", 1),
                 _build_round_length(config),
                 _build_ice_time(config),
                 _build_events_by_club(scraping_result),
@@ -479,7 +479,7 @@ def run(
     ice_time_config = _build_ice_time(config)
     rounds_per_tournament_config = _build_rounds_per_tournament(config)
     club_arenas = _build_club_arenas(config)
-    max_hosting_deviation = config.get("maxHostingDeviation", 1)
+    max_hosting_deviation = config.get("max_hosting_deviation", 1)
     events_by_club = _build_events_by_club(scraping_result)
     club_calendar_status = _build_club_calendar_status(scraping_result)
     club_busy_intervals = _build_club_busy_intervals(scraping_result)
