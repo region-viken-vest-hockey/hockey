@@ -15,6 +15,7 @@ Season Planner (Sesongplanlegger → Importer fra Excel).
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 from pathlib import Path
@@ -22,7 +23,6 @@ from typing import Iterable, Optional
 
 import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
-from rich.console import Console
 
 from ..models import SeasonPlan, Tournament
 from tournament_scheduler.shape.occupancy import tournament_end_time
@@ -32,7 +32,7 @@ from .spond_import import (
     project_spond_import_rows,
 )
 
-console = Console()
+logger = logging.getLogger(__name__)
 
 _SPOND_HEADERS = [
     "Dato",
@@ -105,7 +105,7 @@ class SpondExporter:
         out = Path(output_path)
         out.parent.mkdir(parents=True, exist_ok=True)
         wb.save(str(out))
-        console.print(f"[green]Spond-eksport lagret til[/green] [bold]{out}[/bold]")
+        logger.info("Spond-eksport lagret til %s", out)
         return str(out)
 
     def export_for_clubs(
@@ -178,7 +178,7 @@ class SpondExporter:
         out = Path(output_path)
         out.parent.mkdir(parents=True, exist_ok=True)
         wb.save(str(out))
-        console.print(f"[green]Spond-kampoppsett lagret til[/green] [bold]{out}[/bold]")
+        logger.info("Spond-kampoppsett lagret til %s", out)
         return str(out)
 
     def export_public_schedule_attachment(
