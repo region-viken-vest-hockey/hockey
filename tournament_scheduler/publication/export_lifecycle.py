@@ -7,6 +7,7 @@ retention never removes an operational snapshot.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 from datetime import datetime, timezone
@@ -42,6 +43,24 @@ def read_export_manifest(export_dir: str | Path) -> dict[str, Any] | None:
     return data if isinstance(data, dict) else None
 
 
+def export_content_sha256(export_dir: str | Path) -> str:
+    """Hash every artifact in an export directory (issue #682).
+
+    The manifest is excluded because it is where this value is recorded. The hash
+    covers relative paths and file bytes, so any artifact edited after review
+    changes it, even when the manifest is untouched.
+    """
+    root = Path(export_dir)
+    digest = hashlib.sha256()
+    for path in sorted(p for p in root.rglob("*") if p.is_file()):
+        relative = path.relative_to(root).as_posix()
+        if relative == EXPORT_LIFECYCLE_FILENAME:
+            continue
+        digest.update(relative.encode("utf-8") + b"\0")
+        digest.update(hashlib.sha256(path.read_bytes()).digest())
+    return digest.hexdigest()
+
+
 def write_draft_manifest(
     export_dir: str | Path,
     *,
@@ -68,6 +87,7 @@ def write_draft_manifest(
         "export_id": export_id,
         "generated_at": generated_at,
         "export_fingerprint": export_fingerprint,
+        "export_content_sha256": export_content_sha256(export_dir),
         "canonical_season": canonical_season,
         "canonical_revision": canonical_revision,
         "lifecycle_status": previous.get("lifecycle_status") if previous.get("lifecycle_status") == PUBLISHED_STATUS else DRAFT_STATUS,
@@ -120,36 +140,6 @@ def mark_export_superseded(
     manifest_path(export_dir).write_text(
         json.dumps(current, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    return current
-
-
-def assert_export_binding(
-    export_dir: str | Path,
-    *,
-    expected_export_fingerprint: str,
-    expected_canonical_revision: str,
-) -> dict[str, Any]:
-    """Refuse unless *export_dir* is the export that was reviewed (issue #682).
-
-    Publication names both the export fingerprint and the canonical revision it
-    was reviewed at. A different fingerprint or revision is a different artifact,
-    so it must never be published under the reviewed label.
-    """
-    current = read_export_manifest(export_dir)
-    if current is None:
-        raise ValueError(f"Export lifecycle manifest missing in {export_dir}")
-    actual_fp = current.get("export_fingerprint")
-    if actual_fp != expected_export_fingerprint:
-        raise ValueError(
-            "Export fingerprint mismatch: "
-            f"manifest has {actual_fp!r}, expected {expected_export_fingerprint!r}"
-        )
-    actual_revision = current.get("canonical_revision")
-    if actual_revision != expected_canonical_revision:
-        raise ValueError(
-            "Canonical revision mismatch: "
-            f"export was built at {actual_revision!r}, expected {expected_canonical_revision!r}"
-        )
     return current
 
 

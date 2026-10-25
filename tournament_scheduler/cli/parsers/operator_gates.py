@@ -151,11 +151,11 @@ def add_operator_gate_parsers(operator_sub: argparse._SubParsersAction) -> None:
         "requires --expected-fingerprint and --export-dir",
     )
     op_publish.add_argument(
-        "--expected-fingerprint",
+        "--expected-content-sha256",
         default=None,
-        metavar="FINGERPRINT",
-        help="Publish only if the export has this export fingerprint (issue #682); "
-        "requires --expected-revision and --export-dir",
+        metavar="SHA256",
+        help="Publish only if the artifacts in --export-dir hash to this value, as recorded "
+        "when the export was reviewed (issue #682); requires --expected-revision and --export-dir",
     )
     op_publish.add_argument(
         "--confirm-public",

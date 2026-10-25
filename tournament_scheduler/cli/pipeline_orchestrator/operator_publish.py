@@ -61,6 +61,9 @@ def _execute_operator_publish(args: argparse.Namespace) -> "Any | None":
         action_kwargs["export_dir"] = args.export_dir
     if getattr(args, "run_id", None):
         action_kwargs["run_id"] = args.run_id
+    if getattr(args, "expected_content_sha256", None):
+        action_kwargs["expected_export_content_sha256"] = args.expected_content_sha256
+        action_kwargs["expected_canonical_revision"] = args.expected_revision
     if getattr(args, "extra_public_files", None):
         from ...pipeline.pages_bundle import DEFAULT_ALLOWED_FILENAMES
 
@@ -127,37 +130,26 @@ def _append_publish_outcome_to_run_log(work_dir: str, state: "Any", result: "Any
         pass
 
 
-def _export_binding_refusal(args: argparse.Namespace) -> str | None:
-    """Return why publication must not proceed, or ``None`` when no binding was asked for.
+def _binding_shape_refusal(args: argparse.Namespace) -> str | None:
+    """Refuse a malformed binding request before anything runs (issue #682).
 
-    Issue #682: an operator who names the reviewed export and its revision gets a
-    hard refusal unless that exact export is still what would be published.
+    The binding itself is checked by the publish action, so preview and apply
+    share one validation path. This only rejects requests that cannot be bound.
     """
     expected_revision = getattr(args, "expected_revision", None)
-    expected_fingerprint = getattr(args, "expected_fingerprint", None)
-    if expected_revision is None and expected_fingerprint is None:
+    expected_content = getattr(args, "expected_content_sha256", None)
+    if expected_revision is None and expected_content is None:
         return None
-    if not (expected_revision and expected_fingerprint):
-        return "--expected-revision og --expected-fingerprint må oppgis sammen."
+    if not (expected_revision and expected_content):
+        return "--expected-revision og --expected-content-sha256 må oppgis sammen."
     if not getattr(args, "export_dir", None):
         return "--expected-revision krever --export-dir, slik at publiseringen er knyttet til den godkjente eksporten."
-
-    from ...publication.export_lifecycle import assert_export_binding
-
-    try:
-        assert_export_binding(
-            args.export_dir,
-            expected_export_fingerprint=expected_fingerprint,
-            expected_canonical_revision=expected_revision,
-        )
-    except ValueError as exc:
-        return f"Publisering avbrutt: {exc}"
     return None
 
 
 def _cmd_operator_publish(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt operator publish`` — publish the exported plan to GitHub Pages (issue #17)."""
-    refusal = _export_binding_refusal(args)
+    refusal = _binding_shape_refusal(args)
     if refusal is not None:
         _console.print(f"[red]✗[/red] {refusal}")
         return 1

@@ -507,6 +507,37 @@ def _emit_publication_trace(
         pass
 
 
+def _export_binding_refusal(
+    *,
+    export_dir: str | None,
+    expected_export_content_sha256: str | None,
+    expected_canonical_revision: str | None,
+) -> str | None:
+    """Return why the requested export is not the reviewed one, or ``None`` (issue #682).
+
+    Runs first in the publish action, so the CLI preview and the apply share the
+    same check. Without expectations the publish path is unchanged.
+    """
+    if expected_export_content_sha256 is None and expected_canonical_revision is None:
+        return None
+    if not (expected_export_content_sha256 and expected_canonical_revision):
+        return "Publisering avbrutt: forventet innhold og revisjon må oppgis sammen."
+    if not export_dir:
+        return "Publisering avbrutt: forventet eksport krever en eksplisitt eksportmappe."
+
+    from .export_binding import assert_export_binding
+
+    try:
+        assert_export_binding(
+            export_dir,
+            expected_export_content_sha256=expected_export_content_sha256,
+            expected_canonical_revision=expected_canonical_revision,
+        )
+    except ValueError as exc:
+        return f"Publisering avbrutt: {exc}"
+    return None
+
+
 def _execute_publish_pages(
     *,
     work_dir: str,
@@ -526,6 +557,8 @@ def _execute_publish_pages(
     verify_retry_delay_seconds: float | None = None,
     fetch: "Callable[[str], Any] | None" = None,
     sleep: "Callable[[float], None] | None" = None,
+    expected_export_content_sha256: str | None = None,
+    expected_canonical_revision: str | None = None,
 ) -> "CapabilityResult":
     """Publish the current export to GitHub Pages (issues #17/#18/#19/#20).
 
@@ -562,6 +595,16 @@ def _execute_publish_pages(
     always skipped when ``push=False`` — there is no public URL to check
     against local-only commits.
     """
+    binding_refusal = _export_binding_refusal(
+        export_dir=export_dir,
+        expected_export_content_sha256=expected_export_content_sha256,
+        expected_canonical_revision=expected_canonical_revision,
+    )
+    if binding_refusal is not None:
+        from .capability_result import CapabilityResult
+
+        return CapabilityResult.failed(binding_refusal, capability="pages_publish")
+
     from pathlib import Path
 
     from . import pages_bundle, pages_publish, pages_verify
