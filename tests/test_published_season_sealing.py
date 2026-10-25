@@ -2306,6 +2306,29 @@ def test_publication_evidence_command_prints_and_serialises_the_gap(tmp_path: Pa
     assert payload["evidence_gap"]["publication_id"] == "2026-09-21T0908"
 
 
+def test_publication_evidence_command_distinguishes_invalid_from_missing_evidence(
+    tmp_path: Path, capsys
+) -> None:
+    import argparse
+
+    from tournament_scheduler.cli.season_lifecycle_command import _cmd_season_publication_evidence
+    from tournament_scheduler.publication.evidence import PUBLICATION_EVIDENCE_JSON, evidence_directory
+
+    root = tmp_path / "season"
+    _write_canonical(root, _tournaments_abc())
+    _seal_full(root, publication_id="2026-09-21T0908", canonical_revision=_current_revision(root), run_id="run-1")
+    _retain_publication_evidence(root, publication_id="2026-09-21T0908")
+    (evidence_directory(root, "2026-2027", "2026-09-21T0908") / PUBLICATION_EVIDENCE_JSON).write_text(
+        "{not json", encoding="utf-8"
+    )
+
+    _cmd_season_publication_evidence(argparse.Namespace(season="2026-2027", root=root, json=False))
+
+    out = capsys.readouterr().out
+    assert "lagret evidens er ugyldig for aktiv publisering 2026-09-21T0908" in out
+    assert "mangler lagret evidens" not in out
+
+
 def test_publication_evidence_report_has_no_gap_when_active_record_is_retained(tmp_path: Path) -> None:
     from tournament_scheduler.application.canonical_season.store_facade import publication_evidence_report
 
