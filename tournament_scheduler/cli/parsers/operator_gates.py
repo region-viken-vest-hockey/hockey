@@ -144,6 +144,20 @@ def add_operator_gate_parsers(operator_sub: argparse._SubParsersAction) -> None:
         "publication (issue #18); repeatable",
     )
     op_publish.add_argument(
+        "--expected-revision",
+        default=None,
+        metavar="REVISION",
+        help="Publish only if the export was built at this canonical revision (issue #682); "
+        "requires --expected-content-sha256 and --export-dir",
+    )
+    op_publish.add_argument(
+        "--expected-content-sha256",
+        default=None,
+        metavar="SHA256",
+        help="Publish only if the artifacts in --export-dir hash to this value, as recorded "
+        "when the export was reviewed (issue #682); requires --expected-revision and --export-dir",
+    )
+    op_publish.add_argument(
         "--confirm-public",
         action="store_true",
         help="Explicitly authorize publishing this exact bundle to this exact target right now "

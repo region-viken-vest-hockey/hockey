@@ -61,6 +61,9 @@ def _execute_operator_publish(args: argparse.Namespace) -> "Any | None":
         action_kwargs["export_dir"] = args.export_dir
     if getattr(args, "run_id", None):
         action_kwargs["run_id"] = args.run_id
+    if getattr(args, "expected_content_sha256", None):
+        action_kwargs["expected_export_content_sha256"] = args.expected_content_sha256
+        action_kwargs["expected_canonical_revision"] = args.expected_revision
     if getattr(args, "extra_public_files", None):
         from ...pipeline.pages_bundle import DEFAULT_ALLOWED_FILENAMES
 
@@ -127,8 +130,29 @@ def _append_publish_outcome_to_run_log(work_dir: str, state: "Any", result: "Any
         pass
 
 
+def _binding_shape_refusal(args: argparse.Namespace) -> str | None:
+    """Refuse a malformed binding request before anything runs (issue #682).
+
+    The binding itself is checked by the publish action, so preview and apply
+    share one validation path. This only rejects requests that cannot be bound.
+    """
+    expected_revision = getattr(args, "expected_revision", None)
+    expected_content = getattr(args, "expected_content_sha256", None)
+    if expected_revision is None and expected_content is None:
+        return None
+    if not (expected_revision and expected_content):
+        return "--expected-revision og --expected-content-sha256 må oppgis sammen."
+    if not getattr(args, "export_dir", None):
+        return "--expected-revision krever --export-dir, slik at publiseringen er knyttet til den godkjente eksporten."
+    return None
+
+
 def _cmd_operator_publish(args: argparse.Namespace) -> int:
     """Handle ``rvv-miniputt operator publish`` — publish the exported plan to GitHub Pages (issue #17)."""
+    refusal = _binding_shape_refusal(args)
+    if refusal is not None:
+        _console.print(f"[red]✗[/red] {refusal}")
+        return 1
     result = _execute_operator_publish(args)
     if result is None:
         return 1
