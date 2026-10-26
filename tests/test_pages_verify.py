@@ -29,12 +29,13 @@ def _history_page(
     fingerprint: str = FINGERPRINT,
     published_at: str = PUBLISHED_AT,
     season_run: str | None = None,
+    season_scope: str = "season",
 ) -> FetchResponse:
     rows = "".join(
         f'<tr data-run-id="{run}" data-fingerprint="{fingerprint if run == current_run_id else "older"}" '
         f'data-published-at="{published_at if run == current_run_id else "older"}" '
         f'data-current="{"true" if run == current_run_id else "false"}"'
-        f'{" data-season-current=\"true\"" if run == season_run else ""}>'
+        f'{f" data-scope=\"{season_scope}\" data-season-current=\"true\"" if run == season_run else ""}>'
         f'<td><a href="../runs/{run}/">Vis snapshot</a></td></tr>'
         for run in links
     )
@@ -340,3 +341,14 @@ def test_verification_fails_when_the_history_marks_another_season():
 
     assert result.status != "ok", result.summary
     assert any("sesong" in problem.lower() for problem in result.problems), result.problems
+
+
+def test_verification_fails_when_the_season_marker_sits_on_a_non_season_row():
+    result = verify_publication(
+        latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+        published_at=PUBLISHED_AT, max_attempts=1,
+        fetch=_pointer_fetch(SEASON_1, history=_history_page(season_run="run-1", season_scope="activities")),
+        sleep=_NoSleep(), check_season_pointer=True, expected_season_pointer=SEASON_1,
+    )
+
+    assert result.status != "ok", result.summary

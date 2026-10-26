@@ -127,3 +127,24 @@ def test_history_reports_a_legacy_entry_as_unclassified_instead_of_guessing_its_
     assert 'data-scope=""' in legacy_row
     assert "data-season-current" not in legacy_row
     assert "Uklassifisert" in legacy_row
+
+
+def test_a_run_id_published_under_another_scope_is_refused(tmp_path):
+    origin, work = _fixture(tmp_path)
+    season_stage = _stage(tmp_path, origin, "season")
+    assert _publish_season(tmp_path, work, season_stage, "season-1", "fp-season-1").status in ("ok", "warning")
+    activity_stage = _stage(tmp_path, origin, "activity")
+
+    result = pages_publish.publish(
+        export_dir=str(activity_stage),
+        run_id="season-1",
+        repo_dir=str(work),
+        branch="gh-pages",
+        remote="origin",
+        push=True,
+        publication_scope="activities",
+    )
+
+    assert result.status == "failed", result.summary
+    assert "season-1" in _show(origin, "history/index.html")
+    assert _season_marked(origin) == ["season-1"]

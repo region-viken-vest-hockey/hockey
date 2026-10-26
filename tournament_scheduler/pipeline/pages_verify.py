@@ -151,12 +151,18 @@ def _check_history_page(
         )
     if check_season:
         # The season marker must name the season the pointer names: none when there is no season.
-        marked = re.findall(r'data-run-id="([^"]+)"[^>]*data-season-current="true"', response.text)
+        # A marked row must also be a season publication: a run id alone does not prove the scope.
+        marked_rows = re.findall(r"<tr [^>]*data-season-current=\"true\"[^>]*>", response.text)
+        marked = [
+            (run.group(1) if (run := re.search(r'data-run-id="([^"]+)"', row)) else "",
+             scope.group(1) if (scope := re.search(r'data-scope="([^"]*)"', row)) else "")
+            for row in marked_rows
+        ]
         expected = [season_run_id] if season_run_id else []
-        if marked != expected:
+        if [run for run, _ in marked] != expected or any(scope != "season" for _, scope in marked):
             return (
                 f"historikksiden {history_url} markerer sesongen {marked!r}, "
-                f"men sesongpekeren er {expected!r}"
+                f"men sesongpekeren er {expected!r} og markeringen må ligge på en sesongpublisering"
             )
     return _check_linked_pages(history_url, fetch)
 
