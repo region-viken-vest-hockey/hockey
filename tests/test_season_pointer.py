@@ -216,3 +216,50 @@ def test_activity_publish_never_rewinds_the_live_season_pointer(tmp_path):
 
     assert result.status in ("ok", "warning"), result.summary
     assert json.loads(_show(origin, SEASON_POINTER)) == {"run_id": "season-2", "bundle_fingerprint": "fp-season-2"}
+
+
+def test_activity_rollback_keeps_the_season_pointer(tmp_path):
+    origin, work = _fixture(tmp_path)
+    season_stage = _stage(tmp_path, origin, "season")
+    assert _publish_season(tmp_path, work, season_stage, "season-1", "fp-season-1").status in ("ok", "warning")
+    assert _publish(tmp_path, work, _stage(tmp_path, origin, "activity")).status in ("ok", "warning")
+    pointer_before = _show(origin, SEASON_POINTER)
+    assert pointer_before is not None
+
+    result = pages_publish.rollback_to_run(
+        run_id="activities-test", repo_dir=str(work), branch="gh-pages", remote="origin", push=True
+    )
+
+    assert result.status in ("ok", "warning"), result.summary
+    assert _show(origin, SEASON_POINTER) == pointer_before
+
+
+def test_activity_publish_is_not_verified_when_the_served_season_pointer_moved(tmp_path):
+    from tests.test_activity_publication_scope import _as_github_remote, _served_from
+    from tournament_scheduler.pipeline.pages_verify import FetchResponse
+
+    origin, work = _fixture(tmp_path)
+    assert _publish_season(tmp_path, work, _stage(tmp_path, origin, "season"), "season-1", "fp-season-1").status in (
+        "ok",
+        "warning",
+    )
+    _as_github_remote(origin, work)
+    served = _served_from(origin)
+
+    def fetch(url):
+        if url.endswith("/latest/_season_meta.json"):
+            return FetchResponse(status_code=200, text=json.dumps({"run_id": "season-2", "bundle_fingerprint": "fp-x"}))
+        return served(url)
+
+    result = _publish(
+        tmp_path,
+        work,
+        _stage(tmp_path, origin, "activity"),
+        verify=True,
+        fetch=fetch,
+        sleep=lambda seconds: None,
+        verify_max_attempts=1,
+    )
+
+    assert result.status != "ok", result.summary
+    assert "verify_status=ok" not in result.evidence

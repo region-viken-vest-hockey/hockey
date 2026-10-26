@@ -18,6 +18,7 @@ for the ``activities`` publication scope.
 from __future__ import annotations
 
 import hashlib
+import json
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -174,6 +175,7 @@ def execute_activity_publish(
                 capability="pages_publish",
             )
     base_rev = _rev(repo_dir, ref)
+    season_before = _season_pointer_at(repo_dir, base_rev)
     try:
         base = live_files(repo_dir, ref)
         problems = integrity_problems(export_dir, base, expected_export_content_sha256)
@@ -239,6 +241,8 @@ def execute_activity_publish(
                 bundle_fingerprint=digest,
                 run_id=run_id or "activities",
                 published_at=published_at,
+                check_season_pointer=True,
+                expected_season_pointer=season_before,
                 **verify_kwargs,
             )
             result.evidence = list(result.evidence) + [f"verify_status={verified.status}"] + list(verified.evidence)
@@ -251,3 +255,28 @@ def execute_activity_publish(
 def _rev(repo_dir: str | Path, ref: str) -> str:
     proc = subprocess.run(["git", "rev-parse", ref], cwd=repo_dir, capture_output=True, text=True, check=False)
     return proc.stdout.strip()
+
+
+def _season_pointer_at(repo_dir: str | Path, rev: str) -> dict | None:
+    """The season identity at *rev*, or ``None`` when the pointer is absent.
+
+    Verification expects the pointer unchanged by an activity publish, so the value is read
+    before the publish. A malformed pointer is returned as ``None``; verification then fails
+    on the served bytes rather than trusting this read.
+    """
+    if not rev:
+        return None
+    proc = subprocess.run(
+        ["git", "show", f"{rev}:latest/_season_meta.json"],
+        cwd=repo_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        return None
+    try:
+        pointer = json.loads(proc.stdout)
+    except ValueError:
+        return None
+    return pointer if isinstance(pointer, dict) else None

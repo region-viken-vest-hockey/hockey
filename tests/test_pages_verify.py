@@ -252,3 +252,62 @@ class TestTimeout:
         assert result.requires_human is False
         assert "attempts=4" in result.evidence
         assert len(sleep.calls) == 3  # slept between attempts, not after the last one
+
+
+SEASON_POINTER_URL = LATEST_URL + "_season_meta.json"
+SEASON_1 = {"run_id": "season-1", "bundle_fingerprint": "fp-season-1"}
+
+
+def _pointer_fetch(served: dict | None):
+    """Serve the season pointer as *served* (None = absent), everything else as a good publication."""
+    base = _served_fetch()
+
+    def fetch(url):
+        if url == SEASON_POINTER_URL:
+            if served is None:
+                return FetchResponse(status_code=404, text="")
+            return FetchResponse(status_code=200, text=json.dumps(served))
+        return base(url)
+
+    return fetch
+
+
+def test_verification_passes_when_the_season_pointer_is_unchanged():
+    result = verify_publication(
+        latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+        published_at=PUBLISHED_AT, max_attempts=1, fetch=_pointer_fetch(SEASON_1), sleep=_NoSleep(),
+        check_season_pointer=True, expected_season_pointer=SEASON_1,
+    )
+
+    assert result.status == "ok", result.summary
+
+
+def test_verification_fails_when_the_season_pointer_moved():
+    result = verify_publication(
+        latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+        published_at=PUBLISHED_AT, max_attempts=2, fetch=_pointer_fetch({"run_id": "season-2", "bundle_fingerprint": "fp-season-2"}),
+        sleep=_NoSleep(), check_season_pointer=True, expected_season_pointer=SEASON_1,
+    )
+
+    assert result.status != "ok", result.summary
+    assert any("sesong" in problem.lower() for problem in result.problems), result.problems
+
+
+def test_verification_fails_when_an_absent_season_pointer_appears():
+    result = verify_publication(
+        latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+        published_at=PUBLISHED_AT, max_attempts=1, fetch=_pointer_fetch(SEASON_1), sleep=_NoSleep(),
+        check_season_pointer=True, expected_season_pointer=None,
+    )
+
+    assert result.status != "ok", result.summary
+
+
+def test_verification_does_not_check_the_season_pointer_unless_asked():
+    result = verify_publication(
+        latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+        published_at=PUBLISHED_AT, max_attempts=1, fetch=_pointer_fetch({"run_id": "other", "bundle_fingerprint": "x"}),
+        sleep=_NoSleep(),
+    )
+
+    assert result.status == "ok", result.summary
