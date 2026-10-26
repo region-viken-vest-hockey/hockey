@@ -32,6 +32,7 @@ from tournament_scheduler.booking.calendar_bookings import (
 
 AUDIT_CONFIRMED_MATCHING = "confirmed_matching"
 AUDIT_ACCEPTED_UNCHECKABLE = "accepted_uncheckable"
+AUDIT_ACCEPTED_IDENTITY_REVIEW = "accepted_identity_review"
 AUDIT_MATERIAL_MISMATCH = "material_mismatch"
 AUDIT_UNCONFIRMED_AMBIGUOUS = "unconfirmed_ambiguous"
 AUDIT_NO_CALENDAR_COVERAGE = "no_calendar_coverage"
@@ -41,6 +42,7 @@ AUDIT_CANCELLED_HISTORICAL = "cancelled_historical"
 AUDIT_BUCKETS = (
     AUDIT_CONFIRMED_MATCHING,
     AUDIT_ACCEPTED_UNCHECKABLE,
+    AUDIT_ACCEPTED_IDENTITY_REVIEW,
     AUDIT_MATERIAL_MISMATCH,
     AUDIT_UNCONFIRMED_AMBIGUOUS,
     AUDIT_NO_CALENDAR_COVERAGE,
@@ -53,6 +55,7 @@ AUDIT_BUCKETS = (
 AUDIT_SEVERITY = {
     AUDIT_CONFIRMED_MATCHING: "none",
     AUDIT_ACCEPTED_UNCHECKABLE: "advisory",
+    AUDIT_ACCEPTED_IDENTITY_REVIEW: "review_required",
     AUDIT_MATERIAL_MISMATCH: "action_required",
     AUDIT_UNCONFIRMED_AMBIGUOUS: "review_required",
     AUDIT_NO_CALENDAR_COVERAGE: "advisory",
@@ -81,6 +84,11 @@ def _classify(row: Mapping[str, Any]) -> str:
             return AUDIT_MATERIAL_MISMATCH
         if comparison_status == "matches":
             return AUDIT_CONFIRMED_MATCHING
+        if comparison_status == "no_observed_interval" and row.get("calendar_source_checkable") is True:
+            # The calendar could show this tournament and found no matching
+            # event: the booking identity is lost or reassigned. The accepted
+            # booking keeps its authority; the identity gap is review work.
+            return AUDIT_ACCEPTED_IDENTITY_REVIEW
         return AUDIT_ACCEPTED_UNCHECKABLE
     if row.get("conflict"):
         return AUDIT_MATERIAL_MISMATCH
