@@ -172,3 +172,25 @@ def test_the_same_bundle_cannot_be_published_under_a_second_scope(tmp_path):
     assert subprocess.run(
         ["git", "rev-parse", "refs/heads/gh-pages"], cwd=origin, capture_output=True, text=True, check=True
     ).stdout == head_before
+
+
+def test_a_legacy_run_cannot_be_republished_under_a_scope(tmp_path):
+    origin, work = _fixture(tmp_path)
+    _add_legacy_run(tmp_path, origin, "legacy-1")
+    bundle = tmp_path / "legacy-bundle"
+    bundle.mkdir()
+    (bundle / "index.html").write_text("legacy", encoding="utf-8")
+    head_before = subprocess.run(
+        ["git", "rev-parse", "refs/heads/gh-pages"], cwd=origin, capture_output=True, text=True, check=True
+    ).stdout
+
+    result = pages_publish.publish(
+        export_dir=str(bundle), run_id="legacy-1", repo_dir=str(work), branch="gh-pages", remote="origin",
+        push=True, publication_scope="season",
+    )
+
+    assert result.status == "failed", result.summary
+    assert _show(origin, SEASON_POINTER) is None
+    assert subprocess.run(
+        ["git", "rev-parse", "refs/heads/gh-pages"], cwd=origin, capture_output=True, text=True, check=True
+    ).stdout == head_before

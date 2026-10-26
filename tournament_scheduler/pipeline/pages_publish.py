@@ -534,10 +534,10 @@ def publish(
             )
         else:
             # A run id keeps the scope it was first published under, even when its bytes are identical.
-            recorded = publish_scopes(_git, str(branch_root), run_id) - {""}
+            recorded = publish_scopes(_git, str(branch_root), run_id)
             if recorded and recorded != {publication_scope}:
                 return CapabilityResult.failed(
-                    f"Kjøring {run_id} er allerede publisert i scope {sorted(recorded)[0]!r}. "
+                    f"Kjøring {run_id} er allerede publisert i scope {sorted(recorded)[0] or 'uklassifisert'!r}. "
                     "Den kan ikke publiseres i et annet scope; bruk en ny run-id.",
                     capability="pages_publish",
                 )
