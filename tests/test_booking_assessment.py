@@ -1025,6 +1025,7 @@ def test_host_club_view_lists_an_event_claimed_by_several_tournaments(tmp_path):
 
 
 HOST_CLUB_JSON_KEYS = {
+    "calendar_audit",
     "canonical_state_revision",
     "cancelled_tournaments",
     "club_booking_sources",

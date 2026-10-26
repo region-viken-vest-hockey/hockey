@@ -13,6 +13,7 @@ BOOKING_MODULES = {
     "arena_conflicts",
     "assessment_candidates",
     "assessment_export",
+    "calendar_audit",
     "calendar_availability",
     "calendar_bookings",
     "candidate_weekend_availability",

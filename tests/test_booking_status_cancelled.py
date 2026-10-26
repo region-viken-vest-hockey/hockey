@@ -96,3 +96,53 @@ def test_cancelled_tournament_does_not_create_club_source_overlap():
     assert [item["tournament_id"] for item in entry["tournaments"]] == ["rvv-0004"]
     assert entry["overlapping_source_intervals"] == []
     assert entry["requires_operator_review"] is False
+
+
+def test_calendar_audit_totals_match_active_rows_and_exclude_cancelled(tmp_path):
+    """The audit contract attached to the projection agrees with its active rows (#842)."""
+
+    active = _tournament("t1", date_str="2026-09-12", host="A")
+    cancelled = _tournament("t2", date_str="2026-09-19", host="A")
+    cancelled["cancelled"] = True
+    cancelled["cancellation_reason"] = "team_retirement"
+
+    root = _promote(tmp_path, [active, cancelled])
+    report = booking_status_report(season="2026-2027", root=root, problem=_host_a_problem([]))
+
+    audit = report["calendar_audit"]
+    assert audit["active_total"] == len(report["tournaments"]) == 1
+    assert sum(count for name, count in audit["counts"].items() if name != "cancelled_historical") == audit["active_total"]
+    assert audit["buckets"]["cancelled_historical"] == ["t2"]
+    assert audit["counts"]["cancelled_historical"] == len(report["cancelled_tournaments"]) == 1
+
+
+def test_cancelled_tournament_association_is_not_a_stale_finding():
+    """Findings and booking-status must agree that cancelled history is not active (#842)."""
+
+    from tournament_scheduler.booking.calendar_bookings import (
+        CALENDAR_BOOKING_ASSOCIATIONS_KEY,
+        association_findings,
+    )
+
+    association = {
+        "status": "active",
+        "tournament_facts": {},
+        "tournament_interval": {},
+    }
+    decisions = {
+        CALENDAR_BOOKING_ASSOCIATIONS_KEY: [
+            {**association, "id": "calendar_booking:gone-a:t-cancelled", "event_fingerprint": "gone-a", "tournament_id": "t-cancelled"},
+            {**association, "id": "calendar_booking:gone-b:t-active", "event_fingerprint": "gone-b", "tournament_id": "t-active"},
+        ]
+    }
+    plan = {
+        "tournaments": [
+            {"id": "t-cancelled", "host_club": "A", "date": "2026-10-10", "start_time": "13:00", "age_group": "U12", "cancelled": True},
+            {"id": "t-active", "host_club": "A", "date": "2026-10-10", "start_time": "14:00", "age_group": "U12"},
+        ]
+    }
+
+    findings = association_findings(problem={"ice_time_minutes": {"U12": 60}}, plan=plan, decisions=decisions)
+
+    stale = [finding for finding in findings if finding["code"] == "stale_calendar_booking_association"]
+    assert [finding["tournament_id"] for finding in stale] == ["t-active"]
