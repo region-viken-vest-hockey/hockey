@@ -71,11 +71,11 @@ def assessment_provenance_fields(assessment_row: Mapping[str, Any] | None) -> di
         }
     if classification == ASSESSMENT_PRESUMED_UNSCHEDULED:
         fields["negative_evidence"] = assessment_row.get("negative_evidence")
-    if "calendar_source_checkable" in assessment_row:
-        # Advisory only: whether the independent calendar could show this
-        # tournament at all. It separates "no event on a readable calendar"
-        # from "calendar unreadable" without changing any booking authority.
-        fields["calendar_source_checkable"] = bool(assessment_row.get("calendar_source_checkable"))
+    if "calendar_covers_window" in assessment_row:
+        # Advisory only: whether the calendar fully covers this tournament's
+        # window. It separates "no event on a complete calendar" from "readable
+        # but partial or unreadable", without changing any booking authority.
+        fields["calendar_covers_window"] = bool(assessment_row.get("calendar_covers_window"))
     return fields
 
 

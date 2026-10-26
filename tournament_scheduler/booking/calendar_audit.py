@@ -84,7 +84,7 @@ def _classify(row: Mapping[str, Any]) -> str:
             return AUDIT_MATERIAL_MISMATCH
         if comparison_status == "matches":
             return AUDIT_CONFIRMED_MATCHING
-        if comparison_status == "no_observed_interval" and row.get("calendar_source_checkable") is True:
+        if comparison_status == "no_observed_interval" and row.get("calendar_covers_window") is True:
             # The calendar could show this tournament and found no matching
             # event: the booking identity is lost or reassigned. The accepted
             # booking keeps its authority; the identity gap is review work.

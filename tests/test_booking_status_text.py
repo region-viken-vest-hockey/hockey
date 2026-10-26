@@ -78,7 +78,7 @@ def test_identity_review_bucket_is_rendered_with_its_count():
             "conflict": False,
             "follow_up_reasons": [],
             "interval_comparison": {"status": "no_observed_interval"},
-            "calendar_source_checkable": True,
+            "calendar_covers_window": True,
         }
     ]
 

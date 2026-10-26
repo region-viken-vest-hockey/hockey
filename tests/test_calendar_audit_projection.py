@@ -108,10 +108,10 @@ def test_moved_booked_interval_is_a_material_mismatch_from_the_projection(tmp_pa
 
 
 def test_accepted_booking_with_no_event_on_checkable_calendar_is_flagged_for_review(tmp_path):
-    """Lost identity on a readable, complete calendar is review work; authority is kept (#842)."""
+    """Lost identity on a complete calendar is review work; authority is kept (#842)."""
 
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
-    problem = _problem([], complete=True)
+    problem = _problem([_event("2026-09-20", "18:00", "19:00", title="Other league")], complete=True)
     set_manual_booking_assertion(
         season="2026-2027",
         root=root,
@@ -193,3 +193,23 @@ def test_partial_feed_keeps_accepted_booking_booked_and_uncheckable(tmp_path):
     assert _bucket_of(report, "t1") == "accepted_uncheckable"
     assert row["operational_state"] == "booked"
     assert row["operational_lock"] is True
+
+
+def test_readable_but_partial_calendar_is_uncheckable_not_identity_loss(tmp_path):
+    """A readable feed with incomplete coverage cannot show that an accepted identity is lost (#842)."""
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="booker",
+        reference="email:partial",
+        problem=_problem([], complete=True),
+    )
+    partial = _problem([_event("2026-09-20", "18:00", "19:00", title="Other league")], integrity="partial")
+
+    report = booking_status_report(season="2026-2027", root=root, problem=partial)
+
+    assert _bucket_of(report, "t1") == "accepted_uncheckable"
