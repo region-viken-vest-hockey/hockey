@@ -83,6 +83,34 @@ def _check_linked_pages(base_url: str, fetch: FetchFunc) -> str | None:
     return None
 
 
+def _check_season_pointer(latest_url: str, expected: dict | None, fetch: FetchFunc) -> str | None:
+    """Confirm the served ``_season_meta.json`` is *expected*. ``None`` expects it absent.
+
+    An activity publish must leave the season identity exactly as it was before the publish.
+    A pointer that moved, appeared or disappeared leaves the publication unverified; the caller
+    sees it as a non-ok verification with this detail in ``problems``.
+    """
+    pointer_url = latest_url.rstrip("/") + "/_season_meta.json"
+    response = fetch(pointer_url)
+    if response.error:
+        return f"tilkoblingsfeil mot sesongpekeren {pointer_url}: {response.error}"
+    if response.status_code == 404:
+        found = None
+    elif response.status_code != 200:
+        return f"sesongpekeren {pointer_url} svarte HTTP {response.status_code}"
+    else:
+        try:
+            found = json.loads(response.text)
+        except json.JSONDecodeError:
+            return f"sesongpekeren {pointer_url} inneholdt ikke gyldig JSON"
+    if found != expected:
+        return (
+            f"sesongpekeren endret seg: funnet {found!r}, forventet {expected!r} — "
+            "en aktivitetspublisering skal ikke flytte sesongidentiteten"
+        )
+    return None
+
+
 def _history_url(latest_url: str) -> str:
     """``https://<site>/<repo>/latest/`` -> ``https://<site>/<repo>/history/``."""
     base = latest_url.rstrip("/").removesuffix("/latest")
@@ -128,6 +156,8 @@ def verify_publication(
     retry_delay_seconds: float = DEFAULT_RETRY_DELAY_SECONDS,
     fetch: FetchFunc | None = None,
     sleep: SleepFunc | None = None,
+    check_season_pointer: bool = False,
+    expected_season_pointer: dict | None = None,
 ) -> CapabilityResult:
     """Poll *latest_url* until the just-published content is verifiably reachable.
 
@@ -172,7 +202,12 @@ def verify_publication(
                 elif found_run_id != run_id:
                     last_detail = f"funnet run_id {found_run_id!r} != forventet {run_id!r}"
                 else:
-                    page_failure = _check_linked_pages(latest_url, fetch) or _check_history_page(
+                    season_failure = (
+                        _check_season_pointer(latest_url, expected_season_pointer, fetch)
+                        if check_season_pointer
+                        else None
+                    )
+                    page_failure = season_failure or _check_linked_pages(latest_url, fetch) or _check_history_page(
                         _history_url(latest_url), run_id, bundle_fingerprint, published_at, fetch
                     )
                     if page_failure is None:

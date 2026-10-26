@@ -18,6 +18,7 @@ for the ``activities`` publication scope.
 from __future__ import annotations
 
 import hashlib
+import json
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -175,6 +176,7 @@ def execute_activity_publish(
             )
     base_rev = _rev(repo_dir, ref)
     try:
+        season_before = _season_pointer_at(repo_dir, base_rev)
         base = live_files(repo_dir, ref)
         problems = integrity_problems(export_dir, base, expected_export_content_sha256)
     except (ActivityScopeError, OSError, UnicodeDecodeError) as exc:
@@ -239,9 +241,12 @@ def execute_activity_publish(
                 bundle_fingerprint=digest,
                 run_id=run_id or "activities",
                 published_at=published_at,
+                check_season_pointer=True,
+                expected_season_pointer=season_before,
                 **verify_kwargs,
             )
             result.evidence = list(result.evidence) + [f"verify_status={verified.status}"] + list(verified.evidence)
+            result.problems = list(result.problems) + list(verified.problems)
             if verified.status != "ok":
                 result.status = verified.status
                 result.summary = f"{result.summary} {verified.summary}"
@@ -251,3 +256,42 @@ def execute_activity_publish(
 def _rev(repo_dir: str | Path, ref: str) -> str:
     proc = subprocess.run(["git", "rev-parse", ref], cwd=repo_dir, capture_output=True, text=True, check=False)
     return proc.stdout.strip()
+
+
+def _season_pointer_at(repo_dir: str | Path, rev: str) -> dict | None:
+    """The season identity at *rev*: the pointer object, or ``None`` when it is confirmed absent.
+
+    Verification expects the pointer unchanged by an activity publish, so the value is read
+    before the publish. Absence is only reported when git lists the tree and the path is not in
+    it. Any other outcome (no resolved revision, a failed git call, unreadable or malformed
+    content) raises :class:`ActivityScopeError` and blocks the publish.
+    """
+    if not rev:
+        raise ActivityScopeError("kunne ikke finne gjeldende gh-pages-revisjon for sesongpekeren")
+    listing = subprocess.run(
+        ["git", "ls-tree", rev, "--", "latest/_season_meta.json"],
+        cwd=repo_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if listing.returncode != 0:
+        raise ActivityScopeError(f"kunne ikke lese {rev[:12]}: {listing.stderr.strip()}")
+    if not listing.stdout.strip():
+        return None
+    proc = subprocess.run(
+        ["git", "show", f"{rev}:latest/_season_meta.json"],
+        cwd=repo_dir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        raise ActivityScopeError(f"kunne ikke lese sesongpekeren: {proc.stderr.strip()}")
+    try:
+        pointer = json.loads(proc.stdout)
+    except ValueError as exc:
+        raise ActivityScopeError(f"sesongpekeren på {rev[:12]} er ikke gyldig JSON: {exc}") from exc
+    if not isinstance(pointer, dict):
+        raise ActivityScopeError(f"sesongpekeren på {rev[:12]} er ikke et JSON-objekt")
+    return pointer

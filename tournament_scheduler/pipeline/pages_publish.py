@@ -697,10 +697,11 @@ def rollback_to_run(
             )
 
         latest_dir = Path(tmp_dir) / "latest"
+        # Run snapshots carry no season pointer, so a rollback must keep the live one.
         _copy_bundle(
             run_dir,
             latest_dir,
-            preserve_existing=_PRESERVED_LATEST_PATHS,
+            preserve_existing=_PRESERVED_LATEST_PATHS + (SEASON_POINTER_NAME,),
         )
         _git(["add", "-A"], cwd=tmp_dir)
         status_proc = _git(["status", "--porcelain"], cwd=tmp_dir)
