@@ -263,3 +263,47 @@ def test_activity_publish_is_not_verified_when_the_served_season_pointer_moved(t
 
     assert result.status != "ok", result.summary
     assert "verify_status=ok" not in result.evidence
+
+
+def test_activity_publish_blocks_when_the_base_season_pointer_is_malformed(tmp_path):
+    from tests.test_activity_publication_scope import _git, _origin_head
+
+    origin, work = _fixture(tmp_path)
+    corrupt = tmp_path / "corrupt"
+    subprocess.run(["git", "clone", "-q", "--branch", "gh-pages", str(origin), str(corrupt)], check=True)
+    (corrupt / "latest" / "_season_meta.json").write_text("not json", encoding="utf-8")
+    _git(corrupt, "add", "latest/_season_meta.json")
+    _git(corrupt, "commit", "-q", "-m", "corrupt season pointer")
+    _git(corrupt, "push", "-q", "origin", "gh-pages")
+    before = _origin_head(origin)
+
+    result = _publish(tmp_path, work, _stage(tmp_path, origin, "activity"), verify=True, verify_max_attempts=1, sleep=lambda s: None)
+
+    assert result.status == "failed", result.summary
+    assert _origin_head(origin) == before, "nothing may be published over an unreadable season pointer"
+
+
+def test_activity_publish_reports_the_pointer_mismatch_in_its_problems(tmp_path):
+    from tests.test_activity_publication_scope import _as_github_remote, _served_from
+    from tournament_scheduler.pipeline.pages_verify import FetchResponse
+
+    origin, work = _fixture(tmp_path)
+    assert _publish_season(tmp_path, work, _stage(tmp_path, origin, "season"), "season-1", "fp-season-1").status in (
+        "ok",
+        "warning",
+    )
+    _as_github_remote(origin, work)
+    served = _served_from(origin)
+
+    def fetch(url):
+        if url.endswith("/latest/_season_meta.json"):
+            return FetchResponse(status_code=200, text=json.dumps({"run_id": "season-2", "bundle_fingerprint": "fp-x"}))
+        return served(url)
+
+    result = _publish(
+        tmp_path, work, _stage(tmp_path, origin, "activity"), verify=True, fetch=fetch,
+        sleep=lambda seconds: None, verify_max_attempts=1,
+    )
+
+    assert result.status != "ok", result.summary
+    assert any("sesongpekeren" in problem for problem in result.problems), result.problems
