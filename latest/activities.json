@@ -7,7 +7,7 @@
       "category": "regionslagssamling",
       "category_code": "RS",
       "category_label": "Regionslagssamling",
-      "date": "2026-01-21",
+      "date": "2026-01-17",
       "description": null,
       "location": "Frisk Asker",
       "raw_category": null,
@@ -193,6 +193,21 @@
       "location": null,
       "raw_category": null,
       "title": "Forbundscup U16",
+      "type": "annet",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U14"
+      ],
+      "category": "annet",
+      "category_code": "AN",
+      "category_label": "Annen aktivitet",
+      "date": "2026-04-09",
+      "description": null,
+      "location": "Jar",
+      "raw_category": null,
+      "title": "R.Mesterskap U14",
       "type": "annet",
       "url": null
     },
@@ -487,7 +502,7 @@
       "category_label": "Spillerutviklingssamling",
       "date": "2026-11-28",
       "description": null,
-      "location": "Jutul",
+      "location": "Frisk Asker",
       "raw_category": null,
       "title": "S.Utvikling JU14",
       "type": "spillerutviklingssamling",
@@ -577,7 +592,7 @@
       "label": "Ukjent aktivitetstype"
     }
   ],
-  "generated_at": "2026-10-06T07:02:11Z",
+  "generated_at": "2026-10-26T10:00:04Z",
   "schema_version": 2,
   "validation_warnings": [],
   "year": 2026
