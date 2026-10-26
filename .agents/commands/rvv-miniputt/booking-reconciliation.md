@@ -31,6 +31,18 @@ Keep machine/audit status values intact, but do not expose a conservative intern
 - a wrong-age/clearly unrelated event occupying the current slot -> **Calendar conflict**, not a tournament match.
 - no defensible identity candidate -> **No matching booking found** (subject to source-coverage caveats).
 
+### Active calendar audit buckets
+
+`season booking-status` carries one `calendar_audit` block built from the same rows as the operator tables. Each active tournament falls into exactly one bucket; cancelled tournaments are `cancelled_historical` and never active discrepancies.
+
+- `confirmed_matching`: accepted, observed interval matches. Fingerprint drift alone never moves it.
+- `accepted_uncheckable`: accepted, but the calendar cannot show it (untrusted, partial or unreadable). Not a mismatch.
+- `accepted_identity_review`: accepted, complete calendar, no plausible event. Review the identity; the booking stays booked.
+- `material_mismatch`: accepted, observed date/start/end differs, or an explicit conflict. Show planned and observed intervals when an observation exists.
+- `unconfirmed_ambiguous`: not booked and undecided, or booked with unresolved plausible candidates (identity unresolved, not lost).
+- `no_calendar_coverage`: no usable evidence. Missing evidence is not proof of absence.
+- `explicit_not_booked`: explicit rejection with no conflict flagged against it.
+
 Reserve the word **ambiguous** for genuine identity ambiguity. When a low-level command still returns `BOOKING_AMBIGUOUS` solely because explicit `confirm-calendar-booking` authority has not yet been recorded, explain that as an authorization state in audit detail rather than making it the primary human-readable result.
 
 ### Replacing a provisional manual booking
