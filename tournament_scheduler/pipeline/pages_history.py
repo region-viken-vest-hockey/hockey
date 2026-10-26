@@ -21,8 +21,10 @@ from pathlib import Path
 
 HISTORY_DIRECTORY = "history"
 
-PUBLISH_COMMIT_RE = re.compile(r"^Publish run (\S+)$")
-ROLLBACK_COMMIT_RE = re.compile(r"^Rollback latest to run (\S+)$")
+# Subjects carry the publication scope ("season" or "activities"). Subjects written before scopes
+# existed have no scope group; their scope is "" and they are shown as unclassified, never guessed.
+PUBLISH_COMMIT_RE = re.compile(r"^Publish (?:(season|activities) )?run (\S+)$")
+ROLLBACK_COMMIT_RE = re.compile(r"^Rollback latest to (?:(season|activities) )?run (\S+)$")
 
 _KIND_LABELS = {"publish": "Publisert", "rollback": "Tilbakerullet til"}
 
@@ -39,8 +41,16 @@ def _canonical_time(value: str) -> str:
     return datetime.fromisoformat(value).astimezone(timezone.utc).isoformat(timespec="seconds")
 
 
+def commit_subject(kind: str, run_id: str, scope: str) -> str:
+    """The commit subject that records *kind* of publication for *run_id* in *scope*."""
+    label = f"{scope} " if scope else ""
+    if kind == "publish":
+        return f"Publish {label}run {run_id}"
+    return f"Rollback latest to {label}run {run_id}"
+
+
 def publication_log(git: GitRunner, cwd: str) -> list[dict[str, str]]:
-    """Newest-first ``{date, kind, run_id, fingerprint}`` entries from HEAD's log in *cwd*.
+    """Newest-first ``{date, kind, run_id, scope, fingerprint}`` entries from HEAD's log in *cwd*.
 
     The commit log does not carry the bundle fingerprint, so ``fingerprint`` is
     left empty here; :func:`write_history_page` fills it for the current entry.
@@ -65,10 +75,27 @@ def publication_log(git: GitRunner, cwd: str) -> list[dict[str, str]]:
         publish_match = PUBLISH_COMMIT_RE.match(subject)
         rollback_match = ROLLBACK_COMMIT_RE.match(subject)
         if publish_match:
-            entries.append({"date": date, "kind": "publish", "run_id": publish_match.group(1), "fingerprint": ""})
+            entries.append(
+                {"date": date, "kind": "publish", "run_id": publish_match.group(2),
+                 "scope": publish_match.group(1) or "", "fingerprint": ""}
+            )
         elif rollback_match:
-            entries.append({"date": date, "kind": "rollback", "run_id": rollback_match.group(1), "fingerprint": ""})
+            entries.append(
+                {"date": date, "kind": "rollback", "run_id": rollback_match.group(2),
+                 "scope": rollback_match.group(1) or "", "fingerprint": ""}
+            )
     return entries
+
+
+def season_run_id(branch_root: Path) -> str | None:
+    """The run id of the published season (``latest/_season_meta.json``), or ``None`` when absent."""
+    try:
+        pointer = json.loads((branch_root / "latest" / "_season_meta.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(pointer, dict) or not pointer.get("run_id"):
+        return None
+    return str(pointer["run_id"])
 
 
 def _latest_fingerprint(branch_root: Path) -> str:
@@ -97,7 +124,7 @@ def _publication_time(prior: list[dict[str, str]]) -> str:
 
 
 def write_history_page(
-    branch_root: Path, *, run_id: str, kind: str, git: GitRunner, record: bool
+    branch_root: Path, *, run_id: str, kind: str, git: GitRunner, record: bool, scope: str = ""
 ) -> tuple[str, str]:
     """Write ``/history/index.html`` in the worktree.
 
@@ -117,7 +144,7 @@ def write_history_page(
     when = _publication_time(prior)
     fingerprint = _latest_fingerprint(branch_root)
     if record:
-        entries = compose_history(prior, run_id=run_id, kind=kind, date=when, fingerprint=fingerprint)
+        entries = compose_history(prior, run_id=run_id, kind=kind, date=when, fingerprint=fingerprint, scope=scope)
         published_at = when
     else:
         entries = [dict(entry) for entry in prior]
@@ -126,7 +153,9 @@ def write_history_page(
         published_at = entries[0]["date"] if entries else when
     history_dir = branch_root / HISTORY_DIRECTORY
     history_dir.mkdir(parents=True, exist_ok=True)
-    (history_dir / "index.html").write_text(render_history_page(entries), encoding="utf-8")
+    (history_dir / "index.html").write_text(
+        render_history_page(entries, season_run_id=season_run_id(branch_root)), encoding="utf-8"
+    )
     return when, published_at
 
 
@@ -137,6 +166,7 @@ def compose_history(
     kind: str,
     date: str,
     fingerprint: str = "",
+    scope: str = "",
 ) -> list[dict[str, str]]:
     """Return newest-first entries with the new publication prepended.
 
@@ -149,34 +179,60 @@ def compose_history(
             "date": str(entry.get("date", "")),
             "kind": str(entry.get("kind", "")),
             "run_id": str(entry.get("run_id", "")),
+            "scope": str(entry.get("scope", "")),
             "fingerprint": str(entry.get("fingerprint", "")),
         }
         for entry in prior
     ]
-    return [{"date": date, "kind": kind, "run_id": run_id, "fingerprint": fingerprint}, *entries]
+    return [
+        {"date": date, "kind": kind, "run_id": run_id, "scope": scope, "fingerprint": fingerprint},
+        *entries,
+    ]
 
 
-def render_history_page(entries: Iterable[Mapping[str, str]]) -> str:
-    """Render the public history page. The first entry is the current publication.
+def render_history_page(entries: Iterable[Mapping[str, str]], season_run_id: str | None = None) -> str:
+    """Render the public history page. Two rows carry a current marker.
 
-    Each row carries ``data-run-id``, ``data-fingerprint``, ``data-published-at``
-    and ``data-current`` so that verification can check the current publication
-    without parsing layout.
+    The first entry is the current deployment (``data-current``). The newest season
+    publication whose run id is *season_run_id* is the published season (``data-season-current``).
+    Entries with no scope are unclassified: they are labelled, and no season is assigned to them.
     """
+    entries = list(entries)
+    season_index = next(
+        (
+            index
+            for index, entry in enumerate(entries)
+            if entry.get("scope") == "season" and season_run_id and entry.get("run_id") == season_run_id
+        ),
+        None,
+    )
     rows: list[str] = []
+    unclassified = False
     for index, entry in enumerate(entries):
         run_id = html.escape(entry.get("run_id", ""))
         fingerprint = html.escape(entry.get("fingerprint", ""))
         published_at = html.escape(entry.get("date", ""))
+        scope = entry.get("scope", "")
         current = "true" if index == 0 else "false"
+        season_marker = ' data-season-current="true"' if index == season_index else ""
         label = _KIND_LABELS.get(entry.get("kind", ""), html.escape(entry.get("kind", "")))
-        status = "Gjeldende" if index == 0 else "Tidligere"
+        statuses = []
+        if index == 0:
+            statuses.append("Gjeldende")
+        if index == season_index:
+            statuses.append("Gjeldende sesong")
+        if not scope:
+            statuses.append("Uklassifisert")
+            unclassified = True
+        if not statuses:
+            statuses.append("Tidligere")
         rows.append(
             f'<tr data-run-id="{run_id}" data-fingerprint="{fingerprint}" '
-            f'data-published-at="{published_at}" data-current="{current}">'
+            f'data-published-at="{published_at}" data-current="{current}" '
+            f'data-scope="{html.escape(scope)}"{season_marker}>'
             f"<td>{html.escape(entry.get('date', ''))}</td>"
             f"<td>{label} <code>{run_id}</code></td>"
-            f"<td>{status}</td>"
+            f"<td>{', '.join(statuses)}</td>"
             f'<td><a href="../runs/{run_id}/">Vis snapshot</a></td>'
             "</tr>"
         )
@@ -205,7 +261,13 @@ def render_history_page(entries: Iterable[Mapping[str, str]]) -> str:
         "<h1>Publiseringshistorikk</h1>\n"
         '<p>Hver publisering er et uforanderlig øyeblikksbilde. Den gjeldende versjonen er merket.</p>\n'
         f"{body}\n"
-        '<p><a href="../latest/">Gå til gjeldende sesongplan</a></p>\n'
+        + (
+            "<p>Uklassifiserte publiseringer ble gjort før publiseringsscope ble registrert. "
+            "Deres sesongstatus er ikke fastslått.</p>\n"
+            if unclassified
+            else ""
+        )
+        + '<p><a href="../latest/">Gå til gjeldende sesongplan</a></p>\n'
         "</body>\n"
         "</html>\n"
     )

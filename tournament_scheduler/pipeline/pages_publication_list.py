@@ -61,12 +61,12 @@ def list_publication_history(*, repo_dir: str = ".", branch: str = "gh-pages") -
         publish_match = PUBLISH_COMMIT_RE.match(subject)
         rollback_match = ROLLBACK_COMMIT_RE.match(subject)
         if publish_match:
-            run_id = publish_match.group(1)
+            run_id = publish_match.group(2)
             entry = {"commit_sha": sha, "date": date, "kind": "publish", "run_id": run_id}
             entry.update(source_exports.get(run_id, {}))
             history.append(entry)
         elif rollback_match:
-            run_id = rollback_match.group(1)
+            run_id = rollback_match.group(2)
             entry = {"commit_sha": sha, "date": date, "kind": "rollback", "run_id": run_id}
             entry.update(source_exports.get(run_id, {}))
             history.append(entry)

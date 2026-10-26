@@ -118,7 +118,14 @@ def _history_url(latest_url: str) -> str:
 
 
 def _check_history_page(
-    history_url: str, run_id: str, bundle_fingerprint: str, published_at: str, fetch: FetchFunc
+    history_url: str,
+    run_id: str,
+    bundle_fingerprint: str,
+    published_at: str,
+    fetch: FetchFunc,
+    *,
+    check_season: bool = False,
+    season_run_id: str | None = None,
 ) -> str | None:
     """Check ``/history/`` loads, its run links resolve, and its current row is this publication.
 
@@ -142,6 +149,15 @@ def _check_history_page(
             f"historikksiden {history_url} markerer ikke publiseringen av kjøring {run_id} "
             f"(fingeravtrykk {bundle_fingerprint}, publisert {published_at}) som eneste gjeldende"
         )
+    if check_season:
+        # The season marker must name the season the pointer names: none when there is no season.
+        marked = re.findall(r'data-run-id="([^"]+)"[^>]*data-season-current="true"', response.text)
+        expected = [season_run_id] if season_run_id else []
+        if marked != expected:
+            return (
+                f"historikksiden {history_url} markerer sesongen {marked!r}, "
+                f"men sesongpekeren er {expected!r}"
+            )
     return _check_linked_pages(history_url, fetch)
 
 
@@ -208,7 +224,9 @@ def verify_publication(
                         else None
                     )
                     page_failure = season_failure or _check_linked_pages(latest_url, fetch) or _check_history_page(
-                        _history_url(latest_url), run_id, bundle_fingerprint, published_at, fetch
+                        _history_url(latest_url), run_id, bundle_fingerprint, published_at, fetch,
+                        check_season=check_season_pointer,
+                        season_run_id=(expected_season_pointer or {}).get("run_id"),
                     )
                     if page_failure is None:
                         artifacts = [latest_url] + ([run_url] if run_url else [])
