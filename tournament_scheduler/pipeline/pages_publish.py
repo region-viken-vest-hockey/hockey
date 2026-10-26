@@ -45,7 +45,8 @@ from pathlib import Path
 from tournament_scheduler.html.templates import PAGES_EMPTY_INDEX, PAGES_ROOT_INDEX
 
 from .capability_result import CapabilityResult
-from .pages_history import HISTORY_DIRECTORY, PublicationHistoryError, commit_subject, publication_log, write_history_page
+from .pages_history import (HISTORY_DIRECTORY, PublicationHistoryError, commit_subject, publication_log,
+    publish_scopes, write_history_page)
 
 _GIT_TIMEOUT_SECONDS = 120
 
@@ -531,6 +532,15 @@ def publish(
                 "runs/ endres ikke; publiser endret innhold under en ny run-id.",
                 capability="pages_publish",
             )
+        else:
+            # A run id keeps the scope it was first published under, even when its bytes are identical.
+            recorded = publish_scopes(_git, str(branch_root), run_id) - {""}
+            if recorded and recorded != {publication_scope}:
+                return CapabilityResult.failed(
+                    f"Kjøring {run_id} er allerede publisert i scope {sorted(recorded)[0]!r}. "
+                    "Den kan ikke publiseres i et annet scope; bruk en ny run-id.",
+                    capability="pages_publish",
+                )
 
         if meta_payload is not None:
             (branch_root / "latest" / "_meta.json").write_text(meta_payload, encoding="utf-8")
@@ -698,11 +708,8 @@ def rollback_to_run(
                 capability="pages_publish",
             )
 
-        target = next(
-            (entry for entry in publication_log(_git, str(tmp_dir)) if entry["kind"] == "publish" and entry["run_id"] == run_id),
-            None,
-        )
-        target_scope = target["scope"] if target else ""
+        scopes = publish_scopes(_git, str(tmp_dir), run_id)
+        target_scope = scopes.pop() if len(scopes) == 1 else ""
         if not target_scope:
             return CapabilityResult.failed(
                 f"Kjøring '{run_id}' er publisert før publiseringsscope ble registrert, så dens sesongidentitet "

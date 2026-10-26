@@ -148,3 +148,27 @@ def test_a_run_id_published_under_another_scope_is_refused(tmp_path):
     assert result.status == "failed", result.summary
     assert "season-1" in _show(origin, "history/index.html")
     assert _season_marked(origin) == ["season-1"]
+
+
+def test_the_same_bundle_cannot_be_published_under_a_second_scope(tmp_path):
+    origin, work = _fixture(tmp_path)
+    stage = _stage(tmp_path, origin, "bundle")
+    first = pages_publish.publish(
+        export_dir=str(stage), run_id="run-1", repo_dir=str(work), branch="gh-pages", remote="origin",
+        push=True, bundle_fingerprint="fp-1", publication_scope="activities",
+    )
+    assert first.status in ("ok", "warning"), first.summary
+    head_before = subprocess.run(
+        ["git", "rev-parse", "refs/heads/gh-pages"], cwd=origin, capture_output=True, text=True, check=True
+    ).stdout
+
+    second = pages_publish.publish(
+        export_dir=str(stage), run_id="run-1", repo_dir=str(work), branch="gh-pages", remote="origin",
+        push=True, bundle_fingerprint="fp-1", publication_scope="season",
+    )
+
+    assert second.status == "failed", second.summary
+    assert _show(origin, SEASON_POINTER) is None, "a refused publish must not write the season pointer"
+    assert subprocess.run(
+        ["git", "rev-parse", "refs/heads/gh-pages"], cwd=origin, capture_output=True, text=True, check=True
+    ).stdout == head_before

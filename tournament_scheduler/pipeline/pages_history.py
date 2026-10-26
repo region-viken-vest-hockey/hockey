@@ -87,6 +87,11 @@ def publication_log(git: GitRunner, cwd: str) -> list[dict[str, str]]:
     return entries
 
 
+def publish_scopes(git: GitRunner, cwd: str, run_id: str) -> set[str]:
+    """The scopes that *run_id* was published under, from the publication log. ``""`` means unclassified."""
+    return {entry["scope"] for entry in publication_log(git, cwd) if entry["kind"] == "publish" and entry["run_id"] == run_id}
+
+
 def season_run_id(branch_root: Path) -> str | None:
     """The run id of the published season (``latest/_season_meta.json``), or ``None`` when absent."""
     try:
