@@ -200,16 +200,6 @@ def execute_activity_publish(
             evidence=[f"snapshot_digest={digest}"],
         )
 
-    if push:
-        # Narrow the window in which gh-pages can move under the snapshot. It cannot be
-        # closed entirely here: the shared publisher fetches and fast-forwards on its own.
-        refetched = subprocess.run(["git", "fetch", remote, branch], cwd=repo_dir, capture_output=True, check=False)
-        if refetched.returncode != 0 or _rev(repo_dir, ref) != base_rev:
-            return CapabilityResult.failed(
-                f"{ref} endret seg under publiseringen. Kjør aktivitetspublisering på nytt.",
-                capability="pages_publish",
-            )
-
     result = pages_publish.publish(
         export_dir=export_dir,
         run_id=run_id or "activities",
@@ -218,12 +208,19 @@ def execute_activity_publish(
         remote=remote,
         push=push,
         bundle_fingerprint=digest,
+        expected_base_commit=base_rev if push else None,
     )
     result.evidence = list(result.evidence) + [f"snapshot_digest={digest}", "publication_scope=activities"]
 
     if push and verify and result.status in ("ok", "warning"):
         urls = [a for a in result.artifacts if isinstance(a, str) and a.startswith("http")]
-        if urls:
+        published_at = next(
+            (item.split("=", 1)[1] for item in result.evidence if item.startswith("published_at=")), ""
+        )
+        if not urls:
+            result.status = "warning"
+            result.summary = f"{result.summary} Kunne ikke verifisere mot en offentlig URL; publiseringen er ikke bekreftet."
+        else:
             verify_kwargs: dict[str, Any] = {}
             if verify_max_attempts is not None:
                 verify_kwargs["max_attempts"] = verify_max_attempts
@@ -238,7 +235,7 @@ def execute_activity_publish(
                 run_url=urls[1] if len(urls) > 1 else None,
                 bundle_fingerprint=digest,
                 run_id=run_id or "activities",
-                published_at="",
+                published_at=published_at,
                 **verify_kwargs,
             )
             result.evidence = list(result.evidence) + [f"verify_status={verified.status}"] + list(verified.evidence)

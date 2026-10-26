@@ -191,3 +191,125 @@ def test_season_scope_still_requires_a_reviewed_stage4_export(tmp_path):
     assert result.status == "blocked"
     assert "no reviewed Stage 4 export" in " ".join([result.summary, *map(str, result.problems)])
     assert _origin_head(origin) == before
+
+
+GITHUB_URL = "https://github.com/region-viken-vest-hockey/hockey.git"
+SITE_BASE = "https://region-viken-vest-hockey.github.io/hockey/"
+# Paths the shared publisher is allowed to write, beyond the activity files themselves:
+# its own metadata, the immutable run snapshot, and its generated index and history pages.
+PUBLISHER_OWNED = ("latest/_meta.json", "index.html", "latest/index.html", "history/index.html", ".nojekyll")
+
+
+def _changed_paths(origin: Path, before: str, after: str) -> set[str]:
+    out = _git(origin, "diff-tree", "-r", "--name-only", before, after)
+    return {line for line in out.splitlines() if line}
+
+
+def _as_github_remote(origin: Path, work: Path) -> None:
+    """Make the fixture look like the real GitHub remote, so the publish produces served URLs.
+
+    `insteadOf` sends the push and fetch to the local bare origin, so nothing leaves the machine.
+    """
+
+    _git(work, "remote", "set-url", "origin", GITHUB_URL)
+    _git(work, "config", f"url.{origin}.insteadOf", GITHUB_URL)
+
+
+def _served_from(origin: Path):
+    """A fetch that serves what is committed on gh-pages, exactly as GitHub Pages would."""
+
+    from tournament_scheduler.pipeline.pages_verify import FetchResponse
+
+    def fetch(url: str) -> FetchResponse:
+        if not url.startswith(SITE_BASE):
+            return FetchResponse(status_code=404, text="", error=None)
+        rel = url[len(SITE_BASE):]
+        if rel == "" or rel.endswith("/"):
+            rel += "index.html"
+        try:
+            text = _git(origin, "show", f"refs/heads/gh-pages:{rel}")
+        except subprocess.CalledProcessError:
+            return FetchResponse(status_code=404, text="", error=None)
+        return FetchResponse(status_code=200, text=text, error=None)
+
+    return fetch
+
+
+def test_activity_publish_changes_only_the_allowed_paths(tmp_path):
+    origin, work = _fixture(tmp_path)
+    stage = _staged_snapshot(tmp_path, work)
+    before = _origin_head(origin)
+
+    result = _publish(tmp_path, work, stage)
+
+    assert result.status in ("ok", "warning"), result.summary
+    changed = _changed_paths(origin, before, _origin_head(origin))
+    allowed_prefixes = ("latest/activities.json", "latest/activities/", "runs/activities-test/")
+    allowed = set(PUBLISHER_OWNED) | {"latest/activities.json", "latest/activities/index.html"}
+    unexpected = {
+        path for path in changed if path not in allowed and not path.startswith(allowed_prefixes)
+    }
+    assert unexpected == set(), f"publish changed paths outside the allowed set: {sorted(unexpected)}"
+    assert "latest/activities.json" in changed
+    assert f"latest/{SEASON_FILE}" not in changed
+
+
+def test_activity_publish_is_verified_against_the_served_site(tmp_path):
+    origin, work = _fixture(tmp_path)
+    _as_github_remote(origin, work)
+    stage = _staged_snapshot(tmp_path, work)
+
+    result = _publish(
+        tmp_path,
+        work,
+        stage,
+        verify=True,
+        fetch=_served_from(origin),
+        sleep=lambda seconds: None,
+        verify_max_attempts=1,
+    )
+
+    assert result.status == "ok", result.summary
+    assert "verify_status=ok" in result.evidence
+
+
+def test_activity_publish_without_a_public_url_is_not_reported_verified(tmp_path):
+    origin, work = _fixture(tmp_path)
+    stage = _staged_snapshot(tmp_path, work)
+
+    result = _publish(tmp_path, work, stage, verify=True, verify_max_attempts=1, sleep=lambda seconds: None)
+
+    assert result.status == "warning"
+    assert "verif" in result.summary.lower()
+
+
+def test_shared_publisher_refuses_when_the_base_moved_after_it_was_read(tmp_path):
+    """The shared publisher must not overwrite a base that changed after the integrity check."""
+
+    from tournament_scheduler.pipeline import pages_publish
+
+    origin, work = _fixture(tmp_path)
+    stage = _staged_snapshot(tmp_path, work)
+    base_read = _origin_head(origin)
+
+    other = tmp_path / "other"
+    subprocess.run(["git", "clone", "-q", str(origin), str(other)], check=True)
+    _git(other, "checkout", "-q", "-B", "gh-pages", "origin/gh-pages")
+    _write(other / "latest" / SEASON_FILE, "<html>season published by someone else</html>")
+    _git(other, "commit", "-q", "-am", "season update")
+    _git(other, "push", "-q", "origin", "gh-pages")
+    moved = _origin_head(origin)
+
+    result = pages_publish.publish(
+        export_dir=str(stage),
+        run_id="activities-race",
+        repo_dir=str(work),
+        branch="gh-pages",
+        remote="origin",
+        push=True,
+        bundle_fingerprint="race",
+        expected_base_commit=base_read,
+    )
+
+    assert result.status == "failed"
+    assert _origin_head(origin) == moved
