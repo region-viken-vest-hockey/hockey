@@ -628,7 +628,11 @@ def test_cancellation_releases_booked_assertion_but_keeps_its_provenance(tmp_pat
     assert [record["tournament_id"] for record in active_manual_assertions(decisions)] == [
         "u10-a-20260912"
     ]
-    assert _booked_row(root, "u10-c-20261018")["status"] != "manually_booked"
+    # The cancelled tournament is no longer an active booking row; its history
+    # is reported under cancelled_tournaments (#842).
+    report = booking_status_report(season="2026-2027", root=root)
+    assert "u10-c-20261018" not in {row["tournament_id"] for row in report["tournaments"]}
+    assert [row["tournament_id"] for row in report["cancelled_tournaments"]] == ["u10-c-20261018"]
     assert _booked_row(root, "u10-a-20260912")["status"] == "manually_booked"
 
 

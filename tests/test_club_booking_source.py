@@ -291,6 +291,8 @@ def test_real_overlapping_source_intervals_are_rejected_as_hard_conflicts(tmp_pa
     assert [r["tournament_id"] for r in row["rejected_booking_evidence"]] == ["t1"]
     assert "rejected_booking_requires_resolution" in row["follow_up_reasons"]
     assert row["needs_attention"] is True
+    # The aggregate must count every row it flags, including rows flagged by rejected evidence.
+    assert report["counts"]["needs_attention"] == sum(bool(r["needs_attention"]) for r in report["tournaments"])
     assert report["rejected_booking_evidence"][0]["tournament_id"] == "t1"
     # The active placement was not mutated by the refused change.
     schedule = load_schedule("2026-2027", root=root)["plan"]

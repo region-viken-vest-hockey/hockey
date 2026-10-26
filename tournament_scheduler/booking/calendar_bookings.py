@@ -1447,6 +1447,10 @@ def _club_booking_source_projection(
                 continue
             tid = str(assertion.get("tournament_id") or "")
             tournament = tournaments.get(tid)
+            if tournament is not None and tournament.get("cancelled"):
+                # A cancelled tournament has no booked interval, so its stated
+                # window must not feed overlap review against an active neighbour (#842).
+                continue
             row = rows_by_id.get(tid) or {}
             interval = (
                 tournament_occupancy_interval_facts(tournament, problem)
@@ -1633,7 +1637,13 @@ def booking_status_report(
         ]
     except Exception:  # noqa: BLE001 - advisory crosswalk failure must not hide persisted booking status.
         assessment_by_tournament = {}
+    # A cancelled tournament occupies no ice and has no current booking to
+    # confirm, so it is not an active row, count or queue item. Its history is
+    # reported separately below.
+    cancelled_ids = {tid for tid, tournament in tournaments.items() if tournament.get("cancelled")}
     for tid, tournament in sorted(tournaments.items()):
+        if tid in cancelled_ids:
+            continue
         calendar_record = latest.get(tid)
         calendar_status, calendar_stale_reasons = _projected_calendar_status(
             calendar_record,
@@ -1808,16 +1818,28 @@ def booking_status_report(
             follow_up.append("rejected_booking_requires_resolution")
         row["follow_up_reasons"] = follow_up
         row["needs_attention"] = True
+    # Rejected evidence can flag a row after the loop above, so the aggregate is
+    # recounted from the final row flags to keep counts and rows consistent.
+    counts["needs_attention"] = sum(1 for row in rows if row["needs_attention"])
     rejected_evidence = sorted(
         (
             record
             for tid, records in rejected_by_tournament.items()
-            if not host_key or tid in tournaments
+            if tid not in cancelled_ids and (not host_key or tid in tournaments)
             for record in records
         ),
         key=lambda record: str(record.get("rejected_at") or ""),
     )
     counts["rejected_bookings"] = len(rejected_evidence)
+    cancelled_history = [
+        _cancelled_tournament_history(
+            tournament,
+            calendar_record=latest.get(tid),
+            rejected=rejected_by_tournament.get(tid, []),
+        )
+        for tid, tournament in sorted(tournaments.items())
+        if tid in cancelled_ids
+    ]
     club_sources = _club_booking_source_projection(
         decisions=decisions, rows=rows, plan=plan, problem=problem
     )
@@ -1834,6 +1856,9 @@ def booking_status_report(
         # Club-wide source provenance, grouped per provided booking list. A
         # source whose own stated windows overlap is review-required.
         "club_booking_sources": club_sources,
+        # Cancelled tournaments keep their historical provenance here, outside
+        # the active rows, counts and queue (#842).
+        "cancelled_tournaments": cancelled_history,
     }
     if host_key:
         report["host_club"] = host_club
@@ -1848,6 +1873,29 @@ def booking_status_report(
             if _club_match_key(row.get("club")) == host_key
         ]
     return report
+
+
+def _cancelled_tournament_history(
+    tournament: Mapping[str, Any],
+    *,
+    calendar_record: Mapping[str, Any] | None,
+    rejected: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Return the historical record of a cancelled tournament, outside active totals."""
+
+    row: dict[str, Any] = {
+        "tournament_id": str(tournament.get("id") or ""),
+        "host_club": str(tournament.get("host_club") or ""),
+        "age_group": str(tournament.get("age_group") or ""),
+        "arena": str(tournament.get("arena") or ""),
+        "date": str(tournament.get("date") or ""),
+        "start_time": str(tournament.get("start_time") or ""),
+        "cancellation_reason": str(tournament.get("cancellation_reason") or ""),
+        "rejected_booking_evidence": list(rejected),
+    }
+    if calendar_record:
+        row["calendar_evidence"] = dict(calendar_record)
+    return row
 
 
 def _club_match_key(club: Any) -> str:
