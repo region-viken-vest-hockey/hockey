@@ -66,3 +66,44 @@ def test_explicit_conflict_is_rendered_without_a_fabricated_interval():
 
     assert "rvv-0010: explicit conflict between accepted booking and calendar evidence" in text
     assert "differs" not in text.split("Calendar audit", 1)[1]
+
+
+def test_identity_review_bucket_is_rendered_with_its_count():
+    rows = [
+        {
+            "tournament_id": "rvv-0029",
+            "operational_state": "booked",
+            "status": "manually_booked",
+            "authority": "manual_club_confirmation",
+            "conflict": False,
+            "follow_up_reasons": [],
+            "interval_comparison": {"status": "no_observed_interval"},
+            "calendar_covers_window": True,
+        }
+    ]
+
+    text = format_host_club_booking_status(_report(rows))
+
+    assert "accepted, no matching event on checkable calendar (review; authority kept): 1" in text
+
+
+def test_unresolved_identity_label_does_not_read_as_lost_confirmation():
+    rows = [
+        {
+            "tournament_id": "rvv-0030",
+            "operational_state": "booked",
+            "status": "manually_booked",
+            "authority": "manual_club_confirmation",
+            "conflict": False,
+            "follow_up_reasons": [],
+            "interval_comparison": {"status": "no_observed_interval"},
+            "booking_assessment_classification": "proposed_unchanged",
+            "actionable_candidate_count": 2,
+            "calendar_covers_window": True,
+        }
+    ]
+
+    text = format_host_club_booking_status(_report(rows))
+
+    assert "needs review: unresolved calendar identity (accepted bookings keep authority): 1" in text
+    assert "unconfirmed, needs review" not in text

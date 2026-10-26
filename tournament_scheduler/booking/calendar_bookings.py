@@ -2116,6 +2116,9 @@ def _assessment_tournament_row(
         "authority": authority,
         "source_trusted": source_trusted,
         "calendar_source_checkable": source_trusted,
+        # Full coverage: trusted, complete, proven window and events present.
+        # Only this, not mere readability, may show that an identity is lost.
+        "calendar_covers_window": bool(source_supports_absence),
         "source_positive_evidence_usable": source_positive_evidence_usable,
         "proposal_is_binding": False,
         "candidate_count": len(candidates),

@@ -32,6 +32,7 @@ from tournament_scheduler.booking.calendar_bookings import (
 
 AUDIT_CONFIRMED_MATCHING = "confirmed_matching"
 AUDIT_ACCEPTED_UNCHECKABLE = "accepted_uncheckable"
+AUDIT_ACCEPTED_IDENTITY_REVIEW = "accepted_identity_review"
 AUDIT_MATERIAL_MISMATCH = "material_mismatch"
 AUDIT_UNCONFIRMED_AMBIGUOUS = "unconfirmed_ambiguous"
 AUDIT_NO_CALENDAR_COVERAGE = "no_calendar_coverage"
@@ -41,6 +42,7 @@ AUDIT_CANCELLED_HISTORICAL = "cancelled_historical"
 AUDIT_BUCKETS = (
     AUDIT_CONFIRMED_MATCHING,
     AUDIT_ACCEPTED_UNCHECKABLE,
+    AUDIT_ACCEPTED_IDENTITY_REVIEW,
     AUDIT_MATERIAL_MISMATCH,
     AUDIT_UNCONFIRMED_AMBIGUOUS,
     AUDIT_NO_CALENDAR_COVERAGE,
@@ -53,6 +55,7 @@ AUDIT_BUCKETS = (
 AUDIT_SEVERITY = {
     AUDIT_CONFIRMED_MATCHING: "none",
     AUDIT_ACCEPTED_UNCHECKABLE: "advisory",
+    AUDIT_ACCEPTED_IDENTITY_REVIEW: "review_required",
     AUDIT_MATERIAL_MISMATCH: "action_required",
     AUDIT_UNCONFIRMED_AMBIGUOUS: "review_required",
     AUDIT_NO_CALENDAR_COVERAGE: "advisory",
@@ -81,6 +84,14 @@ def _classify(row: Mapping[str, Any]) -> str:
             return AUDIT_MATERIAL_MISMATCH
         if comparison_status == "matches":
             return AUDIT_CONFIRMED_MATCHING
+        if comparison_status == "no_observed_interval" and row.get("calendar_covers_window") is True:
+            # No primary observation is not the same as no matching event. Only
+            # a complete calendar with no plausible candidate shows a lost or
+            # reassigned identity. Contested candidates stay unresolved ambiguity.
+            if int(row.get("actionable_candidate_count") or 0) == 0:
+                return AUDIT_ACCEPTED_IDENTITY_REVIEW
+            return AUDIT_UNCONFIRMED_AMBIGUOUS
+
         return AUDIT_ACCEPTED_UNCHECKABLE
     if row.get("conflict"):
         return AUDIT_MATERIAL_MISMATCH

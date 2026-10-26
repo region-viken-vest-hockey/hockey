@@ -36,8 +36,9 @@ def _comparison_line(comparison: Mapping[str, Any]) -> str:
 _AUDIT_LABELS = (
     ("confirmed_matching", "confirmed, interval matches"),
     ("accepted_uncheckable", "accepted, calendar uncheckable (not a mismatch)"),
+    ("accepted_identity_review", "accepted, no matching event on checkable calendar (review; authority kept)"),
     ("material_mismatch", "material mismatch"),
-    ("unconfirmed_ambiguous", "unconfirmed, needs review"),
+    ("unconfirmed_ambiguous", "needs review: unresolved calendar identity (accepted bookings keep authority)"),
     ("no_calendar_coverage", "no calendar coverage (not proof of absence)"),
     ("explicit_not_booked", "explicitly not booked"),
     ("cancelled_historical", "cancelled/historical (outside active totals)"),
