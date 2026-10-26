@@ -121,6 +121,7 @@ def test_unbooked_row_without_calendar_coverage_is_not_treated_as_unbooked_proof
         "conflict": False,
         "needs_attention": False,
         "interval_comparison": None,
+        "booking_assessment_classification": "not_checkable",
         "calendar_stale_reasons": [],
         "follow_up_reasons": [],
     }
@@ -128,6 +129,39 @@ def test_unbooked_row_without_calendar_coverage_is_not_treated_as_unbooked_proof
     summary = calendar_audit_summary([row], cancelled_history=[])
 
     assert summary["buckets"][AUDIT_NO_CALENDAR_COVERAGE] == ["rvv-0050"]
+
+
+def test_unmatched_event_on_readable_calendar_is_ambiguity_not_missing_coverage():
+    # The calendar was read, but no event could be tied to the tournament. That is
+    # inconclusive evidence, so it must not be reported as missing coverage.
+    row = {
+        "tournament_id": "rvv-0054",
+        "status": "unknown",
+        "operational_state": OPERATIONAL_UNKNOWN,
+        "authority": None,
+        "conflict": False,
+        "needs_attention": False,
+        "interval_comparison": None,
+        "booking_assessment_classification": "unmatched",
+        "calendar_status": "unknown",
+        "calendar_stale_reasons": [],
+        "follow_up_reasons": [],
+    }
+
+    summary = calendar_audit_summary([row], cancelled_history=[])
+
+    assert summary["buckets"][AUDIT_UNCONFIRMED_AMBIGUOUS] == ["rvv-0054"]
+    assert summary["buckets"][AUDIT_NO_CALENDAR_COVERAGE] == []
+
+
+def test_explicit_conflict_without_comparison_is_not_reported_as_interval_change():
+    row = _booked_row("rvv-0010", comparison=None, conflict=True)
+
+    summary = calendar_audit_summary([row], cancelled_history=[])
+
+    detail = summary["material_mismatches"][0]
+    assert detail["kind"] == "explicit_conflict"
+    assert detail["observed"] is None
 
 
 def test_unbooked_changed_slot_candidate_needs_review_not_mismatch():

@@ -47,3 +47,22 @@ def test_text_reports_audit_counts_and_material_mismatch_detail():
     assert "cancelled/historical (outside active totals): 1" in text
     assert "rvv-0029" in text.split("Calendar audit", 1)[1]
     assert "plan 2026-10-16 10:30-13:00 | calendar 2026-10-16 11:00-13:30" in text
+
+
+def test_explicit_conflict_is_rendered_without_a_fabricated_interval():
+    rows = [
+        {
+            "tournament_id": "rvv-0010",
+            "operational_state": "booked",
+            "status": "manually_booked",
+            "authority": "manual_club_confirmation",
+            "conflict": True,
+            "follow_up_reasons": ["calendar_negative_conflicts_with_manual_booking"],
+            "interval_comparison": None,
+        }
+    ]
+
+    text = format_host_club_booking_status(_report(rows))
+
+    assert "rvv-0010: explicit conflict between accepted booking and calendar evidence" in text
+    assert "differs" not in text.split("Calendar audit", 1)[1]

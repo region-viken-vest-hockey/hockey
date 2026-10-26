@@ -25,8 +25,9 @@ from typing import Any, Mapping, Sequence
 from tournament_scheduler.booking.calendar_bookings import (
     BOOKING_CONFIRMED_NOT_BOOKED,
     BOOKING_MANUALLY_NOT_BOOKED,
+    BOOKING_NOT_CHECKABLE,
+    ASSESSMENT_NOT_CHECKABLE,
     OPERATIONAL_BOOKED,
-    OPERATIONAL_UNKNOWN,
 )
 
 AUDIT_CONFIRMED_MATCHING = "confirmed_matching"
@@ -62,6 +63,16 @@ AUDIT_SEVERITY = {
 _EXPLICIT_NOT_BOOKED_STATUSES = (BOOKING_CONFIRMED_NOT_BOOKED, BOOKING_MANUALLY_NOT_BOOKED)
 
 
+def _has_no_usable_calendar_evidence(row: Mapping[str, Any]) -> bool:
+    # Coverage is judged from the calendar source and the assessment, never from
+    # the operational state: an unmatched event on a readable calendar is
+    # inconclusive evidence, not missing coverage.
+    return (
+        str(row.get("booking_assessment_classification") or "") == ASSESSMENT_NOT_CHECKABLE
+        or str(row.get("calendar_status") or "") == BOOKING_NOT_CHECKABLE
+    )
+
+
 def _classify(row: Mapping[str, Any]) -> str:
     comparison = row.get("interval_comparison")
     comparison_status = str(comparison.get("status") or "") if isinstance(comparison, Mapping) else ""
@@ -75,15 +86,19 @@ def _classify(row: Mapping[str, Any]) -> str:
         return AUDIT_MATERIAL_MISMATCH
     if str(row.get("status") or "") in _EXPLICIT_NOT_BOOKED_STATUSES:
         return AUDIT_EXPLICIT_NOT_BOOKED
-    if row.get("operational_state") == OPERATIONAL_UNKNOWN:
+    if _has_no_usable_calendar_evidence(row):
         return AUDIT_NO_CALENDAR_COVERAGE
     return AUDIT_UNCONFIRMED_AMBIGUOUS
 
 
 def _mismatch_detail(row: Mapping[str, Any]) -> dict[str, Any]:
     comparison = row.get("interval_comparison") if isinstance(row.get("interval_comparison"), Mapping) else {}
+    # An interval change is shown only when a comparison exists; an explicit
+    # manual/calendar conflict is reported as a conflict, never as a moved slot.
+    interval_change = str(comparison.get("status") or "") == "differs"
     return {
         "tournament_id": str(row.get("tournament_id") or ""),
+        "kind": "interval_change" if interval_change else "explicit_conflict",
         "planned": dict(comparison.get("planned") or {}),
         "observed": dict(comparison["observed"]) if isinstance(comparison.get("observed"), Mapping) else None,
         "same_date": comparison.get("same_date"),

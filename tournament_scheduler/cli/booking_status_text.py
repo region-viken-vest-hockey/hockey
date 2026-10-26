@@ -54,7 +54,10 @@ def _audit_lines(audit: Mapping[str, Any]) -> list[str]:
     for detail in audit.get("material_mismatches") or []:
         if not isinstance(detail, Mapping):
             continue
-        lines.append(f"  {detail.get('tournament_id')}: {_comparison_line({**detail, 'status': 'differs'})}")
+        if detail.get("kind") == "interval_change":
+            lines.append(f"  {detail.get('tournament_id')}: {_comparison_line({**detail, 'status': 'differs'})}")
+        else:
+            lines.append(f"  {detail.get('tournament_id')}: explicit conflict between accepted booking and calendar evidence")
     return lines
 
 
