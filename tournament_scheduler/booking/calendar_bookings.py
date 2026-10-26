@@ -1447,6 +1447,10 @@ def _club_booking_source_projection(
                 continue
             tid = str(assertion.get("tournament_id") or "")
             tournament = tournaments.get(tid)
+            if tournament is not None and tournament.get("cancelled"):
+                # A cancelled tournament has no booked interval, so its stated
+                # window must not feed overlap review against an active neighbour (#842).
+                continue
             row = rows_by_id.get(tid) or {}
             interval = (
                 tournament_occupancy_interval_facts(tournament, problem)
@@ -1814,6 +1818,9 @@ def booking_status_report(
             follow_up.append("rejected_booking_requires_resolution")
         row["follow_up_reasons"] = follow_up
         row["needs_attention"] = True
+    # Rejected evidence can flag a row after the loop above, so the aggregate is
+    # recounted from the final row flags to keep counts and rows consistent.
+    counts["needs_attention"] = sum(1 for row in rows if row["needs_attention"])
     rejected_evidence = sorted(
         (
             record
