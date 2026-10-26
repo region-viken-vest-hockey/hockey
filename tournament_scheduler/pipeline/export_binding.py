@@ -43,3 +43,32 @@ def assert_export_binding(
             f"artifacts on disk hash to {actual_content!r}, expected {expected_export_content_sha256!r}"
         )
     return current
+
+
+def export_binding_refusal(
+    *,
+    export_dir: str | None,
+    expected_export_content_sha256: str | None,
+    expected_canonical_revision: str | None,
+) -> str | None:
+    """Return why the requested export is not the reviewed one, or ``None`` (issue #682).
+
+    Runs first in the publish action, so the CLI preview and the apply share the
+    same check. Without expectations the publish path is unchanged.
+    """
+    if expected_export_content_sha256 is None and expected_canonical_revision is None:
+        return None
+    if not (expected_export_content_sha256 and expected_canonical_revision):
+        return "Publisering avbrutt: forventet innhold og revisjon må oppgis sammen."
+    if not export_dir:
+        return "Publisering avbrutt: forventet eksport krever en eksplisitt eksportmappe."
+
+    try:
+        assert_export_binding(
+            export_dir,
+            expected_export_content_sha256=expected_export_content_sha256,
+            expected_canonical_revision=expected_canonical_revision,
+        )
+    except ValueError as exc:
+        return f"Publisering avbrutt: {exc}"
+    return None

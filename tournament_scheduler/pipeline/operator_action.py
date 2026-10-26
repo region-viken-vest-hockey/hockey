@@ -507,37 +507,6 @@ def _emit_publication_trace(
         pass
 
 
-def _export_binding_refusal(
-    *,
-    export_dir: str | None,
-    expected_export_content_sha256: str | None,
-    expected_canonical_revision: str | None,
-) -> str | None:
-    """Return why the requested export is not the reviewed one, or ``None`` (issue #682).
-
-    Runs first in the publish action, so the CLI preview and the apply share the
-    same check. Without expectations the publish path is unchanged.
-    """
-    if expected_export_content_sha256 is None and expected_canonical_revision is None:
-        return None
-    if not (expected_export_content_sha256 and expected_canonical_revision):
-        return "Publisering avbrutt: forventet innhold og revisjon må oppgis sammen."
-    if not export_dir:
-        return "Publisering avbrutt: forventet eksport krever en eksplisitt eksportmappe."
-
-    from .export_binding import assert_export_binding
-
-    try:
-        assert_export_binding(
-            export_dir,
-            expected_export_content_sha256=expected_export_content_sha256,
-            expected_canonical_revision=expected_canonical_revision,
-        )
-    except ValueError as exc:
-        return f"Publisering avbrutt: {exc}"
-    return None
-
-
 def _execute_publish_pages(
     *,
     work_dir: str,
@@ -559,6 +528,7 @@ def _execute_publish_pages(
     sleep: "Callable[[float], None] | None" = None,
     expected_export_content_sha256: str | None = None,
     expected_canonical_revision: str | None = None,
+    publication_scope: str = "season",
 ) -> "CapabilityResult":
     """Publish the current export to GitHub Pages (issues #17/#18/#19/#20).
 
@@ -595,7 +565,34 @@ def _execute_publish_pages(
     always skipped when ``push=False`` — there is no public URL to check
     against local-only commits.
     """
-    binding_refusal = _export_binding_refusal(
+    if publication_scope == "activities":
+        from .activity_publication import execute_activity_publish
+
+        return execute_activity_publish(
+            work_dir=work_dir,
+            export_dir=export_dir,
+            repo_dir=repo_dir,
+            branch=branch,
+            remote=remote,
+            push=push,
+            confirm_public=confirm_public,
+            dry_run=dry_run,
+            verify=verify,
+            run_id=run_id,
+            expected_export_content_sha256=expected_export_content_sha256,
+            verify_max_attempts=verify_max_attempts,
+            verify_retry_delay_seconds=verify_retry_delay_seconds,
+            fetch=fetch,
+            sleep=sleep,
+        )
+    if publication_scope != "season":
+        from .capability_result import CapabilityResult as _Scope
+
+        return _Scope.failed(f"Ukjent publiseringsscope: {publication_scope!r}.", capability="pages_publish")
+
+    from .export_binding import export_binding_refusal
+
+    binding_refusal = export_binding_refusal(
         export_dir=export_dir,
         expected_export_content_sha256=expected_export_content_sha256,
         expected_canonical_revision=expected_canonical_revision,
