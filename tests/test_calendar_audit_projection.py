@@ -213,3 +213,32 @@ def test_readable_but_partial_calendar_is_uncheckable_not_identity_loss(tmp_path
     report = booking_status_report(season="2026-2027", root=root, problem=partial)
 
     assert _bucket_of(report, "t1") == "accepted_uncheckable"
+
+
+def test_accepted_booking_with_unresolved_plausible_candidates_is_not_identity_loss(tmp_path):
+    """Competing plausible events are ambiguity to review, never a claim that no event matches (#842)."""
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    problem = _problem(
+        [
+            _event("2026-09-12", "10:00", "11:00"),
+            _event("2026-09-12", "11:00", "12:00"),
+        ],
+        complete=True,
+    )
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="booker",
+        reference="email:competing",
+        problem=problem,
+    )
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
+
+    assert _bucket_of(report, "t1") == "unconfirmed_ambiguous"
+    assert row["operational_state"] == "booked"
+    assert row["operational_lock"] is True

@@ -85,10 +85,13 @@ def _classify(row: Mapping[str, Any]) -> str:
         if comparison_status == "matches":
             return AUDIT_CONFIRMED_MATCHING
         if comparison_status == "no_observed_interval" and row.get("calendar_covers_window") is True:
-            # The calendar could show this tournament and found no matching
-            # event: the booking identity is lost or reassigned. The accepted
-            # booking keeps its authority; the identity gap is review work.
-            return AUDIT_ACCEPTED_IDENTITY_REVIEW
+            # No primary observation is not the same as no matching event. Only
+            # a complete calendar with no plausible candidate shows a lost or
+            # reassigned identity. Contested candidates stay unresolved ambiguity.
+            if int(row.get("actionable_candidate_count") or 0) == 0:
+                return AUDIT_ACCEPTED_IDENTITY_REVIEW
+            return AUDIT_UNCONFIRMED_AMBIGUOUS
+
         return AUDIT_ACCEPTED_UNCHECKABLE
     if row.get("conflict"):
         return AUDIT_MATERIAL_MISMATCH
