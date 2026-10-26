@@ -381,6 +381,7 @@ def publish(
     remote: str = "origin",
     push: bool = True,
     bundle_fingerprint: str | None = None,
+    expected_base_commit: str | None = None,
 ) -> CapabilityResult:
     """Publish *export_dir* (a Stage 4 export bundle) to the Pages branch.
 
@@ -419,6 +420,14 @@ def publish(
     try:
         if push:
             _git(["fetch", remote, branch], cwd=repo_root)
+            if expected_base_commit is not None:
+                current_base = _git(["rev-parse", f"{remote}/{branch}"], cwd=repo_root).stdout.strip()
+                if current_base != expected_base_commit:
+                    return CapabilityResult.failed(
+                        f"{remote}/{branch} endret seg før publiseringen ({current_base[:12]}, "
+                        f"forventet {expected_base_commit[:12]}). Ingenting ble publisert.",
+                        capability="pages_publish",
+                    )
 
         local_exists = _branch_exists_locally(repo_root, branch)
         remote_exists = push and _branch_exists_on_remote(repo_root, remote, branch)

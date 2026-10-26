@@ -64,6 +64,7 @@ def _cmd_activities(args: argparse.Namespace) -> int:
     # sanitized, approval-gated, fingerprinted, committed/pushed and verified
     # exactly like a normal Pages publication.
     args.operator_command = "publish"
+    args.publication_scope = "activities"
     args.export_dir = prepared["export_dir"]
     args.run_id = getattr(args, "run_id", None) or default_activity_run_id()
     args.extra_public_files = getattr(args, "extra_public_files", []) or []

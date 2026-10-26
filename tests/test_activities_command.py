@@ -1,51 +1,75 @@
-"""The `activities` command stages the activity calendar and hands it to the operator publish path."""
+"""The `activities` command stages the activity calendar and publishes it through the real publish action."""
 
 from __future__ import annotations
 
 import argparse
+import shutil
 import subprocess
 from pathlib import Path
 
-import openpyxl
-
 from tournament_scheduler.cli import activities_command
 
-
-def _git(repo: Path, *args: str) -> None:
-    subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True, text=True)
-
-
-def _repo_with_pages_latest(repo: Path) -> None:
-    repo.mkdir()
-    _git(repo, "init")
-    _git(repo, "-c", "user.email=test@example.com", "-c", "user.name=Test", "commit", "--allow-empty", "-m", "initial")
-    _git(repo, "checkout", "--orphan", "gh-pages")
-    (repo / "latest").mkdir()
-    (repo / "latest" / "index.html").write_text("<html>latest</html>", encoding="utf-8")
-    _git(repo, "add", "latest")
-    _git(repo, "-c", "user.email=test@example.com", "-c", "user.name=Test", "commit", "-m", "pages")
+REPO_ROOT = Path(__file__).resolve().parents[1]
+REAL_ACTIVITY_JSON = REPO_ROOT / "inputs" / "activities" / "activities.json"
+SEASON_FILE = "season_plan.html"
+SEASON_BODY = "<html>season plan, reviewed</html>"
 
 
-def _workbook(path: Path) -> None:
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Årshjul"
-    ws.append(["Dato", "Aktivitet"])
-    ws.append(["2026-01-17", "RS U15"])
-    wb.save(path)
+def _git(cwd: Path, *args: str) -> str:
+    proc = subprocess.run(
+        ["git", "-c", "user.email=t@example.com", "-c", "user.name=Test", *args],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return proc.stdout.strip()
 
 
-def _args(tmp_path: Path, **overrides) -> argparse.Namespace:
+def _write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def _origin_with_live_site(tmp: Path) -> tuple[Path, Path]:
+    """A bare origin whose gh-pages holds the season file and an old activity calendar."""
+
+    origin = tmp / "origin.git"
+    subprocess.run(["git", "init", "--bare", "-q", str(origin)], check=True)
+    seed = tmp / "seed"
+    seed.mkdir()
+    _git(seed, "init", "-q")
+    _write(seed / "latest" / SEASON_FILE, SEASON_BODY)
+    _write(seed / "latest" / "activities.json", '{"activities": []}')
+    _write(seed / "latest" / "activities" / "index.html", "<html>activities old</html>")
+    _git(seed, "checkout", "-q", "--orphan", "gh-pages")
+    _git(seed, "add", "-A")
+    _git(seed, "commit", "-q", "-m", "live site")
+    _git(seed, "remote", "add", "origin", str(origin))
+    _git(seed, "push", "-q", "origin", "gh-pages")
+
+    work = tmp / "work"
+    subprocess.run(["git", "clone", "-q", str(origin), str(work)], check=True)
+    _git(work, "checkout", "-q", "-B", "main", "origin/gh-pages")
+    return origin, work
+
+
+def _args(tmp_path: Path, work: Path, **overrides) -> argparse.Namespace:
+    input_copy = tmp_path / "activities.json"
+    shutil.copyfile(REAL_ACTIVITY_JSON, input_copy)
     values = {
-        "input": str(tmp_path / "Årshjul for aktiviteter.xlsx"),
+        "input": str(input_copy),
         "export_dir": str(tmp_path / "export"),
-        "repo_dir": str(tmp_path / "repo"),
+        "repo_dir": str(work),
         "branch": "gh-pages",
         "remote": "origin",
         "year": 2026,
         "base_latest": True,
         "publish": False,
-        "push": False,
+        "push": True,
+        "confirm_public": False,
+        "dry_run": False,
+        "verify": False,
         "work_dir": str(tmp_path / ".pipeline"),
         "json": False,
     }
@@ -54,33 +78,24 @@ def _args(tmp_path: Path, **overrides) -> argparse.Namespace:
 
 
 def test_activities_stages_the_calendar_without_publishing(tmp_path, capsys):
-    _repo_with_pages_latest(tmp_path / "repo")
-    _workbook(tmp_path / "Årshjul for aktiviteter.xlsx")
+    origin, work = _origin_with_live_site(tmp_path)
+    before = _git(origin, "rev-parse", "refs/heads/gh-pages")
 
-    code = activities_command._cmd_activities(_args(tmp_path))
+    code = activities_command._cmd_activities(_args(tmp_path, work))
 
-    out = capsys.readouterr().out
     assert code == 0
-    assert "Ikke publisert" in out
-    assert (tmp_path / "export").exists()
+    assert "Ikke publisert" in capsys.readouterr().out
+    assert (tmp_path / "export" / "activities" / "index.html").is_file()
+    assert _git(origin, "rev-parse", "refs/heads/gh-pages") == before
 
 
-def test_publish_hands_the_staged_export_to_the_operator_publish_path(tmp_path, monkeypatch):
-    _repo_with_pages_latest(tmp_path / "repo")
-    _workbook(tmp_path / "Årshjul for aktiviteter.xlsx")
-    seen: dict[str, object] = {}
+def test_activities_publish_updates_only_the_activity_files_on_the_real_remote(tmp_path):
+    origin, work = _origin_with_live_site(tmp_path)
+    before = _git(origin, "rev-parse", "refs/heads/gh-pages")
 
-    def _record(args):
-        seen["operator_command"] = args.operator_command
-        seen["export_dir"] = args.export_dir
-        seen["run_id"] = args.run_id
-        return None  # refuse without publishing; the test only checks the wiring
+    code = activities_command._cmd_activities(_args(tmp_path, work, publish=True, confirm_public=True))
 
-    monkeypatch.setattr(activities_command, "_execute_operator_publish", _record)
-
-    code = activities_command._cmd_activities(_args(tmp_path, publish=True))
-
-    assert code == 1
-    assert seen["operator_command"] == "publish"
-    assert Path(str(seen["export_dir"])).is_dir()
-    assert str(seen["run_id"]).startswith("activities-")
+    assert code == 0, "the activity publish must succeed through the real action"
+    assert _git(origin, "rev-parse", "refs/heads/gh-pages") != before
+    assert _git(origin, "show", f"refs/heads/gh-pages:latest/{SEASON_FILE}") == SEASON_BODY
+    assert "activities old" not in _git(origin, "show", "refs/heads/gh-pages:latest/activities/index.html")

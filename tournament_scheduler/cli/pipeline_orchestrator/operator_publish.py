@@ -50,6 +50,7 @@ def _execute_operator_publish(args: argparse.Namespace) -> "Any | None":
         "confirm_public": getattr(args, "confirm_public", False),
         "dry_run": getattr(args, "dry_run", False),
         "verify": getattr(args, "verify", True),
+        "publication_scope": getattr(args, "publication_scope", None) or "season",
     }
     # For `operator run --publish`, Stage 4 may write into a timestamped child of
     # args.export_dir (for example export/2026-07-29T1712).  Do not pass the
