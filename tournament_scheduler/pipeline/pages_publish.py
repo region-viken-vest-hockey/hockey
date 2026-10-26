@@ -52,6 +52,10 @@ _GIT_TIMEOUT_SECONDS = 120
 # These assets are published independently from the season-plan bundle.
 # A season-plan publish must never delete them from /latest/.
 _PRESERVED_LATEST_PATHS = ("activities", "activities.json", "registered-teams")
+# The season identity: which season run is the published season. Written only by season
+# publishes, preserved by every other publish. The deployment identity stays in _meta.json.
+SEASON_POINTER_NAME = "_season_meta.json"
+PUBLICATION_SCOPES = ("season", "activities")
 
 
 class PagesPublishError(RuntimeError):
@@ -382,6 +386,7 @@ def publish(
     push: bool = True,
     bundle_fingerprint: str | None = None,
     expected_base_commit: str | None = None,
+    publication_scope: str = "season",
 ) -> CapabilityResult:
     """Publish *export_dir* (a Stage 4 export bundle) to the Pages branch.
 
@@ -401,6 +406,10 @@ def publish(
     output so the existing no-op-on-no-changes behavior isn't broken by
     this file.
     """
+    if publication_scope not in PUBLICATION_SCOPES:
+        return CapabilityResult.failed(
+            f"Ukjent publiseringsscope: {publication_scope!r}.", capability="pages_publish"
+        )
     export_path = Path(export_dir)
     if not export_path.is_dir() or not any(export_path.iterdir()):
         return CapabilityResult.failed(
@@ -485,7 +494,7 @@ def publish(
         _copy_bundle(
             export_path,
             branch_root / "latest",
-            preserve_existing=_PRESERVED_LATEST_PATHS,
+            preserve_existing=_PRESERVED_LATEST_PATHS + (SEASON_POINTER_NAME,),
         )
         run_dir = branch_root / "runs" / run_id
         is_new_run_snapshot = not run_dir.exists()
@@ -498,6 +507,7 @@ def publish(
             expected["_meta.json"] = meta_payload.encode("utf-8")
         if is_new_run_snapshot:
             _copy_bundle(branch_root / "latest", run_dir)
+            (run_dir / SEASON_POINTER_NAME).unlink(missing_ok=True)
         elif not _snapshot_matches(run_dir, expected):
             # A run snapshot is immutable once written. Changed content needs a new run id.
             return CapabilityResult.failed(
@@ -510,6 +520,13 @@ def publish(
             (branch_root / "latest" / "_meta.json").write_text(meta_payload, encoding="utf-8")
             if is_new_run_snapshot:
                 (run_dir / "_meta.json").write_text(meta_payload, encoding="utf-8")
+        season_pointer = branch_root / "latest" / SEASON_POINTER_NAME
+        if publication_scope == "season":
+            if meta_payload is not None:
+                season_pointer.write_text(meta_payload, encoding="utf-8")
+            else:
+                # A season publish without a bundle identity must not leave the previous season claimed.
+                season_pointer.unlink(missing_ok=True)
 
         _git(["add", "-A"], cwd=tmp_dir)
         status_proc = _git(["status", "--porcelain"], cwd=tmp_dir)
