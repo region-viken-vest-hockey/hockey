@@ -189,9 +189,10 @@ def _snapshot_matches(run_dir: Path, expected: dict[str, bytes]) -> bool:
     because they are published separately and may legitimately change.
     """
     owned = {
-        path.relative_to(run_dir).as_posix()
-        for path in run_dir.rglob("*")
-        if path.is_file() and not _is_preserved_path(path.relative_to(run_dir).as_posix())
+        rel
+        for rel in (path.relative_to(run_dir).as_posix() for path in run_dir.rglob("*") if path.is_file())
+        # A preserved page is compared only when this bundle carries it; otherwise it is outside the run.
+        if rel in expected or not _is_preserved_path(rel)
     }
     if owned != set(expected):
         return False
@@ -280,6 +281,8 @@ def _planned_bundle_contents(export_dir: Path) -> dict[str, bytes]:
         path.relative_to(export_dir).as_posix(): path.read_bytes()
         for path in sorted(p for p in export_dir.rglob("*") if p.is_file())
     }
+    # The season pointer is deployment state, written or preserved by publish(), never bundle content.
+    contents.pop(SEASON_POINTER_NAME, None)
     if "index.html" not in contents:
         if "season_plan.html" in contents:
             contents["index.html"] = contents["season_plan.html"]
@@ -310,7 +313,13 @@ def _refresh_and_resolve_ref(repo_root: str, *, remote: str, branch: str) -> str
     return None
 
 
-def diff_latest(bundle_dir: str, *, repo_dir: str = ".", branch: str = "gh-pages") -> dict[str, list[str]]:
+def diff_latest(
+    bundle_dir: str,
+    *,
+    repo_dir: str = ".",
+    branch: str = "gh-pages",
+    publication_scope: str = "season",
+) -> dict[str, list[str]]:
     """Read-only preview of what publishing *bundle_dir* would change under ``/latest/``.
 
     Compares against the *local* branch tip only (no fetch) via plain git
@@ -357,6 +366,11 @@ def diff_latest(bundle_dir: str, *, repo_dir: str = ".", branch: str = "gh-pages
         elif show_proc.stdout != content:
             update.append(rel)
 
+    pointer_rel = f"latest/{SEASON_POINTER_NAME}"
+    if publication_scope == "season":
+        # The pointer's bytes depend on the run, which only apply knows; report that it changes.
+        (update if pointer_rel in existing else add).append(pointer_rel)
+
     bundle_rels = {f"latest/{name}" for name in bundle_contents}
     preserved_roots = tuple(
         root
@@ -366,7 +380,7 @@ def diff_latest(bundle_dir: str, *, repo_dir: str = ".", branch: str = "gh-pages
     remove = sorted(
         path
         for path in existing - bundle_rels
-        if path != "latest/_meta.json"
+        if path not in ("latest/_meta.json", pointer_rel)
         and not any(
             path == f"latest/{root}" or path.startswith(f"latest/{root}/")
             for root in preserved_roots
@@ -491,6 +505,8 @@ def publish(
 
         branch_root = Path(tmp_dir)
         _write_root_index(branch_root)
+        live_season_pointer = (branch_root / "latest" / SEASON_POINTER_NAME)
+        live_season_pointer_bytes = live_season_pointer.read_bytes() if live_season_pointer.is_file() else None
         _copy_bundle(
             export_path,
             branch_root / "latest",
@@ -521,7 +537,14 @@ def publish(
             if is_new_run_snapshot:
                 (run_dir / "_meta.json").write_text(meta_payload, encoding="utf-8")
         season_pointer = branch_root / "latest" / SEASON_POINTER_NAME
-        if publication_scope == "season":
+        if publication_scope != "season":
+            # Only a season publish may move the season identity. The staged bundle may hold an
+            # older copy of the pointer, so restore the live one rather than trust the bundle.
+            if live_season_pointer_bytes is not None:
+                season_pointer.write_bytes(live_season_pointer_bytes)
+            else:
+                season_pointer.unlink(missing_ok=True)
+        elif publication_scope == "season":
             if meta_payload is not None:
                 season_pointer.write_text(meta_payload, encoding="utf-8")
             else:
