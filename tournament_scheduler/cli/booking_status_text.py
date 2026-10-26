@@ -33,6 +33,31 @@ def _comparison_line(comparison: Mapping[str, Any]) -> str:
     return f"plan {planned_text} | calendar {observed_text} | differs: {deltas}"
 
 
+_AUDIT_LABELS = (
+    ("confirmed_matching", "confirmed, interval matches"),
+    ("accepted_uncheckable", "accepted, calendar uncheckable (not a mismatch)"),
+    ("material_mismatch", "material mismatch"),
+    ("unconfirmed_ambiguous", "unconfirmed, needs review"),
+    ("no_calendar_coverage", "no calendar coverage (not proof of absence)"),
+    ("explicit_not_booked", "explicitly not booked"),
+    ("cancelled_historical", "cancelled/historical (outside active totals)"),
+)
+
+
+def _audit_lines(audit: Mapping[str, Any]) -> list[str]:
+    """Render the calendar audit contract from the projection's own buckets."""
+
+    counts = audit.get("counts") or {}
+    lines = [f"Calendar audit: {audit.get('active_total', 0)} active"]
+    for key, label in _AUDIT_LABELS:
+        lines.append(f"  {label}: {counts.get(key, 0)}")
+    for detail in audit.get("material_mismatches") or []:
+        if not isinstance(detail, Mapping):
+            continue
+        lines.append(f"  {detail.get('tournament_id')}: {_comparison_line({**detail, 'status': 'differs'})}")
+    return lines
+
+
 def _row_lines(row: Mapping[str, Any]) -> list[str]:
     lines = [
         f"{row.get('tournament_id')}  {row.get('age_group')}  {row.get('date')} {row.get('start_time')}  {row.get('arena')}",
@@ -65,6 +90,10 @@ def format_host_club_booking_status(report: Mapping[str, Any]) -> str:
         lines.append("No tournaments are hosted by this club.")
     for row in rows:
         lines.extend(_row_lines(row))
+        lines.append("")
+    audit = report.get("calendar_audit")
+    if isinstance(audit, Mapping):
+        lines.extend(_audit_lines(audit))
         lines.append("")
     unresolved = [event for event in report.get("unresolved_calendar_events") or [] if isinstance(event, Mapping)]
     lines.append(f"Calendar events without one clear tournament match: {len(unresolved)}")

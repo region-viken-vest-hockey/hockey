@@ -1845,9 +1845,13 @@ def booking_status_report(
     )
     if host_key:
         club_sources = _scope_club_sources(club_sources, set(tournaments))
+    # Local import: the audit contract reads this module's status constants.
+    from tournament_scheduler.booking.calendar_audit import calendar_audit_summary
+
     report = {
         "tournaments": rows,
         "counts": counts,
+        "calendar_audit": calendar_audit_summary(rows, cancelled_history=cancelled_history),
         "rejected_booking_evidence": rejected_evidence,
         # One structured work item per ``action_required`` tournament; the
         # per-row copy keeps consumers that iterate tournaments able to render
@@ -1952,7 +1956,14 @@ def association_findings(
     events = {str(event.get("fingerprint") or ""): event for event in iter_events(problem)}
     tournaments = _tournaments_by_id(plan)
     findings: list[dict[str, Any]] = []
-    active = active_associations(decisions)
+    # A cancelled tournament occupies no ice, so an association left on it is
+    # historical provenance, not a current stale or duplicate finding (#842).
+    cancelled_ids = _cancelled_tournament_ids(plan)
+    active = [
+        record
+        for record in active_associations(decisions)
+        if str(record.get("tournament_id") or "") not in cancelled_ids
+    ]
     by_event: dict[str, list[dict[str, Any]]] = {}
     for record in active:
         by_event.setdefault(str(record.get("event_fingerprint") or ""), []).append(record)
