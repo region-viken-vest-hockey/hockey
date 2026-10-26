@@ -42,6 +42,7 @@ def _fixture(tmp: Path) -> tuple[Path, Path]:
     seed.mkdir()
     _git(seed, "init", "-q")
     _write(seed / "latest" / SEASON_FILE, SEASON_BODY)
+    _write(seed / "latest" / "_meta.json", '{"run_id": "season-run", "bundle_fingerprint": "season"}')
     _write(seed / "latest" / "activities.json", ACTIVITIES_JSON_OLD)
     _write(seed / "latest" / "activities" / "index.html", ACTIVITIES_HTML_OLD)
     _git(seed, "checkout", "-q", "--orphan", "gh-pages")
@@ -61,6 +62,8 @@ def _staged_snapshot(tmp: Path, work: Path) -> Path:
 
     stage = tmp / "stage"
     shutil.copytree(work / "latest", stage)
+    # The real snapshot builder leaves latest/_meta.json out: the shared publisher owns and regenerates it.
+    (stage / "_meta.json").unlink()
     _write(stage / "activities.json", '{"activities": [{"date": "2026-01-17"}]}')
     _write(stage / "activities" / "index.html", "<html>activities new</html>")
     return stage
@@ -313,3 +316,17 @@ def test_shared_publisher_refuses_when_the_base_moved_after_it_was_read(tmp_path
 
     assert result.status == "failed"
     assert _origin_head(origin) == moved
+
+
+def test_activity_publish_keeps_season_content_and_regenerates_publisher_metadata(tmp_path):
+    origin, work = _fixture(tmp_path)
+    stage = _staged_snapshot(tmp_path, work)
+    before_meta = _git(origin, "show", "refs/heads/gh-pages:latest/_meta.json")
+
+    result = _publish(tmp_path, work, stage)
+
+    assert result.status in ("ok", "warning"), result.summary
+    after_meta = _git(origin, "show", "refs/heads/gh-pages:latest/_meta.json")
+    assert after_meta != before_meta
+    assert "activities-test" in after_meta
+    assert _git(origin, "show", f"refs/heads/gh-pages:latest/{SEASON_FILE}") == SEASON_BODY

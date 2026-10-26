@@ -27,6 +27,8 @@ from .pages_bundle import _find_secrets, _redact_contact_and_paths
 
 # Paths relative to the Pages ``latest/`` root.
 ACTIVITY_FILES: tuple[str, ...] = ("activities.json", "activities/index.html")
+# Owned by the shared publisher, which regenerates it on every publish. The snapshot builder leaves it out.
+PUBLISHER_OWNED_LATEST: tuple[str, ...] = ("_meta.json",)
 _LATEST = "latest/"
 
 
@@ -95,14 +97,14 @@ def integrity_problems(
         if rel not in snap:
             problems.append(f"mangler {rel}")
     for rel, sha in base_files.items():
-        if rel in ACTIVITY_FILES:
+        if rel in ACTIVITY_FILES or rel in PUBLISHER_OWNED_LATEST:
             continue
         if rel not in snap:
             problems.append(f"sletter {rel}")
         elif snap[rel] != sha:
             problems.append(f"endret {rel}")
     for rel in snap:
-        if rel not in ACTIVITY_FILES and rel not in base_files:
+        if rel not in ACTIVITY_FILES and rel not in PUBLISHER_OWNED_LATEST and rel not in base_files:
             problems.append(f"ny fil {rel}")
     if expected_digest is not None and snapshot_digest(snapshot_dir) != expected_digest:
         problems.append("snapshot-digest endret etter godkjenning")
