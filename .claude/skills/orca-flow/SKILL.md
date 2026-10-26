@@ -261,6 +261,10 @@ If a check fails and you cannot see a fix, consult ChatGPT (see *When stuck*).
 
 ## 10. Delete the review and consult chats
 
+**Finding a chat:** the project's "Chats in <project>" sidebar list can lag and omit a chat the flow
+just created, so do not conclude a chat is missing from the sidebar. Open the recorded `/c/<id>`
+URL and read its first message. That is the authoritative check for whether the chat exists.
+
 Delete only the ChatGPT chats this flow created (review and consult chats), and nothing else.
 
 - Identify them by the first message you sent (the review request or the consult question),
@@ -276,6 +280,9 @@ Delete only the ChatGPT chats this flow created (review and consult chats), and 
 - Verify each deletion by the chat ID recorded at creation: the chat's `/c/<id>` URL must no longer
   open, and no tab may point at it. Sidebar titles are supplementary evidence only. The sidebar can
   list one chat twice (under the project and under Recents), so delete it once.
+- The verification is mandatory, not optional. After the delete click, open the recorded
+  `/c/<id>` URL again in a tab and confirm ChatGPT reports the chat as gone. Record the result in
+  the report. A run that did not re-check the deletion has not verified it.
 - Include flow chats outside the project. A review sent to a top-level `chatgpt.com/c/<id>` by
   mistake is still a flow chat and must be deleted.
 - Close the tab of each deleted chat with `orca tab close --page <id>`, then confirm with
