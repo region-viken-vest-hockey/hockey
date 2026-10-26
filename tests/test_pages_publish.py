@@ -296,7 +296,8 @@ class TestDiffLatest:
         # index.html changes too — it's a copy of season_plan.html.
         assert diff["update"] == ["latest/index.html", "latest/season_plan.html"]
         assert diff["remove"] == ["latest/season_plan.ics"]
-        assert diff["add"] == []
+        # A season publish writes the season pointer, so the preview reports it as added.
+        assert diff["add"] == ["latest/_season_meta.json"]
 
 
 class TestMetaJson:

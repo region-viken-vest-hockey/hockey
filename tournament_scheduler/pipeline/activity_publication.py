@@ -211,6 +211,7 @@ def execute_activity_publish(
         push=push,
         bundle_fingerprint=digest,
         expected_base_commit=base_rev if push else None,
+        publication_scope="activities",
     )
     result.evidence = list(result.evidence) + [f"snapshot_digest={digest}", "publication_scope=activities"]
 

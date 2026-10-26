@@ -769,7 +769,11 @@ def _execute_publish_pages(
             or path.startswith("latest/registered-teams/")
         )
 
-    routine_asset_diff = pages_publish.diff_latest(public_bundle_dir, repo_dir=repo_dir, branch=branch)
+    # Routine public assets are non-season pages: they never move the season identity.
+    bundle_publication_scope = "activities" if routine_public_assets else "season"
+    routine_asset_diff = pages_publish.diff_latest(
+        public_bundle_dir, repo_dir=repo_dir, branch=branch, publication_scope=bundle_publication_scope
+    )
     routine_asset_changes = [
         path
         for kind in ("add", "update", "remove")
@@ -803,7 +807,9 @@ def _execute_publish_pages(
     )
 
     def _raise_preview_question() -> dict[str, list[str]]:
-        diff = pages_publish.diff_latest(public_bundle_dir, repo_dir=repo_dir, branch=branch)
+        diff = pages_publish.diff_latest(
+            public_bundle_dir, repo_dir=repo_dir, branch=branch, publication_scope=bundle_publication_scope
+        )
         urls = pages_publish.resolve_urls(repo_dir=repo_dir, remote=remote, run_id=run_id)
         question.context = (
             f"{bundle_result.summary} Endringer under /latest/: "
@@ -926,6 +932,7 @@ def _execute_publish_pages(
         remote=remote,
         push=push,
         bundle_fingerprint=bundle_fp,
+        publication_scope=bundle_publication_scope,
     )
     publish_result.evidence = (
         list(bundle_result.evidence)
