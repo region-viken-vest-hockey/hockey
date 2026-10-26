@@ -47,7 +47,7 @@ class TestComposeHistory:
         entries = compose_history([], run_id="run-1", kind="publish", date="2026-10-21T12:00:00+00:00")
 
         assert entries == [
-            {"date": "2026-10-21T12:00:00+00:00", "kind": "publish", "run_id": "run-1", "fingerprint": ""}
+            {"date": "2026-10-21T12:00:00+00:00", "kind": "publish", "run_id": "run-1", "scope": "", "fingerprint": ""}
         ]
 
     def test_new_publication_is_prepended_newest_first(self):
@@ -207,7 +207,7 @@ class TestHistoryPageFromPublishing:
         page = _read_history(local)
         assert _current_run_ids(page) == ["run-1"]
         # Backfill records no new publication: the log still has exactly one publish of run-1.
-        assert _git_out(local, "log", "--format=%s", "gh-pages").count("Publish run run-1") == 1
+        assert _git_out(local, "log", "--format=%s", "gh-pages").count("Publish season run run-1") == 1
 
     def test_reported_publication_time_is_the_committed_log_time(self, tmp_path):
         local = _init_repo_with_remote(tmp_path)
@@ -230,7 +230,7 @@ class TestHistoryPageFromPublishing:
 
         entries = publication_log(_Git(), ".")
 
-        assert entries == [{"date": "2026-10-21T13:28:23+00:00", "kind": "publish", "run_id": "run-1", "fingerprint": ""}]
+        assert entries == [{"date": "2026-10-21T13:28:23+00:00", "kind": "publish", "run_id": "run-1", "scope": "", "fingerprint": ""}]
 
     def test_publication_time_is_strictly_later_than_the_newest_publication(self, tmp_path):
         class _Git:

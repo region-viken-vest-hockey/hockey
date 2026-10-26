@@ -45,7 +45,8 @@ from pathlib import Path
 from tournament_scheduler.html.templates import PAGES_EMPTY_INDEX, PAGES_ROOT_INDEX
 
 from .capability_result import CapabilityResult
-from .pages_history import HISTORY_DIRECTORY, PublicationHistoryError, publication_log, write_history_page
+from .pages_history import (HISTORY_DIRECTORY, PublicationHistoryError, commit_subject, publication_log,
+    publish_scopes, write_history_page)
 
 _GIT_TIMEOUT_SECONDS = 120
 
@@ -531,6 +532,15 @@ def publish(
                 "runs/ endres ikke; publiser endret innhold under en ny run-id.",
                 capability="pages_publish",
             )
+        else:
+            # A run id keeps the scope it was first published under, even when its bytes are identical.
+            recorded = publish_scopes(_git, str(branch_root), run_id)
+            if recorded and recorded != {publication_scope}:
+                return CapabilityResult.failed(
+                    f"Kjøring {run_id} er allerede publisert i scope {sorted(recorded)[0] or 'uklassifisert'!r}. "
+                    "Den kan ikke publiseres i et annet scope; bruk en ny run-id.",
+                    capability="pages_publish",
+                )
 
         if meta_payload is not None:
             (branch_root / "latest" / "_meta.json").write_text(meta_payload, encoding="utf-8")
@@ -571,9 +581,11 @@ def publish(
                 artifacts=artifacts,
             )
 
-        when, published_at = write_history_page(branch_root, run_id=run_id, kind="publish", git=_git, record=changed)
+        when, published_at = write_history_page(
+            branch_root, run_id=run_id, kind="publish", git=_git, record=changed, scope=publication_scope
+        )
         _git(["add", "-A"], cwd=tmp_dir)
-        subject = f"Publish run {run_id}" if changed else "Add publication history page"
+        subject = commit_subject("publish", run_id, publication_scope) if changed else "Add publication history page"
         commit_proc = _git(
             [
                 "-c", "user.email=rvv-miniputt-operator@localhost",
@@ -696,13 +708,30 @@ def rollback_to_run(
                 capability="pages_publish",
             )
 
+        scopes = publish_scopes(_git, str(tmp_dir), run_id)
+        target_scope = scopes.pop() if len(scopes) == 1 else ""
+        if not target_scope:
+            return CapabilityResult.failed(
+                f"Kjøring '{run_id}' er publisert før publiseringsscope ble registrert, så dens sesongidentitet "
+                "er ikke fastslått. Tilbakerullingen er stanset; ingenting ble endret.",
+                capability="pages_publish",
+            )
+
         latest_dir = Path(tmp_dir) / "latest"
-        # Run snapshots carry no season pointer, so a rollback must keep the live one.
+        # Run snapshots carry no season pointer. The live pointer is kept, except when the target
+        # is a season run: then the pointer is that run's identity, as published in its _meta.json.
         _copy_bundle(
             run_dir,
             latest_dir,
             preserve_existing=_PRESERVED_LATEST_PATHS + (SEASON_POINTER_NAME,),
         )
+        if target_scope == "season":
+            # Same rule as a season publish: a season without a bundle identity claims no season.
+            season_identity = run_dir / "_meta.json"
+            if season_identity.is_file():
+                (latest_dir / SEASON_POINTER_NAME).write_bytes(season_identity.read_bytes())
+            else:
+                (latest_dir / SEASON_POINTER_NAME).unlink(missing_ok=True)
         _git(["add", "-A"], cwd=tmp_dir)
         status_proc = _git(["status", "--porcelain"], cwd=tmp_dir)
 
@@ -723,9 +752,11 @@ def rollback_to_run(
                 artifacts=artifacts,
             )
 
-        when, published_at = write_history_page(Path(tmp_dir), run_id=run_id, kind="rollback", git=_git, record=changed)
+        when, published_at = write_history_page(
+            Path(tmp_dir), run_id=run_id, kind="rollback", git=_git, record=changed, scope=target_scope
+        )
         _git(["add", "-A"], cwd=tmp_dir)
-        subject = f"Rollback latest to run {run_id}" if changed else "Add publication history page"
+        subject = commit_subject("rollback", run_id, target_scope) if changed else "Add publication history page"
         commit_proc = _git(
             [
                 "-c", "user.email=rvv-miniputt-operator@localhost",

@@ -28,11 +28,14 @@ def _history_page(
     links: tuple[str, ...] = ("run-1",),
     fingerprint: str = FINGERPRINT,
     published_at: str = PUBLISHED_AT,
+    season_run: str | None = None,
+    season_scope: str = "season",
 ) -> FetchResponse:
     rows = "".join(
         f'<tr data-run-id="{run}" data-fingerprint="{fingerprint if run == current_run_id else "older"}" '
         f'data-published-at="{published_at if run == current_run_id else "older"}" '
-        f'data-current="{"true" if run == current_run_id else "false"}">'
+        f'data-current="{"true" if run == current_run_id else "false"}"'
+        f'{f" data-scope=\"{season_scope}\" data-season-current=\"true\"" if run == season_run else ""}>'
         f'<td><a href="../runs/{run}/">Vis snapshot</a></td></tr>'
         for run in links
     )
@@ -255,12 +258,17 @@ class TestTimeout:
 
 
 SEASON_POINTER_URL = LATEST_URL + "_season_meta.json"
-SEASON_1 = {"run_id": "season-1", "bundle_fingerprint": "fp-season-1"}
+SEASON_1 = {"run_id": RUN_ID, "bundle_fingerprint": "fp-season-1"}
 
 
-def _pointer_fetch(served: dict | None):
-    """Serve the season pointer as *served* (None = absent), everything else as a good publication."""
-    base = _served_fetch()
+def _pointer_fetch(served: dict | None, history: FetchResponse | None = None):
+    """Serve the season pointer as *served* (None = absent), everything else as a good publication.
+
+    The history page marks the served season as the season, unless *history* says otherwise.
+    """
+    if history is None:
+        history = _history_page(season_run=served["run_id"] if served else None)
+    base = _served_fetch(history=history)
 
     def fetch(url):
         if url == SEASON_POINTER_URL:
@@ -311,3 +319,36 @@ def test_verification_does_not_check_the_season_pointer_unless_asked():
     )
 
     assert result.status == "ok", result.summary
+
+
+def test_verification_passes_when_the_history_marks_the_pointer_season():
+    result = verify_publication(
+        latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+        published_at=PUBLISHED_AT, max_attempts=1, fetch=_pointer_fetch(SEASON_1, history=_history_page(season_run="run-1")),
+        sleep=_NoSleep(), check_season_pointer=True, expected_season_pointer=SEASON_1,
+    )
+
+    assert result.status == "ok", result.summary
+
+
+def test_verification_fails_when_the_history_marks_another_season():
+    result = verify_publication(
+        latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+        published_at=PUBLISHED_AT, max_attempts=1,
+        fetch=_pointer_fetch(SEASON_1, history=_history_page(links=("run-1", "run-2"), season_run="run-2")),
+        sleep=_NoSleep(), check_season_pointer=True, expected_season_pointer=SEASON_1,
+    )
+
+    assert result.status != "ok", result.summary
+    assert any("sesong" in problem.lower() for problem in result.problems), result.problems
+
+
+def test_verification_fails_when_the_season_marker_sits_on_a_non_season_row():
+    result = verify_publication(
+        latest_url=LATEST_URL, run_url=RUN_URL, bundle_fingerprint=FINGERPRINT, run_id=RUN_ID,
+        published_at=PUBLISHED_AT, max_attempts=1,
+        fetch=_pointer_fetch(SEASON_1, history=_history_page(season_run="run-1", season_scope="activities")),
+        sleep=_NoSleep(), check_season_pointer=True, expected_season_pointer=SEASON_1,
+    )
+
+    assert result.status != "ok", result.summary

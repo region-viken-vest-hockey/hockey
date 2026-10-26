@@ -118,7 +118,14 @@ def _history_url(latest_url: str) -> str:
 
 
 def _check_history_page(
-    history_url: str, run_id: str, bundle_fingerprint: str, published_at: str, fetch: FetchFunc
+    history_url: str,
+    run_id: str,
+    bundle_fingerprint: str,
+    published_at: str,
+    fetch: FetchFunc,
+    *,
+    check_season: bool = False,
+    season_run_id: str | None = None,
 ) -> str | None:
     """Check ``/history/`` loads, its run links resolve, and its current row is this publication.
 
@@ -142,6 +149,21 @@ def _check_history_page(
             f"historikksiden {history_url} markerer ikke publiseringen av kjøring {run_id} "
             f"(fingeravtrykk {bundle_fingerprint}, publisert {published_at}) som eneste gjeldende"
         )
+    if check_season:
+        # The season marker must name the season the pointer names: none when there is no season.
+        # A marked row must also be a season publication: a run id alone does not prove the scope.
+        marked_rows = re.findall(r"<tr [^>]*data-season-current=\"true\"[^>]*>", response.text)
+        marked = [
+            (run.group(1) if (run := re.search(r'data-run-id="([^"]+)"', row)) else "",
+             scope.group(1) if (scope := re.search(r'data-scope="([^"]*)"', row)) else "")
+            for row in marked_rows
+        ]
+        expected = [season_run_id] if season_run_id else []
+        if [run for run, _ in marked] != expected or any(scope != "season" for _, scope in marked):
+            return (
+                f"historikksiden {history_url} markerer sesongen {marked!r}, "
+                f"men sesongpekeren er {expected!r} og markeringen må ligge på en sesongpublisering"
+            )
     return _check_linked_pages(history_url, fetch)
 
 
@@ -208,7 +230,9 @@ def verify_publication(
                         else None
                     )
                     page_failure = season_failure or _check_linked_pages(latest_url, fetch) or _check_history_page(
-                        _history_url(latest_url), run_id, bundle_fingerprint, published_at, fetch
+                        _history_url(latest_url), run_id, bundle_fingerprint, published_at, fetch,
+                        check_season=check_season_pointer,
+                        season_run_id=(expected_season_pointer or {}).get("run_id"),
                     )
                     if page_failure is None:
                         artifacts = [latest_url] + ([run_url] if run_url else [])
