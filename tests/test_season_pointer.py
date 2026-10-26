@@ -307,3 +307,25 @@ def test_activity_publish_reports_the_pointer_mismatch_in_its_problems(tmp_path)
 
     assert result.status != "ok", result.summary
     assert any("sesongpekeren" in problem for problem in result.problems), result.problems
+
+
+def test_season_pointer_read_fails_closed_on_an_unresolved_base_revision(tmp_path):
+    import pytest
+
+    from tournament_scheduler.pipeline.activity_publication import ActivityScopeError, _season_pointer_at
+
+    origin, work = _fixture(tmp_path)
+
+    with pytest.raises(ActivityScopeError):
+        _season_pointer_at(str(work), "")
+    with pytest.raises(ActivityScopeError):
+        _season_pointer_at(str(work), "0" * 40)
+
+
+def test_season_pointer_read_reports_absence_only_for_a_missing_path(tmp_path):
+    from tournament_scheduler.pipeline.activity_publication import _season_pointer_at
+
+    origin, work = _fixture(tmp_path)
+    head = subprocess.run(["git", "rev-parse", "origin/gh-pages"], cwd=work, capture_output=True, text=True, check=True).stdout.strip()
+
+    assert _season_pointer_at(str(work), head) is None

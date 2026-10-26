@@ -262,18 +262,22 @@ def _season_pointer_at(repo_dir: str | Path, rev: str) -> dict | None:
     """The season identity at *rev*: the pointer object, or ``None`` when it is confirmed absent.
 
     Verification expects the pointer unchanged by an activity publish, so the value is read
-    before the publish. An unreadable or malformed pointer raises :class:`ActivityScopeError`
-    and blocks the publish; it must never be mistaken for an absent pointer.
+    before the publish. Absence is only reported when git lists the tree and the path is not in
+    it. Any other outcome (no resolved revision, a failed git call, unreadable or malformed
+    content) raises :class:`ActivityScopeError` and blocks the publish.
     """
     if not rev:
-        return None
-    exists = subprocess.run(
-        ["git", "cat-file", "-e", f"{rev}:latest/_season_meta.json"],
+        raise ActivityScopeError("kunne ikke finne gjeldende gh-pages-revisjon for sesongpekeren")
+    listing = subprocess.run(
+        ["git", "ls-tree", rev, "--", "latest/_season_meta.json"],
         cwd=repo_dir,
         capture_output=True,
+        text=True,
         check=False,
     )
-    if exists.returncode != 0:
+    if listing.returncode != 0:
+        raise ActivityScopeError(f"kunne ikke lese {rev[:12]}: {listing.stderr.strip()}")
+    if not listing.stdout.strip():
         return None
     proc = subprocess.run(
         ["git", "show", f"{rev}:latest/_season_meta.json"],
