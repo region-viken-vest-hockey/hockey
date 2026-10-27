@@ -375,3 +375,25 @@ def test_interval_outside_tolerance_without_identity_is_context_only():
     assert candidate["season_context_only"] is True
     assert candidate["actionable"] is False
     assert row["classification"] != "proposed_changed_slot"
+
+
+def test_generic_overlap_on_booked_resources_contests_without_identity_evidence():
+    # #853: a standing block overlapping the booked slot on the same ice is a venue
+    # contest, even with no age token and no near-exact interval.
+    overlapping = _event("10:30", "11:30", resources=BOTH, title="Skien Ishockeyklubb")
+    overlapping["date"] = "2026-09-12"
+
+    row = _row(_assess([overlapping]))
+
+    candidate = row["candidates"][0]
+    assert candidate["season_context_only"] is False
+
+
+def test_generic_overlap_on_disjoint_resources_stays_context():
+    # Ice outside the required footprint does not occupy the booked resources.
+    elsewhere = _event("10:30", "11:30", resources=["bane-3"], title="Skien Ishockeyklubb")
+    elsewhere["date"] = "2026-09-12"
+
+    row = _row(_assess([elsewhere]))
+
+    assert row["candidates"][0]["season_context_only"] is True

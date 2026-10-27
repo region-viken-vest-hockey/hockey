@@ -156,7 +156,7 @@ def assessment_candidate(
         # footprint is context, not a competitor, however near it sits. It is
         # listed for the harness, and a matching age group or a near-exact
         # interval supplies the identity.
-        identity_match = age_group_match or near_exact
+        identity_match = age_group_match or near_exact or (overlaps and resource_coverage != COVERAGE_DISJOINT)
     elif calendar_omits_tournament_bookings(str(tournament.get("host_club") or "")):
         # Standing ice use is no identity proof; an overlap still contests (#853).
         identity_match = age_group_match or near_exact or overlaps

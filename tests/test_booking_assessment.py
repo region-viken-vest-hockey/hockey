@@ -303,11 +303,13 @@ def test_one_event_competing_for_two_tournaments_stays_visible(tmp_path):
     )
     result = _assess(root, _problem([_event("2026-09-12", "10:00", "12:00")]))
 
-    assert _tournament_row(result, "t1")["classification"] == "competing_candidates"
-    assert _tournament_row(result, "t2")["classification"] == "competing_candidates"
+    # #853: the exact same-day event is t1's observation. A tournament on a
+    # neighbouring date claims it only as a changed-date guess, so it no longer
+    # makes the event a competing same-day slot.
+    assert _tournament_row(result, "t1")["classification"] == "proposed_unchanged"
     event_row = result["events"][0]
-    assert event_row["one_to_many"] is True
     assert {c["tournament_id"] for c in event_row["candidate_tournaments"]} == {"t1", "t2"}
+    # Still unassociated, so it stays an unresolved event for the operator.
     assert event_row["event_fingerprint"] in result["unresolved"]["event_fingerprints"]
 
     status = booking_status_report(
@@ -315,10 +317,7 @@ def test_one_event_competing_for_two_tournaments_stays_visible(tmp_path):
         root=root,
         problem=_problem([_event("2026-09-12", "10:00", "12:00")]),
     )
-    assert all(
-        "latest_observed_interval" not in _tournament_row(status, tournament_id)
-        for tournament_id in ("t1", "t2")
-    )
+    assert "latest_observed_interval" in _tournament_row(status, "t1")
 
 
 def test_group_booking_covering_two_tournaments_is_flagged(tmp_path):

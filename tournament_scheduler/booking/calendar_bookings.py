@@ -26,7 +26,8 @@ from tournament_scheduler.booking.status_crosswalk import (
     assessment_provenance_fields,
     attach_interval_comparison,
 )
-from tournament_scheduler.booking.ice_resources import COVERAGE_DISJOINT, COVERAGE_PARTIAL
+from tournament_scheduler.booking.ice_resources import COVERAGE_DISJOINT, COVERAGE_PARTIAL, tournament_resource_footprint
+from tournament_scheduler.booking.primary_observation import select_primary_observation, shared_event_fingerprints as shared_event_fingerprints_for
 from tournament_scheduler.booking.interval_facts import (
     _event_fingerprint_payload,
     _parse_hhmm,
@@ -2154,14 +2155,13 @@ def _assessment_tournament_row(
             ),
             None,
         )
-    elif (
-        len(actionable) == 1
-        and actionable[0]["event_fingerprint"] not in shared_event_fingerprints
-        # With an unresolved association, proximity alone is not the same booking.
-        # Only an event with age-group evidence may be its observation (#847).
-        and (not association_unresolved or "event_title_age_group_matches" in actionable[0].get("evidence", []))
-    ):
-        primary_candidate = actionable[0]
+    else:
+        # With an unresolved association, proximity alone is not the same booking (#847).
+        primary_candidate = select_primary_observation(
+            actionable,
+            shared_event_fingerprints=shared_event_fingerprints,
+            association_unresolved=association_unresolved,
+        )
     if primary_candidate is not None:
         row["primary_candidate_event_fingerprint"] = primary_candidate["event_fingerprint"]
     if manual is not None:
@@ -2336,6 +2336,7 @@ def booking_assessment(
                     and not candidate["arena_mismatch"]
                     and candidate["resource_coverage"] not in {COVERAGE_PARTIAL, COVERAGE_DISJOINT}
                 )
+                candidate["footprint_aware"] = bool(tournament_resource_footprint(club))
                 candidates.append(candidate)
                 candidates_by_event.setdefault(candidate["event_fingerprint"], []).append(
                     (tournament_id, candidate)
@@ -2347,14 +2348,7 @@ def booking_assessment(
     # one-to-many (or a group booking); every affected tournament competes for
     # it instead of the assessment silently binding it to whichever row sorts
     # first. Non-actionable observations do not create competition.
-    shared_event_fingerprints = {
-        event_fp
-        for event_fp, entries in candidates_by_event.items()
-        if len(
-            {tournament_id for tournament_id, candidate in entries if candidate.get("actionable")}
-        )
-        > 1
-    }
+    shared_event_fingerprints = shared_event_fingerprints_for(candidates_by_event)
 
     tournament_rows: list[dict[str, Any]] = []
     for tournament_id, tournament in tournament_by_id.items():
