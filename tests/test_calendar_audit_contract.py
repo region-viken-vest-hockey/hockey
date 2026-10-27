@@ -16,6 +16,8 @@ from tournament_scheduler.booking.calendar_audit import (
     AUDIT_MATERIAL_MISMATCH,
     AUDIT_NO_CALENDAR_COVERAGE,
     AUDIT_UNCONFIRMED_AMBIGUOUS,
+    AUDIT_ACTIONS,
+    AUDIT_ACTION_NONE,
     calendar_audit_summary,
 )
 from tournament_scheduler.booking.calendar_bookings import (
@@ -263,3 +265,13 @@ def test_end_time_only_difference_on_accepted_booking_is_a_material_mismatch_not
     assert summary["buckets"]["accepted_identity_review"] == []
     assert summary["material_mismatches"][0]["end_delta_minutes"] == 10
     assert summary.get("actions", {}).get("rvv-0004") == "explicit_booking_change_approval"
+
+
+def test_every_non_none_action_has_operator_wording_in_text():
+    # JSON and text must not diverge: a new action without a text label would be
+    # silently dropped from the operator view.
+    from tournament_scheduler.cli.booking_status_text import _ACTION_LABELS
+
+    for bucket, action in AUDIT_ACTIONS.items():
+        if action != AUDIT_ACTION_NONE:
+            assert action in _ACTION_LABELS, f"{bucket} -> {action} has no operator wording"

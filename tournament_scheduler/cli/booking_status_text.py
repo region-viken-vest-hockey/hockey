@@ -68,7 +68,7 @@ _ACTION_LABELS = {
     "refresh_source": "refresh calendar source; booking stays as recorded",
     "optional_identity_rebind": "optional identity rebind; booking stays booked",
     "explicit_booking_change_approval": "booking change needs explicit approval; no change made",
-    "resolve_candidate": "choose between candidate events; accepted authority kept",
+    "resolve_candidate": "resolve candidate events; no booking change made",
 }
 
 
