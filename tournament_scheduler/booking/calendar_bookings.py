@@ -29,7 +29,6 @@ from tournament_scheduler.booking.interval_facts import (
     _parse_hhmm,
     event_covers_tournament_interval,
     event_fingerprint,
-    same_interval_event,
     tournament_occupancy_interval_facts,
 )
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
@@ -704,7 +703,12 @@ def _game_round_count(tournament: Mapping[str, Any]) -> int:
 
 
 
-_METADATA_ONLY_ASSOCIATION_REASONS = frozenset({"event_title_changed", "event_availability_changed"})
+# Identity-only drift on a confirmed association: the event is gone, retitled or
+# re-typed. Authority stays with the accepted booking and the identity is reported
+# as unresolved review; a changed interval or venue still invalidates it (#847).
+IDENTITY_DRIFT_ASSOCIATION_REASONS = frozenset(
+    {"event_missing", "event_title_changed", "event_availability_changed"}
+)
 
 
 def _association_stale_reasons(
@@ -719,10 +723,6 @@ def _association_stale_reasons(
     event = events.get(event_fp)
     tournament = tournaments.get(tid)
     reasons: list[str] = []
-    if event is None:
-        # The recorded fingerprint is gone. A retitled event is still the same
-        # booked interval, so re-find it by club, date and interval (#847).
-        event = same_interval_event(record, list(events.values()))
     if event is None:
         reasons.append("event_missing")
     if tournament is None:
@@ -777,7 +777,7 @@ def valid_active_associations(
         reasons = _association_stale_reasons(record, events=events, tournaments=tournaments, problem=problem)
         # Retitling or re-typing a confirmed event does not undo the confirmed
         # booking; only a changed interval, venue or missing event does (#847).
-        if not [reason for reason in reasons if reason not in _METADATA_ONLY_ASSOCIATION_REASONS]:
+        if not [reason for reason in reasons if reason not in IDENTITY_DRIFT_ASSOCIATION_REASONS]:
             valid.append(record)
             seen_events.add(event_fp)
     return valid
@@ -2005,6 +2005,7 @@ def _assessment_tournament_row(
     source: Mapping[str, Any] | None = None,
     date_window_days: int = DEFAULT_ASSESSMENT_DATE_WINDOW_DAYS,
     shared_event_fingerprints: set[str] | None = None,
+    association_unresolved: bool = False,
 ) -> dict[str, Any]:
     tournament_id = str(tournament.get("id") or "")
     shared_event_fingerprints = shared_event_fingerprints or set()
@@ -2143,7 +2144,11 @@ def _assessment_tournament_row(
             ),
             None,
         )
-    elif len(actionable) == 1 and actionable[0]["event_fingerprint"] not in shared_event_fingerprints:
+    elif (
+        not association_unresolved
+        and len(actionable) == 1
+        and actionable[0]["event_fingerprint"] not in shared_event_fingerprints
+    ):
         primary_candidate = actionable[0]
     if primary_candidate is not None:
         row["primary_candidate_event_fingerprint"] = primary_candidate["event_fingerprint"]
@@ -2288,11 +2293,6 @@ def booking_assessment(
     event_by_fingerprint = {
         str(event.get("fingerprint") or event_fingerprint(event)): event for event in events
     }
-    association_record_by_tournament = {
-        str(record.get("tournament_id") or ""): record
-        for record in valid_associations
-        if str(record.get("tournament_id") or "")
-    }
 
     tournament_by_id: dict[str, Mapping[str, Any]] = {
         str(tournament.get("id") or ""): tournament for tournament in tournaments
@@ -2349,13 +2349,10 @@ def booking_assessment(
         club = str(tournament.get("host_club") or "")
         associated_fp = association_by_tournament.get(tournament_id)
         associated_event = event_by_fingerprint.get(associated_fp) if associated_fp else None
-        if associated_fp and associated_event is None:
-            # A changed event fingerprint (for example a retitled event) does not
-            # undo a confirmed booking. Re-find the same event by its recorded
-            # club, date and interval, but only when that is unambiguous (#847).
-            associated_event = same_interval_event(
-                association_record_by_tournament.get(tournament_id), events
-            )
+        # A confirmed association whose event is missing or retitled keeps its
+        # authority. No other event may stand in for it, so the row shows an
+        # unresolved identity rather than a match (#847).
+        association_unresolved = bool(associated_fp) and associated_event is None
         tournament_rows.append(
             _assessment_tournament_row(
                 tournament,
@@ -2368,6 +2365,7 @@ def booking_assessment(
                 source=sources.get(club),
                 date_window_days=date_window_days,
                 shared_event_fingerprints=shared_event_fingerprints,
+                association_unresolved=association_unresolved,
             )
         )
     tournament_rows.sort(key=lambda row: row["tournament_id"])

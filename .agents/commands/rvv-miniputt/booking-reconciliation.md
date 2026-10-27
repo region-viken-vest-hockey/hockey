@@ -37,7 +37,7 @@ Keep machine/audit status values intact, but do not expose a conservative intern
 
 Each active tournament has one `actions` entry: `none`, `refresh_source`, `optional_identity_rebind`, `explicit_booking_change_approval` or `resolve_candidate`. None de-books an accepted booking.
 
-A confirmed booking whose event was only retitled or re-typed (same club, date, start, end) stays confirmed; do not ask for re-confirmation. A non-unique same-interval match is an unresolved candidate.
+A confirmed booking whose event is retitled, re-typed or gone keeps its authority and lock (booked) and is an identity review. No other event is inherited as its match. A changed interval or venue is a contradiction.
 
 - `confirmed_matching`: accepted, observed interval matches. Fingerprint drift alone never moves it.
 - `accepted_uncheckable`: accepted, but the calendar cannot show it (untrusted, partial or unreadable). Not a mismatch.

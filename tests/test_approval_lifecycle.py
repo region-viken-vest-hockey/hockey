@@ -1297,11 +1297,8 @@ def test_calendar_booking_confirmation_rejects_wrong_tournament_and_reports_stal
         ]
     }
     findings = calendar_booking_findings(season="2026-2027", root=root, problem=renamed_problem)
-    # A renamed event on the same interval is the same booked event (#847): the
-    # drift is reported as a title change, not as a lost association.
     assert findings["findings"][0]["code"] == "stale_calendar_booking_association"
-    assert "event_title_changed" in findings["findings"][0]["reasons"]
-    assert "event_missing" not in findings["findings"][0]["reasons"]
+    assert "event_missing" in findings["findings"][0]["reasons"]
 
 
 def test_existing_association_survives_introduction_of_source_order_id(tmp_path):

@@ -267,12 +267,12 @@ def test_accepted_booking_lost_identity_projects_identity_rebind_action(tmp_path
     assert row["operational_lock"] is True
 
 
-def test_confirmed_booking_keeps_its_bucket_when_its_event_fingerprint_changes(tmp_path):
-    """Issue #847: a stale event fingerprint on the same confirmed event is not lost identity.
+def test_retitled_confirmed_booking_keeps_authority_without_claiming_a_match(tmp_path):
+    """Issue #847: a retitled event keeps the accepted booking booked, but identity is not re-proven.
 
-    The event keeps its date, start, end and arena, and only its title (and
-    therefore fingerprint) changes. The booking was confirmed against the old
-    fingerprint and must stay confirmed and matching.
+    The title (and therefore the fingerprint) changed, so the booking is not
+    shown as a confirmed match. Authority and the lock stay with the booking,
+    and the candidate is an unresolved review item.
     """
 
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
@@ -292,13 +292,16 @@ def test_confirmed_booking_keeps_its_bucket_when_its_event_fingerprint_changes(t
     report = booking_status_report(season="2026-2027", root=root, problem=renamed)
     row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
 
-    assert _bucket_of(report, "t1") == "confirmed_matching"
     assert row["operational_state"] == "booked"
-    assert report["calendar_audit"]["actions"]["t1"] == "none"
+    assert row["authority"] == "calendar_event_association"
+    assert row["operational_lock"] is True
+    assert _bucket_of(report, "t1") == "unconfirmed_ambiguous"
+    assert report["calendar_audit"]["actions"]["t1"] == "resolve_candidate"
+    assert report["calendar_audit"]["material_mismatches"] == []
 
 
-def test_retitled_booking_is_not_inherited_when_two_events_share_its_interval(tmp_path):
-    """Issue #847: with two same-interval events, the fingerprint drift stays unresolved."""
+def test_confirmed_booking_keeps_authority_when_its_event_disappears(tmp_path):
+    """The original #847 bug: a missing confirmed event must not turn the booking into action_required."""
 
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
     before = _problem([_event("2026-09-12", "10:00", "12:00", title="Miniputt U10")])
@@ -312,15 +315,12 @@ def test_retitled_booking_is_not_inherited_when_two_events_share_its_interval(tm
         note="matched booking",
         problem=before,
     )
-    ambiguous = _problem(
-        [
-            _event("2026-09-12", "10:00", "12:00", title="Miniputt U10 (updated)"),
-            _event("2026-09-12", "10:00", "12:00", title="Other club event"),
-        ],
-        complete=True,
-    )
 
-    report = booking_status_report(season="2026-2027", root=root, problem=ambiguous)
+    report = booking_status_report(season="2026-2027", root=root, problem=_problem([], complete=True))
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
 
-    assert _bucket_of(report, "t1") != "confirmed_matching"
+    assert row["operational_state"] == "booked"
+    assert row["authority"] == "calendar_event_association"
+    assert row["operational_lock"] is True
+    assert _bucket_of(report, "t1") != "material_mismatch"
     assert report["calendar_audit"]["material_mismatches"] == []
