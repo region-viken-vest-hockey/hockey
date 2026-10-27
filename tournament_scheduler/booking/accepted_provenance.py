@@ -68,3 +68,40 @@ def accepted_manual_provenance(manual: Mapping[str, Any]) -> dict[str, Any]:
         "source_revision": str(manual.get("source_revision") or ""),
         "accepted_interval": interval,
     }
+
+
+# Keys are the decision-store keys owned by calendar_bookings.py. They are repeated
+# here because that module imports this one.
+_HISTORY_KEYS = (("calendar_booking_associations", "calendar"), ("manual_booking_assertions", "manual"))
+
+
+def acceptance_history(decisions: Mapping[str, Any] | None, tournament_id: str) -> list[dict[str, Any]]:
+    """Return the acceptances that were superseded or released for one tournament (#847).
+
+    Each entry keeps who accepted it, when, why, and what replaced it, so an
+    operator can see the earlier acceptance next to the current one. Records are
+    read only.
+    """
+
+    entries: list[dict[str, Any]] = []
+    for key, kind in _HISTORY_KEYS:
+        for record in (decisions or {}).get(key) or []:
+            if not isinstance(record, Mapping) or str(record.get("tournament_id") or "") != tournament_id:
+                continue
+            if str(record.get("status") or "") == "active":
+                continue
+            entries.append(
+                {
+                    "kind": kind,
+                    "record_id": str(record.get("id") or ""),
+                    "status": str(record.get("status") or ""),
+                    "accepted_at": str(record.get("asserted_at") or record.get("created_at") or ""),
+                    "accepted_by": str(record.get("asserted_by") or record.get("created_by") or ""),
+                    "reference": str(record.get("reference") or ""),
+                    "note": str(record.get("note") or ""),
+                    "superseded_at": str(record.get("superseded_at") or ""),
+                    "superseded_by": str(record.get("superseded_by") or record.get("superseded_by_operation") or ""),
+                    "supersede_reason": str(record.get("supersede_reason") or ""),
+                }
+            )
+    return sorted(entries, key=lambda entry: entry["accepted_at"])

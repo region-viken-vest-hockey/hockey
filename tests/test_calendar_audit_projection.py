@@ -442,3 +442,46 @@ def test_manual_confirmation_reports_how_and_when_it_was_accepted(tmp_path):
     assert provenance["reference"] == "email:9"
     assert provenance["accepted_at"]
     assert provenance["assertion_id"].startswith("manual_booking:t1:")
+
+
+def test_calendar_confirmation_that_supersedes_a_manual_booking_keeps_the_original_acceptance(tmp_path):
+    """Issue #847 lifecycle: the manual acceptance it replaced stays recoverable on the row."""
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    problem = _problem([_event("2026-09-12", "10:00", "12:00", title="Miniputt U10")], complete=True)
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="club-admin",
+        reference="email:1",
+        problem=problem,
+    )
+    manual_id = booking_status_report(season="2026-2027", root=root, problem=problem)["tournaments"][0][
+        "accepted_evidence"
+    ]["assertion_id"]
+    event_fp = _assess(root, problem)["events"][0]["event_fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="booker",
+        note="same booking, now on the calendar",
+        problem=problem,
+        supersede_manual_assertion_id=manual_id,
+    )
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
+    evidence = row["accepted_evidence"]
+    replaced = [entry for entry in evidence["history"] if entry["record_id"] == manual_id]
+
+    assert row["authority"] == "calendar_event_association"
+    assert evidence["accepted_by"] == "booker"
+    assert len(replaced) == 1
+    assert replaced[0]["status"] == "superseded"
+    assert replaced[0]["accepted_by"] == "club-admin"
+    assert replaced[0]["reference"] == "email:1"
+    assert replaced[0]["superseded_by"] == evidence["association_id"]

@@ -100,6 +100,14 @@ def _row_lines(row: Mapping[str, Any], action: str | None = None) -> list[str]:
             f"  accepted: {interval_text} by {accepted.get('accepted_by') or 'unknown'} "
             f"on {accepted_on} ({accepted.get('note') or 'no note'})"
         )
+    for earlier in (accepted or {}).get("history") or []:
+        if isinstance(earlier, Mapping):
+            reference = earlier.get("reference") or earlier.get("note") or "no reference"
+            lines.append(
+                f"  earlier: {earlier.get('kind')} by {earlier.get('accepted_by') or 'unknown'} "
+                f"on {str(earlier.get('accepted_at') or '')[:10]} ({reference}), "
+                f"replaced {str(earlier.get('superseded_at') or '')[:10]}"
+            )
     if action and action in _ACTION_LABELS:
         lines.append(f"  operator action: {_ACTION_LABELS[action]}")
     return lines
