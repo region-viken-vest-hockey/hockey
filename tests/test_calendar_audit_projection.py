@@ -265,3 +265,128 @@ def test_accepted_booking_lost_identity_projects_identity_rebind_action(tmp_path
     assert report["calendar_audit"]["actions"]["t1"] == "optional_identity_rebind"
     assert row["operational_state"] == "booked"
     assert row["operational_lock"] is True
+
+
+def test_retitled_confirmed_booking_keeps_authority_without_claiming_a_match(tmp_path):
+    """Issue #847: a retitled event keeps the accepted booking booked, but identity is not re-proven.
+
+    The title (and therefore the fingerprint) changed, so the booking is not
+    shown as a confirmed match. Authority and the lock stay with the booking,
+    and the candidate is an unresolved review item.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    before = _problem([_event("2026-09-12", "10:00", "12:00", title="Miniputt U10")])
+    event_fp = _assess(root, before)["events"][0]["event_fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="booker",
+        note="matched booking",
+        problem=before,
+    )
+    renamed = _problem([_event("2026-09-12", "10:00", "12:00", title="Miniputt U10 (updated)")], complete=True)
+
+    report = booking_status_report(season="2026-2027", root=root, problem=renamed)
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
+
+    assert row["operational_state"] == "booked"
+    assert row["authority"] == "calendar_event_association"
+    assert row["operational_lock"] is True
+    assert _bucket_of(report, "t1") == "unconfirmed_ambiguous"
+    assert report["calendar_audit"]["actions"]["t1"] == "resolve_candidate"
+    assert report["calendar_audit"]["material_mismatches"] == []
+
+
+def test_confirmed_booking_keeps_authority_when_its_event_disappears(tmp_path):
+    """The original #847 bug: a missing confirmed event must not turn the booking into action_required."""
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    before = _problem([_event("2026-09-12", "10:00", "12:00", title="Miniputt U10")])
+    event_fp = _assess(root, before)["events"][0]["event_fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="booker",
+        note="matched booking",
+        problem=before,
+    )
+
+    report = booking_status_report(season="2026-2027", root=root, problem=_problem([], complete=True))
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
+
+    assert row["operational_state"] == "booked"
+    assert row["authority"] == "calendar_event_association"
+    assert row["operational_lock"] is True
+    assert _bucket_of(report, "t1") != "material_mismatch"
+    assert report["calendar_audit"]["material_mismatches"] == []
+
+
+def test_moved_and_retitled_confirmed_event_is_a_material_mismatch_with_both_intervals(tmp_path):
+    """Issue #847: a calendar interval change must not hide behind identity drift.
+
+    The event moved from 10:00-12:00 to 11:00-13:00 and was retitled, so its
+    fingerprint changed. The accepted booking stays booked, and the moved
+    interval is reported as a material difference with both intervals. Nothing
+    is changed automatically.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    before = _problem([_event("2026-09-12", "10:00", "12:00", title="Miniputt U10")])
+    event_fp = _assess(root, before)["events"][0]["event_fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="booker",
+        note="matched booking",
+        problem=before,
+    )
+    moved = _problem([_event("2026-09-12", "11:00", "13:00", title="Miniputt U10 (updated)")], complete=True)
+
+    report = booking_status_report(season="2026-2027", root=root, problem=moved)
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
+    detail = report["calendar_audit"]["material_mismatches"][0]
+
+    assert row["operational_state"] == "booked"
+    assert row["authority"] == "calendar_event_association"
+    assert _bucket_of(report, "t1") == "material_mismatch"
+    assert detail["planned"] == {"date": "2026-09-12", "start": "10:00", "end": "12:00"}
+    assert detail["observed"] == {"date": "2026-09-12", "start": "11:00", "end": "13:00"}
+    assert report["calendar_audit"]["actions"]["t1"] == "explicit_booking_change_approval"
+
+
+def test_unrelated_same_host_event_is_not_a_material_mismatch_for_a_lost_booking(tmp_path):
+    """Issue #847: proximity alone is not the same booking.
+
+    The confirmed event disappeared. The only other event on that host is an
+    unrelated league at a different time, with no age-group evidence. It must
+    not be presented as the moved accepted booking.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    before = _problem([_event("2026-09-12", "10:00", "12:00", title="Miniputt U10")])
+    event_fp = _assess(root, before)["events"][0]["event_fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="booker",
+        note="matched booking",
+        problem=before,
+    )
+    unrelated = _problem([_event("2026-09-12", "13:00", "15:00", title="Senior league")], complete=True)
+
+    report = booking_status_report(season="2026-2027", root=root, problem=unrelated)
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
+
+    assert row["operational_state"] == "booked"
+    assert row["authority"] == "calendar_event_association"
+    assert _bucket_of(report, "t1") != "material_mismatch"
+    assert report["calendar_audit"]["material_mismatches"] == []

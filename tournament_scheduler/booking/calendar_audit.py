@@ -100,6 +100,10 @@ def _classify(row: Mapping[str, Any]) -> str:
     if row.get("operational_state") == OPERATIONAL_BOOKED:
         if row.get("conflict") or comparison_status == "differs":
             return AUDIT_MATERIAL_MISMATCH
+        if comparison_status == "matches" and row.get("association_identity_unresolved"):
+            # The interval agrees, but the recorded event was retitled or lost, so
+            # the identity is unproven. Review it; do not claim a confirmed match.
+            return AUDIT_UNCONFIRMED_AMBIGUOUS
         if comparison_status == "matches":
             return AUDIT_CONFIRMED_MATCHING
         if comparison_status == "no_observed_interval" and row.get("calendar_covers_window") is True:

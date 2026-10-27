@@ -266,3 +266,32 @@ def source_supports_negative_absence(
     ):
         reasons.append("tournament_window_not_covered")
     return not reasons, reasons
+
+
+_ASSESSMENT_RELATION_RANK = {
+    RELATION_SAME_DATE_OVERLAP: 0,
+    RELATION_SAME_DATE_TIME_SHIFT: 1,
+    RELATION_PROXIMATE_DATE_SHIFT: 2,
+}
+
+def assessment_candidate_rank(candidate: Mapping[str, Any]) -> tuple[Any, ...]:
+    """Rank identity evidence before mere interval proximity.
+
+    ``same_date_overlap`` is strong occupancy evidence, but an overlap with
+    explicit age/arena counterevidence is not a stronger tournament identity
+    than an actionable shifted event. All candidates remain in the projection;
+    this key only chooses their deterministic primary order.
+    """
+
+    return (
+        not bool(candidate.get("actionable")),
+        bool(candidate.get("season_context_only")),
+        bool(candidate.get("age_group_conflict")),
+        bool(candidate.get("arena_mismatch")),
+        _ASSESSMENT_RELATION_RANK.get(str(candidate.get("relation") or ""), 99),
+        abs(int(candidate.get("date_delta_days") or 0)),
+        str(candidate.get("date") or ""),
+        str(candidate.get("start") or ""),
+        str(candidate.get("end") or ""),
+        str(candidate.get("event_fingerprint") or ""),
+    )

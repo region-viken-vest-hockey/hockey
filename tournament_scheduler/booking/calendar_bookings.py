@@ -13,10 +13,9 @@ from datetime import datetime, timezone
 from typing import Any, Iterable, Mapping
 
 from tournament_scheduler.booking.assessment_candidates import (
+    assessment_candidate_rank,
     ASSESSMENT_PRESUMED_UNSCHEDULED,
-    RELATION_PROXIMATE_DATE_SHIFT,
     RELATION_SAME_DATE_OVERLAP,
-    RELATION_SAME_DATE_TIME_SHIFT,
     assessment_candidate,
     source_supports_negative_absence,
 )
@@ -107,35 +106,6 @@ _ASSESSMENT_UNRESOLVED = {
     ASSESSMENT_PRESUMED_UNSCHEDULED,
     ASSESSMENT_NOT_CHECKABLE,
 }
-_ASSESSMENT_RELATION_RANK = {
-    RELATION_SAME_DATE_OVERLAP: 0,
-    RELATION_SAME_DATE_TIME_SHIFT: 1,
-    RELATION_PROXIMATE_DATE_SHIFT: 2,
-}
-
-
-def _assessment_candidate_rank(candidate: Mapping[str, Any]) -> tuple[Any, ...]:
-    """Rank identity evidence before mere interval proximity.
-
-    ``same_date_overlap`` is strong occupancy evidence, but an overlap with
-    explicit age/arena counterevidence is not a stronger tournament identity
-    than an actionable shifted event. All candidates remain in the projection;
-    this key only chooses their deterministic primary order.
-    """
-
-    return (
-        not bool(candidate.get("actionable")),
-        bool(candidate.get("season_context_only")),
-        bool(candidate.get("age_group_conflict")),
-        bool(candidate.get("arena_mismatch")),
-        _ASSESSMENT_RELATION_RANK.get(str(candidate.get("relation") or ""), 99),
-        abs(int(candidate.get("date_delta_days") or 0)),
-        str(candidate.get("date") or ""),
-        str(candidate.get("start") or ""),
-        str(candidate.get("end") or ""),
-        str(candidate.get("event_fingerprint") or ""),
-    )
-
 
 BOOKING_CONFIRMED_BOOKED = "confirmed_booked"
 BOOKING_CONFIRMED_NOT_BOOKED = "confirmed_not_booked"
@@ -733,6 +703,14 @@ def _game_round_count(tournament: Mapping[str, Any]) -> int:
 
 
 
+# Identity-only drift on a confirmed association: the event is gone, retitled or
+# re-typed. Authority stays with the accepted booking and the identity is reported
+# as unresolved review; a changed interval or venue still invalidates it (#847).
+IDENTITY_DRIFT_ASSOCIATION_REASONS = frozenset(
+    {"event_missing", "event_title_changed", "event_availability_changed"}
+)
+
+
 def _association_stale_reasons(
     record: Mapping[str, Any],
     *,
@@ -796,7 +774,10 @@ def valid_active_associations(
         event_fp = str(record.get("event_fingerprint") or "")
         if not event_fp or event_fp in seen_events:
             continue
-        if not _association_stale_reasons(record, events=events, tournaments=tournaments, problem=problem):
+        reasons = _association_stale_reasons(record, events=events, tournaments=tournaments, problem=problem)
+        # Retitling or re-typing a confirmed event does not undo the confirmed
+        # booking; only a changed interval, venue or missing event does (#847).
+        if not [reason for reason in reasons if reason not in IDENTITY_DRIFT_ASSOCIATION_REASONS]:
             valid.append(record)
             seen_events.add(event_fp)
     return valid
@@ -2024,6 +2005,7 @@ def _assessment_tournament_row(
     source: Mapping[str, Any] | None = None,
     date_window_days: int = DEFAULT_ASSESSMENT_DATE_WINDOW_DAYS,
     shared_event_fingerprints: set[str] | None = None,
+    association_unresolved: bool = False,
 ) -> dict[str, Any]:
     tournament_id = str(tournament.get("id") or "")
     shared_event_fingerprints = shared_event_fingerprints or set()
@@ -2144,6 +2126,8 @@ def _assessment_tournament_row(
         row["evidence_reason"] = "source_coverage_unproven"
     if classification in {ASSESSMENT_AMBIGUOUS, ASSESSMENT_COMPETING_CANDIDATES}:
         row.setdefault("evidence_reasons", []).append("association_ambiguous")
+    if association_unresolved:
+        row["association_identity_unresolved"] = True
     if associated_event is not None:
         row["associated_event_fingerprint"] = str(
             associated_event.get("fingerprint") or event_fingerprint(associated_event)
@@ -2162,7 +2146,13 @@ def _assessment_tournament_row(
             ),
             None,
         )
-    elif len(actionable) == 1 and actionable[0]["event_fingerprint"] not in shared_event_fingerprints:
+    elif (
+        len(actionable) == 1
+        and actionable[0]["event_fingerprint"] not in shared_event_fingerprints
+        # With an unresolved association, proximity alone is not the same booking.
+        # Only an event with age-group evidence may be its observation (#847).
+        and (not association_unresolved or "event_title_age_group_matches" in actionable[0].get("evidence", []))
+    ):
         primary_candidate = actionable[0]
     if primary_candidate is not None:
         row["primary_candidate_event_fingerprint"] = primary_candidate["event_fingerprint"]
@@ -2342,7 +2332,7 @@ def booking_assessment(
                 candidates_by_event.setdefault(candidate["event_fingerprint"], []).append(
                     (tournament_id, candidate)
                 )
-        candidates.sort(key=_assessment_candidate_rank)
+        candidates.sort(key=assessment_candidate_rank)
         candidates_by_tournament[tournament_id] = candidates
 
     # An actionable event that plausibly belongs to more than one tournament is
@@ -2363,6 +2353,10 @@ def booking_assessment(
         club = str(tournament.get("host_club") or "")
         associated_fp = association_by_tournament.get(tournament_id)
         associated_event = event_by_fingerprint.get(associated_fp) if associated_fp else None
+        # A confirmed association whose event is missing or retitled keeps its
+        # authority. No other event may stand in for it, so the row shows an
+        # unresolved identity rather than a match (#847).
+        association_unresolved = bool(associated_fp) and associated_event is None
         tournament_rows.append(
             _assessment_tournament_row(
                 tournament,
@@ -2375,6 +2369,7 @@ def booking_assessment(
                 source=sources.get(club),
                 date_window_days=date_window_days,
                 shared_event_fingerprints=shared_event_fingerprints,
+                association_unresolved=association_unresolved,
             )
         )
     tournament_rows.sort(key=lambda row: row["tournament_id"])
