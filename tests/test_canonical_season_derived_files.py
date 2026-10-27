@@ -121,3 +121,22 @@ def test_failed_carry_forward_leaves_previous_state_intact(tmp_path: Path, monke
 
     assert store.load(SEASON).schedule["snapshot_marker"] == "first"
     assert change_log.read_text(encoding="utf-8") == _change_log_for(first)
+
+
+def test_restored_revision_drops_the_stale_banner(tmp_path: Path) -> None:
+    """A -> B -> A: the projection is current again, so no banner may remain."""
+
+    root = tmp_path / "season"
+    store = CanonicalSeasonStore(root)
+    first = _snapshot(marker="first")
+    store.write(first)
+    change_log = root / SEASON / CHANGE_LOG
+    original = _change_log_for(first)
+    change_log.write_text(original, encoding="utf-8")
+
+    store.write(_snapshot(marker="second"))
+    assert "> Stale projection:" in change_log.read_text(encoding="utf-8")
+
+    store.write(_snapshot(marker="first"))
+
+    assert change_log.read_text(encoding="utf-8") == original

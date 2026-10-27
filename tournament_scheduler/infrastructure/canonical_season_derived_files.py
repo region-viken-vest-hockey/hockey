@@ -11,7 +11,6 @@ never listed here: migrations rely on them being replaced.
 from __future__ import annotations
 
 import re
-import shutil
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -46,9 +45,10 @@ def carry_forward_derived_files(
         text = source.read_text(encoding="utf-8")
         recorded = _recorded_revision(text)
         # Only a projection whose known revision matches the installed one is
-        # current; unknown provenance is treated as stale.
+        # current, so any banner left by an earlier revision is removed. Unknown
+        # provenance is treated as stale.
         if revision and recorded == revision:
-            shutil.copyfile(source, target)
+            target.write_text(_strip_banner(text), encoding="utf-8")
         else:
             target.write_text(_mark_stale(text, recorded or "unknown", revision or "unknown"), encoding="utf-8")
         carried.append(target)
@@ -60,10 +60,27 @@ def _recorded_revision(text: str) -> str | None:
     return match.group(1) if match else None
 
 
+def _strip_banner(text: str) -> str:
+    """Remove any stale banner and the blank line that follows it."""
+
+    kept: list[str] = []
+    skip_blank = False
+    for line in text.splitlines(keepends=True):
+        if line.startswith(_STALE_BANNER):
+            skip_blank = True
+            continue
+        if skip_blank and not line.strip():
+            skip_blank = False
+            continue
+        skip_blank = False
+        kept.append(line)
+    return "".join(kept)
+
+
 def _mark_stale(text: str, recorded: str, current: str) -> str:
     """Return ``text`` with exactly one stale banner for ``current``."""
 
-    body = "".join(line for line in text.splitlines(keepends=True) if not line.startswith(_STALE_BANNER))
+    body = _strip_banner(text)
     banner = (
         f"{_STALE_BANNER}generated for canonical revision `{recorded}`; the season is now at "
         f"`{current}`. Regenerate with `rvv-miniputt season changes --write` before relying on it.\n\n"
