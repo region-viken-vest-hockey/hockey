@@ -148,6 +148,21 @@ def interval_comparison(canonical: Any, observed: Any) -> dict[str, Any] | None:
     }
 
 
+def explicit_interval_fields(assertion: Mapping[str, Any]) -> list[str] | None:
+    """Return the interval fields (date, start, end) the source explicitly stated.
+
+    A club-wide confirmation can state a window or only confirm that a booking
+    exists. Fields it did not state keep the planner's value as a proposal. A
+    record without the ``stated_interval`` key predates that record, so its
+    authority is unknown and ``None`` is returned.
+    """
+
+    if "stated_interval" not in assertion:
+        return None
+    stated = assertion.get("stated_interval") or {}
+    return [field for field in ("date", "start", "end") if str(stated.get(field) or "")]
+
+
 def attach_interval_comparison(row: dict[str, Any]) -> dict[str, Any]:
     """Attach ``interval_comparison`` to a row that carries a canonical interval."""
 

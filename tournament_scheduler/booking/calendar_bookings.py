@@ -25,6 +25,7 @@ from tournament_scheduler.booking.assessment_candidates import (
 from tournament_scheduler.booking.status_crosswalk import (
     assessment_provenance_fields,
     attach_interval_comparison,
+    explicit_interval_fields,
 )
 from tournament_scheduler.booking.ice_resources import COVERAGE_DISJOINT, COVERAGE_PARTIAL, tournament_resource_footprint
 from tournament_scheduler.booking.primary_observation import select_primary_observation, shared_event_fingerprints as shared_event_fingerprints_for
@@ -1725,6 +1726,9 @@ def booking_status_report(
             # authority so a contradicting scrape stays visible without ever
             # demoting the accepted confirmation/rejection.
             row.update(assessment_provenance_fields(assessment_by_tournament.get(tid)))
+            # Which interval fields the club explicitly stated. An unstated field
+            # is the planner's proposal, not an accepted fact (#860).
+            row["explicit_interval_fields"] = explicit_interval_fields(manual)
             if authority is not None:
                 row["accepted_evidence"] = accepted_manual_provenance(manual)
             if calendar_record:

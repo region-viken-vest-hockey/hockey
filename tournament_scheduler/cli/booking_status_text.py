@@ -38,6 +38,7 @@ _AUDIT_LABELS = (
     ("accepted_uncheckable", "accepted, calendar uncheckable (not a mismatch)"),
     ("accepted_identity_review", "accepted, no matching event on checkable calendar (review; authority kept)"),
     ("material_mismatch", "material mismatch"),
+    ("proposed_interval_correction", "proposed correction (planned, unstated interval disagrees with calendar; not a contradiction)"),
     ("unconfirmed_ambiguous", "needs review: unresolved calendar identity (accepted bookings keep authority)"),
     ("no_calendar_coverage", "no calendar coverage (not proof of absence)"),
     ("explicit_not_booked", "explicitly not booked"),
@@ -68,6 +69,7 @@ _ACTION_LABELS = {
     "refresh_source": "refresh calendar source; booking stays as recorded",
     "optional_identity_rebind": "optional identity rebind; booking stays booked",
     "explicit_booking_change_approval": "booking change needs explicit approval; no change made",
+    "confirm_calendar_interval": "confirm the calendar interval via confirm-calendar-booking; no change made until confirmed",
     "resolve_candidate": "resolve candidate events; no booking change made",
 }
 
