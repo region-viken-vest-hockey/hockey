@@ -13,10 +13,9 @@ from datetime import datetime, timezone
 from typing import Any, Iterable, Mapping
 
 from tournament_scheduler.booking.assessment_candidates import (
+    assessment_candidate_rank,
     ASSESSMENT_PRESUMED_UNSCHEDULED,
-    RELATION_PROXIMATE_DATE_SHIFT,
     RELATION_SAME_DATE_OVERLAP,
-    RELATION_SAME_DATE_TIME_SHIFT,
     assessment_candidate,
     source_supports_negative_absence,
 )
@@ -30,6 +29,7 @@ from tournament_scheduler.booking.interval_facts import (
     _parse_hhmm,
     event_covers_tournament_interval,
     event_fingerprint,
+    same_interval_event,
     tournament_occupancy_interval_facts,
 )
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
@@ -107,35 +107,6 @@ _ASSESSMENT_UNRESOLVED = {
     ASSESSMENT_PRESUMED_UNSCHEDULED,
     ASSESSMENT_NOT_CHECKABLE,
 }
-_ASSESSMENT_RELATION_RANK = {
-    RELATION_SAME_DATE_OVERLAP: 0,
-    RELATION_SAME_DATE_TIME_SHIFT: 1,
-    RELATION_PROXIMATE_DATE_SHIFT: 2,
-}
-
-
-def _assessment_candidate_rank(candidate: Mapping[str, Any]) -> tuple[Any, ...]:
-    """Rank identity evidence before mere interval proximity.
-
-    ``same_date_overlap`` is strong occupancy evidence, but an overlap with
-    explicit age/arena counterevidence is not a stronger tournament identity
-    than an actionable shifted event. All candidates remain in the projection;
-    this key only chooses their deterministic primary order.
-    """
-
-    return (
-        not bool(candidate.get("actionable")),
-        bool(candidate.get("season_context_only")),
-        bool(candidate.get("age_group_conflict")),
-        bool(candidate.get("arena_mismatch")),
-        _ASSESSMENT_RELATION_RANK.get(str(candidate.get("relation") or ""), 99),
-        abs(int(candidate.get("date_delta_days") or 0)),
-        str(candidate.get("date") or ""),
-        str(candidate.get("start") or ""),
-        str(candidate.get("end") or ""),
-        str(candidate.get("event_fingerprint") or ""),
-    )
-
 
 BOOKING_CONFIRMED_BOOKED = "confirmed_booked"
 BOOKING_CONFIRMED_NOT_BOOKED = "confirmed_not_booked"
@@ -733,6 +704,9 @@ def _game_round_count(tournament: Mapping[str, Any]) -> int:
 
 
 
+_METADATA_ONLY_ASSOCIATION_REASONS = frozenset({"event_title_changed", "event_availability_changed"})
+
+
 def _association_stale_reasons(
     record: Mapping[str, Any],
     *,
@@ -745,6 +719,10 @@ def _association_stale_reasons(
     event = events.get(event_fp)
     tournament = tournaments.get(tid)
     reasons: list[str] = []
+    if event is None:
+        # The recorded fingerprint is gone. A retitled event is still the same
+        # booked interval, so re-find it by club, date and interval (#847).
+        event = same_interval_event(record, list(events.values()))
     if event is None:
         reasons.append("event_missing")
     if tournament is None:
@@ -796,7 +774,10 @@ def valid_active_associations(
         event_fp = str(record.get("event_fingerprint") or "")
         if not event_fp or event_fp in seen_events:
             continue
-        if not _association_stale_reasons(record, events=events, tournaments=tournaments, problem=problem):
+        reasons = _association_stale_reasons(record, events=events, tournaments=tournaments, problem=problem)
+        # Retitling or re-typing a confirmed event does not undo the confirmed
+        # booking; only a changed interval, venue or missing event does (#847).
+        if not [reason for reason in reasons if reason not in _METADATA_ONLY_ASSOCIATION_REASONS]:
             valid.append(record)
             seen_events.add(event_fp)
     return valid
@@ -2307,6 +2288,11 @@ def booking_assessment(
     event_by_fingerprint = {
         str(event.get("fingerprint") or event_fingerprint(event)): event for event in events
     }
+    association_record_by_tournament = {
+        str(record.get("tournament_id") or ""): record
+        for record in valid_associations
+        if str(record.get("tournament_id") or "")
+    }
 
     tournament_by_id: dict[str, Mapping[str, Any]] = {
         str(tournament.get("id") or ""): tournament for tournament in tournaments
@@ -2342,7 +2328,7 @@ def booking_assessment(
                 candidates_by_event.setdefault(candidate["event_fingerprint"], []).append(
                     (tournament_id, candidate)
                 )
-        candidates.sort(key=_assessment_candidate_rank)
+        candidates.sort(key=assessment_candidate_rank)
         candidates_by_tournament[tournament_id] = candidates
 
     # An actionable event that plausibly belongs to more than one tournament is
@@ -2363,6 +2349,13 @@ def booking_assessment(
         club = str(tournament.get("host_club") or "")
         associated_fp = association_by_tournament.get(tournament_id)
         associated_event = event_by_fingerprint.get(associated_fp) if associated_fp else None
+        if associated_fp and associated_event is None:
+            # A changed event fingerprint (for example a retitled event) does not
+            # undo a confirmed booking. Re-find the same event by its recorded
+            # club, date and interval, but only when that is unambiguous (#847).
+            associated_event = same_interval_event(
+                association_record_by_tournament.get(tournament_id), events
+            )
         tournament_rows.append(
             _assessment_tournament_row(
                 tournament,

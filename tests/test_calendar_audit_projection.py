@@ -265,3 +265,62 @@ def test_accepted_booking_lost_identity_projects_identity_rebind_action(tmp_path
     assert report["calendar_audit"]["actions"]["t1"] == "optional_identity_rebind"
     assert row["operational_state"] == "booked"
     assert row["operational_lock"] is True
+
+
+def test_confirmed_booking_keeps_its_bucket_when_its_event_fingerprint_changes(tmp_path):
+    """Issue #847: a stale event fingerprint on the same confirmed event is not lost identity.
+
+    The event keeps its date, start, end and arena, and only its title (and
+    therefore fingerprint) changes. The booking was confirmed against the old
+    fingerprint and must stay confirmed and matching.
+    """
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    before = _problem([_event("2026-09-12", "10:00", "12:00", title="Miniputt U10")])
+    event_fp = _assess(root, before)["events"][0]["event_fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="booker",
+        note="matched booking",
+        problem=before,
+    )
+    renamed = _problem([_event("2026-09-12", "10:00", "12:00", title="Miniputt U10 (updated)")], complete=True)
+
+    report = booking_status_report(season="2026-2027", root=root, problem=renamed)
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
+
+    assert _bucket_of(report, "t1") == "confirmed_matching"
+    assert row["operational_state"] == "booked"
+    assert report["calendar_audit"]["actions"]["t1"] == "none"
+
+
+def test_retitled_booking_is_not_inherited_when_two_events_share_its_interval(tmp_path):
+    """Issue #847: with two same-interval events, the fingerprint drift stays unresolved."""
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    before = _problem([_event("2026-09-12", "10:00", "12:00", title="Miniputt U10")])
+    event_fp = _assess(root, before)["events"][0]["event_fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="booker",
+        note="matched booking",
+        problem=before,
+    )
+    ambiguous = _problem(
+        [
+            _event("2026-09-12", "10:00", "12:00", title="Miniputt U10 (updated)"),
+            _event("2026-09-12", "10:00", "12:00", title="Other club event"),
+        ],
+        complete=True,
+    )
+
+    report = booking_status_report(season="2026-2027", root=root, problem=ambiguous)
+
+    assert _bucket_of(report, "t1") != "confirmed_matching"
+    assert report["calendar_audit"]["material_mismatches"] == []

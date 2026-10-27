@@ -35,7 +35,9 @@ Keep machine/audit status values intact, but do not expose a conservative intern
 
 `season booking-status` carries one `calendar_audit` block built from the same rows as the operator tables. Each active tournament falls into exactly one bucket; cancelled tournaments are `cancelled_historical` and never active discrepancies.
 
-Each active tournament also has one `actions` entry, a projection of its bucket: `none`, `refresh_source`, `optional_identity_rebind` (review, booking stays booked), `explicit_booking_change_approval` (a planned-versus-observed difference; show both intervals and make no change without approval), or `resolve_candidate`. No action de-books an accepted booking or moves its placement on its own.
+Each active tournament has one `actions` entry: `none`, `refresh_source`, `optional_identity_rebind`, `explicit_booking_change_approval` or `resolve_candidate`. None de-books an accepted booking.
+
+A confirmed booking whose event was only retitled or re-typed (same club, date, start, end) stays confirmed; do not ask for re-confirmation. A non-unique same-interval match is an unresolved candidate.
 
 - `confirmed_matching`: accepted, observed interval matches. Fingerprint drift alone never moves it.
 - `accepted_uncheckable`: accepted, but the calendar cannot show it (untrusted, partial or unreadable). Not a mismatch.
