@@ -27,13 +27,19 @@ def _planned(*, end="16:40"):
     return {"date": "2026-10-16", "start": "15:00", "end": end}
 
 
-def _comparison(*, start_delta=0, end_delta=0, observed_end="17:00"):
-    status = "matches" if start_delta == 0 and end_delta == 0 else "differs"
+def _comparison(*, start_delta=0, end_delta=0, observed_end="17:00", observed_date="2026-10-16"):
+    status = "matches" if start_delta == 0 and end_delta == 0 and observed_date == "2026-10-16" else "differs"
+    planned_start = 15 * 60
+    observed_start = planned_start + start_delta
     return {
         "status": status,
         "planned": _planned(),
-        "observed": {"date": "2026-10-16", "start": "15:00", "end": observed_end},
-        "same_date": True,
+        "observed": {
+            "date": observed_date,
+            "start": f"{observed_start // 60:02d}:{observed_start % 60:02d}",
+            "end": observed_end,
+        },
+        "same_date": observed_date == "2026-10-16",
         "start_delta_minutes": start_delta,
         "end_delta_minutes": end_delta,
     }
@@ -141,3 +147,30 @@ def test_row_without_explicit_field_projection_keeps_the_conservative_material_m
     summary = calendar_audit_summary([row], cancelled_history=[])
 
     assert summary["buckets"][AUDIT_MATERIAL_MISMATCH] == ["rvv-0059"]
+
+
+def test_unstated_date_change_with_stated_times_is_a_proposed_correction():
+    # The club stated only the times; the calendar moved the booking to another day.
+    row = _manual_row(
+        "rvv-0060",
+        comparison=_comparison(observed_date="2026-10-17", observed_end="16:40"),
+        explicit_fields=["start", "end"],
+    )
+
+    summary = calendar_audit_summary([row], cancelled_history=[])
+
+    assert summary["buckets"][AUDIT_PROPOSED_INTERVAL_CORRECTION] == ["rvv-0060"]
+    assert summary["buckets"][AUDIT_MATERIAL_MISMATCH] == []
+
+
+def test_changed_date_that_contradicts_a_stated_date_is_a_material_mismatch():
+    row = _manual_row(
+        "rvv-0061",
+        comparison=_comparison(observed_date="2026-10-17", observed_end="16:40"),
+        explicit_fields=["date", "start", "end"],
+    )
+
+    summary = calendar_audit_summary([row], cancelled_history=[])
+
+    assert summary["buckets"][AUDIT_MATERIAL_MISMATCH] == ["rvv-0061"]
+    assert summary["buckets"][AUDIT_PROPOSED_INTERVAL_CORRECTION] == []

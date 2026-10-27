@@ -101,12 +101,18 @@ def _has_no_usable_calendar_evidence(row: Mapping[str, Any]) -> bool:
 
 
 def _differing_interval_fields(comparison: Mapping[str, Any]) -> set[str]:
+    # Compare the clock fields directly. A whole-day move also shifts the minute
+    # deltas, so the deltas alone would wrongly mark the times as differing.
+    planned = comparison.get("planned") if isinstance(comparison.get("planned"), Mapping) else {}
+    observed = comparison.get("observed") if isinstance(comparison.get("observed"), Mapping) else {}
+    if not observed:
+        return set()
     fields: set[str] = set()
-    if comparison.get("same_date") is False:
+    if str(planned.get("date") or "") != str(observed.get("date") or ""):
         fields.add("date")
-    if comparison.get("start_delta_minutes") not in (0, None):
+    if str(planned.get("start") or "") != str(observed.get("start") or ""):
         fields.add("start")
-    if comparison.get("end_delta_minutes") not in (0, None):
+    if str(planned.get("end") or "") != str(observed.get("end") or ""):
         fields.add("end")
     return fields
 
