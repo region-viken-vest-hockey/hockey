@@ -484,4 +484,35 @@ def test_calendar_confirmation_that_supersedes_a_manual_booking_keeps_the_origin
     assert replaced[0]["status"] == "superseded"
     assert replaced[0]["accepted_by"] == "club-admin"
     assert replaced[0]["reference"] == "email:1"
-    assert replaced[0]["superseded_by"] == evidence["association_id"]
+    assert replaced[0]["ended_by"] == evidence["association_id"]
+
+
+def test_acceptance_history_keeps_only_recognised_end_states_in_order():
+    # Review of #852: unknown or missing statuses are not evidence that an acceptance ended.
+    from tournament_scheduler.booking.accepted_provenance import acceptance_history
+
+    decisions = {
+        "manual_booking_assertions": [
+            {"id": "m1", "tournament_id": "t1", "status": "superseded", "asserted_at": "2026-09-01",
+             "asserted_by": "a", "superseded_by": "calendar_booking:fp:t1", "supersede_reason": "moved", "superseded_at": "2026-09-05"},
+            {"id": "m2", "tournament_id": "t1", "status": "revoked", "asserted_at": "2026-08-01",
+             "asserted_by": "b", "revoked_at": "2026-08-20", "revoked_by": "c", "revoke_reason": "wrong date"},
+            {"id": "m3", "tournament_id": "t1", "status": "mystery", "asserted_at": "2026-07-01"},
+            {"id": "m4", "tournament_id": "t1", "asserted_at": "2026-07-02"},
+            {"id": "m5", "tournament_id": "t1", "status": "active", "asserted_at": "2026-09-10"},
+            {"id": "m6", "tournament_id": "t2", "status": "superseded", "asserted_at": "2026-09-01"},
+        ],
+        "calendar_booking_associations": [
+            {"id": "c1", "tournament_id": "t1", "status": "released", "created_at": "2026-09-02",
+             "created_by": "d", "released_at": "2026-09-03", "released_by": "e", "release_note": "wrong event"},
+        ],
+    }
+
+    history = acceptance_history(decisions, "t1")
+
+    assert [entry["record_id"] for entry in history] == ["m2", "m1", "c1"]
+    assert [entry["status"] for entry in history] == ["revoked", "superseded", "released"]
+    assert history[1]["ended_by"] == "calendar_booking:fp:t1"
+    assert history[1]["ended_reason"] == "moved"
+    assert history[2]["ended_reason"] == "wrong event"
+    assert history[2]["ended_at"] == "2026-09-03"

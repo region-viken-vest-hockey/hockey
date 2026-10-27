@@ -73,6 +73,13 @@ def accepted_manual_provenance(manual: Mapping[str, Any]) -> dict[str, Any]:
 # Keys are the decision-store keys owned by calendar_bookings.py. They are repeated
 # here because that module imports this one.
 _HISTORY_KEYS = (("calendar_booking_associations", "calendar"), ("manual_booking_assertions", "manual"))
+# Each recognised end state, with the record fields that say when, by what and why it ended.
+_ENDING_FIELDS = {
+    "superseded": (("superseded_at",), ("superseded_by", "superseded_by_operation"), ("supersede_reason",)),
+    "released": (("released_at",), ("released_by",), ("release_note",)),
+    "revoked": (("revoked_at",), ("revoked_by",), ("revoke_reason",)),
+}
+_HISTORY_STATUSES = frozenset(_ENDING_FIELDS)
 
 
 def acceptance_history(decisions: Mapping[str, Any] | None, tournament_id: str) -> list[dict[str, Any]]:
@@ -88,20 +95,28 @@ def acceptance_history(decisions: Mapping[str, Any] | None, tournament_id: str) 
         for record in (decisions or {}).get(key) or []:
             if not isinstance(record, Mapping) or str(record.get("tournament_id") or "") != tournament_id:
                 continue
-            if str(record.get("status") or "") == "active":
+            status = str(record.get("status") or "")
+            if status not in _HISTORY_STATUSES:
+                # Only the decision store's recognised end states are history. An
+                # unknown or missing status is not evidence that an acceptance ended.
                 continue
+            ended_at, ended_by, reason = (_first(record, keys) for keys in _ENDING_FIELDS[status])
             entries.append(
                 {
                     "kind": kind,
                     "record_id": str(record.get("id") or ""),
-                    "status": str(record.get("status") or ""),
+                    "status": status,
                     "accepted_at": str(record.get("asserted_at") or record.get("created_at") or ""),
                     "accepted_by": str(record.get("asserted_by") or record.get("created_by") or ""),
                     "reference": str(record.get("reference") or ""),
                     "note": str(record.get("note") or ""),
-                    "superseded_at": str(record.get("superseded_at") or ""),
-                    "superseded_by": str(record.get("superseded_by") or record.get("superseded_by_operation") or ""),
-                    "supersede_reason": str(record.get("supersede_reason") or ""),
+                    "ended_at": ended_at,
+                    "ended_by": ended_by,
+                    "ended_reason": reason,
                 }
             )
     return sorted(entries, key=lambda entry: entry["accepted_at"])
+
+
+def _first(record: Mapping[str, Any], keys: tuple[str, ...]) -> str:
+    return next((str(record[key]) for key in keys if record.get(key)), "")
