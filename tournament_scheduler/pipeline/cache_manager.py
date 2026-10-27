@@ -25,6 +25,33 @@ CACHE_FILE = "scraped_data.json"
 DEFAULT_TTL_HOURS = 24
 
 
+def _snapshot_scope(
+    configured: dict[str, dict[str, Any]],
+    included: dict[str, Any],
+    reused_cached: list[str],
+) -> dict[str, Any]:
+    """Describe which configured sources this snapshot covers, and how.
+
+    ``complete`` is source membership only: every configured source is present
+    in the snapshot. It does not mean every source was scraped in this run.
+    ``freshly_scraped_sources`` and ``reused_cached_sources`` split the included
+    sources by where their data came from.
+
+    A scoped refresh (for example one club) leaves the other sources out of
+    ``sources``. Recording that here lets readers tell a partial snapshot from a
+    complete one instead of treating the missing sources as absent.
+    """
+    missing = sorted(set(configured) - set(included))
+    reused = sorted(set(reused_cached))
+    return {
+        "complete": not missing,
+        "included_sources": sorted(included),
+        "freshly_scraped_sources": sorted(set(included) - set(reused)),
+        "reused_cached_sources": reused,
+        "missing_sources": missing,
+    }
+
+
 def _compute_config_fingerprint(
     url: str,
     source_kind: str,
@@ -114,6 +141,7 @@ class ScrapedDataCache:
         }
 
         sources_data: dict[str, Any] = {}
+        reused_cached: list[str] = []
 
         for source_result in scraping_result.get("sources", []):
             name: str = source_result.get("name", "ukjent")
@@ -125,6 +153,7 @@ class ScrapedDataCache:
                 existing = cache.get("sources", {}).get(name)
                 if existing:
                     sources_data[name] = existing
+                    reused_cached.append(name)
                     continue
 
             url: str = source_result.get("url", "")
@@ -159,6 +188,7 @@ class ScrapedDataCache:
         # without growing the cache file unboundedly.
         cache["previous_sources"] = cache.get("sources", {})
         cache["sources"] = sources_data
+        cache["_meta"]["snapshot_scope"] = _snapshot_scope(source_map, sources_data, reused_cached)
         cache["source_count"] = len(sources_data)
         cache["total_events"] = sum(
             s.get("event_count", 0) for s in sources_data.values()

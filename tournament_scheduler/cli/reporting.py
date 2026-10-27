@@ -440,44 +440,6 @@ def _cmd_status(args: argparse.Namespace) -> int:
     return 0
 
 
-_SOURCE_STATUS_ICON = {"ok": "✓", "warning": "⚠", "blocked": "⛔", "failed": "✗"}
-_SOURCE_STATUS_STYLE = {"ok": "green", "warning": "yellow", "blocked": "red", "failed": "red"}
-
-
-def _cmd_sources_status(args: argparse.Namespace) -> int:
-    from ..pipeline.source_health import compute_source_health
-
-    results = compute_source_health(args.work_dir)
-
-    if getattr(args, "json", False):
-        print(json.dumps([r.to_dict() for r in results], indent=2, ensure_ascii=False))
-        return 0
-
-    if not results:
-        _console.print(
-            f"Ingen Stage 2-sjekkpunkt funnet i {args.work_dir}/. "
-            "Kjør 'rvv-miniputt run' eller 'rvv-miniputt operator run' først."
-        )
-        return 0
-
-    _console.print(f"[bold]Kildehelse[/bold] ({len(results)} kilde(r))\n")
-    for result in results:
-        icon = _SOURCE_STATUS_ICON.get(result.status, "?")
-        style = _SOURCE_STATUS_STYLE.get(result.status, "white")
-        name = result.capability.split(":", 1)[-1] if ":" in result.capability else result.capability
-        _console.print(f"[{style}]{icon}[/{style}] [bold]{name}[/bold] — {result.summary}")
-        for item in result.evidence:
-            _console.print(f"    [dim]{item}[/dim]")
-        for problem in result.problems:
-            _console.print(f"    [yellow]· {problem}[/yellow]")
-        for action in result.suggested_actions:
-            _console.print(f"    [cyan]→ {action}[/cyan]")
-        _console.print()
-
-    blocked_or_warning = [r for r in results if r.status != "ok"]
-    return 1 if any(r.status == "blocked" for r in blocked_or_warning) else 0
-
-
 def _cmd_logs(args: argparse.Namespace) -> int:
     work_dir = Path(args.work_dir)
     subcommand = getattr(args, "logs_command", "list") or "list"
