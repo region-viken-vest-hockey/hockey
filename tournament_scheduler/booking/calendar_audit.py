@@ -63,6 +63,24 @@ AUDIT_SEVERITY = {
     AUDIT_CANCELLED_HISTORICAL: "historical",
 }
 
+# The operator action is a projection of the bucket. An accepted booking is never
+# de-booked by an audit bucket: the action names review or an approval step only.
+AUDIT_ACTION_NONE = "none"
+AUDIT_ACTION_REFRESH_SOURCE = "refresh_source"
+AUDIT_ACTION_IDENTITY_REBIND = "optional_identity_rebind"
+AUDIT_ACTION_CHANGE_APPROVAL = "explicit_booking_change_approval"
+AUDIT_ACTION_RESOLVE_CANDIDATE = "resolve_candidate"
+
+AUDIT_ACTIONS = {
+    AUDIT_CONFIRMED_MATCHING: AUDIT_ACTION_NONE,
+    AUDIT_ACCEPTED_UNCHECKABLE: AUDIT_ACTION_REFRESH_SOURCE,
+    AUDIT_ACCEPTED_IDENTITY_REVIEW: AUDIT_ACTION_IDENTITY_REBIND,
+    AUDIT_MATERIAL_MISMATCH: AUDIT_ACTION_CHANGE_APPROVAL,
+    AUDIT_UNCONFIRMED_AMBIGUOUS: AUDIT_ACTION_RESOLVE_CANDIDATE,
+    AUDIT_NO_CALENDAR_COVERAGE: AUDIT_ACTION_REFRESH_SOURCE,
+    AUDIT_EXPLICIT_NOT_BOOKED: AUDIT_ACTION_NONE,
+}
+
 _EXPLICIT_NOT_BOOKED_STATUSES = (BOOKING_CONFIRMED_NOT_BOOKED, BOOKING_MANUALLY_NOT_BOOKED)
 
 
@@ -128,10 +146,13 @@ def calendar_audit_summary(
     """Bucket the active rows and the cancelled history into the audit contract."""
 
     buckets: dict[str, list[str]] = {bucket: [] for bucket in AUDIT_BUCKETS}
+    actions: dict[str, str] = {}
     material: list[dict[str, Any]] = []
     for row in rows:
         bucket = _classify(row)
-        buckets[bucket].append(str(row.get("tournament_id") or ""))
+        tournament_id = str(row.get("tournament_id") or "")
+        buckets[bucket].append(tournament_id)
+        actions[tournament_id] = AUDIT_ACTIONS.get(bucket, AUDIT_ACTION_NONE)
         if bucket == AUDIT_MATERIAL_MISMATCH:
             material.append(_mismatch_detail(row))
     buckets[AUDIT_CANCELLED_HISTORICAL] = [str(item.get("tournament_id") or "") for item in cancelled_history]
@@ -140,5 +161,6 @@ def calendar_audit_summary(
         "counts": {bucket: len(ids) for bucket, ids in buckets.items()},
         "buckets": buckets,
         "severity": dict(AUDIT_SEVERITY),
+        "actions": actions,
         "material_mismatches": material,
     }

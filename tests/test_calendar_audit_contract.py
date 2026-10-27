@@ -229,3 +229,37 @@ def test_cancelled_history_is_reported_outside_active_totals():
     assert summary["counts"][AUDIT_CANCELLED_HISTORICAL] == 2
     assert summary["active_total"] == 1
     assert sum(summary["counts"][name] for name in summary["counts"] if name != AUDIT_CANCELLED_HISTORICAL) == 1
+
+
+def test_each_active_row_has_one_operator_action_from_its_bucket():
+    # Issue #847: the operator action is a projection of the bucket, so the
+    # text and --json cannot disagree about what, if anything, to do.
+    matching = _booked_row("rvv-0001", comparison=_comparison("matches", observed=_interval()))
+    lost_identity = _booked_row("rvv-0002", comparison=_comparison("no_observed_interval"))
+    lost_identity["operational_state"] = OPERATIONAL_BOOKED
+    lost_identity["actionable_candidate_count"] = 0
+    lost_identity["calendar_covers_window"] = True
+    moved = _booked_row("rvv-0003", comparison=_comparison("differs", observed=_interval(end="13:10")))
+
+    summary = calendar_audit_summary([matching, lost_identity, moved], cancelled_history=[])
+
+    actions = summary.get("actions", {})
+    assert actions.get("rvv-0001") == "none"
+    assert actions.get("rvv-0002") == "optional_identity_rebind"
+    assert actions.get("rvv-0003") == "explicit_booking_change_approval"
+
+
+def test_end_time_only_difference_on_accepted_booking_is_a_material_mismatch_not_identity_loss():
+    # Issue #847: seven Jar bookings differ by +10 minutes at the end only. That
+    # is a real interval contradiction on an accepted booking, not a missing event.
+    observed = _interval(end="13:10")
+    row = _booked_row("rvv-0004", comparison=_comparison("differs", observed=observed))
+    row["interval_comparison"]["end_delta_minutes"] = 10
+    row["interval_comparison"]["start_delta_minutes"] = 0
+
+    summary = calendar_audit_summary([row], cancelled_history=[])
+
+    assert summary["buckets"][AUDIT_MATERIAL_MISMATCH] == ["rvv-0004"]
+    assert summary["buckets"]["accepted_identity_review"] == []
+    assert summary["material_mismatches"][0]["end_delta_minutes"] == 10
+    assert summary.get("actions", {}).get("rvv-0004") == "explicit_booking_change_approval"
