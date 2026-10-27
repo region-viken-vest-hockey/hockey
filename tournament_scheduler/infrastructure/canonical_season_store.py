@@ -37,6 +37,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Iterator, Mapping
 
+from tournament_scheduler.infrastructure.canonical_season_derived_files import carry_forward_derived_files
 from tournament_scheduler.infrastructure.canonical_season_evidence import (
     _carry_forward_evidence,
     _write_extra_evidence,
@@ -439,6 +440,7 @@ def _write_season_state_locked(
             copied_evidence = _carry_forward_evidence(
                 existing_evidence, staging / EVIDENCE_DIR_NAME
             )
+        carried_files = carry_forward_derived_files(season_directory, staging, schedule_payload, decisions_payload)
         # Newly archived evidence files are written into this same staged tree
         # before the swap, so a schedule/decisions reference to them and the
         # artifact itself are installed as one atomic boundary.
@@ -447,7 +449,7 @@ def _write_season_state_locked(
 
         # fsync the newly written primary files and any evidence files that had
         # to be copied (hardlinked evidence is already durable on disk).
-        for staged_file in [*staged_files, *copied_evidence]:
+        for staged_file in [*staged_files, *copied_evidence, *carried_files]:
             with staged_file.open("rb") as handle:
                 os.fsync(handle.fileno())
         # fsync directory entries (new files and hardlinks) before the swap.
