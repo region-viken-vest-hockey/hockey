@@ -12,7 +12,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Iterable, Mapping
 
-from tournament_scheduler.booking.accepted_provenance import accepted_association_provenance
+from tournament_scheduler.booking.accepted_provenance import accepted_association_provenance, accepted_manual_provenance
 from tournament_scheduler.booking.assessment_candidates import (
     assessment_candidate_rank,
     ASSESSMENT_PRESUMED_UNSCHEDULED,
@@ -1722,6 +1722,8 @@ def booking_status_report(
             # authority so a contradicting scrape stays visible without ever
             # demoting the accepted confirmation/rejection.
             row.update(assessment_provenance_fields(assessment_by_tournament.get(tid)))
+            if authority is not None:
+                row["accepted_evidence"] = accepted_manual_provenance(manual)
             if calendar_record:
                 row["calendar_evidence"] = calendar_record
         else:
@@ -1764,8 +1766,6 @@ def booking_status_report(
             }
             row.update(assessment_provenance_fields(assessment_row))
             if authority == BOOKING_AUTHORITY_CALENDAR:
-                # Who accepted this booking and from what, kept for review even when
-                # the current event is retitled, moved or gone (#847).
                 provenance = accepted_association_provenance(active_associations(decisions), tid)
                 if provenance is not None:
                     row["accepted_evidence"] = provenance

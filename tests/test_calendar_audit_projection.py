@@ -417,3 +417,28 @@ def test_confirmed_booking_reports_how_and_when_it_was_accepted(tmp_path):
     assert provenance["accepted_interval"] == {"date": "2026-09-12", "start": "10:00", "end": "12:00"}
     assert provenance["accepted_at"]
     assert provenance["event_fingerprint"] == event_fp
+
+
+def test_manual_confirmation_reports_how_and_when_it_was_accepted(tmp_path):
+    """Issue #847 review: manual confirmations carry the same provenance as calendar ones."""
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="booker",
+        reference="email:9",
+        problem=_problem([], complete=True),
+    )
+
+    report = booking_status_report(season="2026-2027", root=root, problem=_problem([], complete=True))
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
+    provenance = row["accepted_evidence"]
+
+    assert row["authority"] == "manual_club_confirmation"
+    assert provenance["accepted_by"] == "booker"
+    assert provenance["reference"] == "email:9"
+    assert provenance["accepted_at"]
+    assert provenance["assertion_id"].startswith("manual_booking:t1:")
