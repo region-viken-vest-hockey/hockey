@@ -3,14 +3,14 @@
     {
       "availability": "fixed_busy",
       "club": "Jar",
-      "created_at": "2026-09-22T14:05:44.504748+00:00",
+      "created_at": "2026-10-27T14:19:43.649809+00:00",
       "created_by": "niclasl",
       "date": "2026-11-14",
       "end": "14:30",
       "event_fingerprint": "95f763e88404bd1b0aae1855a9d9827e9a6ada8893588c577441f19b62d106a5",
       "id": "calendar_booking:95f763e88404bd1b0aae1855a9d9827e9a6ada8893588c577441f19b62d106a5:rvv-0034",
-      "note": "Jar confirmed this Serieturnering booking in their own calendar",
-      "source_revision": "496ca5b1c16c7316e1b66820dfaf9fa8f3e89084ef9b5204da2791b0730a6445",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "source_revision": "fbc38d035f12583ce3ef8343c1bac32566515a60f89a0eea7d3dd81c9d485f7f",
       "start": "12:00",
       "status": "active",
       "title": "Booking - U10 Serieturnering",
@@ -21,19 +21,27 @@
         "host_club": "Jar",
         "start_time": "12:00"
       },
-      "tournament_id": "rvv-0034"
+      "tournament_id": "rvv-0034",
+      "tournament_interval": {
+        "age_group": "U10",
+        "date": "2026-11-14",
+        "duration_minutes": "150",
+        "end_time": "14:30",
+        "round_count": "5",
+        "start_time": "12:00"
+      }
     },
     {
       "availability": "fixed_busy",
       "club": "Jar",
-      "created_at": "2026-09-22T14:05:45.042335+00:00",
+      "created_at": "2026-10-27T14:19:47.559556+00:00",
       "created_by": "niclasl",
       "date": "2026-11-14",
       "end": "17:30",
       "event_fingerprint": "7ab75ff642eb2cc6af556162e5796258cb0d74e00551dc60a7034eb3eed0cc5c",
       "id": "calendar_booking:7ab75ff642eb2cc6af556162e5796258cb0d74e00551dc60a7034eb3eed0cc5c:rvv-0090",
-      "note": "Jar confirmed this Serieturnering booking in their own calendar",
-      "source_revision": "88b1b2b8545873338f9106cd96d67eee4a65c6ae36bbaa4281aed37f57eeb327",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "source_revision": "e08beb787fc1de27476029da37b0d64d945e40ddf42fc10f6506f1a18d46ae03",
       "start": "15:00",
       "status": "active",
       "title": "Booking - Serieturnering U11",
@@ -44,19 +52,27 @@
         "host_club": "Jar",
         "start_time": "15:00"
       },
-      "tournament_id": "rvv-0090"
+      "tournament_id": "rvv-0090",
+      "tournament_interval": {
+        "age_group": "U11",
+        "date": "2026-11-14",
+        "duration_minutes": "150",
+        "end_time": "17:30",
+        "round_count": "5",
+        "start_time": "15:00"
+      }
     },
     {
       "availability": "fixed_busy",
       "club": "Jar",
-      "created_at": "2026-09-22T14:05:45.599930+00:00",
+      "created_at": "2026-10-27T14:19:45.235940+00:00",
       "created_by": "niclasl",
       "date": "2026-11-15",
       "end": "17:30",
       "event_fingerprint": "b1546bdc5ac438fc413fca860b2731a6308c5914c91a382a1d6520feb4dba26b",
       "id": "calendar_booking:b1546bdc5ac438fc413fca860b2731a6308c5914c91a382a1d6520feb4dba26b:rvv-0051",
-      "note": "Jar confirmed this Serieturnering booking in their own calendar",
-      "source_revision": "1c1ce004f86ab5adbaa18de681746bd0f966418a691c7feb1aa1fec10cf97c43",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "source_revision": "d439dfbd9f251abcfafeffeb845c3af8002159609df1448f5becea571073765d",
       "start": "15:00",
       "status": "active",
       "title": "Booking - Serieturnering U10",
@@ -67,7 +83,15 @@
         "host_club": "Jar",
         "start_time": "15:00"
       },
-      "tournament_id": "rvv-0051"
+      "tournament_id": "rvv-0051",
+      "tournament_interval": {
+        "age_group": "U10",
+        "date": "2026-11-15",
+        "duration_minutes": "150",
+        "end_time": "17:30",
+        "round_count": "5",
+        "start_time": "15:00"
+      }
     },
     {
       "availability": "fixed_busy",
@@ -95,14 +119,14 @@
     {
       "availability": "fixed_busy",
       "club": "Jar",
-      "created_at": "2026-09-22T14:05:46.733725+00:00",
+      "created_at": "2026-10-27T14:19:46.012967+00:00",
       "created_by": "niclasl",
       "date": "2026-11-28",
       "end": "14:30",
       "event_fingerprint": "00e0cd2185f8f59d4bd02202fb9ecb924d8be56ffca7318d3cda26c19fd3c98f",
       "id": "calendar_booking:00e0cd2185f8f59d4bd02202fb9ecb924d8be56ffca7318d3cda26c19fd3c98f:rvv-0052",
-      "note": "Jar confirmed this Serieturnering booking in their own calendar",
-      "source_revision": "0fce271f0926bc54d3b84f0fcf41817aeaa3d7a77935e1b79276731aeef2cd36",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "source_revision": "244629bd7254cdb60456904fbea2ed5820c8d21cadf893b0e4e0306cb2c62cc2",
       "start": "12:00",
       "status": "active",
       "title": "Booking - Serieturnering U11",
@@ -113,19 +137,27 @@
         "host_club": "Jar",
         "start_time": "12:00"
       },
-      "tournament_id": "rvv-0052"
+      "tournament_id": "rvv-0052",
+      "tournament_interval": {
+        "age_group": "U11",
+        "date": "2026-11-28",
+        "duration_minutes": "150",
+        "end_time": "14:30",
+        "round_count": "5",
+        "start_time": "12:00"
+      }
     },
     {
       "availability": "fixed_busy",
       "club": "Jar",
-      "created_at": "2026-09-22T14:05:47.283620+00:00",
+      "created_at": "2026-10-27T14:19:44.449530+00:00",
       "created_by": "niclasl",
       "date": "2026-11-29",
       "end": "14:20",
       "event_fingerprint": "fc27887d1d43122a6cba5b5178243c7375880740b9064d0fb43efcb37420a766",
       "id": "calendar_booking:fc27887d1d43122a6cba5b5178243c7375880740b9064d0fb43efcb37420a766:rvv-0040",
-      "note": "Jar confirmed this Serieturnering booking in their own calendar",
-      "source_revision": "628f38add39e759442781e0b5000e6bfc29ae24bc6f4f943c38c50a48735678d",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "source_revision": "03d78fcec4177ed36c63e4fe90c22a9a6ee4013fad27130c1a86973ba923e7e4",
       "start": "12:30",
       "status": "active",
       "title": "Booking - Serieturnering U12",
@@ -136,19 +168,27 @@
         "host_club": "Jar",
         "start_time": "12:30"
       },
-      "tournament_id": "rvv-0040"
+      "tournament_id": "rvv-0040",
+      "tournament_interval": {
+        "age_group": "U12",
+        "date": "2026-11-29",
+        "duration_minutes": "110",
+        "end_time": "14:20",
+        "round_count": "3",
+        "start_time": "12:30"
+      }
     },
     {
       "availability": "fixed_busy",
       "club": "Jar",
-      "created_at": "2026-09-22T14:05:47.820244+00:00",
+      "created_at": "2026-10-27T14:19:46.791401+00:00",
       "created_by": "niclasl",
       "date": "2026-12-05",
       "end": "14:30",
       "event_fingerprint": "c815adba3ff979b050759819e4594b3c85c3293fcde9771e22b9e66b9b819ddb",
       "id": "calendar_booking:c815adba3ff979b050759819e4594b3c85c3293fcde9771e22b9e66b9b819ddb:rvv-0077",
-      "note": "Jar confirmed this Serieturnering booking in their own calendar",
-      "source_revision": "7f97235a0c20d048f0bde3c43d50bfc9aeddef092d0fa003d234fdbf119b80cf",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "source_revision": "52a9666754b770bc4965a7036cda799949e5e6d91a2ac5cefaabd0670c29f0b0",
       "start": "12:00",
       "status": "active",
       "title": "Booking - JU10 Serieturnering",
@@ -159,7 +199,15 @@
         "host_club": "Jar",
         "start_time": "12:00"
       },
-      "tournament_id": "rvv-0077"
+      "tournament_id": "rvv-0077",
+      "tournament_interval": {
+        "age_group": "JU10",
+        "date": "2026-12-05",
+        "duration_minutes": "150",
+        "end_time": "14:30",
+        "round_count": "5",
+        "start_time": "12:00"
+      }
     },
     {
       "availability": "fixed_busy",
@@ -555,14 +603,14 @@
     {
       "availability": "fixed_busy",
       "club": "Jar",
-      "created_at": "2026-09-22T14:06:00.872954+00:00",
+      "created_at": "2026-10-27T14:19:48.333529+00:00",
       "created_by": "niclasl",
       "date": "2027-03-06",
       "end": "20:00",
       "event_fingerprint": "e352b6958c62465bb4fbb6aa09631151df6ecf5269ccf47ebb8db04428d7b173",
       "id": "calendar_booking:e352b6958c62465bb4fbb6aa09631151df6ecf5269ccf47ebb8db04428d7b173:rvv-0165",
-      "note": "Jar confirmed this Serieturnering booking in their own calendar",
-      "source_revision": "156f8feaf80a214f54d46f15bbd5ae3c53404c255502d9640689154d79c431c3",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "source_revision": "249a457a8eb0235f7f36a9b05811e8911f25b90263c3287c30f44ce61dcdb457",
       "start": "17:30",
       "status": "active",
       "title": "Booking - Serieturnering U11",
@@ -573,7 +621,15 @@
         "host_club": "Jar",
         "start_time": "17:30"
       },
-      "tournament_id": "rvv-0165"
+      "tournament_id": "rvv-0165",
+      "tournament_interval": {
+        "age_group": "U11",
+        "date": "2027-03-06",
+        "duration_minutes": "150",
+        "end_time": "20:00",
+        "round_count": "5",
+        "start_time": "17:30"
+      }
     },
     {
       "availability": "fixed_busy",
@@ -3634,6 +3690,40 @@
         "end_time": "17:35",
         "round_count": "5",
         "start_time": "15:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "booking_feasibility_warnings": [
+        "ice_time_governing_minimum"
+      ],
+      "club": "Frisk Asker",
+      "created_at": "2026-10-27T14:20:33.701548+00:00",
+      "created_by": "niclasl",
+      "date": "2027-03-13",
+      "end": "14:50",
+      "event_fingerprint": "5b78d668352511a690851d3643390b4346f95a45b00b9a23808ae711c4b4db26",
+      "id": "calendar_booking:5b78d668352511a690851d3643390b4346f95a45b00b9a23808ae711c4b4db26:rvv-0179",
+      "note": "Stated 13:30-14:50 accepted as canonical for #853/#860 (approved in session); 80 min is below the JU8 governing minimum and stays a feasibility finding",
+      "source_revision": "142721aa76980ee98ab3a9a4efda65b1c1b669e87388d02bf72595a393276c78",
+      "start": "13:30",
+      "status": "active",
+      "title": "JU8 Serierunde",
+      "tournament_facts": {
+        "age_group": "JU8",
+        "arena": "Askerhallen",
+        "date": "2027-03-13",
+        "host_club": "Frisk Asker",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0179",
+      "tournament_interval": {
+        "age_group": "JU8",
+        "date": "2027-03-13",
+        "duration_minutes": "80",
+        "end_time": "14:50",
+        "round_count": "3",
+        "start_time": "13:30"
       }
     }
   ],
@@ -8177,7 +8267,15 @@
         "end": "14:50",
         "start": "13:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Re-record for #853/#860 (approved in session): stated 13:30-14:50 is accepted as canonical; the 80 min interval is below the JU8 120-minute governing floor and stays a feasibility finding. Supersedes the stale 13:00-15:00 facts.",
+      "superseded_at": "2026-10-27T17:26:27.258951+00:00",
+      "superseded_by": "manual_booking:rvv-0179:2026-10-27T17:26:27.258951+00:00",
+      "superseded_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": "manual_booking:rvv-0179:2026-09-28T07:53:37.486687+00:00",
       "tournament_facts": {
         "age_group": "JU8",
@@ -11579,6 +11677,56 @@
         "start_time": "10:30"
       },
       "tournament_id": "rvv-0029"
+    },
+    {
+      "arena": "Askerhallen",
+      "asserted_at": "2026-10-27T17:26:27.258951+00:00",
+      "asserted_by": "niclasl",
+      "asserted_interval": {
+        "age_group": "JU8",
+        "date": "2027-03-13",
+        "duration_minutes": "80",
+        "end_time": "14:50",
+        "round_count": "3",
+        "start_time": "13:30"
+      },
+      "authority": "manual_club_confirmation",
+      "booking_feasibility_warnings": [
+        "ice_time_governing_minimum"
+      ],
+      "booking_status": "booked",
+      "date": "2027-03-13",
+      "host_club": "Frisk Asker",
+      "id": "manual_booking:rvv-0179:2026-10-27T17:26:27.258951+00:00",
+      "note": "Re-record for #853/#860 (approved in session): stated 13:30-14:50 is accepted as canonical; the 80 min interval is below the JU8 120-minute governing floor and stays a feasibility finding. Supersedes the stale 13:00-15:00 facts.",
+      "reconfirms_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
+      "reference": "changes_and_confirmations/2026-27/Miniserierunder Frisk Asker.xlsx",
+      "schema_version": 1,
+      "source": "manual_club_confirmation",
+      "source_assertion_id": "club_booking_source:Frisk Asker:5d8fd0458276c34e0a5712edd88ea323e928d409dbdcfa0aae0e2bc6e2d93b12",
+      "source_revision": "1f42002ffd0a9691a0ee226efaa75d5d4f52eea0a763b20a10b60f8455e3a919",
+      "source_scope": "club_wide_interpretation",
+      "start_time": "13:30",
+      "stated_interval": {
+        "date": "2027-03-13",
+        "duration_minutes": "80",
+        "end": "14:50",
+        "start": "13:30"
+      },
+      "status": "active",
+      "supersedes": "manual_booking:rvv-0179:2026-09-28T20:31:22.049307+00:00",
+      "tournament_facts": {
+        "age_group": "JU8",
+        "arena": "Askerhallen",
+        "date": "2027-03-13",
+        "host_club": "Frisk Asker",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0179"
     }
   ],
   "rejected_booking_evidence": [
@@ -12474,30 +12622,6 @@
         "start_time": "12:30"
       },
       "tournament_id": "rvv-0174"
-    },
-    {
-      "arena": "Askerhallen",
-      "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
-      "checked_at": "2026-09-28T07:30:59.502406+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-03-13",
-      "event_fingerprint": "35aaf86a3e682e054672d4ff58e32c9b90075fc54dec4ac0c473f400bc5cb7c2",
-      "host_club": "Frisk Asker",
-      "id": "booking_evidence:rvv-0179:2026-09-28T07:30:59.502406+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "single_overlapping_event_requires_confirmation",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "13:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "JU8",
-        "arena": "Askerhallen",
-        "date": "2027-03-13",
-        "host_club": "Frisk Asker",
-        "start_time": "13:00"
-      },
-      "tournament_id": "rvv-0179"
     },
     {
       "arena": "Askerhallen",
@@ -14643,30 +14767,6 @@
       "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
       "checked_at": "2026-09-30T20:17:25.018765+00:00",
       "checked_by": "niclasl",
-      "date": "2026-12-05",
-      "event_fingerprint": "c815adba3ff979b050759819e4594b3c85c3293fcde9771e22b9e66b9b819ddb",
-      "host_club": "Jar",
-      "id": "booking_evidence:rvv-0077:2026-09-30T20:17:25.018765+00:00",
-      "note": "Fresh Jar reconciliation",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "4f49b84088d8a655abbd95a854600d1ec66a04043d46acbf4dd353690ad8923a",
-      "start_time": "12:00",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "JU10",
-        "arena": "Jar Isforum",
-        "date": "2026-12-05",
-        "host_club": "Jar",
-        "start_time": "12:00"
-      },
-      "tournament_id": "rvv-0077"
-    },
-    {
-      "arena": "Jar Isforum",
-      "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
-      "checked_at": "2026-09-30T20:17:25.018765+00:00",
-      "checked_by": "niclasl",
       "date": "2027-01-09",
       "event_fingerprint": "4402ce123ab7b46cef022c1757bc546777e2748a9dd56451e9c4158662dfadb7",
       "host_club": "Jar",
@@ -15027,30 +15127,6 @@
       "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
       "checked_at": "2026-09-30T20:17:25.018765+00:00",
       "checked_by": "niclasl",
-      "date": "2027-03-06",
-      "event_fingerprint": "e352b6958c62465bb4fbb6aa09631151df6ecf5269ccf47ebb8db04428d7b173",
-      "host_club": "Jar",
-      "id": "booking_evidence:rvv-0165:2026-09-30T20:17:25.018765+00:00",
-      "note": "Fresh Jar reconciliation",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "4f49b84088d8a655abbd95a854600d1ec66a04043d46acbf4dd353690ad8923a",
-      "start_time": "17:30",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Jar Isforum",
-        "date": "2027-03-06",
-        "host_club": "Jar",
-        "start_time": "17:30"
-      },
-      "tournament_id": "rvv-0165"
-    },
-    {
-      "arena": "Jar Isforum",
-      "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
-      "checked_at": "2026-09-30T20:17:25.018765+00:00",
-      "checked_by": "niclasl",
       "date": "2027-02-14",
       "event_fingerprint": "b912f4c12a79f3557dda5a0b785199cc6b7c7fe5c56f5e3dda0baab5f74622bd",
       "host_club": "Jar",
@@ -15147,30 +15223,6 @@
       "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
       "checked_at": "2026-09-30T20:17:25.018765+00:00",
       "checked_by": "niclasl",
-      "date": "2026-11-14",
-      "event_fingerprint": "95f763e88404bd1b0aae1855a9d9827e9a6ada8893588c577441f19b62d106a5",
-      "host_club": "Jar",
-      "id": "booking_evidence:rvv-0034:2026-09-30T20:17:25.018765+00:00",
-      "note": "Fresh Jar reconciliation",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "4f49b84088d8a655abbd95a854600d1ec66a04043d46acbf4dd353690ad8923a",
-      "start_time": "12:00",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U10",
-        "arena": "Jar Isforum",
-        "date": "2026-11-14",
-        "host_club": "Jar",
-        "start_time": "12:00"
-      },
-      "tournament_id": "rvv-0034"
-    },
-    {
-      "arena": "Jar Isforum",
-      "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
-      "checked_at": "2026-09-30T20:17:25.018765+00:00",
-      "checked_by": "niclasl",
       "date": "2027-01-17",
       "event_fingerprint": "26b580728c729e2ca05dd6ed255de18771a99c1d5f8034387d379f11c2a99fb2",
       "host_club": "Jar",
@@ -15189,54 +15241,6 @@
         "start_time": "11:00"
       },
       "tournament_id": "rvv-0180"
-    },
-    {
-      "arena": "Jar Isforum",
-      "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
-      "checked_at": "2026-09-30T20:17:25.018765+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-28",
-      "event_fingerprint": "00e0cd2185f8f59d4bd02202fb9ecb924d8be56ffca7318d3cda26c19fd3c98f",
-      "host_club": "Jar",
-      "id": "booking_evidence:rvv-0052:2026-09-30T20:17:25.018765+00:00",
-      "note": "Fresh Jar reconciliation",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "4f49b84088d8a655abbd95a854600d1ec66a04043d46acbf4dd353690ad8923a",
-      "start_time": "12:00",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Jar Isforum",
-        "date": "2026-11-28",
-        "host_club": "Jar",
-        "start_time": "12:00"
-      },
-      "tournament_id": "rvv-0052"
-    },
-    {
-      "arena": "Jar Isforum",
-      "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
-      "checked_at": "2026-09-30T20:17:25.018765+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-14",
-      "event_fingerprint": "7ab75ff642eb2cc6af556162e5796258cb0d74e00551dc60a7034eb3eed0cc5c",
-      "host_club": "Jar",
-      "id": "booking_evidence:rvv-0090:2026-09-30T20:17:25.018765+00:00",
-      "note": "Fresh Jar reconciliation",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "4f49b84088d8a655abbd95a854600d1ec66a04043d46acbf4dd353690ad8923a",
-      "start_time": "15:00",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Jar Isforum",
-        "date": "2026-11-14",
-        "host_club": "Jar",
-        "start_time": "15:00"
-      },
-      "tournament_id": "rvv-0090"
     },
     {
       "arena": "Jar Isforum",
@@ -15285,30 +15289,6 @@
         "start_time": "12:00"
       },
       "tournament_id": "rvv-0186"
-    },
-    {
-      "arena": "Jar Isforum",
-      "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
-      "checked_at": "2026-09-30T20:17:25.018765+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-29",
-      "event_fingerprint": "fc27887d1d43122a6cba5b5178243c7375880740b9064d0fb43efcb37420a766",
-      "host_club": "Jar",
-      "id": "booking_evidence:rvv-0040:2026-09-30T20:17:25.018765+00:00",
-      "note": "Fresh Jar reconciliation",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "4f49b84088d8a655abbd95a854600d1ec66a04043d46acbf4dd353690ad8923a",
-      "start_time": "12:30",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Jar Isforum",
-        "date": "2026-11-29",
-        "host_club": "Jar",
-        "start_time": "12:30"
-      },
-      "tournament_id": "rvv-0040"
     },
     {
       "arena": "Jar Isforum",
@@ -15405,30 +15385,6 @@
         "start_time": "13:30"
       },
       "tournament_id": "rvv-0160"
-    },
-    {
-      "arena": "Jar Isforum",
-      "calendar_fingerprint": "234d6d33225cacba075207a4d5f8881ffae30bc070b7eef7c85ab2e54a6630f2",
-      "checked_at": "2026-09-30T20:17:25.018765+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-15",
-      "event_fingerprint": "b1546bdc5ac438fc413fca860b2731a6308c5914c91a382a1d6520feb4dba26b",
-      "host_club": "Jar",
-      "id": "booking_evidence:rvv-0051:2026-09-30T20:17:25.018765+00:00",
-      "note": "Fresh Jar reconciliation",
-      "reason": "explicit_calendar_booking_association",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "4f49b84088d8a655abbd95a854600d1ec66a04043d46acbf4dd353690ad8923a",
-      "start_time": "15:00",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "U10",
-        "arena": "Jar Isforum",
-        "date": "2026-11-15",
-        "host_club": "Jar",
-        "start_time": "15:00"
-      },
-      "tournament_id": "rvv-0051"
     },
     {
       "arena": "Jar Isforum",
@@ -15885,6 +15841,201 @@
         "start_time": "15:00"
       },
       "tournament_id": "rvv-0082"
+    },
+    {
+      "arena": "Jar Isforum",
+      "calendar_fingerprint": "0943875159b78f6e856d10d41ac9c6718cdedd069a56e85d49f43cec2f867455",
+      "checked_at": "2026-10-27T14:19:43.586284+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-14",
+      "event_fingerprint": "95f763e88404bd1b0aae1855a9d9827e9a6ada8893588c577441f19b62d106a5",
+      "host_club": "Jar",
+      "id": "booking_evidence:rvv-0034:2026-10-27T14:19:43.586284+00:00",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "fbc38d035f12583ce3ef8343c1bac32566515a60f89a0eea7d3dd81c9d485f7f",
+      "start_time": "12:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Jar Isforum",
+        "date": "2026-11-14",
+        "host_club": "Jar",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0034"
+    },
+    {
+      "arena": "Jar Isforum",
+      "calendar_fingerprint": "0943875159b78f6e856d10d41ac9c6718cdedd069a56e85d49f43cec2f867455",
+      "checked_at": "2026-10-27T14:19:44.387783+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-29",
+      "event_fingerprint": "fc27887d1d43122a6cba5b5178243c7375880740b9064d0fb43efcb37420a766",
+      "host_club": "Jar",
+      "id": "booking_evidence:rvv-0040:2026-10-27T14:19:44.387783+00:00",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "03d78fcec4177ed36c63e4fe90c22a9a6ee4013fad27130c1a86973ba923e7e4",
+      "start_time": "12:30",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Jar Isforum",
+        "date": "2026-11-29",
+        "host_club": "Jar",
+        "start_time": "12:30"
+      },
+      "tournament_id": "rvv-0040"
+    },
+    {
+      "arena": "Jar Isforum",
+      "calendar_fingerprint": "0943875159b78f6e856d10d41ac9c6718cdedd069a56e85d49f43cec2f867455",
+      "checked_at": "2026-10-27T14:19:45.173438+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-15",
+      "event_fingerprint": "b1546bdc5ac438fc413fca860b2731a6308c5914c91a382a1d6520feb4dba26b",
+      "host_club": "Jar",
+      "id": "booking_evidence:rvv-0051:2026-10-27T14:19:45.173438+00:00",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "d439dfbd9f251abcfafeffeb845c3af8002159609df1448f5becea571073765d",
+      "start_time": "15:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U10",
+        "arena": "Jar Isforum",
+        "date": "2026-11-15",
+        "host_club": "Jar",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0051"
+    },
+    {
+      "arena": "Jar Isforum",
+      "calendar_fingerprint": "0943875159b78f6e856d10d41ac9c6718cdedd069a56e85d49f43cec2f867455",
+      "checked_at": "2026-10-27T14:19:45.950787+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-28",
+      "event_fingerprint": "00e0cd2185f8f59d4bd02202fb9ecb924d8be56ffca7318d3cda26c19fd3c98f",
+      "host_club": "Jar",
+      "id": "booking_evidence:rvv-0052:2026-10-27T14:19:45.950787+00:00",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "244629bd7254cdb60456904fbea2ed5820c8d21cadf893b0e4e0306cb2c62cc2",
+      "start_time": "12:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Jar Isforum",
+        "date": "2026-11-28",
+        "host_club": "Jar",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0052"
+    },
+    {
+      "arena": "Jar Isforum",
+      "calendar_fingerprint": "0943875159b78f6e856d10d41ac9c6718cdedd069a56e85d49f43cec2f867455",
+      "checked_at": "2026-10-27T14:19:46.726670+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-12-05",
+      "event_fingerprint": "c815adba3ff979b050759819e4594b3c85c3293fcde9771e22b9e66b9b819ddb",
+      "host_club": "Jar",
+      "id": "booking_evidence:rvv-0077:2026-10-27T14:19:46.726670+00:00",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "52a9666754b770bc4965a7036cda799949e5e6d91a2ac5cefaabd0670c29f0b0",
+      "start_time": "12:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "JU10",
+        "arena": "Jar Isforum",
+        "date": "2026-12-05",
+        "host_club": "Jar",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0077"
+    },
+    {
+      "arena": "Jar Isforum",
+      "calendar_fingerprint": "0943875159b78f6e856d10d41ac9c6718cdedd069a56e85d49f43cec2f867455",
+      "checked_at": "2026-10-27T14:19:47.496564+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-14",
+      "event_fingerprint": "7ab75ff642eb2cc6af556162e5796258cb0d74e00551dc60a7034eb3eed0cc5c",
+      "host_club": "Jar",
+      "id": "booking_evidence:rvv-0090:2026-10-27T14:19:47.496564+00:00",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "e08beb787fc1de27476029da37b0d64d945e40ddf42fc10f6506f1a18d46ae03",
+      "start_time": "15:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Jar Isforum",
+        "date": "2026-11-14",
+        "host_club": "Jar",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0090"
+    },
+    {
+      "arena": "Jar Isforum",
+      "calendar_fingerprint": "0943875159b78f6e856d10d41ac9c6718cdedd069a56e85d49f43cec2f867455",
+      "checked_at": "2026-10-27T14:19:48.271682+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-03-06",
+      "event_fingerprint": "e352b6958c62465bb4fbb6aa09631151df6ecf5269ccf47ebb8db04428d7b173",
+      "host_club": "Jar",
+      "id": "booking_evidence:rvv-0165:2026-10-27T14:19:48.271682+00:00",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "249a457a8eb0235f7f36a9b05811e8911f25b90263c3287c30f44ce61dcdb457",
+      "start_time": "17:30",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Jar Isforum",
+        "date": "2027-03-06",
+        "host_club": "Jar",
+        "start_time": "17:30"
+      },
+      "tournament_id": "rvv-0165"
+    },
+    {
+      "arena": "Askerhallen",
+      "booking_feasibility_warnings": [
+        "ice_time_governing_minimum"
+      ],
+      "calendar_fingerprint": "c5c1f09c10fb78cc1d485b798feb05e229bc50dd7b85a19d25f1c64b13c74484",
+      "checked_at": "2026-10-27T14:20:33.636131+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-03-13",
+      "event_fingerprint": "5b78d668352511a690851d3643390b4346f95a45b00b9a23808ae711c4b4db26",
+      "host_club": "Frisk Asker",
+      "id": "booking_evidence:rvv-0179:2026-10-27T14:20:33.636131+00:00",
+      "note": "Stated 13:30-14:50 accepted as canonical for #853/#860 (approved in session); 80 min is below the JU8 governing minimum and stays a feasibility finding",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "142721aa76980ee98ab3a9a4efda65b1c1b669e87388d02bf72595a393276c78",
+      "start_time": "13:30",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "JU8",
+        "arena": "Askerhallen",
+        "date": "2027-03-13",
+        "host_club": "Frisk Asker",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0179"
     }
   ]
 }
