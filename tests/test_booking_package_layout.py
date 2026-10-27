@@ -23,6 +23,7 @@ BOOKING_MODULES = {
     "club_profile_availability",
     "ice_resources",
     "interval_facts",
+    "primary_observation",
     "sandefjord_allocation",
     "status_crosswalk",
 }
