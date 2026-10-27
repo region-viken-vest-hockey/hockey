@@ -111,6 +111,11 @@ def _classify(row: Mapping[str, Any]) -> str:
             # a complete calendar with no plausible candidate shows a lost or
             # reassigned identity. Contested candidates stay unresolved ambiguity.
             if int(row.get("actionable_candidate_count") or 0) == 0:
+                if row.get("calendar_publishes_bookings") is False:
+                    # The club's calendar does not list its tournament bookings (a
+                    # documented profile limitation), so a complete absence is not a
+                    # lost identity. The booking keeps its authority; no action is asked.
+                    return AUDIT_ACCEPTED_UNCHECKABLE
                 return AUDIT_ACCEPTED_IDENTITY_REVIEW
             return AUDIT_UNCONFIRMED_AMBIGUOUS
 
@@ -142,6 +147,14 @@ def _mismatch_detail(row: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _action_for(row: Mapping[str, Any], bucket: str) -> str:
+    # Absence on a calendar that does not publish bookings asks for no operator
+    # step: the accepted booking is kept as is (#853).
+    if bucket == AUDIT_ACCEPTED_UNCHECKABLE and row.get("calendar_publishes_bookings") is False:
+        return AUDIT_ACTION_NONE
+    return AUDIT_ACTIONS.get(bucket, AUDIT_ACTION_NONE)
+
+
 def calendar_audit_summary(
     rows: Sequence[Mapping[str, Any]],
     *,
@@ -156,7 +169,7 @@ def calendar_audit_summary(
         bucket = _classify(row)
         tournament_id = str(row.get("tournament_id") or "")
         buckets[bucket].append(tournament_id)
-        actions[tournament_id] = AUDIT_ACTIONS.get(bucket, AUDIT_ACTION_NONE)
+        actions[tournament_id] = _action_for(row, bucket)
         if bucket == AUDIT_MATERIAL_MISMATCH:
             material.append(_mismatch_detail(row))
     buckets[AUDIT_CANCELLED_HISTORICAL] = [str(item.get("tournament_id") or "") for item in cancelled_history]

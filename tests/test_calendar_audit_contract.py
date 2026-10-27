@@ -9,6 +9,8 @@ a moved or mismatched one.
 from __future__ import annotations
 
 from tournament_scheduler.booking.calendar_audit import (
+    AUDIT_ACTION_CHANGE_APPROVAL,
+    AUDIT_ACTION_RESOLVE_CANDIDATE,
     AUDIT_ACCEPTED_UNCHECKABLE,
     AUDIT_CANCELLED_HISTORICAL,
     AUDIT_CONFIRMED_MATCHING,
@@ -275,3 +277,96 @@ def test_every_non_none_action_has_operator_wording_in_text():
     for bucket, action in AUDIT_ACTIONS.items():
         if action != AUDIT_ACTION_NONE:
             assert action in _ACTION_LABELS, f"{bucket} -> {action} has no operator wording"
+
+
+def _presence_row(tid, *, comparison, candidates=1, conflict=False):
+    # A Sandefjord-style booking: the host calendar does not publish tournament
+    # bookings, so an absent interval proves nothing and must not demand action.
+    row = _booked_row(tid, comparison=comparison, conflict=conflict)
+    row.update(
+        {
+            "calendar_publishes_bookings": False,
+            "calendar_covers_window": True,
+            "actionable_candidate_count": candidates,
+        }
+    )
+    return row
+
+
+def test_accepted_booking_without_calendar_presence_is_not_a_resolve_candidate_demand():
+    # Without the presence capability the same complete calendar with a
+    # contested candidate asks for identity resolution (the #853 operator report).
+    row = _booked_row("rvv-0024", comparison=_comparison("no_observed_interval"))
+    row.update({"calendar_covers_window": True, "actionable_candidate_count": 1})
+
+    summary = calendar_audit_summary([row], cancelled_history=[])
+    assert summary["buckets"][AUDIT_UNCONFIRMED_AMBIGUOUS] == ["rvv-0024"]
+    assert summary["actions"]["rvv-0024"] == AUDIT_ACTION_RESOLVE_CANDIDATE
+
+    presence = _presence_row("rvv-0024", comparison=_comparison("no_observed_interval"), candidates=0)
+    summary = calendar_audit_summary([presence], cancelled_history=[])
+
+    assert summary["buckets"][AUDIT_ACCEPTED_UNCHECKABLE] == ["rvv-0024"]
+    assert summary["buckets"][AUDIT_UNCONFIRMED_AMBIGUOUS] == []
+    assert summary["actions"]["rvv-0024"] == AUDIT_ACTION_NONE
+    assert summary["material_mismatches"] == []
+
+
+def test_accepted_booking_keeps_its_authority_when_calendar_presence_is_unpublished():
+    row = _presence_row("rvv-0037", comparison=_comparison("no_observed_interval"), candidates=0)
+
+    summary = calendar_audit_summary([row], cancelled_history=[])
+
+    assert summary["buckets"][AUDIT_CONFIRMED_MATCHING] == []
+    assert summary["buckets"][AUDIT_MATERIAL_MISMATCH] == []
+    assert row["status"] == "manually_booked"
+    assert row["operational_state"] == OPERATIONAL_BOOKED
+
+
+def test_demonstrated_interval_conflict_stays_material_when_presence_is_unpublished():
+    row = _presence_row(
+        "rvv-0060",
+        comparison=_comparison(
+            "differs",
+            observed={"date": "2026-10-16", "start": "12:00", "end": "13:00"},
+        ),
+    )
+
+    summary = calendar_audit_summary([row], cancelled_history=[])
+
+    assert summary["buckets"][AUDIT_MATERIAL_MISMATCH] == ["rvv-0060"]
+    assert summary["actions"]["rvv-0060"] == AUDIT_ACTION_CHANGE_APPROVAL
+
+
+def test_explicit_conflict_stays_material_when_presence_is_unpublished():
+    row = _presence_row("rvv-0102", comparison=_comparison("no_observed_interval"), conflict=True)
+
+    summary = calendar_audit_summary([row], cancelled_history=[])
+
+    assert summary["buckets"][AUDIT_MATERIAL_MISMATCH] == ["rvv-0102"]
+
+
+def test_assessment_provenance_carries_calendar_presence_limitation_without_authority_change():
+    from tournament_scheduler.booking.status_crosswalk import assessment_provenance_fields
+
+    fields = assessment_provenance_fields(
+        {"classification": "unmatched", "host_club": "Sandefjord Penguins", "calendar_covers_window": True}
+    )
+    assert assessment_provenance_fields({"host_club": "Skien"}).get("calendar_publishes_bookings") is None
+
+    assert fields["calendar_publishes_bookings"] is False
+    assert "status" not in fields
+    assert "authority" not in fields
+
+
+def test_contested_candidate_on_unpublished_calendar_still_requires_identity_resolution():
+    # An actionable candidate is evidence that may be a different booking identity.
+    # Absence of the primary interval must not suppress that review (#853 review).
+    row = _presence_row("rvv-0024", comparison=_comparison("no_observed_interval"), candidates=1)
+
+    summary = calendar_audit_summary([row], cancelled_history=[])
+
+    assert summary["buckets"][AUDIT_UNCONFIRMED_AMBIGUOUS] == ["rvv-0024"]
+    assert summary["buckets"][AUDIT_ACCEPTED_UNCHECKABLE] == []
+    assert summary["actions"]["rvv-0024"] == AUDIT_ACTION_RESOLVE_CANDIDATE
+    assert row["operational_state"] == OPERATIONAL_BOOKED

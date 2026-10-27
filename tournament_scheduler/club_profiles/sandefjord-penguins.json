@@ -8,6 +8,15 @@
       "tournament_requirements": {}
     }
   ],
+  "calendar_booking_presence": {
+    "publishes_tournament_bookings": false,
+    "evidence": {
+      "kind": "operator_decision",
+      "reference": "https://github.com/region-viken-vest-hockey/hockey/issues/853",
+      "summary": "Sandefjord Penguins does not enter its miniputt tournaments into its external calendar; its bookings are confirmed manually. The calendar can show conflicting ice use but is not evidence of tournament booking presence.",
+      "recorded_at": "2026-10-27"
+    }
+  },
   "availability_policies": [
     {
       "id": "weekend-ice",
