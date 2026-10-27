@@ -404,8 +404,10 @@ def manual_assertion_stale_reasons(
             reasons.append(f"tournament_{key}_changed")
     stored_interval = assertion.get("asserted_interval") or {}
     current_interval = tournament_occupancy_interval_facts(tournament, problem)
+    # Only an assertion that stated no interval is superseded; an explicit stated window stays authoritative.
+    superseded = explicit_interval_fields(assertion) == [] and (accepted_booking_interval_evidence(problem, tournament) or {}).get("authority") == BOOKING_AUTHORITY_CALENDAR
     for key in ("date", "start_time", "duration_minutes", "end_time"):
-        if str(stored_interval.get(key) or "") != current_interval[key]:
+        if not superseded and str(stored_interval.get(key) or "") != current_interval[key]:
             reasons.append(f"tournament_{key}_changed")
     return sorted(set(reasons))
 
@@ -1726,9 +1728,7 @@ def booking_status_report(
             # authority so a contradicting scrape stays visible without ever
             # demoting the accepted confirmation/rejection.
             row.update(assessment_provenance_fields(assessment_by_tournament.get(tid)))
-            # Which interval fields the club explicitly stated. An unstated field
-            # is the planner's proposal, not an accepted fact (#860).
-            row["explicit_interval_fields"] = explicit_interval_fields(manual)
+            row["explicit_interval_fields"] = explicit_interval_fields(manual)  # #860
             if authority is not None:
                 row["accepted_evidence"] = accepted_manual_provenance(manual)
             if calendar_record:
