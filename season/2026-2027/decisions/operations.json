@@ -1,6 +1,6 @@
 {
   "actor": "claude-code",
-  "canonical_state_revision": "fbc38d035f12583ce3ef8343c1bac32566515a60f89a0eea7d3dd81c9d485f7f",
+  "canonical_state_revision": "bfbd3632b6476c0301779e56b11d41fdb4cf619a699644b051a44a4f4ab0df4d",
   "created_at": "2026-09-18T19:44:06.643372+00:00",
   "decisions": {
     "mp_unplaced_placement_U11_2026_10_18_1": {
@@ -313,11 +313,12 @@
       "status": "pending_review"
     },
     "rvv-0034": {
-      "approved_at": "2026-09-22T14:07:20.387680+00:00",
+      "approved_at": "2026-10-27T14:19:43.586284+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "a547f5485283e789a6ec0769ac8ca291441efcf283d3ba0f4117fe6461dd8e66",
-      "note": "Jar confirmed this booking in their own calendar",
-      "participants_locked": true,
+      "approved_placement_fingerprint": "6218229aba7e42559f9483ae15c87901fcd93b430dcb00461b1980cba6a4c4c7",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
     },
@@ -369,11 +370,12 @@
       "status": "approved"
     },
     "rvv-0040": {
-      "approved_at": "2026-09-22T14:08:30.419674+00:00",
+      "approved_at": "2026-10-27T14:19:44.387783+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "e768bad5cfbe17578ea262527782e01bd391a551829c738576294ce45b40ef3e",
-      "note": "Jar confirmed this booking in their own calendar",
-      "participants_locked": true,
+      "approved_placement_fingerprint": "9788d3b31fa2b64ea7566cb38cfd221a99542edc7da9269dbbe1ad9fbc823ac7",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
     },
@@ -462,20 +464,22 @@
       "status": "approved"
     },
     "rvv-0051": {
-      "approved_at": "2026-09-22T14:08:28.568625+00:00",
+      "approved_at": "2026-10-27T14:19:45.173438+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "fef3fadfa2f4194ddb8612ca89aa9d54c38de11f8e438b37a108cba1b1bd7029",
-      "note": "Jar confirmed this booking in their own calendar",
-      "participants_locked": true,
+      "approved_placement_fingerprint": "2b14b302b0303b9488606dd2a27c8a65087a37566ff879c4de2e4c1dd50e4393",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
     },
     "rvv-0052": {
-      "approved_at": "2026-09-22T14:08:29.798392+00:00",
+      "approved_at": "2026-10-27T14:19:45.950787+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "f10306d434e9c58da4386f7a7fc0341501e64598cc4bbfe0aeffa28dbc4d25cf",
-      "note": "Jar confirmed this booking in their own calendar",
-      "participants_locked": true,
+      "approved_placement_fingerprint": "0df6854f599ed3268b9c0a73a94768de3f82ed4e4e8081f1f39b7aa7112f2661",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
     },
@@ -684,11 +688,12 @@
       "status": "approved"
     },
     "rvv-0077": {
-      "approved_at": "2026-09-22T14:08:31.050138+00:00",
+      "approved_at": "2026-10-27T14:19:46.726670+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "c747f8f792ef7489c15935130b6e168f3fcc10d791cbca1215b30ff3c19909e4",
-      "note": "Jar confirmed this booking in their own calendar",
-      "participants_locked": true,
+      "approved_placement_fingerprint": "849de436896f11738d432022c2157dd4311334250a1b59d7c99325c44e1bd1ba",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
     },
@@ -775,11 +780,12 @@
       "status": "pending_review"
     },
     "rvv-0090": {
-      "approved_at": "2026-09-22T14:08:27.959466+00:00",
+      "approved_at": "2026-10-27T14:19:47.496564+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "3b6af03a0c7610c3489225d6d2a20c4b655dc1a6157f77eb49b2837f1a627ba5",
-      "note": "Jar confirmed this booking in their own calendar",
-      "participants_locked": true,
+      "approved_placement_fingerprint": "29eac8071931b2e61ed0cef2c5bacd1939fdacf5c31b4d59f78981fb47802536",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
     },
@@ -1458,11 +1464,12 @@
       "status": "approved"
     },
     "rvv-0165": {
-      "approved_at": "2026-09-22T14:08:46.161191+00:00",
+      "approved_at": "2026-10-27T14:19:48.271682+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "9923dca0545a4f24a5670fbd2f6c60b03376cde2f65cfc38ebe96474b52794e8",
-      "note": "Jar confirmed this booking in their own calendar",
-      "participants_locked": true,
+      "approved_placement_fingerprint": "0fbdbae3ce1570db9afb27209807b6f2383017646ec0a5e8913922fe91360780",
+      "note": "Per-tournament calendar-booking acceptance for #860: calendar shows booked interval; approved by niclasl in session",
+      "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
     },
@@ -1588,13 +1595,14 @@
       "status": "approved"
     },
     "rvv-0179": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-27T14:20:33.636131+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "880c82e1cda164ab5e0bf93ce3146303588ed488739f2a8c8114d2a01e301792",
+      "approved_placement_fingerprint": "d1bbfe4ef44950d3c9e202aed663c55faa4f18593740e670bce0fdf885120e4c",
+      "note": "Stated 13:30-14:50 accepted as canonical for #853/#860 (approved in session); 80 min is below the JU8 governing minimum and stays a feasibility finding",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0180": {
       "approved_at": "2026-09-22T14:08:33.542083+00:00",
@@ -1704,7 +1712,7 @@
     "stale_reason": "calendar_evidence_refreshed",
     "status": "stale"
   },
-  "schedule_fingerprint": "f3f27e903d70077ecc236218d0c40c28882757abd137ad6a86609bbffadcac13",
+  "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
   "schema_version": 1,
   "season": "2026-2027",
   "season_lifecycle": {
@@ -181537,5 +181545,5 @@
     "sealed_by": "niclasl",
     "state": "published_sealed"
   },
-  "updated_at": "2026-10-27T09:53:00.670041+00:00"
+  "updated_at": "2026-10-27T17:26:27.258951+00:00"
 }
