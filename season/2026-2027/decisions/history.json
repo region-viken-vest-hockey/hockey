@@ -58126,6 +58126,146 @@
       "schedule_fingerprint": "f3f27e903d70077ecc236218d0c40c28882757abd137ad6a86609bbffadcac13",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-27T09:50:58.345452+00:00",
+      "details": {
+        "blocked_sources": [],
+        "calendar_fingerprint": "51e564efdce366636462eb2673ad598fb0d3dfb60862ac3a5e8634f1938ba44f",
+        "planned_tournament_reconciliation": {
+          "Holmen": {
+            "count": 21,
+            "requires_review_count": 21
+          }
+        },
+        "previous_calendar_fingerprint": "943d63fe053e7a08ace56919f40099088616165a9fa545c1d4a3e5bf69b51538",
+        "previous_snapshot": {
+          "calendar_fingerprint": "943d63fe053e7a08ace56919f40099088616165a9fa545c1d4a3e5bf69b51538",
+          "captured_at": "2026-10-27T09:50:58.345452+00:00",
+          "had_prior_calendar_evidence": true,
+          "had_prior_source_policy": true,
+          "path": "evidence/calendar/2fb27a2b147a363bcf8c64561d2cc55a1210a14ef0a7c79c61d9294c9f3b7e8d.json",
+          "sha256": "2fb27a2b147a363bcf8c64561d2cc55a1210a14ef0a7c79c61d9294c9f3b7e8d",
+          "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0"
+        },
+        "source_count": 9,
+        "source_policy_changes": [],
+        "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0",
+        "stage2_fingerprint": "df2441e9fad9d4d44343ddf43d95f4132856a14cb9a6cb82797093f3141390bd",
+        "target_club": "Holmen"
+      },
+      "event": "refresh_calendar_evidence",
+      "note": "",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f3f27e903d70077ecc236218d0c40c28882757abd137ad6a86609bbffadcac13",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-27T09:51:06.592984+00:00",
+      "details": {
+        "blocked_sources": [],
+        "calendar_fingerprint": "c2ffd77addd61f3c06328274547b7f934f06663ee7962e53cab1f73ddf0b2c92",
+        "planned_tournament_reconciliation": {
+          "Jar": {
+            "count": 35,
+            "requires_review_count": 35
+          }
+        },
+        "previous_calendar_fingerprint": "51e564efdce366636462eb2673ad598fb0d3dfb60862ac3a5e8634f1938ba44f",
+        "previous_snapshot": {
+          "calendar_fingerprint": "51e564efdce366636462eb2673ad598fb0d3dfb60862ac3a5e8634f1938ba44f",
+          "captured_at": "2026-10-27T09:51:06.592984+00:00",
+          "had_prior_calendar_evidence": true,
+          "had_prior_source_policy": true,
+          "path": "evidence/calendar/a9f8aecfe3163cecb677739ca100587678987157230c5de7d90280ec6a73526d.json",
+          "sha256": "a9f8aecfe3163cecb677739ca100587678987157230c5de7d90280ec6a73526d",
+          "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0"
+        },
+        "source_count": 9,
+        "source_policy_changes": [],
+        "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0",
+        "stage2_fingerprint": "5f57d358ff561b17e39123eef8d66b726e0123d58dfed269a2ce04a751c15ebf",
+        "target_club": "Jar"
+      },
+      "event": "refresh_calendar_evidence",
+      "note": "",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f3f27e903d70077ecc236218d0c40c28882757abd137ad6a86609bbffadcac13",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-27T09:52:31.983493+00:00",
+      "details": {
+        "blocked_sources": [],
+        "calendar_fingerprint": "e7823fed355942f175845a85fb39c6574480bfc88c3241634dbb59c36b5628c1",
+        "planned_tournament_reconciliation": {
+          "Kongsberg": {
+            "count": 8,
+            "requires_review_count": 8
+          }
+        },
+        "previous_calendar_fingerprint": "c2ffd77addd61f3c06328274547b7f934f06663ee7962e53cab1f73ddf0b2c92",
+        "previous_snapshot": {
+          "calendar_fingerprint": "c2ffd77addd61f3c06328274547b7f934f06663ee7962e53cab1f73ddf0b2c92",
+          "captured_at": "2026-10-27T09:52:31.983493+00:00",
+          "had_prior_calendar_evidence": true,
+          "had_prior_source_policy": true,
+          "path": "evidence/calendar/5b9b63bef6a4318d931100cc50b93e9db5d793cee6c629ba2bd7e0ccec78220f.json",
+          "sha256": "5b9b63bef6a4318d931100cc50b93e9db5d793cee6c629ba2bd7e0ccec78220f",
+          "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0"
+        },
+        "source_count": 9,
+        "source_policy_changes": [],
+        "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0",
+        "stage2_fingerprint": "cca72aff7dbf4be560004ac32289923311065885f1b6fe3bf4f5834c61413fc4",
+        "target_club": "Kongsberg"
+      },
+      "event": "refresh_calendar_evidence",
+      "note": "",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f3f27e903d70077ecc236218d0c40c28882757abd137ad6a86609bbffadcac13",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-27T09:53:00.670041+00:00",
+      "details": {
+        "blocked_sources": [],
+        "calendar_fingerprint": "d09cd72abe551412c23deaef30180d1e98b4ec41b1f0a3166000c4fb2805f1fd",
+        "planned_tournament_reconciliation": {
+          "Tønsberg": {
+            "count": 17,
+            "requires_review_count": 17
+          }
+        },
+        "previous_calendar_fingerprint": "e7823fed355942f175845a85fb39c6574480bfc88c3241634dbb59c36b5628c1",
+        "previous_snapshot": {
+          "calendar_fingerprint": "e7823fed355942f175845a85fb39c6574480bfc88c3241634dbb59c36b5628c1",
+          "captured_at": "2026-10-27T09:53:00.670041+00:00",
+          "had_prior_calendar_evidence": true,
+          "had_prior_source_policy": true,
+          "path": "evidence/calendar/5130fb74aa64afbb5747ef9b61da389d33142eb04e83a8194ea5d19e073bf9b7.json",
+          "sha256": "5130fb74aa64afbb5747ef9b61da389d33142eb04e83a8194ea5d19e073bf9b7",
+          "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0"
+        },
+        "source_count": 9,
+        "source_policy_changes": [],
+        "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0",
+        "stage2_fingerprint": "fb0e42d9acb1c42d494f942539eb2af09e463c180d107a8fb6814bda79010071",
+        "target_club": "Tønsberg"
+      },
+      "event": "refresh_calendar_evidence",
+      "note": "",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "f3f27e903d70077ecc236218d0c40c28882757abd137ad6a86609bbffadcac13",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ]
 }
