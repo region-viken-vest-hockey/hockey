@@ -188,3 +188,31 @@ def test_club_interpretation_confirmation_with_unstated_end_is_a_proposed_correc
 
     assert summary["buckets"][AUDIT_PROPOSED_INTERVAL_CORRECTION] == ["rvv-0053"]
     assert summary["material_mismatches"] == []
+
+
+def test_interpretation_authority_with_stated_end_that_differs_stays_a_material_mismatch():
+    row = _manual_row("rvv-0062", comparison=_comparison(end_delta=20), explicit_fields=["end"])
+    row["authority"] = BOOKING_AUTHORITY_MANUAL_INTERPRETATION
+
+    summary = calendar_audit_summary([row], cancelled_history=[])
+
+    assert summary["buckets"][AUDIT_MATERIAL_MISMATCH] == ["rvv-0062"]
+    assert summary["buckets"][AUDIT_PROPOSED_INTERVAL_CORRECTION] == []
+
+
+def test_interpretation_authority_with_explicit_conflict_stays_a_material_mismatch():
+    row = _manual_row("rvv-0063", comparison=_comparison(end_delta=20), explicit_fields=[], conflict=True)
+    row["authority"] = BOOKING_AUTHORITY_MANUAL_INTERPRETATION
+
+    summary = calendar_audit_summary([row], cancelled_history=[])
+
+    assert summary["buckets"][AUDIT_MATERIAL_MISMATCH] == ["rvv-0063"]
+
+
+def test_interpretation_authority_without_field_projection_is_not_auto_proposed():
+    row = _manual_row("rvv-0064", comparison=_comparison(end_delta=20), explicit_fields=None)
+    row["authority"] = BOOKING_AUTHORITY_MANUAL_INTERPRETATION
+
+    summary = calendar_audit_summary([row], cancelled_history=[])
+
+    assert summary["buckets"][AUDIT_MATERIAL_MISMATCH] == ["rvv-0064"]
