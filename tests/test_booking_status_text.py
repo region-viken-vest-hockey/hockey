@@ -185,3 +185,22 @@ def test_accepted_booking_row_shows_who_when_and_why_it_was_accepted():
     row_text = text.split("Calendar audit", 1)[0]
 
     assert "accepted: 2026-10-16 10:30-13:00 by booker on 2026-09-22 (club confirmed by email)" in row_text
+
+
+def test_accepted_evidence_with_malformed_interval_does_not_break_rendering():
+    # Review of #851: malformed projection data must not crash the operator text.
+    rows = [
+        {
+            "tournament_id": "rvv-0029",
+            "operational_state": "booked",
+            "status": "manually_booked",
+            "authority": "manual_club_confirmation",
+            "conflict": False,
+            "follow_up_reasons": [],
+            "accepted_evidence": {"accepted_interval": "10:30-13:00", "accepted_by": "", "accepted_at": None},
+        }
+    ]
+
+    text = format_host_club_booking_status(_report(rows))
+
+    assert "accepted: unknown interval by unknown on  (no note)" in text
