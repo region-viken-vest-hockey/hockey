@@ -107,9 +107,10 @@ def compute_source_health(work_dir: str = ".pipeline") -> list[CapabilityResult]
 def snapshot_scope(work_dir: str = ".pipeline") -> dict[str, Any] | None:
     """Return the scope the unified scrape cache was built from, or None if unknown.
 
-    The result has ``complete``, ``refreshed_sources`` and ``missing_sources``.
-    A partial scope means the health results above cover only the refreshed
-    sources; the missing ones were not evaluated in that snapshot.
+    The result has ``complete``, ``included_sources``, ``freshly_scraped_sources``,
+    ``reused_cached_sources`` and ``missing_sources``. A partial scope means the
+    health results above cover only the included sources; the missing ones were
+    not evaluated in that snapshot.
     """
     cache = ScrapedDataCache(work_dir=work_dir).read()
     scope = (cache.get("_meta") or {}).get("snapshot_scope") if isinstance(cache, dict) else None
