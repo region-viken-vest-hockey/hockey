@@ -221,19 +221,19 @@ def test_superseded_acceptance_is_shown_under_the_current_one():
                 "accepted_by": "booker",
                 "note": "same booking, now on the calendar",
                 "accepted_interval": {"date": "2026-10-16", "start": "10:30", "end": "13:00"},
-                "history": [
-                    {
-                        "kind": "manual",
-                        "status": "superseded",
-                        "accepted_at": "2026-09-01T09:00:00+00:00",
-                        "accepted_by": "club-admin",
-                        "reference": "email:1",
-                        "ended_at": "2026-09-22T10:00:00+00:00",
-                        "ended_by": "calendar_booking:fp:rvv-0029",
-                        "ended_reason": "same match moved",
-                    }
-                ],
             },
+            "acceptance_history": [
+                {
+                    "kind": "manual",
+                    "status": "superseded",
+                    "accepted_at": "2026-09-01T09:00:00+00:00",
+                    "accepted_by": "club-admin",
+                    "reference": "email:1",
+                    "ended_at": "2026-09-22T10:00:00+00:00",
+                    "ended_by": "calendar_booking:fp:rvv-0029",
+                    "ended_reason": "same match moved",
+                }
+            ],
         }
     ]
 
@@ -257,18 +257,18 @@ def test_released_acceptance_is_not_described_as_replaced():
                 "accepted_by": "booker",
                 "accepted_at": "2026-09-22T10:00:00+00:00",
                 "accepted_interval": {"date": "2026-10-16", "start": "10:30", "end": "13:00"},
-                "history": [
-                    {
-                        "kind": "calendar",
-                        "status": "released",
-                        "accepted_at": "2026-09-01T09:00:00+00:00",
-                        "accepted_by": "booker",
-                        "reference": "",
-                        "note": "matched",
-                        "ended_at": "2026-09-30T08:00:00+00:00",
-                    }
-                ],
             },
+            "acceptance_history": [
+                {
+                    "kind": "calendar",
+                    "status": "released",
+                    "accepted_at": "2026-09-01T09:00:00+00:00",
+                    "accepted_by": "booker",
+                    "reference": "",
+                    "note": "matched",
+                    "ended_at": "2026-09-30T08:00:00+00:00",
+                }
+            ],
         }
     ]
 

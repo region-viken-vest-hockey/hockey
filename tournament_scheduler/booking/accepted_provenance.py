@@ -120,3 +120,15 @@ def acceptance_history(decisions: Mapping[str, Any] | None, tournament_id: str) 
 
 def _first(record: Mapping[str, Any], keys: tuple[str, ...]) -> str:
     return next((str(record[key]) for key in keys if record.get(key)), "")
+
+
+def with_acceptance_history(row: Mapping[str, Any], decisions: Mapping[str, Any] | None, tournament_id: str) -> dict[str, Any]:
+    """Attach the tournament's ended acceptances to a status row, even with no current one (#847).
+
+    A released or superseded acceptance stays visible when nothing currently
+    accepts the booking. The key is omitted when there is no history, so rows
+    without one keep their shape.
+    """
+
+    history = acceptance_history(decisions, tournament_id)
+    return {**row, "acceptance_history": history} if history else dict(row)

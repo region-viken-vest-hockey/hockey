@@ -100,7 +100,7 @@ def _row_lines(row: Mapping[str, Any], action: str | None = None) -> list[str]:
             f"  accepted: {interval_text} by {accepted.get('accepted_by') or 'unknown'} "
             f"on {accepted_on} ({accepted.get('note') or 'no note'})"
         )
-    for earlier in (accepted or {}).get("history") or []:
+    for earlier in row.get("acceptance_history") or []:
         if isinstance(earlier, Mapping):
             reference = earlier.get("reference") or earlier.get("note") or "no reference"
             ended = f" {str(earlier.get('ended_at') or '')[:10]}".rstrip()

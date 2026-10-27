@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Any, Iterable, Mapping
 
 from tournament_scheduler.booking.accepted_provenance import (
-    accepted_association_provenance, accepted_manual_provenance, acceptance_history,
+    accepted_association_provenance, accepted_manual_provenance, with_acceptance_history,
 )
 from tournament_scheduler.booking.assessment_candidates import (
     assessment_candidate_rank,
@@ -1725,7 +1725,7 @@ def booking_status_report(
             # demoting the accepted confirmation/rejection.
             row.update(assessment_provenance_fields(assessment_by_tournament.get(tid)))
             if authority is not None:
-                row["accepted_evidence"] = {**accepted_manual_provenance(manual), "history": acceptance_history(decisions, tid)}
+                row["accepted_evidence"] = accepted_manual_provenance(manual)
             if calendar_record:
                 row["calendar_evidence"] = calendar_record
         else:
@@ -1769,7 +1769,7 @@ def booking_status_report(
             row.update(assessment_provenance_fields(assessment_row))
             if authority == BOOKING_AUTHORITY_CALENDAR:
                 if (provenance := accepted_association_provenance(active_associations(decisions), tid)) is not None:
-                    row["accepted_evidence"] = {**provenance, "history": acceptance_history(decisions, tid)}
+                    row["accepted_evidence"] = provenance
             if calendar_record:
                 row["evidence"] = calendar_record
         work_item = manual_booking_work_item(
@@ -1783,7 +1783,7 @@ def booking_status_report(
             manual_queue.append(work_item)
         if conflict:
             counts["conflicts"] += 1
-        rows.append(attach_interval_comparison(row))
+        rows.append(attach_interval_comparison(with_acceptance_history(row, decisions, tid)))
         counts.setdefault(status, 0)
         counts[status] += 1
         counts[operational_state] = counts.get(operational_state, 0) + 1

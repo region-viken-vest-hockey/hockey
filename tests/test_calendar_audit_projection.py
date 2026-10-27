@@ -476,7 +476,7 @@ def test_calendar_confirmation_that_supersedes_a_manual_booking_keeps_the_origin
     report = booking_status_report(season="2026-2027", root=root, problem=problem)
     row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
     evidence = row["accepted_evidence"]
-    replaced = [entry for entry in evidence["history"] if entry["record_id"] == manual_id]
+    replaced = [entry for entry in row["acceptance_history"] if entry["record_id"] == manual_id]
 
     assert row["authority"] == "calendar_event_association"
     assert evidence["accepted_by"] == "booker"
@@ -516,3 +516,40 @@ def test_acceptance_history_keeps_only_recognised_end_states_in_order():
     assert history[1]["ended_reason"] == "moved"
     assert history[2]["ended_reason"] == "wrong event"
     assert history[2]["ended_at"] == "2026-09-03"
+
+
+def test_released_acceptance_stays_in_history_when_nothing_currently_accepts(tmp_path):
+    """Review of #852: a release with no replacement must still show what was accepted and when it ended."""
+
+    from tournament_scheduler.application.canonical_season.store_facade import release_calendar_booking
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    before = _problem([_event("2026-09-12", "10:00", "12:00", title="Miniputt U10")])
+    event_fp = _assess(root, before)["events"][0]["event_fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="booker",
+        note="matched booking",
+        problem=before,
+    )
+    release_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="release-op",
+        note="wrong event",
+    )
+
+    report = booking_status_report(season="2026-2027", root=root, problem=before)
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
+    released = [entry for entry in row["acceptance_history"] if entry["status"] == "released"]
+
+    assert row["authority"] is None
+    assert len(released) == 1
+    assert released[0]["ended_by"] == "release-op"
+    assert released[0]["ended_reason"] == "wrong event"
+    assert released[0]["accepted_by"] == "booker"
