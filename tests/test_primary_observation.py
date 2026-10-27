@@ -103,6 +103,7 @@ def test_generic_full_footprint_overlap_contests_but_is_never_the_observation():
         "actionable": True,
         "date_delta_days": 0,
         "resource_coverage": "covers",
+        "footprint_aware": True,
     }
 
     assert select_primary_observation([generic], shared_event_fingerprints=set(), association_unresolved=False) is None
@@ -124,3 +125,38 @@ def test_near_exact_full_footprint_event_is_still_an_observation():
 
     assert chosen is not None
     assert chosen["event_fingerprint"] == "near"
+
+
+def test_generic_overlap_with_missing_resource_data_on_footprint_club_is_not_the_observation():
+    # #859 review: missing resource information must not bypass the venue-only guard.
+    generic = {
+        "event_fingerprint": "generic-unknown",
+        "relation": RELATION_SAME_DATE_OVERLAP,
+        "covers_current_interval": False,
+        "evidence": ["same_date_interval_overlap"],
+        "actionable": True,
+        "date_delta_days": 0,
+        "resource_coverage": None,
+        "footprint_aware": True,
+    }
+
+    assert select_primary_observation([generic], shared_event_fingerprints=set(), association_unresolved=False) is None
+
+
+def test_resource_agnostic_club_keeps_generic_single_observation():
+    # Resource-agnostic clubs keep the window rule and their existing observation.
+    generic = {
+        "event_fingerprint": "agnostic",
+        "relation": RELATION_SAME_DATE_OVERLAP,
+        "covers_current_interval": False,
+        "evidence": ["same_date_interval_overlap"],
+        "actionable": True,
+        "date_delta_days": 0,
+        "resource_coverage": None,
+        "footprint_aware": False,
+    }
+
+    chosen = select_primary_observation([generic], shared_event_fingerprints=set(), association_unresolved=False)
+
+    assert chosen is not None
+    assert chosen["event_fingerprint"] == "agnostic"

@@ -26,7 +26,7 @@ from tournament_scheduler.booking.status_crosswalk import (
     assessment_provenance_fields,
     attach_interval_comparison,
 )
-from tournament_scheduler.booking.ice_resources import COVERAGE_DISJOINT, COVERAGE_PARTIAL
+from tournament_scheduler.booking.ice_resources import COVERAGE_DISJOINT, COVERAGE_PARTIAL, tournament_resource_footprint
 from tournament_scheduler.booking.primary_observation import select_primary_observation, shared_event_fingerprints as shared_event_fingerprints_for
 from tournament_scheduler.booking.interval_facts import (
     _event_fingerprint_payload,
@@ -2336,6 +2336,7 @@ def booking_assessment(
                     and not candidate["arena_mismatch"]
                     and candidate["resource_coverage"] not in {COVERAGE_PARTIAL, COVERAGE_DISJOINT}
                 )
+                candidate["footprint_aware"] = bool(tournament_resource_footprint(club))
                 candidates.append(candidate)
                 candidates_by_event.setdefault(candidate["event_fingerprint"], []).append(
                     (tournament_id, candidate)

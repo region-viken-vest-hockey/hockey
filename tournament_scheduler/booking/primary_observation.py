@@ -15,7 +15,6 @@ from __future__ import annotations
 from typing import Any, Collection, Mapping, Sequence
 
 from tournament_scheduler.booking.assessment_candidates import RELATION_SAME_DATE_OVERLAP
-from tournament_scheduler.booking.ice_resources import COVERAGE_COVERS
 
 _AGE_EVIDENCE = "event_title_age_group_matches"
 _NEAR_EXACT_EVIDENCE = "event_interval_within_tolerance_of_canonical"
@@ -27,9 +26,9 @@ def _eligible(candidate: Mapping[str, Any], shared: Collection[str], association
         return False
     evidence = candidate.get("evidence", [])
     identity = any(item in evidence for item in (_AGE_EVIDENCE, _NEAR_EXACT_EVIDENCE, _COVERS_EVIDENCE))
-    if candidate.get("resource_coverage") == COVERAGE_COVERS and not identity:
-        # A generic overlap on a full footprint is a venue contest, never the
-        # tournament's observed booking (#859 review).
+    if candidate.get("footprint_aware") and not identity:
+        # A generic overlap on a footprint club is a venue contest, never the
+        # tournament's observed booking, whatever its resource coverage (#859 review).
         return False
     return not association_unresolved or _AGE_EVIDENCE in candidate.get("evidence", [])
 
