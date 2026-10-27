@@ -107,3 +107,56 @@ def test_unresolved_identity_label_does_not_read_as_lost_confirmation():
 
     assert "needs review: unresolved calendar identity (accepted bookings keep authority): 1" in text
     assert "unconfirmed, needs review" not in text
+
+
+def test_accepted_identity_review_row_keeps_booked_state_and_names_no_debooking():
+    # Issue #847: a lost calendar identity is review work. The operator text
+    # must keep the accepted booking as booked and never describe it as unbooked.
+    rows = [
+        {
+            "tournament_id": "rvv-0029",
+            "operational_state": "booked",
+            "status": "manually_booked",
+            "authority": "manual_club_confirmation",
+            "operational_lock": True,
+            "conflict": False,
+            "follow_up_reasons": [],
+            "interval_comparison": {"status": "no_observed_interval", "planned": {"date": "2026-10-16", "start": "10:30", "end": "13:00"}},
+            "actionable_candidate_count": 0,
+            "calendar_covers_window": True,
+        }
+    ]
+
+    text = format_host_club_booking_status(_report(rows))
+    row_text = text.split("Calendar audit", 1)[0]
+
+    assert "state: booked" in row_text
+    assert "operator action: optional identity rebind; booking stays booked" in row_text
+    assert "not booked" not in row_text.lower()
+    assert "unbooked" not in row_text.lower()
+
+
+def test_material_mismatch_text_shows_both_intervals_and_end_difference_without_auto_change():
+    rows = [
+        {
+            "tournament_id": "rvv-0004",
+            "operational_state": "booked",
+            "status": "manually_booked",
+            "authority": "manual_club_confirmation",
+            "conflict": False,
+            "follow_up_reasons": [],
+            "interval_comparison": {
+                "status": "differs",
+                "planned": {"date": "2026-10-16", "start": "10:30", "end": "13:00"},
+                "observed": {"date": "2026-10-16", "start": "10:30", "end": "13:10"},
+                "same_date": True,
+                "start_delta_minutes": 0,
+                "end_delta_minutes": 10,
+            },
+        }
+    ]
+
+    text = format_host_club_booking_status(_report(rows))
+
+    assert "plan 2026-10-16 10:30-13:00 | calendar 2026-10-16 10:30-13:10 | differs: start +0 min, end +10 min" in text
+    assert "operator action: booking change needs explicit approval; no change made" in text

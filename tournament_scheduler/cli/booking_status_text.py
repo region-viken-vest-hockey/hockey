@@ -62,7 +62,17 @@ def _audit_lines(audit: Mapping[str, Any]) -> list[str]:
     return lines
 
 
-def _row_lines(row: Mapping[str, Any]) -> list[str]:
+# Operator wording for the projection's action. Each one says what the operator
+# may or may not do; an accepted booking keeps its authority under every action.
+_ACTION_LABELS = {
+    "refresh_source": "refresh calendar source; booking stays as recorded",
+    "optional_identity_rebind": "optional identity rebind; booking stays booked",
+    "explicit_booking_change_approval": "booking change needs explicit approval; no change made",
+    "resolve_candidate": "resolve candidate events; no booking change made",
+}
+
+
+def _row_lines(row: Mapping[str, Any], action: str | None = None) -> list[str]:
     lines = [
         f"{row.get('tournament_id')}  {row.get('age_group')}  {row.get('date')} {row.get('start_time')}  {row.get('arena')}",
         f"  state: {row.get('operational_state')} (status {row.get('status')}, authority {row.get('authority') or 'none'})",
@@ -78,6 +88,8 @@ def _row_lines(row: Mapping[str, Any]) -> list[str]:
         lines.append(f"  follow-up: {', '.join(follow_up)}")
     if row.get("rejected_booking_evidence"):
         lines.append(f"  rejected evidence: {len(row['rejected_booking_evidence'])} record(s) need resolution")
+    if action and action in _ACTION_LABELS:
+        lines.append(f"  operator action: {_ACTION_LABELS[action]}")
     return lines
 
 
@@ -92,8 +104,10 @@ def format_host_club_booking_status(report: Mapping[str, Any]) -> str:
     ]
     if not rows:
         lines.append("No tournaments are hosted by this club.")
+    audit = report.get("calendar_audit")
+    actions = audit.get("actions") or {} if isinstance(audit, Mapping) else {}
     for row in rows:
-        lines.extend(_row_lines(row))
+        lines.extend(_row_lines(row, actions.get(str(row.get("tournament_id")))))
         lines.append("")
     audit = report.get("calendar_audit")
     if isinstance(audit, Mapping):
