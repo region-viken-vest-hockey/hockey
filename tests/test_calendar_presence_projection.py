@@ -83,3 +83,27 @@ def test_accepted_sandefjord_booking_keeps_authority_when_calendar_has_no_event(
     assert audit["buckets"][AUDIT_ACCEPTED_IDENTITY_REVIEW] == []
     assert audit["buckets"][AUDIT_UNCONFIRMED_AMBIGUOUS] == []
     assert audit["actions"]["rvv-0024"] == AUDIT_ACTION_NONE
+
+
+def test_standing_ice_use_block_does_not_contest_accepted_sandefjord_booking():
+    # Live shape: a generic standing ice-use block elsewhere in the window. It
+    # must stay context, so the accepted booking is not asked to be resolved.
+    standing = {
+        "club": "Sandefjord Penguins",
+        "date": "2026-10-17",
+        "start": "08:00",
+        "end": "10:00",
+        "availability": "fixed_busy",
+        "calendar_event": "Sandefjord Penguins fast istid (opptatt utenom tildelt helgevindu)",
+        "arena": "Bugården ishall",
+        "fingerprint": "standing-block",
+    }
+    report = _projection(extra_problem={"club_busy_intervals": {"Sandefjord Penguins": [standing]}})
+
+    row = _row(report)
+    assert row["authority"] == "manual_club_confirmation"
+    assert row["operational_state"] == OPERATIONAL_BOOKED
+    assert row["actionable_candidate_count"] == 0
+    audit = report["calendar_audit"]
+    assert audit["buckets"][AUDIT_ACCEPTED_UNCHECKABLE] == ["rvv-0024"]
+    assert audit["actions"]["rvv-0024"] == AUDIT_ACTION_NONE

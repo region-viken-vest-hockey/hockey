@@ -5,6 +5,10 @@ tournament bookings. That is a documented source limitation: a generic ice-use
 block is then not proof of a tournament's identity, and an absent event is not
 proof of an absent booking. The fact is advisory; it never changes booking
 authority or status.
+
+Known limit: a tournament moved to a new date with only a generic calendar
+entry cannot be proven from that entry. Its accepted manual confirmation stays
+authoritative until a separately accepted fact supersedes it.
 """
 
 from __future__ import annotations
