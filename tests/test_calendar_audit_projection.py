@@ -442,3 +442,114 @@ def test_manual_confirmation_reports_how_and_when_it_was_accepted(tmp_path):
     assert provenance["reference"] == "email:9"
     assert provenance["accepted_at"]
     assert provenance["assertion_id"].startswith("manual_booking:t1:")
+
+
+def test_calendar_confirmation_that_supersedes_a_manual_booking_keeps_the_original_acceptance(tmp_path):
+    """Issue #847 lifecycle: the manual acceptance it replaced stays recoverable on the row."""
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    problem = _problem([_event("2026-09-12", "10:00", "12:00", title="Miniputt U10")], complete=True)
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="club-admin",
+        reference="email:1",
+        problem=problem,
+    )
+    manual_id = booking_status_report(season="2026-2027", root=root, problem=problem)["tournaments"][0][
+        "accepted_evidence"
+    ]["assertion_id"]
+    event_fp = _assess(root, problem)["events"][0]["event_fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="booker",
+        note="same booking, now on the calendar",
+        problem=problem,
+        supersede_manual_assertion_id=manual_id,
+    )
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
+    evidence = row["accepted_evidence"]
+    replaced = [entry for entry in row["acceptance_history"] if entry["record_id"] == manual_id]
+
+    assert row["authority"] == "calendar_event_association"
+    assert evidence["accepted_by"] == "booker"
+    assert len(replaced) == 1
+    assert replaced[0]["status"] == "superseded"
+    assert replaced[0]["accepted_by"] == "club-admin"
+    assert replaced[0]["reference"] == "email:1"
+    assert replaced[0]["ended_by"] == evidence["association_id"]
+
+
+def test_acceptance_history_keeps_only_recognised_end_states_in_order():
+    # Review of #852: unknown or missing statuses are not evidence that an acceptance ended.
+    from tournament_scheduler.booking.accepted_provenance import acceptance_history
+
+    decisions = {
+        "manual_booking_assertions": [
+            {"id": "m1", "tournament_id": "t1", "status": "superseded", "asserted_at": "2026-09-01",
+             "asserted_by": "a", "superseded_by": "calendar_booking:fp:t1", "supersede_reason": "moved", "superseded_at": "2026-09-05"},
+            {"id": "m2", "tournament_id": "t1", "status": "revoked", "asserted_at": "2026-08-01",
+             "asserted_by": "b", "revoked_at": "2026-08-20", "revoked_by": "c", "revoke_reason": "wrong date"},
+            {"id": "m3", "tournament_id": "t1", "status": "mystery", "asserted_at": "2026-07-01"},
+            {"id": "m4", "tournament_id": "t1", "asserted_at": "2026-07-02"},
+            {"id": "m5", "tournament_id": "t1", "status": "active", "asserted_at": "2026-09-10"},
+            {"id": "m6", "tournament_id": "t2", "status": "superseded", "asserted_at": "2026-09-01"},
+        ],
+        "calendar_booking_associations": [
+            {"id": "c1", "tournament_id": "t1", "status": "released", "created_at": "2026-09-02",
+             "created_by": "d", "released_at": "2026-09-03", "released_by": "e", "release_note": "wrong event"},
+        ],
+    }
+
+    history = acceptance_history(decisions, "t1")
+
+    assert [entry["record_id"] for entry in history] == ["m2", "m1", "c1"]
+    assert [entry["status"] for entry in history] == ["revoked", "superseded", "released"]
+    assert history[1]["ended_by"] == "calendar_booking:fp:t1"
+    assert history[1]["ended_reason"] == "moved"
+    assert history[2]["ended_reason"] == "wrong event"
+    assert history[2]["ended_at"] == "2026-09-03"
+
+
+def test_released_acceptance_stays_in_history_when_nothing_currently_accepts(tmp_path):
+    """Review of #852: a release with no replacement must still show what was accepted and when it ended."""
+
+    from tournament_scheduler.application.canonical_season.store_facade import release_calendar_booking
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    before = _problem([_event("2026-09-12", "10:00", "12:00", title="Miniputt U10")])
+    event_fp = _assess(root, before)["events"][0]["event_fingerprint"]
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="booker",
+        note="matched booking",
+        problem=before,
+    )
+    release_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fp,
+        tournament_id="t1",
+        actor="release-op",
+        note="wrong event",
+    )
+
+    report = booking_status_report(season="2026-2027", root=root, problem=before)
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "t1")
+    released = [entry for entry in row["acceptance_history"] if entry["status"] == "released"]
+
+    assert row["authority"] is None
+    assert len(released) == 1
+    assert released[0]["ended_by"] == "release-op"
+    assert released[0]["ended_reason"] == "wrong event"
+    assert released[0]["accepted_by"] == "booker"

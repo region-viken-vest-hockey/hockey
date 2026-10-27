@@ -204,3 +204,75 @@ def test_accepted_evidence_with_malformed_interval_does_not_break_rendering():
     text = format_host_club_booking_status(_report(rows))
 
     assert "accepted: unknown interval by unknown on  (no note)" in text
+
+
+def test_superseded_acceptance_is_shown_under_the_current_one():
+    # Issue #847: an earlier acceptance that was replaced stays visible to the operator.
+    rows = [
+        {
+            "tournament_id": "rvv-0029",
+            "operational_state": "booked",
+            "status": "confirmed_booked",
+            "authority": "calendar_event_association",
+            "conflict": False,
+            "follow_up_reasons": [],
+            "accepted_evidence": {
+                "accepted_at": "2026-09-22T10:00:00+00:00",
+                "accepted_by": "booker",
+                "note": "same booking, now on the calendar",
+                "accepted_interval": {"date": "2026-10-16", "start": "10:30", "end": "13:00"},
+            },
+            "acceptance_history": [
+                {
+                    "kind": "manual",
+                    "status": "superseded",
+                    "accepted_at": "2026-09-01T09:00:00+00:00",
+                    "accepted_by": "club-admin",
+                    "reference": "email:1",
+                    "ended_at": "2026-09-22T10:00:00+00:00",
+                    "ended_by": "calendar_booking:fp:rvv-0029",
+                    "ended_reason": "same match moved",
+                }
+            ],
+        }
+    ]
+
+    text = format_host_club_booking_status(_report(rows))
+    row_text = text.split("Calendar audit", 1)[0]
+
+    assert "  earlier: manual by club-admin on 2026-09-01 (email:1), superseded 2026-09-22" in row_text
+
+
+def test_released_acceptance_is_not_described_as_replaced():
+    # Review of #852: a release ends an acceptance without a replacement.
+    rows = [
+        {
+            "tournament_id": "rvv-0029",
+            "operational_state": "not_booked",
+            "status": "not_booked",
+            "authority": None,
+            "conflict": False,
+            "follow_up_reasons": [],
+            "accepted_evidence": {
+                "accepted_by": "booker",
+                "accepted_at": "2026-09-22T10:00:00+00:00",
+                "accepted_interval": {"date": "2026-10-16", "start": "10:30", "end": "13:00"},
+            },
+            "acceptance_history": [
+                {
+                    "kind": "calendar",
+                    "status": "released",
+                    "accepted_at": "2026-09-01T09:00:00+00:00",
+                    "accepted_by": "booker",
+                    "reference": "",
+                    "note": "matched",
+                    "ended_at": "2026-09-30T08:00:00+00:00",
+                }
+            ],
+        }
+    ]
+
+    row_text = format_host_club_booking_status(_report(rows)).split("Calendar audit", 1)[0]
+
+    assert "  earlier: calendar by booker on 2026-09-01 (matched), released 2026-09-30" in row_text
+    assert "replaced" not in row_text
