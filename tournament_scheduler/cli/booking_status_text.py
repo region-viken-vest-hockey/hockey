@@ -118,9 +118,10 @@ def _scope_line(source_scope: Mapping[str, Any] | None) -> str:
     # An unknown or partial scope is never presented as a complete calendar refresh (#853).
     if source_scope is None:
         return "Source snapshot scope: unknown (cache predates scope recording)"
-    if source_scope.get("complete"):
+    missing_sources = source_scope.get("missing_sources") or []
+    if source_scope.get("complete") is True and not missing_sources:
         return "Source snapshot scope: complete"
-    missing = ", ".join(str(item) for item in source_scope.get("missing_sources") or []) or "unrecorded"
+    missing = ", ".join(str(item) for item in missing_sources) or "unrecorded"
     return f"Source snapshot scope: partial, missing sources: {missing}"
 
 

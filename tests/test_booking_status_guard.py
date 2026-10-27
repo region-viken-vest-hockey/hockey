@@ -56,3 +56,22 @@ def test_complete_snapshot_scope_is_reported_as_complete():
     text = format_host_club_booking_status(_report([_row("rvv-1", covers=True)]), source_scope={"complete": True})
 
     assert "Source snapshot scope: complete" in text
+
+
+def test_complete_flag_with_recorded_missing_sources_is_not_complete():
+    # Contradictory metadata fails closed: missing sources are never hidden by a complete flag.
+    scope = {"complete": True, "missing_sources": ["jar"]}
+
+    text = format_host_club_booking_status(_report([_row("rvv-1", covers=True)]), source_scope=scope)
+
+    assert "Source snapshot scope: complete" not in text
+    assert "Source snapshot scope: partial, missing sources: jar" in text
+
+
+def test_non_boolean_complete_flag_is_not_complete():
+    # A truthy non-boolean such as the string "false" must not read as complete.
+    scope = {"complete": "false", "missing_sources": []}
+
+    text = format_host_club_booking_status(_report([_row("rvv-1", covers=True)]), source_scope=scope)
+
+    assert "Source snapshot scope: complete" not in text
