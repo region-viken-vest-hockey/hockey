@@ -10,6 +10,7 @@ BOOKING_DIR = PACKAGE_ROOT / "booking"
 
 BOOKING_MODULES = {
     "arena_conflict_decision",
+    "accepted_provenance",
     "arena_conflicts",
     "assessment_candidates",
     "assessment_export",
