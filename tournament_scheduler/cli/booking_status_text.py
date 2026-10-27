@@ -114,13 +114,28 @@ def _row_lines(row: Mapping[str, Any], action: str | None = None) -> list[str]:
     return lines
 
 
-def format_host_club_booking_status(report: Mapping[str, Any]) -> str:
+def _scope_line(source_scope: Mapping[str, Any] | None) -> str:
+    # An unknown or partial scope is never presented as a complete calendar refresh (#853).
+    if source_scope is None:
+        return "Source snapshot scope: unknown (cache predates scope recording)"
+    if source_scope.get("complete"):
+        return "Source snapshot scope: complete"
+    missing = ", ".join(str(item) for item in source_scope.get("missing_sources") or []) or "unrecorded"
+    return f"Source snapshot scope: partial, missing sources: {missing}"
+
+
+def format_host_club_booking_status(report: Mapping[str, Any], source_scope: Mapping[str, Any] | None = None) -> str:
     """Render one host club's booking status and planned-vs-observed intervals."""
 
     rows = [row for row in report.get("tournaments") or [] if isinstance(row, Mapping)]
+    covered = sum(1 for row in rows if row.get("calendar_covers_window") is True)
     lines = [
         f"Booking status for host club {report.get('host_club')} ({report.get('season')})",
         f"Canonical revision: {report.get('canonical_state_revision')}",
+        _scope_line(source_scope),
+        f"Calendar window coverage: {covered}/{len(rows)} tournaments fully covered; "
+        "absence is proof only where covered.",
+        "Read-only projection: no booking, placement or approval was changed.",
         "",
     ]
     if not rows:
@@ -161,6 +176,8 @@ def print_booking_status(args: argparse.Namespace) -> None:
 
     report = booking_status_report(season=args.season, root=args.root, host_club=args.host_club)
     if args.host_club and not args.json:
-        print(format_host_club_booking_status(report))
+        from ..pipeline.source_health import snapshot_scope
+
+        print(format_host_club_booking_status(report, source_scope=snapshot_scope()))
     else:
         print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
