@@ -106,16 +106,16 @@ def _classify(row: Mapping[str, Any]) -> str:
             return AUDIT_UNCONFIRMED_AMBIGUOUS
         if comparison_status == "matches":
             return AUDIT_CONFIRMED_MATCHING
-        if comparison_status == "no_observed_interval" and row.get("calendar_publishes_bookings") is False:
-            # The club's calendar does not list its tournament bookings (a documented
-            # profile limitation), so an absent event is not evidence against the
-            # accepted booking. The booking keeps its authority; no action is asked.
-            return AUDIT_ACCEPTED_UNCHECKABLE
         if comparison_status == "no_observed_interval" and row.get("calendar_covers_window") is True:
             # No primary observation is not the same as no matching event. Only
             # a complete calendar with no plausible candidate shows a lost or
             # reassigned identity. Contested candidates stay unresolved ambiguity.
             if int(row.get("actionable_candidate_count") or 0) == 0:
+                if row.get("calendar_publishes_bookings") is False:
+                    # The club's calendar does not list its tournament bookings (a
+                    # documented profile limitation), so a complete absence is not a
+                    # lost identity. The booking keeps its authority; no action is asked.
+                    return AUDIT_ACCEPTED_UNCHECKABLE
                 return AUDIT_ACCEPTED_IDENTITY_REVIEW
             return AUDIT_UNCONFIRMED_AMBIGUOUS
 

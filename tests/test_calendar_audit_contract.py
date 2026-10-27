@@ -303,7 +303,7 @@ def test_accepted_booking_without_calendar_presence_is_not_a_resolve_candidate_d
     assert summary["buckets"][AUDIT_UNCONFIRMED_AMBIGUOUS] == ["rvv-0024"]
     assert summary["actions"]["rvv-0024"] == AUDIT_ACTION_RESOLVE_CANDIDATE
 
-    presence = _presence_row("rvv-0024", comparison=_comparison("no_observed_interval"))
+    presence = _presence_row("rvv-0024", comparison=_comparison("no_observed_interval"), candidates=0)
     summary = calendar_audit_summary([presence], cancelled_history=[])
 
     assert summary["buckets"][AUDIT_ACCEPTED_UNCHECKABLE] == ["rvv-0024"]
@@ -357,3 +357,16 @@ def test_assessment_provenance_carries_calendar_presence_limitation_without_auth
     assert fields["calendar_publishes_bookings"] is False
     assert "status" not in fields
     assert "authority" not in fields
+
+
+def test_contested_candidate_on_unpublished_calendar_still_requires_identity_resolution():
+    # An actionable candidate is evidence that may be a different booking identity.
+    # Absence of the primary interval must not suppress that review (#853 review).
+    row = _presence_row("rvv-0024", comparison=_comparison("no_observed_interval"), candidates=1)
+
+    summary = calendar_audit_summary([row], cancelled_history=[])
+
+    assert summary["buckets"][AUDIT_UNCONFIRMED_AMBIGUOUS] == ["rvv-0024"]
+    assert summary["buckets"][AUDIT_ACCEPTED_UNCHECKABLE] == []
+    assert summary["actions"]["rvv-0024"] == AUDIT_ACTION_RESOLVE_CANDIDATE
+    assert row["operational_state"] == OPERATIONAL_BOOKED
