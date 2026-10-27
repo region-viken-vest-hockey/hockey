@@ -13,9 +13,14 @@ from tournament_scheduler.application.canonical_season.store_facade import (
     booking_status_report,
     confirm_calendar_booking,
     load_decisions,
+    load_schedule,
     set_manual_booking_assertion,
 )
-from tournament_scheduler.booking.calendar_bookings import event_fingerprint
+from tournament_scheduler.booking.calendar_bookings import (
+    MANUAL_BOOKING_ASSERTIONS_KEY,
+    event_fingerprint,
+    manual_assertion_stale_reasons,
+)
 from tests.test_booking_assessment import _event, _problem, _promote, _tournament
 
 
@@ -116,3 +121,71 @@ def test_repeat_audit_after_adoption_is_stable_and_creates_no_new_work(tmp_path)
     assert second["calendar_audit"]["counts"]["proposed_interval_correction"] == 0
     assert second["calendar_audit"]["material_mismatches"] == []
     assert second["tournaments"] == first["tournaments"]
+
+
+def test_explicitly_stated_end_is_not_silently_superseded_by_calendar_acceptance(tmp_path):
+    # The club stated 16:40 and the calendar shows 17:00. The operator's accepted
+    # calendar booking is recorded, but the stated end stays visible for review.
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="15:00")])
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="booker",
+        reference="email:kongsberg",
+        stated_start="15:00",
+        stated_end="16:40",
+        problem=_planned_problem([], complete=True),
+    )
+    event = _event("2026-09-12", "15:00", "17:00", title="TURNERING U10", club="A")
+    observed = _planned_problem([event], complete=True)
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint({**event, "club": "A"}),
+        tournament_id="t1",
+        actor="operator",
+        note="accepted host calendar booking",
+        problem=observed,
+    )
+
+    report = booking_status_report(season="2026-2027", root=root, problem=observed)
+    row = _tournament_row(report, "t1")
+
+    assert "tournament_end_time_changed" in row["stale_reasons"]
+    assert _bucket_of(report, "t1") != "confirmed_matching"
+
+
+def test_later_canonical_change_not_covered_by_acceptance_stays_stale(tmp_path):
+    # Once the calendar acceptance is in place, a further canonical start change
+    # that no accepted booking covers keeps the club's confirmation stale.
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="15:00")])
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="booker",
+        reference="email:kongsberg",
+        problem=_planned_problem([], complete=True),
+    )
+    event = _event("2026-09-12", "15:00", "17:00", title="TURNERING U10", club="A")
+    observed = _planned_problem([event], complete=True)
+    confirm_calendar_booking(
+        season="2026-2027",
+        root=root,
+        event_fingerprint=event_fingerprint({**event, "club": "A"}),
+        tournament_id="t1",
+        actor="operator",
+        note="accepted host calendar booking",
+        problem=observed,
+    )
+    decisions = load_decisions("2026-2027", root=root)
+    assertion = next(a for a in decisions[MANUAL_BOOKING_ASSERTIONS_KEY] if a["tournament_id"] == "t1")
+    tournament = dict(next(t for t in load_schedule("2026-2027", root=root)["plan"]["tournaments"] if t["id"] == "t1"))
+    tournament["start_time"] = "15:30"
+
+    reasons = manual_assertion_stale_reasons(assertion, problem=observed, tournament=tournament)
+
+    assert "tournament_start_time_changed" in reasons

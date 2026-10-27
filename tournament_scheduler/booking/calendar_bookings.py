@@ -404,8 +404,8 @@ def manual_assertion_stale_reasons(
             reasons.append(f"tournament_{key}_changed")
     stored_interval = assertion.get("asserted_interval") or {}
     current_interval = tournament_occupancy_interval_facts(tournament, problem)
-    # An accepted calendar booking for this interval supersedes the planned one (#860).
-    superseded = (accepted_booking_interval_evidence(problem, tournament) or {}).get("authority") == BOOKING_AUTHORITY_CALENDAR
+    # Only an assertion that stated no interval is superseded; an explicit stated window stays authoritative.
+    superseded = explicit_interval_fields(assertion) == [] and (accepted_booking_interval_evidence(problem, tournament) or {}).get("authority") == BOOKING_AUTHORITY_CALENDAR
     for key in ("date", "start_time", "duration_minutes", "end_time"):
         if not superseded and str(stored_interval.get(key) or "") != current_interval[key]:
             reasons.append(f"tournament_{key}_changed")
