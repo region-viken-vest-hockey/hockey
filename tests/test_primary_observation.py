@@ -90,3 +90,37 @@ def test_two_same_day_claims_make_an_event_shared():
     }
 
     assert shared_event_fingerprints(candidates_by_event) == {"exact"}
+
+
+def test_generic_full_footprint_overlap_contests_but_is_never_the_observation():
+    # #859 review: an overlap on a footprint club without identity evidence is a
+    # venue contest only. It must not become the tournament's observed booking.
+    generic = {
+        "event_fingerprint": "generic",
+        "relation": RELATION_SAME_DATE_OVERLAP,
+        "covers_current_interval": False,
+        "evidence": ["same_date_interval_overlap"],
+        "actionable": True,
+        "date_delta_days": 0,
+        "resource_coverage": "covers",
+    }
+
+    assert select_primary_observation([generic], shared_event_fingerprints=set(), association_unresolved=False) is None
+
+
+def test_near_exact_full_footprint_event_is_still_an_observation():
+    # A near-exact interval supplies identity on a footprint club (ADR 0007).
+    near = {
+        "event_fingerprint": "near",
+        "relation": RELATION_SAME_DATE_OVERLAP,
+        "covers_current_interval": False,
+        "evidence": ["same_date_interval_overlap", "event_interval_within_tolerance_of_canonical"],
+        "actionable": True,
+        "date_delta_days": 0,
+        "resource_coverage": "covers",
+    }
+
+    chosen = select_primary_observation([near], shared_event_fingerprints=set(), association_unresolved=False)
+
+    assert chosen is not None
+    assert chosen["event_fingerprint"] == "near"
