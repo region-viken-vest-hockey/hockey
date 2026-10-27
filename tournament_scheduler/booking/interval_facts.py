@@ -8,7 +8,7 @@ association overlay both depend on them, so they live below both.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
@@ -121,27 +121,3 @@ def event_covers_tournament_interval(
     if None in (event_start, event_end, tournament_start, tournament_end):
         return False
     return event_start <= tournament_start and tournament_end <= event_end
-
-
-def same_interval_event(
-    record: Mapping[str, Any] | None,
-    events: Sequence[Mapping[str, Any]],
-) -> Mapping[str, Any] | None:
-    """Return the one current event matching a confirmed association's recorded interval.
-
-    Used only when the recorded fingerprint has disappeared. Zero or several
-    matches return None, so an ambiguous event never silently inherits the
-    booking.
-    """
-
-    if record is None:
-        return None
-    matches = [
-        event
-        for event in events
-        if str(event.get("club") or "") == str(record.get("club") or "")
-        and str(event.get("date") or "") == str(record.get("date") or "")
-        and str(event.get("start") or "") == str(record.get("start") or "")
-        and str(event.get("end") or "") == str(record.get("end") or "")
-    ]
-    return matches[0] if len(matches) == 1 else None
