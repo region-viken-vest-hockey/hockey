@@ -89,7 +89,9 @@ def test_complete_calendar_absence_is_unconfirmed_not_missing_coverage(tmp_path)
     assert _bucket_of(report, "t1") == "unconfirmed_ambiguous"
 
 
-def test_moved_booked_interval_is_a_material_mismatch_from_the_projection(tmp_path):
+def test_moved_unstated_booked_interval_is_a_proposed_correction_from_the_projection(tmp_path):
+    # #860: a club-wide "booked" confirmation with no stated window does not
+    # confirm the planned start, so the calendar's move is a correction to confirm.
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
     moved = _problem([_event("2026-09-12", "11:00", "13:00")], complete=True)
     set_manual_booking_assertion(
@@ -101,6 +103,30 @@ def test_moved_booked_interval_is_a_material_mismatch_from_the_projection(tmp_pa
         reference="email:2",
         problem=moved,
     )
+
+    report = booking_status_report(season="2026-2027", root=root, problem=moved)
+
+    assert _bucket_of(report, "t1") == "proposed_interval_correction"
+    assert report["calendar_audit"]["material_mismatches"] == []
+    assert report["calendar_audit"]["actions"]["t1"] == "confirm_calendar_interval"
+
+
+def test_moved_stated_booked_interval_is_a_material_mismatch_from_the_projection(tmp_path):
+    # The club stated the 10:00 start, so the calendar's 11:00 start contradicts
+    # an explicit fact and is flagged, not adopted.
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="10:00")])
+    set_manual_booking_assertion(
+        season="2026-2027",
+        root=root,
+        tournament_id="t1",
+        booking_status="booked",
+        actor="booker",
+        reference="email:2",
+        stated_start="10:00",
+        stated_end="12:00",
+        problem=_problem([], complete=True),
+    )
+    moved = _problem([_event("2026-09-12", "11:00", "13:00")], complete=True)
 
     report = booking_status_report(season="2026-2027", root=root, problem=moved)
 

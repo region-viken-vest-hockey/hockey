@@ -23,6 +23,7 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence
 
 from tournament_scheduler.booking.calendar_bookings import (
+    BOOKING_AUTHORITY_MANUAL,
     BOOKING_CONFIRMED_NOT_BOOKED,
     BOOKING_MANUALLY_NOT_BOOKED,
     BOOKING_NOT_CHECKABLE,
@@ -34,6 +35,7 @@ AUDIT_CONFIRMED_MATCHING = "confirmed_matching"
 AUDIT_ACCEPTED_UNCHECKABLE = "accepted_uncheckable"
 AUDIT_ACCEPTED_IDENTITY_REVIEW = "accepted_identity_review"
 AUDIT_MATERIAL_MISMATCH = "material_mismatch"
+AUDIT_PROPOSED_INTERVAL_CORRECTION = "proposed_interval_correction"
 AUDIT_UNCONFIRMED_AMBIGUOUS = "unconfirmed_ambiguous"
 AUDIT_NO_CALENDAR_COVERAGE = "no_calendar_coverage"
 AUDIT_EXPLICIT_NOT_BOOKED = "explicit_not_booked"
@@ -44,6 +46,7 @@ AUDIT_BUCKETS = (
     AUDIT_ACCEPTED_UNCHECKABLE,
     AUDIT_ACCEPTED_IDENTITY_REVIEW,
     AUDIT_MATERIAL_MISMATCH,
+    AUDIT_PROPOSED_INTERVAL_CORRECTION,
     AUDIT_UNCONFIRMED_AMBIGUOUS,
     AUDIT_NO_CALENDAR_COVERAGE,
     AUDIT_EXPLICIT_NOT_BOOKED,
@@ -57,6 +60,7 @@ AUDIT_SEVERITY = {
     AUDIT_ACCEPTED_UNCHECKABLE: "advisory",
     AUDIT_ACCEPTED_IDENTITY_REVIEW: "review_required",
     AUDIT_MATERIAL_MISMATCH: "action_required",
+    AUDIT_PROPOSED_INTERVAL_CORRECTION: "review_required",
     AUDIT_UNCONFIRMED_AMBIGUOUS: "review_required",
     AUDIT_NO_CALENDAR_COVERAGE: "advisory",
     AUDIT_EXPLICIT_NOT_BOOKED: "none",
@@ -70,12 +74,14 @@ AUDIT_ACTION_REFRESH_SOURCE = "refresh_source"
 AUDIT_ACTION_IDENTITY_REBIND = "optional_identity_rebind"
 AUDIT_ACTION_CHANGE_APPROVAL = "explicit_booking_change_approval"
 AUDIT_ACTION_RESOLVE_CANDIDATE = "resolve_candidate"
+AUDIT_ACTION_CONFIRM_INTERVAL = "confirm_calendar_interval"
 
 AUDIT_ACTIONS = {
     AUDIT_CONFIRMED_MATCHING: AUDIT_ACTION_NONE,
     AUDIT_ACCEPTED_UNCHECKABLE: AUDIT_ACTION_REFRESH_SOURCE,
     AUDIT_ACCEPTED_IDENTITY_REVIEW: AUDIT_ACTION_IDENTITY_REBIND,
     AUDIT_MATERIAL_MISMATCH: AUDIT_ACTION_CHANGE_APPROVAL,
+    AUDIT_PROPOSED_INTERVAL_CORRECTION: AUDIT_ACTION_CONFIRM_INTERVAL,
     AUDIT_UNCONFIRMED_AMBIGUOUS: AUDIT_ACTION_RESOLVE_CANDIDATE,
     AUDIT_NO_CALENDAR_COVERAGE: AUDIT_ACTION_REFRESH_SOURCE,
     AUDIT_EXPLICIT_NOT_BOOKED: AUDIT_ACTION_NONE,
@@ -94,11 +100,39 @@ def _has_no_usable_calendar_evidence(row: Mapping[str, Any]) -> bool:
     )
 
 
+def _differing_interval_fields(comparison: Mapping[str, Any]) -> set[str]:
+    fields: set[str] = set()
+    if comparison.get("same_date") is False:
+        fields.add("date")
+    if comparison.get("start_delta_minutes") not in (0, None):
+        fields.add("start")
+    if comparison.get("end_delta_minutes") not in (0, None):
+        fields.add("end")
+    return fields
+
+
+def _is_unreconciled_proposal(row: Mapping[str, Any], comparison: Mapping[str, Any]) -> bool:
+    # A manual club-wide confirmation only makes an explicit claim about the
+    # fields its source stated. A differing field the source did not state is
+    # the planner's proposal, so a calendar disagreement there is a correction
+    # to confirm. An absent projection means the authority is unknown, so the
+    # difference stays a material mismatch.
+    if row.get("authority") != BOOKING_AUTHORITY_MANUAL or row.get("conflict"):
+        return False
+    if not isinstance(row.get("explicit_interval_fields"), list):
+        return False
+    explicit = set(row["explicit_interval_fields"])
+    differing = _differing_interval_fields(comparison)
+    return bool(differing) and not (differing & explicit)
+
+
 def _classify(row: Mapping[str, Any]) -> str:
     comparison = row.get("interval_comparison")
     comparison_status = str(comparison.get("status") or "") if isinstance(comparison, Mapping) else ""
     if row.get("operational_state") == OPERATIONAL_BOOKED:
         if row.get("conflict") or comparison_status == "differs":
+            if comparison_status == "differs" and _is_unreconciled_proposal(row, comparison):
+                return AUDIT_PROPOSED_INTERVAL_CORRECTION
             return AUDIT_MATERIAL_MISMATCH
         if comparison_status == "matches" and row.get("association_identity_unresolved"):
             # The interval agrees, but the recorded event was retitled or lost, so
