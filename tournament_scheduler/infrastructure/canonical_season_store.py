@@ -440,7 +440,7 @@ def _write_season_state_locked(
             copied_evidence = _carry_forward_evidence(
                 existing_evidence, staging / EVIDENCE_DIR_NAME
             )
-        carried_files = carry_forward_derived_files(season_directory, staging)
+        carried_files = carry_forward_derived_files(season_directory, staging, schedule_payload, decisions_payload)
         # Newly archived evidence files are written into this same staged tree
         # before the swap, so a schedule/decisions reference to them and the
         # artifact itself are installed as one atomic boundary.
