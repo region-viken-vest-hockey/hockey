@@ -86,11 +86,26 @@ class AvailabilityPolicy:
 
 
 @dataclass(frozen=True)
+class CalendarBookingPresence:
+    """Whether a club's public calendar evidences its tournament bookings.
+
+    ``publishes_tournament_bookings=False`` records a documented source
+    limitation: the club's calendar may show conflicting ice use, but it does
+    not list its tournament bookings, so an absent event proves nothing about
+    presence (#853).
+    """
+
+    publishes_tournament_bookings: bool
+    evidence: PolicyEvidence
+
+
+@dataclass(frozen=True)
 class ClubProfile:
     club: str
     venues: tuple[VenueProfile, ...]
     availability_policies: tuple[AvailabilityPolicy, ...]
     source_path: str
+    calendar_booking_presence: CalendarBookingPresence | None = None
 
     def venue_for_arena(self, arena: str | None = None) -> VenueProfile | None:
         if arena:
@@ -228,7 +243,28 @@ def validate_profile_data(data: Any, *, source: str = "club profile") -> ClubPro
 
     if not venues and not policies:
         raise ValueError(f"{source}: profile must declare a venue or availability policy")
-    return ClubProfile(club, tuple(venues), tuple(policies), source)
+    return ClubProfile(
+        club,
+        tuple(venues),
+        tuple(policies),
+        source,
+        calendar_booking_presence=_calendar_booking_presence(data.get("calendar_booking_presence"), source),
+    )
+
+
+def _calendar_booking_presence(data: Any, source: str) -> CalendarBookingPresence | None:
+    if data is None:
+        return None
+    presence_source = f"{source}: calendar_booking_presence"
+    if not isinstance(data, Mapping):
+        raise ValueError(f"{presence_source} must be an object")
+    publishes = data.get("publishes_tournament_bookings")
+    if not isinstance(publishes, bool):
+        raise ValueError(f"{presence_source}.publishes_tournament_bookings must be a boolean")
+    return CalendarBookingPresence(
+        publishes_tournament_bookings=publishes,
+        evidence=_evidence(data.get("evidence"), presence_source),
+    )
 
 
 @lru_cache(maxsize=1)

@@ -62,3 +62,28 @@ def test_consequential_policy_without_evidence_is_rejected():
 
     with pytest.raises(ValueError, match="evidence must be an object"):
         validate_profile_data(data, source="test-profile")
+
+
+def test_sandefjord_profile_declares_calendar_does_not_publish_bookings():
+    profile = get_club_profile("Sandefjord Penguins")
+
+    presence = profile.calendar_booking_presence
+    assert presence is not None
+    assert presence.publishes_tournament_bookings is False
+    assert presence.evidence.kind == "operator_decision"
+
+
+def test_calendar_booking_presence_is_optional_and_defaults_to_none():
+    assert get_club_profile("Skien").calendar_booking_presence is None
+
+
+def test_calendar_booking_presence_requires_evidence():
+    data = {
+        "schema_version": 1,
+        "club": "Example",
+        "venues": [{"arena": "Example hall"}],
+        "calendar_booking_presence": {"publishes_tournament_bookings": False},
+    }
+
+    with pytest.raises(ValueError, match="evidence"):
+        validate_profile_data(data, source="example.json")

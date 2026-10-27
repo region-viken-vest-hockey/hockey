@@ -106,6 +106,11 @@ def _classify(row: Mapping[str, Any]) -> str:
             return AUDIT_UNCONFIRMED_AMBIGUOUS
         if comparison_status == "matches":
             return AUDIT_CONFIRMED_MATCHING
+        if comparison_status == "no_observed_interval" and row.get("calendar_publishes_bookings") is False:
+            # The club's calendar does not list its tournament bookings (a documented
+            # profile limitation), so an absent event is not evidence against the
+            # accepted booking. The booking keeps its authority; no action is asked.
+            return AUDIT_ACCEPTED_UNCHECKABLE
         if comparison_status == "no_observed_interval" and row.get("calendar_covers_window") is True:
             # No primary observation is not the same as no matching event. Only
             # a complete calendar with no plausible candidate shows a lost or
@@ -142,6 +147,14 @@ def _mismatch_detail(row: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _action_for(row: Mapping[str, Any], bucket: str) -> str:
+    # Absence on a calendar that does not publish bookings asks for no operator
+    # step: the accepted booking is kept as is (#853).
+    if bucket == AUDIT_ACCEPTED_UNCHECKABLE and row.get("calendar_publishes_bookings") is False:
+        return AUDIT_ACTION_NONE
+    return AUDIT_ACTIONS.get(bucket, AUDIT_ACTION_NONE)
+
+
 def calendar_audit_summary(
     rows: Sequence[Mapping[str, Any]],
     *,
@@ -156,7 +169,7 @@ def calendar_audit_summary(
         bucket = _classify(row)
         tournament_id = str(row.get("tournament_id") or "")
         buckets[bucket].append(tournament_id)
-        actions[tournament_id] = AUDIT_ACTIONS.get(bucket, AUDIT_ACTION_NONE)
+        actions[tournament_id] = _action_for(row, bucket)
         if bucket == AUDIT_MATERIAL_MISMATCH:
             material.append(_mismatch_detail(row))
     buckets[AUDIT_CANCELLED_HISTORICAL] = [str(item.get("tournament_id") or "") for item in cancelled_history]
