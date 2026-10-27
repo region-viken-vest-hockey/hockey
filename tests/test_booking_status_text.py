@@ -160,3 +160,28 @@ def test_material_mismatch_text_shows_both_intervals_and_end_difference_without_
 
     assert "plan 2026-10-16 10:30-13:00 | calendar 2026-10-16 10:30-13:10 | differs: start +0 min, end +10 min" in text
     assert "operator action: booking change needs explicit approval; no change made" in text
+
+
+def test_accepted_booking_row_shows_who_when_and_why_it_was_accepted():
+    # Issue #847: the operator sees the accepted fact next to the current evidence.
+    rows = [
+        {
+            "tournament_id": "rvv-0029",
+            "operational_state": "booked",
+            "status": "manually_booked",
+            "authority": "manual_club_confirmation",
+            "conflict": False,
+            "follow_up_reasons": [],
+            "accepted_evidence": {
+                "accepted_at": "2026-09-22T10:00:00+00:00",
+                "accepted_by": "booker",
+                "note": "club confirmed by email",
+                "accepted_interval": {"date": "2026-10-16", "start": "10:30", "end": "13:00"},
+            },
+        }
+    ]
+
+    text = format_host_club_booking_status(_report(rows))
+    row_text = text.split("Calendar audit", 1)[0]
+
+    assert "accepted: 2026-10-16 10:30-13:00 by booker on 2026-09-22 (club confirmed by email)" in row_text

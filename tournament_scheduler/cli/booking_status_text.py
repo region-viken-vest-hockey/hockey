@@ -88,6 +88,14 @@ def _row_lines(row: Mapping[str, Any], action: str | None = None) -> list[str]:
         lines.append(f"  follow-up: {', '.join(follow_up)}")
     if row.get("rejected_booking_evidence"):
         lines.append(f"  rejected evidence: {len(row['rejected_booking_evidence'])} record(s) need resolution")
+    accepted = row.get("accepted_evidence")
+    if isinstance(accepted, Mapping):
+        interval = accepted.get("accepted_interval") or {}
+        accepted_on = str(accepted.get("accepted_at") or "")[:10]
+        lines.append(
+            f"  accepted: {interval.get('date')} {interval.get('start')}-{interval.get('end')} "
+            f"by {accepted.get('accepted_by') or 'unknown'} on {accepted_on} ({accepted.get('note') or 'no note'})"
+        )
     if action and action in _ACTION_LABELS:
         lines.append(f"  operator action: {_ACTION_LABELS[action]}")
     return lines
