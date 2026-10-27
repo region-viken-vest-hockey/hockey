@@ -13,7 +13,7 @@ from typing import Any, Mapping
 
 from tournament_scheduler.booking.assessment_candidates import ASSESSMENT_PRESUMED_UNSCHEDULED
 from tournament_scheduler.booking.interval_facts import _parse_hhmm
-from tournament_scheduler.clubs.profiles import get_club_profile
+from tournament_scheduler.booking.calendar_presence import calendar_publishes_tournament_bookings
 
 _MINUTES_PER_DAY = 24 * 60
 
@@ -86,10 +86,9 @@ def assessment_provenance_fields(assessment_row: Mapping[str, Any] | None) -> di
         fields["calendar_covers_window"] = bool(assessment_row.get("calendar_covers_window"))
     # Documented source limitation from the host club's profile (#853). It informs
     # the audit only; it never changes booking authority or status.
-    profile = get_club_profile(str(assessment_row.get("host_club") or ""))
-    presence = profile.calendar_booking_presence if profile is not None else None
-    if presence is not None:
-        fields["calendar_publishes_bookings"] = presence.publishes_tournament_bookings
+    publishes = calendar_publishes_tournament_bookings(str(assessment_row.get("host_club") or ""))
+    if publishes is not None:
+        fields["calendar_publishes_bookings"] = publishes
     return fields
 
 

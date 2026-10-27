@@ -19,6 +19,7 @@ from tournament_scheduler.booking.ice_resources import (
     footprint_coverage,
     tournament_resource_footprint,
 )
+from tournament_scheduler.booking.calendar_presence import calendar_omits_tournament_bookings
 from tournament_scheduler.booking.interval_facts import (
     _parse_hhmm,
     event_covers_tournament_interval,
@@ -156,10 +157,12 @@ def assessment_candidate(
         # listed for the harness, and a matching age group or a near-exact
         # interval supplies the identity.
         identity_match = age_group_match or near_exact
+    elif calendar_omits_tournament_bookings(str(tournament.get("host_club") or "")):
+        # Standing ice use is no identity proof; an overlap still contests (#853).
+        identity_match = age_group_match or near_exact or overlaps
     else:
-        # Resource-agnostic clubs keep the observation-window rule: a far generic
-        # booking is context only, but one inside the window can propose a
-        # changed slot.
+        # Resource-agnostic clubs keep the window rule: a far generic booking is
+        # context, one inside the window can propose a changed slot.
         identity_match = age_group_match or abs(date_delta_days) <= date_window_days
     season_context_only = not identity_match
 

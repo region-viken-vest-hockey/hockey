@@ -17,6 +17,7 @@ BOOKING_MODULES = {
     "calendar_audit",
     "calendar_availability",
     "calendar_bookings",
+    "calendar_presence",
     "candidate_weekend_availability",
     "candidate_weekends",
     "club_profile_availability",
