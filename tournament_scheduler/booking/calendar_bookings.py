@@ -2146,10 +2146,13 @@ def _assessment_tournament_row(
             ),
             None,
         )
-    elif len(actionable) == 1 and actionable[0]["event_fingerprint"] not in shared_event_fingerprints:
-        # With an unresolved association this single identity-compatible candidate
-        # is the only observation: its interval may show a real move (material),
-        # while identity stays unproven, so it is never a confirmed match (#847).
+    elif (
+        len(actionable) == 1
+        and actionable[0]["event_fingerprint"] not in shared_event_fingerprints
+        # With an unresolved association, proximity alone is not the same booking.
+        # Only an event with age-group evidence may be its observation (#847).
+        and (not association_unresolved or "event_title_age_group_matches" in actionable[0].get("evidence", []))
+    ):
         primary_candidate = actionable[0]
     if primary_candidate is not None:
         row["primary_candidate_event_fingerprint"] = primary_candidate["event_fingerprint"]
