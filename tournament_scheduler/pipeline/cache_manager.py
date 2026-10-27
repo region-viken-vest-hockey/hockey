@@ -25,6 +25,24 @@ CACHE_FILE = "scraped_data.json"
 DEFAULT_TTL_HOURS = 24
 
 
+def _snapshot_scope(
+    configured: dict[str, dict[str, Any]],
+    refreshed: dict[str, Any],
+) -> dict[str, Any]:
+    """Describe which configured sources this snapshot actually covers.
+
+    A scoped refresh (for example one club) leaves the other sources out of
+    ``sources``. Recording that here lets readers tell a partial snapshot from a
+    complete one instead of treating the missing sources as absent.
+    """
+    missing = sorted(set(configured) - set(refreshed))
+    return {
+        "complete": not missing,
+        "refreshed_sources": sorted(refreshed),
+        "missing_sources": missing,
+    }
+
+
 def _compute_config_fingerprint(
     url: str,
     source_kind: str,
@@ -159,6 +177,7 @@ class ScrapedDataCache:
         # without growing the cache file unboundedly.
         cache["previous_sources"] = cache.get("sources", {})
         cache["sources"] = sources_data
+        cache["_meta"]["snapshot_scope"] = _snapshot_scope(source_map, sources_data)
         cache["source_count"] = len(sources_data)
         cache["total_events"] = sum(
             s.get("event_count", 0) for s in sources_data.values()

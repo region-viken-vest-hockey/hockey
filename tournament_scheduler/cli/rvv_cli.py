@@ -39,7 +39,7 @@ from .plan_command import _cmd_plan
 from .recovery_cli import _cmd_recovery_inject, _cmd_recovery_targets, _cmd_scrape_merge
 from .waiver_command import _cmd_waiver
 from .reporting import _cmd_candidates, _cmd_logs, _cmd_status
-from .reporting import _cmd_sources_status  # noqa: F401 (patch point for the `sources` dispatch)
+from .sources_status import _cmd_sources_status  # noqa: F401 (patch point for the `sources` dispatch)
 from .participation_fairness_command import _cmd_season_participation_fairness
 from .season_command import _cmd_season
 from .verification_problem import _canonical_verification_problem  # noqa: F401 (re-exported for CLI callers)

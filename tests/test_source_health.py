@@ -377,7 +377,7 @@ class TestComputeSourceHealth:
 
 class TestSourcesStatusCli:
     def test_json_output_matches_compute_source_health(self, tmp_path, capsys):
-        from tournament_scheduler.cli.reporting import _cmd_sources_status
+        from tournament_scheduler.cli.sources_status import _cmd_sources_status
 
         _write_scraping_checkpoint(
             tmp_path,
@@ -390,7 +390,7 @@ class TestSourcesStatusCli:
         assert printed[0]["capability"] == "source_health:Jar"
 
     def test_returns_1_when_any_source_blocked(self, tmp_path):
-        from tournament_scheduler.cli.reporting import _cmd_sources_status
+        from tournament_scheduler.cli.sources_status import _cmd_sources_status
 
         _write_scraping_checkpoint(
             tmp_path,
@@ -401,7 +401,7 @@ class TestSourcesStatusCli:
         assert rc == 1
 
     def test_returns_0_when_no_checkpoint(self, tmp_path):
-        from tournament_scheduler.cli.reporting import _cmd_sources_status
+        from tournament_scheduler.cli.sources_status import _cmd_sources_status
 
         args = argparse.Namespace(work_dir=str(tmp_path), json=False)
         assert _cmd_sources_status(args) == 0
