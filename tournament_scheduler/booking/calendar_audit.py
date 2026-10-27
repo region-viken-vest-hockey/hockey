@@ -24,6 +24,7 @@ from typing import Any, Mapping, Sequence
 
 from tournament_scheduler.booking.calendar_bookings import (
     BOOKING_AUTHORITY_MANUAL,
+    BOOKING_AUTHORITY_MANUAL_INTERPRETATION,
     BOOKING_CONFIRMED_NOT_BOOKED,
     BOOKING_MANUALLY_NOT_BOOKED,
     BOOKING_NOT_CHECKABLE,
@@ -123,7 +124,8 @@ def _is_unreconciled_proposal(row: Mapping[str, Any], comparison: Mapping[str, A
     # the planner's proposal, so a calendar disagreement there is a correction
     # to confirm. An absent projection means the authority is unknown, so the
     # difference stays a material mismatch.
-    if row.get("authority") != BOOKING_AUTHORITY_MANUAL or row.get("conflict"):
+    manual_authorities = (BOOKING_AUTHORITY_MANUAL, BOOKING_AUTHORITY_MANUAL_INTERPRETATION)
+    if row.get("authority") not in manual_authorities or row.get("conflict"):
         return False
     if not isinstance(row.get("explicit_interval_fields"), list):
         return False
