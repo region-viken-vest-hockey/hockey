@@ -74,6 +74,10 @@ def assessment_provenance_fields(assessment_row: Mapping[str, Any] | None) -> di
     # Advisory only: how many plausible calendar events the assessment still
     # contests for this tournament. Zero is what makes a lost identity provable.
     fields["actionable_candidate_count"] = sum(1 for candidate in candidates if candidate.get("actionable"))
+    if assessment_row.get("association_identity_unresolved"):
+        # A confirmed booking whose recorded event was retitled or lost: an interval
+        # observation can show a move, but cannot prove the same event (#847).
+        fields["association_identity_unresolved"] = True
     if "calendar_covers_window" in assessment_row:
         # Advisory only: whether the calendar fully covers this tournament's
         # window. It separates "no event on a complete calendar" from "readable

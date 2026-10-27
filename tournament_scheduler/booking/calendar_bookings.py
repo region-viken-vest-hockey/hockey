@@ -2126,6 +2126,8 @@ def _assessment_tournament_row(
         row["evidence_reason"] = "source_coverage_unproven"
     if classification in {ASSESSMENT_AMBIGUOUS, ASSESSMENT_COMPETING_CANDIDATES}:
         row.setdefault("evidence_reasons", []).append("association_ambiguous")
+    if association_unresolved:
+        row["association_identity_unresolved"] = True
     if associated_event is not None:
         row["associated_event_fingerprint"] = str(
             associated_event.get("fingerprint") or event_fingerprint(associated_event)
@@ -2144,11 +2146,10 @@ def _assessment_tournament_row(
             ),
             None,
         )
-    elif (
-        not association_unresolved
-        and len(actionable) == 1
-        and actionable[0]["event_fingerprint"] not in shared_event_fingerprints
-    ):
+    elif len(actionable) == 1 and actionable[0]["event_fingerprint"] not in shared_event_fingerprints:
+        # With an unresolved association this single identity-compatible candidate
+        # is the only observation: its interval may show a real move (material),
+        # while identity stays unproven, so it is never a confirmed match (#847).
         primary_candidate = actionable[0]
     if primary_candidate is not None:
         row["primary_candidate_event_fingerprint"] = primary_candidate["event_fingerprint"]
