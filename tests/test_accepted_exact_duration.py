@@ -203,3 +203,20 @@ def test_accepted_booked_duration_is_exported_end_to_end(tmp_path, monkeypatch, 
     assert dtstart == f"DTSTART:20270306T{START.replace(':', '')}00Z"
     assert dtend == f"DTEND:20270306T{_end(START, booked).replace(':', '')}00Z"
     assert active_overrides(load_decisions("2026-2027", root=root)) == {"rvv-0900": booked}
+
+
+def test_independent_calendar_conflict_beside_accepted_booking_still_demotes(tmp_path):
+    # Own-event exemption must not hide another fixed event on the same ice (#860 review P1).
+    from tournament_scheduler.placement.normalization import normalize_unplaced_placements
+
+    root, problem, event, teams, result = _accept(tmp_path, planned=155, booked=100)
+    decisions = load_decisions("2026-2027", root=root)
+    other = _event(date=DATE, start="18:00", end="18:30", title="Other club event")
+    vp = project_overrides_into_problem({**problem, "club_busy_intervals": {"A": [event, other]}}, decisions)
+    vp[CALENDAR_BOOKING_ASSOCIATIONS_KEY] = decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []
+    plan = copy.deepcopy(load_schedule("2026-2027", root=root)["plan"])
+
+    report = normalize_unplaced_placements(plan, vp, approvals={})
+
+    assert report["removed_tournament_ids"] == ["rvv-0900"]
+    assert report["unplaced"][0]["reason"] == "fixed_external_calendar_conflict"

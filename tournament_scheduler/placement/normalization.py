@@ -163,17 +163,6 @@ def classify_tournament(
     if tournament.get("manual_booking_reason"):
         return {**base, "state": PROVISIONAL, "reason": REASON_CALENDAR_UNAVAILABLE}
 
-    # An accepted calendar booking for this exact interval is the booking itself,
-    # so its own calendar event is not an external conflict (#860).
-    from tournament_scheduler.booking.calendar_bookings import (
-        BOOKING_AUTHORITY_CALENDAR,
-        accepted_booking_interval_evidence,
-    )
-
-    accepted = accepted_booking_interval_evidence(problem, tournament)
-    if accepted and accepted.get("authority") == BOOKING_AUTHORITY_CALENDAR:
-        return {**base, "state": PLACED, "reason": "accepted_calendar_booking"}
-
     ice_time = ice_time_for_age_group
     if ice_time is None:
         ice_time = (problem or {}).get("ice_time_minutes") or (problem or {}).get("round_length_minutes") or {}
@@ -188,12 +177,16 @@ def classify_tournament(
         # external booking cannot be scheduled as-is.
         if not status or status.get(interval.host_club, "unknown") == "known":
             duration = int((interval.end - interval.start).total_seconds() // 60)
+            # The tournament's own accepted calendar event is excluded here by its
+            # association (#860); every other fixed event still conflicts.
             if external_calendar_conflict(
                 busy,
                 interval.host_club,
                 interval.start.date(),
                 interval.start.strftime("%H:%M"),
                 duration,
+                tournament_id=tournament_id,
+                problem=problem,
             ):
                 return {
                     **base,
