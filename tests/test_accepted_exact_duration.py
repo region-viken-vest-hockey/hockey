@@ -101,8 +101,10 @@ def test_accepted_booked_duration_verifies_with_shortfall_as_warning_only(tmp_pa
 
     verdict = verify_final_candidate(candidate, verification_problem)
 
-    # The accepted interval never causes a hard violation on its own.
-    assert not [v for v in verdict["violations"] if "ice_time" in v["code"]], verdict["violations"]
+    # The accepted interval never blocks the accepted schedule: the whole verdict
+    # is clean, and only the feasibility warning remains.
+    assert verdict["ok"] is True, verdict["violations"]
+    assert verdict["violations"] == []
     warning_codes = {w["code"] for w in verdict["booking_feasibility_warnings"]}
     assert ("ice_time_governing_minimum" in warning_codes) is shortfall
 
