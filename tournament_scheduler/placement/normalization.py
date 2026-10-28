@@ -108,6 +108,18 @@ def _busy_intervals(
     )
 
 
+def _own_accepted_calendar_booking(
+    problem: Optional[Mapping[str, Any]], tournament: Mapping[str, Any]
+) -> bool:
+    from tournament_scheduler.booking.calendar_bookings import (
+        BOOKING_AUTHORITY_CALENDAR,
+        accepted_booking_interval_evidence,
+    )
+
+    evidence = accepted_booking_interval_evidence(problem, tournament) or {}
+    return evidence.get("authority") == BOOKING_AUTHORITY_CALENDAR
+
+
 def classify_tournament(
     tournament: Mapping[str, Any],
     problem: Optional[Mapping[str, Any]] = None,
@@ -177,16 +189,18 @@ def classify_tournament(
         # external booking cannot be scheduled as-is.
         if not status or status.get(interval.host_club, "unknown") == "known":
             duration = int((interval.end - interval.start).total_seconds() // 60)
-            # The tournament's own accepted calendar event is excluded here by its
-            # association (#860); every other fixed event still conflicts.
+            # Only an accepted calendar booking that matches the current interval
+            # exactly may exclude its own event (#860). Every other fixed event
+            # still conflicts, and a stale association excludes nothing.
+            own_booking = _own_accepted_calendar_booking(problem, tournament)
             if external_calendar_conflict(
                 busy,
                 interval.host_club,
                 interval.start.date(),
                 interval.start.strftime("%H:%M"),
                 duration,
-                tournament_id=tournament_id,
-                problem=problem,
+                tournament_id=tournament_id if own_booking else None,
+                problem=problem if own_booking else None,
             ):
                 return {
                     **base,

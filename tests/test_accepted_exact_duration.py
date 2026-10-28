@@ -220,3 +220,22 @@ def test_independent_calendar_conflict_beside_accepted_booking_still_demotes(tmp
 
     assert report["removed_tournament_ids"] == ["rvv-0900"]
     assert report["unplaced"][0]["reason"] == "fixed_external_calendar_conflict"
+
+
+def test_stale_association_does_not_hide_conflict_after_placement_moves(tmp_path):
+    # The accepted booking is 17:20-19:00, but the placement now runs 17:20-19:20.
+    # The association no longer matches the placement, so its own event must not
+    # be excluded from conflict checks (#860 review P2).
+    from tournament_scheduler.placement.normalization import normalize_unplaced_placements
+
+    root, problem, event, teams, result = _accept(tmp_path, planned=155, booked=100)
+    decisions = load_decisions("2026-2027", root=root)
+    vp = project_overrides_into_problem(problem, decisions)
+    vp["ice_time_minutes_overrides"] = {"rvv-0900": 120}
+    vp[CALENDAR_BOOKING_ASSOCIATIONS_KEY] = decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []
+    plan = copy.deepcopy(load_schedule("2026-2027", root=root)["plan"])
+
+    report = normalize_unplaced_placements(plan, vp, approvals={})
+
+    assert report["removed_tournament_ids"] == ["rvv-0900"]
+    assert report["unplaced"][0]["reason"] == "fixed_external_calendar_conflict"
