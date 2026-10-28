@@ -12,6 +12,9 @@ audit, and final verification of the accepted plan.
 
 from __future__ import annotations
 
+import copy
+from pathlib import Path
+
 import pytest
 
 from tournament_scheduler.application.canonical_season.store_facade import (
@@ -136,3 +139,67 @@ def test_accepted_booked_duration_reaches_export_projection(tmp_path, planned, b
     plan = season_plan_from_dict(schedule["plan"])
     apply_overrides_to_plan(plan, projected)
     assert tournament_end_time(plan.tournaments[0], {"U10": planned}) == _end(START, booked)
+
+
+@pytest.mark.parametrize("booked", [115, 100, 180])
+def test_accepted_calendar_booking_is_not_demoted_by_its_own_event(tmp_path, booked):
+    # Export placement normalization must not treat the tournament's own accepted
+    # calendar event as an external conflict. That would demote an accepted booking
+    # from the export and publish a schedule that differs from canonical state.
+    from tournament_scheduler.placement.normalization import normalize_unplaced_placements
+
+    root, problem, event, teams, result = _accept(tmp_path, planned=155, booked=booked)
+    decisions = load_decisions("2026-2027", root=root)
+    vp = project_overrides_into_problem(problem, decisions)
+    vp[CALENDAR_BOOKING_ASSOCIATIONS_KEY] = decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []
+    plan = copy.deepcopy(load_schedule("2026-2027", root=root)["plan"])
+
+    report = normalize_unplaced_placements(plan, vp, approvals={})
+
+    assert report["removed_tournament_ids"] == []
+    assert [t["id"] for t in plan["tournaments"]] == ["rvv-0900"]
+
+
+@pytest.mark.parametrize(
+    ("planned", "booked"),
+    [(120, 115), (155, 100), (155, 180)],
+)
+def test_accepted_booked_duration_is_exported_end_to_end(tmp_path, monkeypatch, planned, booked):
+    # The real stage-4 export run, not only the projection layer: the export must
+    # not refuse, must place the tournament at its exact booked interval in the
+    # iCal artifact, and must leave the canonical override untouched.
+    from tournament_scheduler.pipeline.stage4_export import run
+    from tournament_scheduler.pipeline.state import PipelineState, StageName, StageStatus
+    import tournament_scheduler.season.baseline_overlay as canonical_baseline
+
+    root, problem, event, teams, result = _accept(tmp_path, planned=planned, booked=booked)
+    decisions = load_decisions("2026-2027", root=root)
+    projected = project_overrides_into_problem(problem, decisions)
+    projected[CALENDAR_BOOKING_ASSOCIATIONS_KEY] = decisions.get(CALENDAR_BOOKING_ASSOCIATIONS_KEY) or []
+    plan = load_schedule("2026-2027", root=root)["plan"]
+
+    monkeypatch.setattr(
+        canonical_baseline,
+        "resolve_canonical_state",
+        lambda _config, _start, _end: {"season": "2026-2027", "root": str(root)},
+    )
+    state = PipelineState(tmp_path / "pipeline")
+    state.write_stage(StageName.CONFIG, {"input_path": "fixture", "teams": []}, status=StageStatus.DONE)
+    effective_config = {**projected, "canonical_season": "2026-2027", "canonical_season_root": str(root)}
+
+    exported = run(
+        {"plan": plan},
+        state,
+        export_dir=str(tmp_path / "export"),
+        timestamped_export=False,
+        verification_problem=projected,
+        effective_config_override=effective_config,
+        canonical_schedule_plan=plan,
+    )
+
+    ics = Path(exported["output_files"]["ical"]).read_text()
+    dtstart = next(line for line in ics.splitlines() if line.startswith("DTSTART:"))
+    dtend = next(line for line in ics.splitlines() if line.startswith("DTEND:"))
+    assert dtstart == f"DTSTART:20270306T{START.replace(':', '')}00Z"
+    assert dtend == f"DTEND:20270306T{_end(START, booked).replace(':', '')}00Z"
+    assert active_overrides(load_decisions("2026-2027", root=root)) == {"rvv-0900": booked}
