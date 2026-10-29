@@ -113,9 +113,11 @@ def test_calendar_event_supplies_the_end_for_a_start_only_record_and_keeps_its_s
     assert row["canonical_interval"]["start_time"] == "13:00"
     assert row["canonical_interval"]["end_time"] == "16:00"
     assert row["interval_comparison"]["status"] == "matches"
+    assert row["accepted_evidence"]["association_id"].startswith("calendar_booking:")
+    assert row["accepted_evidence"]["accepted_interval"] == {"date": "2026-09-12", "start": "13:00", "end": "16:00"}
 
 
-def test_club_wide_start_only_statement_keeps_its_scope_and_moves_only_the_start(tmp_path):
+def test_club_wide_start_only_acceptance_keeps_scope_and_moves_only_the_start(tmp_path):
     root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="15:00")])
 
     set_manual_booking_assertion(
