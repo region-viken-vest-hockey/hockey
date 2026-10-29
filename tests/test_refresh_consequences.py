@@ -52,3 +52,28 @@ def test_changed_bucket_and_observation_are_reported_with_action_and_delta():
     assert row["action"] == "resolve_candidate"
     assert row["fresh_observed_interval"] == {"date": "2026-09-12", "start": "10:00", "end": "12:00"}
     assert row["proposed_delta"]["status"] == "matches"
+
+
+def test_authority_change_with_unchanged_interval_and_bucket_is_still_reported():
+    observed = {"date": "2026-09-12", "start": "10:00", "end": "12:00"}
+    current = _report(bucket="confirmed_matching", observed=observed)
+    proposed = _report(bucket="confirmed_matching", observed=observed)
+    proposed["tournaments"][0]["authority"] = "manual_club_confirmation"
+
+    rows = refresh_tournament_consequences(current, proposed)
+
+    assert [row["tournament_id"] for row in rows] == ["t1"]
+    assert rows[0]["authority"] == "manual_club_confirmation"
+    assert rows[0]["proposed_bucket"] == "confirmed_matching"
+
+
+def test_follow_up_change_with_unchanged_bucket_is_still_reported():
+    observed = {"date": "2026-09-12", "start": "10:00", "end": "12:00"}
+    current = _report(bucket="unconfirmed_ambiguous", observed=observed, action="resolve_candidate")
+    proposed = _report(bucket="unconfirmed_ambiguous", observed=observed, action="resolve_candidate")
+    proposed["tournaments"][0]["follow_up_reasons"] = ["calendar_negative_conflicts_with_manual_booking"]
+
+    rows = refresh_tournament_consequences(current, proposed)
+
+    assert [row["tournament_id"] for row in rows] == ["t1"]
+    assert rows[0]["follow_up_reasons"] == ["calendar_negative_conflicts_with_manual_booking"]

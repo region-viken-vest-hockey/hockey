@@ -32,16 +32,34 @@ def _rows_by_tournament(report: Mapping[str, Any]) -> dict[str, Mapping[str, Any
     }
 
 
+def _signature(row: Mapping[str, Any], bucket: str | None, report: Mapping[str, Any]) -> dict[str, Any]:
+    # Every field an operator acts on. A change in authority, explicit fields or
+    # follow-up reasons is a consequence even when the interval and bucket hold.
+    comparison = row.get("interval_comparison") or {}
+    actions = (report.get("calendar_audit") or {}).get("actions") or {}
+    return {
+        "bucket": bucket,
+        "action": actions.get(str(row.get("tournament_id") or ""), "none"),
+        "authority": row.get("authority"),
+        "explicit_interval_fields": row.get("explicit_interval_fields"),
+        "follow_up_reasons": list(row.get("follow_up_reasons") or []),
+        "comparison": comparison,
+        "observation": row.get("latest_observed_interval"),
+    }
+
+
 def refresh_tournament_consequences(
     current: Mapping[str, Any],
     proposed: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
-    """Return one row per tournament whose booking consequence the refresh changes.
+    """Return one row per active tournament whose booking consequence the refresh changes.
 
     ``current`` is the booking-status report for the committed canonical state;
     ``proposed`` is the same projection over the fresh calendar evidence. A
-    tournament whose bucket, comparison and observation are all unchanged is
-    omitted, so an empty list means the refresh changes no booking consequence.
+    tournament is omitted only when every operator-relevant field of its row is
+    unchanged, so an empty list means the refresh changes no booking
+    consequence. Cancelled tournaments are outside the active rows by design
+    (#842) and are not projected here.
     """
 
     current_buckets = _bucket_by_tournament(current)
@@ -53,12 +71,9 @@ def refresh_tournament_consequences(
     for tournament_id in sorted(set(current_rows) | set(proposed_rows)):
         before = current_rows.get(tournament_id, {})
         after = proposed_rows.get(tournament_id, {})
-        before_comparison = before.get("interval_comparison") or {}
         after_comparison = after.get("interval_comparison") or {}
-        if (
-            current_buckets.get(tournament_id) == proposed_buckets.get(tournament_id)
-            and before_comparison == after_comparison
-            and before.get("latest_observed_interval") == after.get("latest_observed_interval")
+        if _signature(before, current_buckets.get(tournament_id), current) == _signature(
+            after, proposed_buckets.get(tournament_id), proposed
         ):
             continue
         observation = after.get("latest_observed_interval") or {}
