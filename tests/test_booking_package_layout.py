@@ -24,6 +24,7 @@ BOOKING_MODULES = {
     "ice_resources",
     "interval_facts",
     "primary_observation",
+    "refresh_consequences",
     "sandefjord_allocation",
     "status_crosswalk",
 }

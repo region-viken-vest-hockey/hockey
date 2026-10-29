@@ -163,6 +163,32 @@ def test_refresh_calendars_dry_run_does_not_mutate_schedule_or_decisions(tmp_pat
     assert (root / "2026-2027" / "decisions.json").read_bytes() == before_decisions_bytes
 
 
+def test_refresh_calendars_dry_run_projects_per_tournament_consequences_without_mutation(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A dry run states each affected tournament's consequence before any commit (#869)."""
+
+    root = _promote(tmp_path)
+    _patch_refresh_inputs(monkeypatch, busy=True)
+    before_schedule_bytes = (root / "2026-2027" / "schedule.json").read_bytes()
+    before_decisions_bytes = (root / "2026-2027" / "decisions.json").read_bytes()
+
+    result = refresh_calendars(season="2026-2027", root=root, input_path="input.xlsx", dry_run=True)
+
+    assert "tournament_consequences" in result
+    consequence = next(
+        row for row in result["tournament_consequences"] if row["tournament_id"] == "u10-a-20260912"
+    )
+    assert consequence["effective_canonical"] == {"date": "2026-09-12", "start": "10:00", "end": "12:00"}
+    assert consequence["fresh_observed_interval"] == {"date": "2026-09-12", "start": "10:00", "end": "12:00"}
+    assert consequence["current_bucket"] == "no_calendar_coverage"
+    assert consequence["proposed_bucket"] == "unconfirmed_ambiguous"
+    assert consequence["action"] == "resolve_candidate"
+    assert consequence["proposed_delta"]["status"] == "matches"
+    assert (root / "2026-2027" / "schedule.json").read_bytes() == before_schedule_bytes
+    assert (root / "2026-2027" / "decisions.json").read_bytes() == before_decisions_bytes
+
+
 def test_scoped_refresh_scrapes_and_replaces_only_requested_club(
     tmp_path: Path, monkeypatch
 ) -> None:
