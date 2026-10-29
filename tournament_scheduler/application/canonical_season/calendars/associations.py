@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 from typing import Any, Mapping
 
+from .association_replacement import retire_replaced_associations
 from tournament_scheduler.booking.calendar_bookings import (
     BOOKING_AUTHORITY_CALENDAR,
     BOOKING_CONFIRMED_BOOKED,
@@ -327,6 +328,10 @@ def confirm_calendar_booking(
     )
     assoc, records = retain_repeat_association(
         updated, event_fingerprint=event_fingerprint, tournament_id=tournament_id, association=assoc
+    )
+    records = retire_replaced_associations(
+        decisions, records, tournament_id=tournament_id, event=event, base_problem=base_problem,
+        superseded_by=str(assoc.get("id") or ""), now=checked_at,
     )
     updated, superseded_manual_ids = record_calendar_association(updated, records=records, association=assoc, tournament=tournament, problem=updated_problem, now=checked_at, supersede_manual_assertion_id=supersede_manual_assertion_id)
     evidence = new_booking_evidence_record(
