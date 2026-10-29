@@ -3,7 +3,7 @@
 The booking-status projection keeps its accepted authority and status decisions
 in ``calendar_bookings``. This module only attaches advisory provenance to a
 row: the assessment classification, the canonical and observed intervals, and
-the exact planned-versus-observed difference (issue #719).
+the exact effective-canonical-versus-observed difference (issues #719, #869).
 """
 
 from __future__ import annotations
@@ -93,18 +93,21 @@ def assessment_provenance_fields(assessment_row: Mapping[str, Any] | None) -> di
 
 
 def interval_comparison(canonical: Any, observed: Any) -> dict[str, Any] | None:
-    """Exact planned-vs-observed difference for one booking-status row.
+    """Exact effective-canonical-vs-observed difference for one booking-status row.
 
-    ``canonical`` is the planned interval (``date``/``start_time``/``end_time``)
-    and ``observed`` the single actionable calendar observation
-    (``date``/``start``/``end``) chosen by the assessment. Minute deltas are
-    observed minus planned, so a positive start delta means the calendar event
-    starts later than the plan. Nothing is inferred: without an observation the
-    status is ``no_observed_interval``, never a match.
+    ``canonical`` is the effective canonical interval (``date``/``start_time``/
+    ``end_time``): the accepted booked interval once a calendar booking has been
+    accepted, otherwise the planner's proposal. It is the baseline, not a plan
+    that competes with it. ``observed`` is the single actionable calendar
+    observation (``date``/``start``/``end``) chosen by the assessment. Minute
+    deltas are observed minus effective canonical, so a positive start delta
+    means the calendar event starts later than the baseline. Nothing is
+    inferred: without an observation the status is ``no_observed_interval``,
+    never a match.
     """
     if not isinstance(canonical, Mapping):
         return None
-    planned = {
+    effective = {
         "date": str(canonical.get("date") or ""),
         "start": str(canonical.get("start_time") or ""),
         "end": str(canonical.get("end_time") or ""),
@@ -112,7 +115,7 @@ def interval_comparison(canonical: Any, observed: Any) -> dict[str, Any] | None:
     if not isinstance(observed, Mapping):
         return {
             "status": "no_observed_interval",
-            "planned": planned,
+            "effective_canonical": effective,
             "observed": None,
             "same_date": None,
             "start_delta_minutes": None,
@@ -123,24 +126,24 @@ def interval_comparison(canonical: Any, observed: Any) -> dict[str, Any] | None:
         "start": str(observed.get("start") or ""),
         "end": str(observed.get("end") or ""),
     }
-    same_date = observed_interval["date"] == planned["date"]
-    planned_day = _parse_date(planned["date"])
+    same_date = observed_interval["date"] == effective["date"]
+    effective_day = _parse_date(effective["date"])
     observed_day = _parse_date(observed_interval["date"])
-    planned_start, observed_start = _parse_hhmm(planned["start"]), _parse_hhmm(observed_interval["start"])
-    planned_end, observed_end = _parse_hhmm(planned["end"]), _parse_hhmm(observed_interval["end"])
-    if None in (planned_day, observed_day, planned_start, observed_start, planned_end, observed_end):
+    effective_start, observed_start = _parse_hhmm(effective["start"]), _parse_hhmm(observed_interval["start"])
+    effective_end, observed_end = _parse_hhmm(effective["end"]), _parse_hhmm(observed_interval["end"])
+    if None in (effective_day, observed_day, effective_start, observed_start, effective_end, observed_end):
         start_delta = end_delta = None
         status = "not_comparable"
     else:
         # Deltas are taken from full date+time values, so a shifted date is
         # reported as its real distance rather than as a clock-time difference.
-        day_offset = (observed_day - planned_day).days * _MINUTES_PER_DAY
-        start_delta = day_offset + observed_start - planned_start
-        end_delta = day_offset + observed_end - planned_end
+        day_offset = (observed_day - effective_day).days * _MINUTES_PER_DAY
+        start_delta = day_offset + observed_start - effective_start
+        end_delta = day_offset + observed_end - effective_end
         status = "matches" if same_date and start_delta == 0 and end_delta == 0 else "differs"
     return {
         "status": status,
-        "planned": planned,
+        "effective_canonical": effective,
         "observed": observed_interval,
         "same_date": same_date,
         "start_delta_minutes": start_delta,

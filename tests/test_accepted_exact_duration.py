@@ -77,7 +77,7 @@ def test_accepted_booked_duration_is_stable_across_repeat_audits(tmp_path, plann
     row = next(r for r in first["tournaments"] if r["tournament_id"] == "rvv-0900")
     assert row["operational_state"] == "booked"
     assert row["interval_comparison"]["status"] == "matches"
-    assert row["interval_comparison"]["planned"]["end"] == _end(START, booked)
+    assert row["interval_comparison"]["effective_canonical"]["end"] == _end(START, booked)
     buckets = first["calendar_audit"]["buckets"]
     assert "rvv-0900" in buckets["confirmed_matching"]
     assert first["calendar_audit"]["material_mismatches"] == []
@@ -239,3 +239,23 @@ def test_stale_association_does_not_hide_conflict_after_placement_moves(tmp_path
 
     assert report["removed_tournament_ids"] == ["rvv-0900"]
     assert report["unplaced"][0]["reason"] == "fixed_external_calendar_conflict"
+
+
+def test_accepted_start_move_replaces_proposal_as_effective_canonical(tmp_path):
+    """An accepted booking that moves the start is the effective baseline, not the proposal (#869)."""
+
+    teams = _teams("U10", ("A", "B", "C", "D"))
+    tournament = _tournament("rvv-0901", age_group="U10", start=START, date_str=DATE, teams=teams)
+    root = _promote(tmp_path, [tournament])
+    event = _event(date=DATE, start="18:00", end="19:40", title="TURNERING U10")
+    problem = _problem(age_group="U10", ice=120, teams=teams, events=[event], parallel_games=2)
+    _confirm(root, problem, event, "rvv-0901")
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+
+    row = next(r for r in report["tournaments"] if r["tournament_id"] == "rvv-0901")
+    comparison = row["interval_comparison"]
+    assert row["operational_state"] == "booked"
+    assert comparison["status"] == "matches"
+    assert comparison["effective_canonical"] == {"date": DATE, "start": "18:00", "end": "19:40"}
+    assert comparison["effective_canonical"]["start"] != START

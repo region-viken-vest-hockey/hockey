@@ -31,7 +31,7 @@ def test_text_reports_audit_counts_and_material_mismatch_detail():
             "follow_up_reasons": [],
             "interval_comparison": {
                 "status": "differs",
-                "planned": {"date": "2026-10-16", "start": "10:30", "end": "13:00"},
+                "effective_canonical": {"date": "2026-10-16", "start": "10:30", "end": "13:00"},
                 "observed": {"date": "2026-10-16", "start": "11:00", "end": "13:30"},
                 "same_date": True,
                 "start_delta_minutes": 30,
@@ -46,7 +46,7 @@ def test_text_reports_audit_counts_and_material_mismatch_detail():
     assert "material mismatch: 1" in text
     assert "cancelled/historical (outside active totals): 1" in text
     assert "rvv-0029" in text.split("Calendar audit", 1)[1]
-    assert "plan 2026-10-16 10:30-13:00 | calendar 2026-10-16 11:00-13:30" in text
+    assert "effective canonical 2026-10-16 10:30-13:00 | calendar 2026-10-16 11:00-13:30" in text
 
 
 def test_explicit_conflict_is_rendered_without_a_fabricated_interval():
@@ -121,7 +121,7 @@ def test_accepted_identity_review_row_keeps_booked_state_and_names_no_debooking(
             "operational_lock": True,
             "conflict": False,
             "follow_up_reasons": [],
-            "interval_comparison": {"status": "no_observed_interval", "planned": {"date": "2026-10-16", "start": "10:30", "end": "13:00"}},
+            "interval_comparison": {"status": "no_observed_interval", "effective_canonical": {"date": "2026-10-16", "start": "10:30", "end": "13:00"}},
             "actionable_candidate_count": 0,
             "calendar_covers_window": True,
         }
@@ -147,7 +147,7 @@ def test_material_mismatch_text_shows_both_intervals_and_end_difference_without_
             "follow_up_reasons": [],
             "interval_comparison": {
                 "status": "differs",
-                "planned": {"date": "2026-10-16", "start": "10:30", "end": "13:00"},
+                "effective_canonical": {"date": "2026-10-16", "start": "10:30", "end": "13:00"},
                 "observed": {"date": "2026-10-16", "start": "10:30", "end": "13:10"},
                 "same_date": True,
                 "start_delta_minutes": 0,
@@ -158,7 +158,7 @@ def test_material_mismatch_text_shows_both_intervals_and_end_difference_without_
 
     text = format_host_club_booking_status(_report(rows))
 
-    assert "plan 2026-10-16 10:30-13:00 | calendar 2026-10-16 10:30-13:10 | differs: start +0 min, end +10 min" in text
+    assert "effective canonical 2026-10-16 10:30-13:00 | calendar 2026-10-16 10:30-13:10 | differs: start +0 min, end +10 min" in text
     assert "operator action: booking change needs explicit approval; no change made" in text
 
 
