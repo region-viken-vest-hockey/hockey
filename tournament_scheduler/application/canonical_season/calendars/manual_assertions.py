@@ -38,6 +38,7 @@ from ..shared import (
 )
 
 from .associations import _align_tournament_to_authoritative_interval
+from .start_only_interval import alignment_interval
 from .common import _record_rejected_booking_evidence
 from .validation import (
     manual_assertion_matches_existing as _manual_assertion_matches_existing,
@@ -154,7 +155,7 @@ def set_manual_booking_assertion(
             schedule=schedule,
             decisions=decisions,
             tournament_id=tournament_id,
-            interval={**dict(stated_interval), "date": interval_date},
+            interval=alignment_interval(stated_interval, tournament, resolved_problem, interval_date),
             actor=resolved_actor,
             note=note,
             now=now,
