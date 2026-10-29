@@ -62,23 +62,34 @@ def public_change_history(records: Iterable[Mapping[str, Any]]) -> dict[str, Any
 
     ``records`` are the publication records in the order they were published.
     The first publication has nothing to compare against, so it adds no entries.
-    ``labels`` gives each tournament a public header from its latest publication.
+    Each entry has an ``event``: ``added`` or ``removed`` when a tournament enters
+    or leaves the publication, otherwise ``changed`` with its field changes.
+    ``labels`` gives each tournament a public header from its last publication
+    that carried it, so removed tournaments keep a readable name.
     """
 
     ordered = [record for record in records if isinstance(record, Mapping)]
     tournaments: dict[str, list[dict[str, Any]]] = {}
+    labels: dict[str, str] = {}
     for previous, current in zip(ordered, ordered[1:]):
         before, after = _projection(previous), _projection(current)
-        for tournament_id in sorted(set(before) & set(after)):
-            changes = _changes(before[tournament_id], after[tournament_id])
-            if not changes:
-                continue
+        for tournament_id in sorted(set(before) | set(after)):
+            if tournament_id not in before:
+                event, changes = "added", []
+            elif tournament_id not in after:
+                event, changes = "removed", []
+            else:
+                event, changes = "changed", _changes(before[tournament_id], after[tournament_id])
+                if not changes:
+                    continue
             tournaments.setdefault(tournament_id, []).append(
                 {
+                    "event": event,
                     "publication_id": str(current.get("publication_id") or ""),
                     "published_at": str(current.get("published_at") or ""),
                     "changes": changes,
                 }
             )
-    labels = {tournament_id: _label(entry) for tournament_id, entry in _projection(ordered[-1]).items()} if ordered else {}
+    for record in ordered:
+        labels.update({tournament_id: _label(entry) for tournament_id, entry in _projection(record).items()})
     return {"tournaments": tournaments, "labels": {tid: labels.get(tid, "") for tid in tournaments}}

@@ -83,7 +83,38 @@ def test_write_creates_the_page_when_a_tournament_changed(tmp_path):
     assert 'id="t-t1"' in (tmp_path / PUBLIC_HISTORY_FILENAME).read_text(encoding="utf-8")
 
 
-def test_season_without_canonical_state_gives_an_empty_history(tmp_path):
+def test_unreadable_canonical_state_gives_no_history_and_keeps_the_existing_page(tmp_path):
     from tournament_scheduler.pipeline.public_history_view import public_change_history_for_season
 
-    assert public_change_history_for_season(season="2026-2027", root=tmp_path) == {"tournaments": {}, "labels": {}}
+    previous = tmp_path / PUBLIC_HISTORY_FILENAME
+    previous.write_text("published earlier", encoding="utf-8")
+
+    history = public_change_history_for_season(season="2026-2027", root=tmp_path)
+
+    assert history is None
+    assert write_html(history, tmp_path) == ""
+    assert previous.read_text(encoding="utf-8") == "published earlier"
+
+
+def test_added_and_removed_tournaments_are_shown_as_events():
+    history = _history(
+        ("pub-1", [_t("t1"), _t("t2")]),
+        ("pub-2", [_t("t1"), _t("t3")]),
+    )
+
+    page = render_html(history)
+
+    assert "Fjernet fra publiseringen" in page
+    assert "Lagt til i publiseringen" in page
+    assert {entry["event"] for entries in history["tournaments"].values() for entry in entries} == {"added", "removed"}
+
+
+def test_participant_only_change_shows_the_before_and_after_roster():
+    history = _history(
+        ("pub-1", [_t("t1", participants=["Asker A", "Bærum B"])]),
+        ("pub-2", [_t("t1", participants=["Asker A", "Lillehammer C"])]),
+    )
+
+    page = render_html(history)
+
+    assert "Lag:</strong> Asker A, Bærum B &rarr; Asker A, Lillehammer C" in page

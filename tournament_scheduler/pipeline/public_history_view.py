@@ -49,16 +49,17 @@ def _value(value: Any) -> str:
 
 
 def _entry_html(entry: Mapping[str, Any]) -> str:
+    head = f'<span class="meta">Publisering {_esc(entry.get("publication_id"))} ({_esc(entry.get("published_at"))})</span>'
+    if entry.get("event") in ("added", "removed"):
+        wording = "Lagt til i publiseringen" if entry.get("event") == "added" else "Fjernet fra publiseringen"
+        return f"<li>{head} {wording}</li>"
     changes = "".join(
         f"<li><strong>{_esc(_FIELD_LABELS.get(str(change.get('field')), change.get('field')))}:</strong> "
         f"{_esc(_value(change.get('before')))} &rarr; {_esc(_value(change.get('after')))}</li>"
         for change in entry.get("changes") or []
         if isinstance(change, Mapping) and change.get("field") in PUBLIC_CHANGE_FIELDS
     )
-    return (
-        f'<li><span class="meta">Publisering {_esc(entry.get("publication_id"))}'
-        f' ({_esc(entry.get("published_at"))})</span><ul>{changes}</ul></li>'
-    )
+    return f"<li>{head}<ul>{changes}</ul></li>"
 
 
 def render_html(history: Mapping[str, Any], *, season: str = "", season_plan_href: str = "season_plan.html") -> str:
@@ -89,10 +90,16 @@ def render_html(history: Mapping[str, Any], *, season: str = "", season_plan_hre
     )
 
 
-def write_html(history: Mapping[str, Any], export_dir: str | Path, **hrefs: str) -> str:
-    """Write ``public_history.html`` into *export_dir* when a tournament changed; return its path or ""."""
+def write_html(history: Mapping[str, Any] | None, export_dir: str | Path, **hrefs: str) -> str:
+    """Write ``public_history.html`` into *export_dir* when a tournament changed; return its path or "".
+
+    ``None`` means canonical state could not be read. The existing page is then left
+    as it was, because an unreadable history is not the same as an empty one.
+    """
 
     target = Path(export_dir) / PUBLIC_HISTORY_FILENAME
+    if history is None:
+        return ""
     if not any((history.get("tournaments") or {}).values()):
         if target.exists():
             target.unlink()
@@ -102,12 +109,12 @@ def write_html(history: Mapping[str, Any], export_dir: str | Path, **hrefs: str)
     return str(target)
 
 
-def public_change_history_for_season(*, season: str, root: str | Path) -> dict[str, Any]:
+def public_change_history_for_season(*, season: str, root: str | Path) -> dict[str, Any] | None:
     """Load the season's publication records and derive their public change history.
 
-    The history is a derived page, so unreadable canonical state skips it with a
-    warning instead of failing the export. The other canonical projections already
-    record their own failures in the export errors.
+    Returns ``None`` when canonical state cannot be read. The history is a derived
+    page, so that skips it with a warning instead of failing the export. The other
+    canonical projections already record their own failures in the export errors.
     """
 
     from ..application.canonical_season.store_facade import load_decisions
@@ -118,5 +125,5 @@ def public_change_history_for_season(*, season: str, root: str | Path) -> dict[s
         decisions = load_decisions(season, root=root)
     except SeasonStateError as exc:
         logger.warning("Publiseringshistorikk hoppet over: %s", exc)
-        return public_change_history([])
+        return None
     return public_change_history(publication_history(decisions))
