@@ -47,6 +47,7 @@ from .data_computation import (
 )
 from .renderers.heatmap import build_club_color_maps
 from .renderers.rules_table import render_rules_sections_html
+from ..publication.public_history import changed_tournament_ids
 from ..rules.model import build_rules_model
 
 # ---------------------------------------------------------------------------
@@ -127,6 +128,7 @@ class HtmlExporter:
         }
         booking_status = pipeline.get("booking_status") if isinstance(pipeline.get("booking_status"), dict) else {}
         booking_entries = booking_status.get("tournaments") if isinstance(booking_status, dict) else None
+        changed_ids = changed_tournament_ids(pipeline.get("public_change_history"))
         booking_by_tournament = {
             str(entry.get("tournament_id")): entry
             for entry in (booking_entries or [])
@@ -173,6 +175,7 @@ class HtmlExporter:
             ice_time_for_age_group,
             approval_by_tournament=approval_by_tournament,
             booking_by_tournament=booking_by_tournament,
+            public_history_ids=changed_ids,
         )
         cancelled_tournaments_json = (
             self._plan_to_json(
@@ -180,6 +183,7 @@ class HtmlExporter:
                 ice_time_for_age_group,
                 approval_by_tournament=approval_by_tournament,
                 booking_by_tournament=booking_by_tournament,
+                public_history_ids=changed_ids,
             )
             if cancelled_plan is not None else "[]"
         )
@@ -532,6 +536,7 @@ class HtmlExporter:
         ice_time_for_age_group: dict[str, int] | None = None,
         approval_by_tournament: dict[str, Any] | None = None,
         booking_by_tournament: dict[str, Any] | None = None,
+        public_history_ids: frozenset[str] = frozenset(),
     ) -> str:
         """Serialize the plan's tournaments to the compact JSON format used by the HTML."""
         ice_time_for_age_group = ice_time_for_age_group or {}
@@ -606,6 +611,8 @@ class HtmlExporter:
                 entry["ap"] = str(approval.get("status") or "")
                 if approval.get("placement_locked") or approval.get("participants_locked"):
                     entry["apl"] = True
+            if str(t.id) in public_history_ids:
+                entry["ph"] = True
             booking = booking_by_tournament.get(str(t.id))
             if booking:
                 entry["bs"] = str(booking.get("status") or "unknown")

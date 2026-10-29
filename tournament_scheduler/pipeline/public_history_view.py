@@ -118,12 +118,23 @@ def public_change_history_for_season(*, season: str, root: str | Path) -> dict[s
     """
 
     from ..application.canonical_season.store_facade import load_decisions
-    from ..infrastructure.canonical_season_store import SeasonStateError
     from ..publication.baseline import publication_history
 
     try:
         decisions = load_decisions(season, root=root)
-    except SeasonStateError as exc:
+    except Exception as exc:  # noqa: BLE001
         logger.warning("Publiseringshistorikk hoppet over: %s", exc)
         return None
     return public_change_history(publication_history(decisions))
+
+
+def public_change_history_for_resolved(resolved: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    """Return the history for a resolved canonical season, or ``None`` when there is none to read.
+
+    Runs outside the booking projection's error boundary, so a booking-status failure
+    cannot suppress the public history.
+    """
+
+    if not resolved:
+        return None
+    return public_change_history_for_season(season=resolved["season"], root=resolved["root"])
