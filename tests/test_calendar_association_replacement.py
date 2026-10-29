@@ -96,3 +96,32 @@ def test_genuinely_different_event_refuses_automatic_replacement(tmp_path):
         _confirm(root, problem, different, "asker-u10")
 
     assert len(_active_for(load_decisions("2026-2027", root=root), "asker-u10")) == 1
+
+
+def test_unrelated_booking_replacing_a_vanished_event_is_refused(tmp_path):
+    """A vanished event is not proof of an edit: a different start on the same date is a new booking (#869)."""
+    root, teams = _setup(tmp_path)
+    established = _event(date=DATE, start=START, end="12:00", title="TURNERING U10")
+    _confirm(root, _problem(age_group="U10", ice=120, teams=teams, events=[established], parallel_games=2), established, "asker-u10")
+    unrelated = _event(date=DATE, start="14:00", end="16:00", title="Other club booking")
+    problem = _problem(age_group="U10", ice=120, teams=teams, events=[unrelated], parallel_games=2)
+
+    with pytest.raises(SeasonStateError, match="different"):
+        _confirm(root, problem, unrelated, "asker-u10")
+
+    assert [record["status"] for record in _active_for(load_decisions("2026-2027", root=root), "asker-u10")] == [ACTIVE]
+
+
+def test_vanished_event_on_untrusted_calendar_is_not_read_as_an_edit(tmp_path):
+    root, teams = _setup(tmp_path)
+    established = _event(date=DATE, start=START, end="12:00", title="TURNERING U10")
+    _confirm(root, _problem(age_group="U10", ice=120, teams=teams, events=[established], parallel_games=2), established, "asker-u10")
+    edited = _event(date=DATE, start=START, end="13:00", title="TURNERING U10")
+    problem = _problem(age_group="U10", ice=180, teams=teams, events=[edited], parallel_games=2)
+    problem["club_calendar_status"] = {"A": "unknown"}
+
+    # Refused upstream by the calendar authority check, before any replacement is considered.
+    with pytest.raises(SeasonStateError, match="cannot support positive evidence"):
+        _confirm(root, problem, edited, "asker-u10")
+
+    assert [record["status"] for record in _active_for(load_decisions("2026-2027", root=root), "asker-u10")] == [ACTIVE]

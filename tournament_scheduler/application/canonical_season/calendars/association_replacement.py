@@ -29,10 +29,12 @@ def replaced_association_ids(
 ) -> list[str]:
     """Return the active associations this confirmation replaces, or refuse.
 
-    Only an active association for the same tournament, on a different
-    fingerprint, whose event is no longer on the calendar and which shares the
-    new event's date and club, is an edited version of the same booking. Anything
-    else is a different booking and needs an explicit operator resolution.
+    An edit is the only case that replaces. The stored event must be gone from
+    the calendar, read from trusted evidence, and the new event must keep its
+    club, date, start and calendar title, so only the end or availability moved.
+    A vanished event is not proof of an edit by itself: a different start or
+    title is a different booking. The calendar's source identity is a content
+    hash, so these facts are the only continuity evidence available here.
     """
 
     new_fingerprint = str(event.get("fingerprint") or "")
@@ -58,10 +60,16 @@ def replaced_association_ids(
             f"{[str(record.get('id') or '') for record in prior]}; resolve them before replacing"
         )
     replaced = prior[0]
-    if str(replaced.get("date") or "") != str(event.get("date") or "") or str(replaced.get("club") or "") != str(event.get("club") or ""):
+    continuity = (
+        ("club", str(event.get("club") or "")),
+        ("date", str(event.get("date") or "")),
+        ("start", str(event.get("start") or "")),
+        ("title", str(event.get("calendar_event") or event.get("title") or "")),
+    )
+    if any(str(replaced.get(key) or "") != value for key, value in continuity):
         raise SeasonStateError(
-            f"Tournament {tournament_id} active calendar association {replaced.get('id')} is on a different "
-            "date or club from the confirmed event; confirm that booking explicitly instead of replacing it"
+            f"Tournament {tournament_id} active calendar association {replaced.get('id')} is a different "
+            "booking from the confirmed event (club, date, start or title differ); confirm it explicitly instead of replacing"
         )
     return [str(replaced.get("id") or "")]
 
