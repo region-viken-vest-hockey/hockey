@@ -118,3 +118,19 @@ def test_participant_only_change_shows_the_before_and_after_roster():
     page = render_html(history)
 
     assert "Lag:</strong> Asker A, Bærum B &rarr; Asker A, Lillehammer C" in page
+
+
+def test_history_for_an_unresolved_season_is_none_and_never_raises(monkeypatch, tmp_path):
+    from tournament_scheduler.pipeline import public_history_view
+
+    assert public_history_view.public_change_history_for_resolved(None) is None
+
+    def unreadable(season, *, root):
+        raise RuntimeError("decisions partition is corrupt")
+
+    monkeypatch.setattr(
+        "tournament_scheduler.application.canonical_season.store_facade.load_decisions",
+        unreadable,
+    )
+
+    assert public_history_view.public_change_history_for_resolved({"season": "2026-2027", "root": tmp_path}) is None

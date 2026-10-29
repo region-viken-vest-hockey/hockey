@@ -78,7 +78,7 @@ from .stage4_export_manual_schedule import (
 )
 from .stage4_export_verification import _build_export_verification_problem
 from .season_changes_view import write_html as _write_season_changes_html
-from .public_history_view import public_change_history_for_season, write_html as _write_public_history_html
+from .public_history_view import public_change_history_for_resolved, write_html as _write_public_history_html
 from .verification_context import build_verification_context
 from .public_export_context import (
     build_public_export_context,
@@ -405,7 +405,6 @@ def run(
     booking_status: dict[str, Any] | None = None
     booking_reconciliation: dict[str, Any] | None = None
     booking_reconciliation_error: str | None = None
-    public_history: dict[str, Any] | None = None
     try:
         from ..season.baseline_overlay import resolve_canonical_state
         from ..application.canonical_season.store_facade import (
@@ -430,6 +429,7 @@ def run(
             resolved = resolve_canonical_state(effective_config, plan_start, plan_end)
         except Exception as exc:  # noqa: BLE001
             errors.append(f"Kunne ikke finne kanonisk sesong for beslutningsprojeksjoner: {exc}")
+    public_history = public_change_history_for_resolved(resolved)
     if resolved:
         try:
             approval_status = approval_report(resolved["season"], root=resolved["root"])
@@ -437,7 +437,6 @@ def run(
             errors.append(f"Godkjenningsprojeksjon feilet: {exc}")
         try:
             booking_status = booking_status_report(season=resolved["season"], root=resolved["root"])
-            public_history = public_change_history_for_season(season=resolved["season"], root=resolved["root"])
             status_revision = str((booking_status or {}).get("canonical_state_revision") or "")
             if canonical_revision and not status_revision:
                 errors.append(
