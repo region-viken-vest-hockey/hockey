@@ -14,88 +14,13 @@ Reconciliation records authoritative existing-booking facts; it is not a plannin
 4. Absence in a partial, failed or untrusted feed is not proof of no booking or free ice. An exact, accepted host assertion may be authoritative even if a calendar is not current; preserve and disclose independent source conflicts rather than guessing.
 5. When the current canonical slot is occupied by an event that clearly belongs to something else, do not stop at that overlap. Inspect the repository-owned booking assessment/candidate crosswalk for the tournament itself, including shifted time and adjacent/other season dates. For footprint-aware calendars, a matching age-group/title or other identity evidence on another date must be surfaced as a changed-slot reconciliation candidate even when the old slot is blocked by a different event. Report both facts: the old slot conflict and the plausible moved booking. Only after that evidence check should a genuinely missing booking fall through to planning repair/search.
 
-## Reconcile accepted bookings
+## Route to the focused procedure
 
-- Match each source assertion to exactly one durable tournament, host, arena and interval; detect duplicates, missing rows, changed dates and cancelled records. Inspect existing decisions/protections before applying.
-- Use the repository-owned source registration and `season booking-set` assertion path with concrete stated date/start/end, source/version/reference and stable request identity. For an unambiguous calendar event, use the repository-owned `confirm-calendar-booking` acceptance path to adopt its **exact** interval, whether shorter or longer than the planner proposal and even when it falls below a planning minimum. Do not use a planning-floor mutation to replace an accepted booked window with a default duration. Preserve real effective occupancy; retain below-floor feasibility warnings independently.
-- Check calendar association trust, venue, event coverage and **raw active ownership**, including stale active associations. Auto-link only a single unambiguous supported event; otherwise use explicit release/rebind with evidence and authorization. A cancelled tournament must not silently donate or retain a booking for another tournament. Do not invent an event or conceal a real overlap.
-- Re-verify worksheet/live source -> accepted assertion -> effective canonical date/start/end/duration -> booking status -> export/rendered HTML. Export matching canonical is insufficient if canonical disagrees with accepted source facts. Recheck idempotency and affected neighboring tournaments.
+Load only the procedure the operation needs. The evidence steps above and the completion boundary below apply to every operation.
 
-### Choose the mutation owner from the source of the changed fact
-
-Do **not** choose `booking-set` versus `confirm-calendar-booking` from the interval you want to end up with. First identify which evidence actually asserted each changed field, and preserve that source semantics in canonical provenance.
-
-- If a worksheet/email/manual source explicitly states the accepted date/start/end, use `booking-set` with exactly those source-stated fields. `stated_interval` must be a faithful transcription of that source. Never copy a calendar observation or current canonical value into `--stated-*` merely to make the manual assertion match.
-- If the manual source confirms only that the tournament is booked and states **no interval**, while one trusted unambiguous calendar event supplies the actual date/start/end, the calendar event owns the interval correction. Use `confirm-calendar-booking` for the exact event. Keep the no-window manual assertion as separate booking-existence provenance; do not re-record it merely because the effective interval changed, and never add stated fields the source did not contain.
-- If an older manual source explicitly stated one interval but later accepted calendar/booker evidence establishes a different real interval, preserve the older manual statement unchanged as historical evidence and adopt the newer real interval under the newer authority. Do not rewrite or re-record the older source as though it stated the new calendar value.
-- `booking-set --supersede` changes the lifecycle of a manual assertion; it does not transfer calendar facts into manual authority. Use it only when the replacement assertion is itself supported by manual/operator source evidence and its `stated_interval` still mirrors that evidence.
-- When the supported commands cannot retire/supersede a conflicting club-wide manual interpretation while preserving the original source statement and the newer calendar authority, stop and report that as a repository capability gap. Do not manufacture a replacement assertion to make status output green.
-- After any correction, verify provenance as well as the interval: the intended authority must be active, ended records must remain in acceptance history, and `accepted_evidence` must point to the active record whose accepted interval equals the effective canonical interval. Also inspect the active occupancy/ice-time override that projects the accepted duration: its authority, request/source identity and minutes must agree with the evidence that actually supplied the current interval. An active calendar association beside a manual-derived override is not a clean calendar-authority transition merely because the rendered interval is correct. For event-fingerprint replacement, exactly one association for that tournament/event lineage should remain active; old fingerprints belong in released/superseded history.
-- Canonical history is evidence, not a scratchpad. Dry-run before mutation. If an unmerged/local rebuild accidentally records fabricated or misattributed source facts, do not preserve that mistake by superseding it into permanent history. Discard/rebuild the candidate branch from the clean canonical base and replay only source-faithful repository-owned mutations. This rule does not erase genuine already-accepted production history; it prevents exploratory branch mistakes from becoming canonical evidence.
-
-These rules are generic source-authority rules, not a special case for one club or season.
-
-### Operator-facing reconciliation wording
-
-Keep machine/audit status values intact, but do not expose a conservative internal `ambiguous` label as if event identity itself were uncertain when the assessment already establishes a single strong candidate. In operator tables and summaries, prefer these meanings:
-
-- `proposed_unchanged` / one exact or near-exact supported candidate -> **Exact match — confirmation required** (or **Likely match — confirmation required** when evidence is supportive but not exact).
-- `proposed_changed_slot` / one supported shifted candidate -> **Moved booking candidate — confirmation required**, showing both canonical and observed date/time.
-- multiple plausible identity candidates -> **Competing candidates — review required**.
-- a wrong-age/clearly unrelated event occupying the current slot -> **Calendar conflict**, not a tournament match.
-- no defensible identity candidate -> **No matching booking found** (subject to source-coverage caveats).
-
-### Active calendar audit buckets
-
-`season booking-status` carries one `calendar_audit` block built from the same rows as the operator tables. Each active tournament falls into exactly one bucket; cancelled tournaments are `cancelled_historical` and never active discrepancies.
-
-Each active tournament has one `actions` entry: `none`, `refresh_source`, `optional_identity_rebind`, `explicit_booking_change_approval`, `confirm_calendar_interval` or `resolve_candidate`. None de-books an accepted booking.
-
-A confirmed booking whose event is retitled, re-typed or gone keeps its authority and lock (booked) and is an identity review. No other event is inherited as its match. A changed venue, a conflict, or a date/start/end field that **was explicitly stated by the authoritative source** is a contradiction. When a trusted, unambiguous calendar observation differs only on interval fields the club/source did **not** explicitly state, the differing planner-derived value is not opposing authority: classify it as a proposed canonical interval correction requiring scoped acceptance, not as a material mismatch.
-
-- `confirmed_matching`: accepted, observed interval matches. Fingerprint drift alone never moves it.
-- `accepted_uncheckable`: accepted, but the calendar cannot show it (untrusted, partial or unreadable). Not a mismatch.
-- `accepted_identity_review`: accepted, complete calendar, no plausible event. Review the identity; the booking stays booked.
-- `material_mismatch`: accepted, an observed field contradicts an explicitly authoritative interval fact, or there is another explicit conflict. Show effective canonical and observed intervals when an observation exists.
-- `proposed_interval_correction`: booked/accepted authority exists, one trusted unambiguous calendar observation differs only on interval fields that the source did not explicitly state, and the current value is planner-derived. Action is `confirm_calendar_interval`; after accepted canonical mutation, the effective interval must match the event and the row becomes `confirmed_matching`.
-- `unconfirmed_ambiguous`: not booked and undecided, or booked with unresolved plausible candidates (identity unresolved, not lost).
-- `no_calendar_coverage`: no usable evidence. Missing evidence is not proof of absence.
-- `explicit_not_booked`: explicit rejection with no conflict flagged against it.
-
-Reserve the word **ambiguous** for genuine identity ambiguity. When a low-level command still returns `BOOKING_AMBIGUOUS` solely because explicit `confirm-calendar-booking` authority has not yet been recorded, explain that as an authorization state in audit detail rather than making it the primary human-readable result. In operator-facing comparisons, prefer **effective canonical** over **planned** once a season is promoted; historical planner values may be shown separately as provenance.
-
-### Replacing a provisional manual booking
-
-A calendar confirmation that corrects a tournament's interval does not by itself replace an earlier manual positive (`booking-set --status booked`) on the old window. Interval staleness alone does not prove that both describe the same booking, so the earlier assertion stays active and is reported as `stale` for an operator to resolve.
-
-To replace it, name the assertion in the same confirmation and record why:
-
-```
-scripts/rvv-miniputt season confirm-calendar-booking --season <season> --event-fingerprint <fp> \
-  --tournament-id <id> --supersede-manual-assertion <manual-booking-id> --note "<why this is the same booking>"
-```
-
-The command refuses, and writes nothing, when the id is not the tournament's active positive assertion, when another active negative or conflicting assertion exists, when several active positives exist, when the assertion also changed a non-interval fact (date, arena, host), or when `--note` is empty. A dry run returns the same `superseded_manual_assertions` delta without writing. A retried confirmation with the same flag does not supersede again or duplicate the manual record, and it still refuses if a conflicting assertion has since appeared. This supported atomic supersession currently applies only where the command accepts the assertion's scope. If the active assertion is a club-wide interpretation and newer accepted calendar/booker reality supersedes its explicit interval, do not manufacture a replacement manual assertion or use `booking-clear` to erase the conflict; report the missing authority-transition capability until the repository can preserve the old statement as history while making the newer calendar association authoritative.
-
-When an already accepted calendar event changes identity/fingerprint but is established to be the same tournament booking, completion requires a single current association for that tournament booking. The prior fingerprint must become released/superseded history and the new fingerprint must own `accepted_evidence`. If `confirm-calendar-booking` cannot atomically replace the prior fingerprint, treat that as a lifecycle capability gap rather than leaving multiple raw-active associations or relying on a renderer to ignore one.
-
-### Source links in operator output
-
-For every calendar event reported as an exact match, likely match, moved-booking candidate, competing candidate or blocking conflict, include the authoritative source link used for the observation in the operator-facing table or immediately adjacent detail. Prefer an evidence-provided event/deep link when one exists. Otherwise print the registered human calendar URL; for a source whose repository-owned contract supports a deterministic date-qualified view, the date-specific calendar URL may be shown as the observation link. Clearly label a generic calendar page as **Source calendar** rather than implying that it is an event-specific link. Never invent or guess an event URL that the source/evidence did not provide. If no usable URL is retained, say **Source URL unavailable in evidence** rather than omitting provenance silently.
-
-When several rows come from the same source, the table may use a compact `Source` column and print the full URL once below the table, but a moved booking or conflict should always make the directly relevant observation link easy to identify.
-
-## Planned tournaments without booking
-
-A planned tournament absent from a worksheet or calendar is a **follow-up**, not automatically cancelled. Check source coverage, other booking evidence, club response, approval/lock, accepted constraints, and whether the tournament is merely proposed. Do not label it booked. When reliable host/operator evidence explicitly establishes that ice is unavailable and the event will not occur, classify as cancellation rather than postponement; load `tournament-maintenance.md`, preview participant/host/distribution consequences, and use the supported canonical cancel/removal lifecycle. Preserve durable ID, reason, evidence and history; remove from active/public upcoming plan through the canonical projection, not file deletion. If no supported action exists, report the capability gap. A proposed event may otherwise remain visibly proposed under the actual publication policy.
-
-## Explicit complete-host-calendar reconciliation
-
-Generic calendar absence remains a follow-up, not cancellation proof. A host/operator may, however, explicitly confirm that **all feasible tournament ice times have already been placed in a specified host calendar and that unplaced tournaments cannot take place there**. This is scoped operational evidence of infeasibility, not a global assumption about other clubs or future refreshes. Record who confirmed it, the host, calendar scope, season, date and source reference; verify that the assertion still applies to the current source revision.
-
-Before classifying an unmatched tournament as unplaced, independently inspect the live host calendar and perform a fresh repository-owned scrape/refresh. Prove full relevant date-range and venue coverage, compare raw source events with normalized events and canonical associations, and inspect event details; a healthy scrape status or confidence score alone is insufficient. Fix extraction errors and repeat assessment rather than drawing a negative conclusion from bad data. Compare plausible candidates semantically, including Norwegian titles/abbreviations, age groups, host, venue, shifted start/end, duration, same-day nearby events, series and entries representing multiple tournaments. A title or exact-interval mismatch alone does not disqualify a match; an overlapping wrong-age league game alone does not establish one. Check existing event ownership and accepted booking assertions. Produce a per-tournament candidate/evidence report with event IDs, evidence for/against and reasons, including the source fingerprint.
-
-Confirm a uniquely supported match through the canonical booking workflow at the actual interval. Keep plausible ambiguity or conflicting accepted evidence in explicit review; do not fabricate event ownership or cancel it. When exhaustive matching against a complete, trusted calendar yields no defensible match **and** the scoped host/operator completeness assertion explicitly says unplaced events cannot occur, that combination is sufficient cancellation evidence. Do not demand a redundant per-tournament host response merely because the event is absent. Preview roster, hosting, distribution and publication consequences and apply the authorized canonical cancel lifecycle, preserving durable ID, reason, evidence and history. Do not delete JSON rows directly, replan other tournaments or infer permission to publish. If the supported command cannot express the authorized decision, identify and fix the narrow capability gap with tests instead of silently changing state or refusing the operator's decision.
+- `booking-authority.md`: reconcile accepted bookings, choose the mutation owner for a changed fact, and replace a provisional manual booking.
+- `booking-calendar-audit.md`: word operator-facing reconciliation results, classify active calendar-audit buckets, and show source links.
+- `booking-missing-events.md`: handle a planned tournament without a booking, and an explicit complete-host-calendar reconciliation.
 
 ## Conflict and completion boundary
 
