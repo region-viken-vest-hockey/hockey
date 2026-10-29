@@ -104,16 +104,16 @@ def _has_no_usable_calendar_evidence(row: Mapping[str, Any]) -> bool:
 def _differing_interval_fields(comparison: Mapping[str, Any]) -> set[str]:
     # Compare the clock fields directly. A whole-day move also shifts the minute
     # deltas, so the deltas alone would wrongly mark the times as differing.
-    planned = comparison.get("planned") if isinstance(comparison.get("planned"), Mapping) else {}
+    effective = comparison.get("effective_canonical") if isinstance(comparison.get("effective_canonical"), Mapping) else {}
     observed = comparison.get("observed") if isinstance(comparison.get("observed"), Mapping) else {}
     if not observed:
         return set()
     fields: set[str] = set()
-    if str(planned.get("date") or "") != str(observed.get("date") or ""):
+    if str(effective.get("date") or "") != str(observed.get("date") or ""):
         fields.add("date")
-    if str(planned.get("start") or "") != str(observed.get("start") or ""):
+    if str(effective.get("start") or "") != str(observed.get("start") or ""):
         fields.add("start")
-    if str(planned.get("end") or "") != str(observed.get("end") or ""):
+    if str(effective.get("end") or "") != str(observed.get("end") or ""):
         fields.add("end")
     return fields
 
@@ -179,7 +179,7 @@ def _mismatch_detail(row: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "tournament_id": str(row.get("tournament_id") or ""),
         "kind": "interval_change" if interval_change else "explicit_conflict",
-        "planned": dict(comparison.get("planned") or {}),
+        "effective_canonical": dict(comparison.get("effective_canonical") or {}),
         "observed": dict(comparison["observed"]) if isinstance(comparison.get("observed"), Mapping) else None,
         "same_date": comparison.get("same_date"),
         "start_delta_minutes": comparison.get("start_delta_minutes"),

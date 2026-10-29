@@ -34,7 +34,7 @@ def _comparison(*, start_delta=0, end_delta=0, observed_end="17:00", observed_da
     observed_start = planned_start + start_delta
     return {
         "status": status,
-        "planned": _planned(),
+        "effective_canonical": _planned(),
         "observed": {
             "date": observed_date,
             "start": f"{observed_start // 60:02d}:{observed_start % 60:02d}",

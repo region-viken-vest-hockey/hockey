@@ -77,7 +77,7 @@ def test_accepted_booked_duration_is_stable_across_repeat_audits(tmp_path, plann
     row = next(r for r in first["tournaments"] if r["tournament_id"] == "rvv-0900")
     assert row["operational_state"] == "booked"
     assert row["interval_comparison"]["status"] == "matches"
-    assert row["interval_comparison"]["planned"]["end"] == _end(START, booked)
+    assert row["interval_comparison"]["effective_canonical"]["end"] == _end(START, booked)
     buckets = first["calendar_audit"]["buckets"]
     assert "rvv-0900" in buckets["confirmed_matching"]
     assert first["calendar_audit"]["material_mismatches"] == []

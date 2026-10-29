@@ -874,7 +874,7 @@ def test_booking_status_interval_comparison_reports_exact_plan_vs_calendar_delta
     comparison = status_row["interval_comparison"]
 
     assert comparison["status"] == "differs"
-    assert comparison["planned"] == {
+    assert comparison["effective_canonical"] == {
         "date": "2026-09-12",
         "start": "10:00",
         "end": status_row["canonical_interval"]["end_time"],
@@ -882,9 +882,32 @@ def test_booking_status_interval_comparison_reports_exact_plan_vs_calendar_delta
     assert comparison["observed"] == {"date": "2026-09-12", "start": "13:00", "end": "15:00"}
     assert comparison["same_date"] is True
     assert comparison["start_delta_minutes"] == 180
-    assert comparison["end_delta_minutes"] == 15 * 60 - int(comparison["planned"]["end"][:2]) * 60 - int(
-        comparison["planned"]["end"][3:]
+    assert comparison["end_delta_minutes"] == 15 * 60 - int(comparison["effective_canonical"]["end"][:2]) * 60 - int(
+        comparison["effective_canonical"]["end"][3:]
     )
+
+
+def test_booking_status_interval_comparison_labels_canonical_interval_as_effective_not_planned(tmp_path):
+    """The canonical interval is the effective baseline, never a competing "plan" (issue #869)."""
+
+    root = _promote(
+        tmp_path,
+        [_tournament("asker-u10", date_str="2026-09-12", start="10:00", arena="Askerhallen", host="A")],
+    )
+    problem = _problem(
+        [_event("2026-09-12", "13:00", "15:00", title="Miniputt U10", arena="Askerhallen")],
+        complete=True,
+    )
+
+    status_row = _tournament_row(booking_status_report(season="2026-2027", root=root, problem=problem), "asker-u10")
+    comparison = status_row["interval_comparison"]
+
+    assert "planned" not in comparison
+    assert comparison["effective_canonical"] == {
+        "date": status_row["canonical_interval"]["date"],
+        "start": status_row["canonical_interval"]["start_time"],
+        "end": status_row["canonical_interval"]["end_time"],
+    }
 
 
 def test_booking_status_interval_comparison_without_observation_is_not_a_match(tmp_path):

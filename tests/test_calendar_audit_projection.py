@@ -382,7 +382,7 @@ def test_moved_and_retitled_confirmed_event_is_a_material_mismatch_with_both_int
     assert row["operational_state"] == "booked"
     assert row["authority"] == "calendar_event_association"
     assert _bucket_of(report, "t1") == "material_mismatch"
-    assert detail["planned"] == {"date": "2026-09-12", "start": "10:00", "end": "12:00"}
+    assert detail["effective_canonical"] == {"date": "2026-09-12", "start": "10:00", "end": "12:00"}
     assert detail["observed"] == {"date": "2026-09-12", "start": "11:00", "end": "13:00"}
     assert report["calendar_audit"]["actions"]["t1"] == "explicit_booking_change_approval"
 

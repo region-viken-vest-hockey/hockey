@@ -16,21 +16,21 @@ def _signed(minutes: int) -> str:
 
 
 def _comparison_line(comparison: Mapping[str, Any]) -> str:
-    planned = comparison.get("planned") or {}
-    planned_text = f"{planned.get('date')} {planned.get('start')}-{planned.get('end')}"
+    effective = comparison.get("effective_canonical") or {}
+    effective_text = f"{effective.get('date')} {effective.get('start')}-{effective.get('end')}"
     status = comparison.get("status")
     if status == "matches":
-        return f"plan {planned_text} | calendar matches"
+        return f"effective canonical {effective_text} | calendar matches"
     observed = comparison.get("observed") or {}
     if status == "no_observed_interval" or not observed:
-        return f"plan {planned_text} | calendar: no matched observation"
+        return f"effective canonical {effective_text} | calendar: no matched observation"
     observed_text = f"{observed.get('date')} {observed.get('start')}-{observed.get('end')}"
     if status == "not_comparable":
-        return f"plan {planned_text} | calendar {observed_text} | not comparable (unparseable time)"
+        return f"effective canonical {effective_text} | calendar {observed_text} | not comparable (unparseable time)"
     deltas = f"start {_signed(comparison['start_delta_minutes'])}, end {_signed(comparison['end_delta_minutes'])}"
     if not comparison.get("same_date"):
         deltas = f"different date, {deltas}"
-    return f"plan {planned_text} | calendar {observed_text} | differs: {deltas}"
+    return f"effective canonical {effective_text} | calendar {observed_text} | differs: {deltas}"
 
 
 _AUDIT_LABELS = (
@@ -128,7 +128,7 @@ def _scope_line(source_scope: Mapping[str, Any] | None) -> str:
 
 
 def format_host_club_booking_status(report: Mapping[str, Any], source_scope: Mapping[str, Any] | None = None) -> str:
-    """Render one host club's booking status and planned-vs-observed intervals."""
+    """Render one host club's booking status and effective-canonical-vs-observed intervals."""
 
     rows = [row for row in report.get("tournaments") or [] if isinstance(row, Mapping)]
     covered = sum(1 for row in rows if row.get("calendar_covers_window") is True)
