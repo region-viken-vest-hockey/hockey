@@ -2797,8 +2797,6 @@ def test_manual_assertion_rejects_invalid_stated_interval(tmp_path, start, end):
     problem = _host_a_problem([])
     with pytest.raises(SeasonStateError):
         _manual_set(root, problem=problem, note="source window", stated_start=start, stated_end=end)
-    with pytest.raises(SeasonStateError):
-        _manual_set(root, problem=problem, note="source window", stated_start="10:00")
     # Nothing was persisted by the rejected attempts.
     assert "manual_booking_assertions" not in load_decisions("2026-2027", root=root)
 

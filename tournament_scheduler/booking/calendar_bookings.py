@@ -419,37 +419,38 @@ def validate_stated_interval(
 ) -> dict[str, str]:
     """Validate and normalize an optional source-stated booking window.
 
-    Rejects malformed, zero-length and reversed windows. Overnight windows are
+    A source may state only a start: the end then stays proposal-derived and is
+    never recorded as a stated fact. A stated end needs a start, and rejects
+    malformed, zero-length and reversed windows. Overnight windows are
     deliberately not supported: ``end`` must be strictly after ``start`` on the
-    same local date. A stated window that is longer or shorter than the age-group
-    planning default is accepted as the authoritative booked interval by the
-    canonical mutation path; independent feasibility warnings report any floor
-    deviation.
+    same local date.
     """
 
     if not start and not end and not date:
         return {}
-    if not (start and end):
-        raise ValueError("A stated source interval requires both --stated-start and --stated-end")
+    if not start:
+        raise ValueError("A stated source interval requires --stated-start")
+    if date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(date)):
+        raise ValueError(f"Invalid stated date: {date!r}; expected YYYY-MM-DD")
     if date:
-        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(date)):
-            raise ValueError(f"Invalid stated date: {date!r}; expected YYYY-MM-DD")
         try:
             datetime.strptime(str(date), "%Y-%m-%d")
         except ValueError as exc:
             raise ValueError(f"Invalid stated date: {date!r}; expected YYYY-MM-DD") from exc
     start_minutes = _parse_hhmm(start)
-    end_minutes = _parse_hhmm(end)
     if start_minutes is None:
         raise ValueError(f"Invalid stated start time: {start!r}; expected HH:MM")
-    if end_minutes is None:
-        raise ValueError(f"Invalid stated end time: {end!r}; expected HH:MM")
-    if end_minutes <= start_minutes:
-        raise ValueError(
-            f"Invalid stated interval {start}-{end}: end must be after start on the same day; "
-            "overnight intervals are not supported"
-        )
-    row = {"start": str(start), "end": str(end)}
+    row = {"start": str(start)}
+    if end:
+        end_minutes = _parse_hhmm(end)
+        if end_minutes is None:
+            raise ValueError(f"Invalid stated end time: {end!r}; expected HH:MM")
+        if end_minutes <= start_minutes:
+            raise ValueError(
+                f"Invalid stated interval {start}-{end}: end must be after start on the same day; "
+                "overnight intervals are not supported"
+            )
+        row["end"] = str(end)
     if date:
         row["date"] = str(date)
     return row
@@ -469,7 +470,8 @@ def _normalized_stated_interval(stated_interval: Mapping[str, Any] | None) -> di
         end_minutes = _parse_hhmm(end)
         if start_minutes is not None and end_minutes is not None and end_minutes >= start_minutes:
             duration = end_minutes - start_minutes
-    return {"date": date, "start": start, "end": end, "duration_minutes": str(duration)}
+    # A start-only statement records no end or duration: none was stated.
+    return {"date": date, "start": start, **({"end": end, "duration_minutes": str(duration)} if end else {})}
 
 
 def manual_assertion_interval_follow_up(assertion: Mapping[str, Any]) -> list[str]:
