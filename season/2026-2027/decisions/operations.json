@@ -1,6 +1,6 @@
 {
   "actor": "claude-code",
-  "canonical_state_revision": "bfbd3632b6476c0301779e56b11d41fdb4cf619a699644b051a44a4f4ab0df4d",
+  "canonical_state_revision": "3e26ddecd9ede4c7051f234e2e1dd34a5cd34d40f3ce9768a54b1d0f0c89f595",
   "created_at": "2026-09-18T19:44:06.643372+00:00",
   "decisions": {
     "mp_unplaced_placement_U11_2026_10_18_1": {
@@ -921,10 +921,11 @@
       "status": "pending_review"
     },
     "rvv-0105": {
-      "approved_at": "2026-09-29T18:41:54.663088+00:00",
+      "approved_at": "2026-10-29T08:05:24.242459+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "2c602c2c3c640f0af090a3323236af6297fb4e515a63bea022091f39ad4ef193",
-      "note": "Jar calendar reconciliation: single overlapping event, date/start/age-group all match ('Serieturnering' title)",
+      "approved_placement_fingerprint": "9c24bf103fb03b040b9f6e87e8e8e646c068202c8591f6f8674f7634a0e5c51f",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -976,11 +977,11 @@
       "status": "approved"
     },
     "rvv-0111": {
-      "approved_at": "2026-10-15T22:01:34.915293+00:00",
-      "approved_by": "Niclas Lindgren",
+      "approved_at": "2026-10-29T08:05:25.248725+00:00",
+      "approved_by": "niclasl",
       "approved_fingerprint": "cb8e180cfbb97031872d0e95e8fb9d2ae9e30741f739c294fbc39c1a6bd3d8f3",
       "approved_placement_fingerprint": "72e1fcfbdb4ac8205fdf2b1d1e786e6f9a5a87738db81243dcd93a9fa7de1cca",
-      "note": "Re-approved individually 2026-10-16: booking evidence matches exact interval (calendar-confirmed or manual club confirmation); placement unchanged vs published baseline",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -1049,10 +1050,11 @@
       "status": "approved"
     },
     "rvv-0119": {
-      "approved_at": "2026-09-29T18:41:55.400750+00:00",
+      "approved_at": "2026-10-29T08:05:26.290419+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "2a91ae91bb69cccee6bcac1654c211ec358df149f9e05c40bcc0cc74f2e3a647",
-      "note": "Jar calendar reconciliation: single overlapping event, date/start/age-group all match ('Serieturnering' title)",
+      "approved_placement_fingerprint": "3e97ba091ee28cf03d74de2a9f0c31c724efe0339624f76c245a11d280bcc211",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -1203,10 +1205,11 @@
       "status": "approved"
     },
     "rvv-0136": {
-      "approved_at": "2026-09-29T18:41:57.640988+00:00",
+      "approved_at": "2026-10-29T08:05:27.280144+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "a787454820fd54d1692011a353f55775b20cfc43416e122a45d15187476a6dee",
-      "note": "Jar calendar reconciliation: single overlapping event, date/start/age-group all match ('Serieturnering' title)",
+      "approved_placement_fingerprint": "b9190a85c9790d4c5af887887ba99b0eecd1c6d30b8e846c1ca8bf20a6c71787",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -1419,10 +1422,11 @@
       "status": "approved"
     },
     "rvv-0160": {
-      "approved_at": "2026-09-29T18:41:56.905069+00:00",
+      "approved_at": "2026-10-29T08:05:28.274237+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "8ebb060dd8ef2997b70cf8a5b5d775fbe2c8a3eaf5a2c6a9cdfddc4e1e257c87",
-      "note": "Jar calendar reconciliation: single overlapping event, date/start/age-group all match ('Serieturnering' title)",
+      "approved_placement_fingerprint": "37ba68b6e8e794b186c1729b0a28c57bb9088cef6c463207305794ee55f0b59c",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -1677,10 +1681,11 @@
       "status": "approved"
     },
     "rvv-0189": {
-      "approved_at": "2026-09-29T18:41:56.155297+00:00",
+      "approved_at": "2026-10-29T08:05:29.208807+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "98ac728ccf884cdc9b8cc24eedb87a02711d2faa6b1901ab74e3b09c62badff9",
-      "note": "Jar calendar reconciliation: single overlapping event, date/start/age-group all match ('Serieturnering' title)",
+      "approved_placement_fingerprint": "ef657c451f8d2213dea492aa05742ce920305661f4d0318977d14919b682dc81",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -181545,5 +181550,5 @@
     "sealed_by": "niclasl",
     "state": "published_sealed"
   },
-  "updated_at": "2026-10-27T17:26:27.258951+00:00"
+  "updated_at": "2026-10-29T08:08:10.277231+00:00"
 }

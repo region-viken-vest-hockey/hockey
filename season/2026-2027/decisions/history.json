@@ -58809,6 +58809,695 @@
       "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
       "tournament_fingerprint": null,
       "tournament_id": "rvv-0179"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:24.242459+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:f2dc66983b5f1b6a",
+        "reference": "Booking - Serieturnering U11",
+        "request_id": "calendar-booking:9c0d2726ead21dffa8ef25616bd4e8397139c5eb2299b28f09da81d6e744b25b",
+        "supersedes": "ice-time-override:5f17f6e6a1ae8a47"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0105"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:24.242459+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Booking - Serieturnering U11",
+        "event_fingerprint": "9c0d2726ead21dffa8ef25616bd4e8397139c5eb2299b28f09da81d6e744b25b",
+        "ice_time_override_id": "ice-time-override:f2dc66983b5f1b6a",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-23",
+            "duration_minutes": 140,
+            "end_time": "17:20",
+            "start_time": "15:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2027-01-23",
+            "duration_minutes": "139",
+            "end_time": "17:19",
+            "round_count": "5",
+            "start_time": "15:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": "2c602c2c3c640f0af090a3323236af6297fb4e515a63bea022091f39ad4ef193",
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": "2c602c2c3c640f0af090a3323236af6297fb4e515a63bea022091f39ad4ef193",
+      "tournament_id": "rvv-0105"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:25.248725+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:c4918c2a75d29f65",
+        "reference": "Booking - Serieturnering U8",
+        "request_id": "calendar-booking:b1cf737b51726826a570916a929a34c397b63995c96e6213b8fcdd69dc56068c",
+        "supersedes": "ice-time-override:3fbfcc8526ff9e2b"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0111"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:25.248725+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Booking - Serieturnering U8",
+        "event_fingerprint": "b1cf737b51726826a570916a929a34c397b63995c96e6213b8fcdd69dc56068c",
+        "ice_time_override_id": "ice-time-override:c4918c2a75d29f65",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-17",
+            "duration_minutes": 155,
+            "end_time": "17:35",
+            "start_time": "15:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U8",
+            "date": "2027-01-17",
+            "duration_minutes": "154",
+            "end_time": "17:34",
+            "round_count": "5",
+            "start_time": "15:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": "cb8e180cfbb97031872d0e95e8fb9d2ae9e30741f739c294fbc39c1a6bd3d8f3",
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": "cb8e180cfbb97031872d0e95e8fb9d2ae9e30741f739c294fbc39c1a6bd3d8f3",
+      "tournament_id": "rvv-0111"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:26.290419+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 100,
+        "override_id": "ice-time-override:ed2014888f9242ce",
+        "reference": "Booking - Serieturnering U12",
+        "request_id": "calendar-booking:dfa3a35734baf750509ef085c945a9f59a103f8e65f1bb38ad12e42baad319ee",
+        "supersedes": "ice-time-override:80c69b64804f7c15"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0119"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:26.290419+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Booking - Serieturnering U12",
+        "event_fingerprint": "dfa3a35734baf750509ef085c945a9f59a103f8e65f1bb38ad12e42baad319ee",
+        "ice_time_override_id": "ice-time-override:ed2014888f9242ce",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-24",
+            "duration_minutes": 100,
+            "end_time": "14:10",
+            "start_time": "12:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2027-01-24",
+            "duration_minutes": "99",
+            "end_time": "14:09",
+            "round_count": "3",
+            "start_time": "12:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": "2a91ae91bb69cccee6bcac1654c211ec358df149f9e05c40bcc0cc74f2e3a647",
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": "2a91ae91bb69cccee6bcac1654c211ec358df149f9e05c40bcc0cc74f2e3a647",
+      "tournament_id": "rvv-0119"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:27.280144+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:28d6db2d9c4f4bba",
+        "reference": "Booking - Serieturnering U11",
+        "request_id": "calendar-booking:a613e910596b44510189fecee2c31007fa9a4e9c592f75f50dd48b1f1399fa54",
+        "supersedes": "ice-time-override:3ce3384dd6ea3af9"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0136"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:27.280144+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Booking - Serieturnering U11",
+        "event_fingerprint": "a613e910596b44510189fecee2c31007fa9a4e9c592f75f50dd48b1f1399fa54",
+        "ice_time_override_id": "ice-time-override:28d6db2d9c4f4bba",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-02-07",
+            "duration_minutes": 140,
+            "end_time": "16:35",
+            "start_time": "14:15"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2027-02-07",
+            "duration_minutes": "139",
+            "end_time": "16:34",
+            "round_count": "5",
+            "start_time": "14:15"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": "a787454820fd54d1692011a353f55775b20cfc43416e122a45d15187476a6dee",
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": "a787454820fd54d1692011a353f55775b20cfc43416e122a45d15187476a6dee",
+      "tournament_id": "rvv-0136"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:28.274237+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 100,
+        "override_id": "ice-time-override:b3f99b1be4815d24",
+        "reference": "Booking - Serieturnering U12",
+        "request_id": "calendar-booking:eac87f7df3da78f0ab1560469f059e5afbb09b6c22959a0750a6d08d8d2dad1e",
+        "supersedes": "ice-time-override:0212610fe66b50ac"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0160"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:28.274237+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Booking - Serieturnering U12",
+        "event_fingerprint": "eac87f7df3da78f0ab1560469f059e5afbb09b6c22959a0750a6d08d8d2dad1e",
+        "ice_time_override_id": "ice-time-override:b3f99b1be4815d24",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-31",
+            "duration_minutes": 100,
+            "end_time": "15:10",
+            "start_time": "13:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2027-01-31",
+            "duration_minutes": "99",
+            "end_time": "15:09",
+            "round_count": "3",
+            "start_time": "13:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": "8ebb060dd8ef2997b70cf8a5b5d775fbe2c8a3eaf5a2c6a9cdfddc4e1e257c87",
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": "8ebb060dd8ef2997b70cf8a5b5d775fbe2c8a3eaf5a2c6a9cdfddc4e1e257c87",
+      "tournament_id": "rvv-0160"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:29.208807+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:8360e34312b185da",
+        "reference": "Booking - Serieturnering U7",
+        "request_id": "calendar-booking:2ab68a665794135b3acec089b79d54583b856082d1656986e995bd59daa571d8",
+        "supersedes": "ice-time-override:3c49440d58cdee1a"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0189"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:29.208807+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Booking - Serieturnering U7",
+        "event_fingerprint": "2ab68a665794135b3acec089b79d54583b856082d1656986e995bd59daa571d8",
+        "ice_time_override_id": "ice-time-override:8360e34312b185da",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-24",
+            "duration_minutes": 155,
+            "end_time": "16:50",
+            "start_time": "14:15"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U7",
+            "date": "2027-01-24",
+            "duration_minutes": "154",
+            "end_time": "16:49",
+            "round_count": "5",
+            "start_time": "14:15"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Adopt calendar-booked interval on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": "98ac728ccf884cdc9b8cc24eedb87a02711d2faa6b1901ab74e3b09c62badff9",
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": "98ac728ccf884cdc9b8cc24eedb87a02711d2faa6b1901ab74e3b09c62badff9",
+      "tournament_id": "rvv-0189"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:35.522456+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 120,
+        "override_id": "ice-time-override:174849bd1a1a82dc",
+        "reference": "changes_and_confirmations/2026-27/Kongsberg.txt",
+        "request_id": "manual-booking:rvv-0053:11596ec79492eb48e075e25aa1b2bb321c3cb00b0a6b98527db59a88169c2415",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar-booked interval 15:00-17:00 adopted on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0053"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:35.522456+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-11-15",
+          "duration_minutes": "120",
+          "end_time": "17:00",
+          "round_count": "3",
+          "start_time": "15:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:174849bd1a1a82dc",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2026-11-15",
+            "duration_minutes": 120,
+            "end_time": "17:00",
+            "start_time": "15:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2026-11-15",
+            "duration_minutes": "100",
+            "end_time": "16:40",
+            "round_count": "3",
+            "start_time": "15:00"
+          }
+        },
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Kongsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "2026-11-15",
+          "duration_minutes": "120",
+          "end": "17:00",
+          "start": "15:00"
+        },
+        "supersedes": "manual_booking:rvv-0053:2026-09-28T07:46:48.691624+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Calendar-booked interval 15:00-17:00 adopted on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0053"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:59.454791+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 150,
+        "override_id": "ice-time-override:5a1cce100ede2d08",
+        "reference": "changes_and_confirmations/2026-27/Kongsberg.txt",
+        "request_id": "manual-booking:rvv-0113:6931768ec430cd6340a55a3dc0852f246c0394886d06f0ed07b15dc614108e54",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar-booked interval 10:30-13:00 adopted on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0113"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:05:59.454791+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2027-01-23",
+          "duration_minutes": "150",
+          "end_time": "13:00",
+          "round_count": "5",
+          "start_time": "10:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:5a1cce100ede2d08",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2027-01-23",
+            "duration_minutes": 150,
+            "end_time": "13:00",
+            "start_time": "10:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2027-01-23",
+            "duration_minutes": "140",
+            "end_time": "12:50",
+            "round_count": "5",
+            "start_time": "10:30"
+          }
+        },
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Kongsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "2027-01-23",
+          "duration_minutes": "150",
+          "end": "13:00",
+          "start": "10:30"
+        },
+        "supersedes": "manual_booking:rvv-0113:2026-09-28T07:47:04.953429+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Calendar-booked interval 10:30-13:00 adopted on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0113"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:06:21.710396+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 150,
+        "override_id": "ice-time-override:0a1126441569f15c",
+        "reference": "changes_and_confirmations/2026-27/Kongsberg.txt",
+        "request_id": "manual-booking:rvv-0158:8529ce76bef4ff0dab48487ae8adb923a364fd60f58fdf37877acd18f8016645",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar-booked interval 10:30-13:00 adopted on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0158"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:06:21.710396+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2027-02-21",
+          "duration_minutes": "150",
+          "end_time": "13:00",
+          "round_count": "5",
+          "start_time": "10:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:0a1126441569f15c",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2027-02-21",
+            "duration_minutes": 150,
+            "end_time": "13:00",
+            "start_time": "10:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U10",
+            "date": "2027-02-21",
+            "duration_minutes": "140",
+            "end_time": "12:50",
+            "round_count": "5",
+            "start_time": "10:30"
+          }
+        },
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Kongsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "2027-02-21",
+          "duration_minutes": "150",
+          "end": "13:00",
+          "start": "10:30"
+        },
+        "supersedes": "manual_booking:rvv-0158:2026-09-28T07:47:14.078900+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Calendar-booked interval 10:30-13:00 adopted on current main (PR #863 rebuild, #853/#860)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0158"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:06:43.711271+00:00",
+      "details": {
+        "authority": "manual_club_confirmation_interval",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 180,
+        "override_id": "ice-time-override:427884b5a2820b7b",
+        "reference": "changes_and_confirmations/2026-27/Kongsberg.txt",
+        "request_id": "manual-booking:rvv-0184:6ff807f78101fa1d7391b967d91f5a6f913d768c8372c2663dd045a3d1789288",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar 13:00-16:00 adopted over the club's stated 15:35 end on current main (PR #863 rebuild, #853/#860); club statement superseded as history",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0184"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:06:43.711271+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U9",
+          "date": "2027-02-20",
+          "duration_minutes": "180",
+          "end_time": "16:00",
+          "round_count": "5",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "ice-time-override:427884b5a2820b7b",
+        "interval_alignment": {
+          "accepted_source_interval": {
+            "date": "2027-02-20",
+            "duration_minutes": 180,
+            "end_time": "16:00",
+            "start_time": "13:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U9",
+            "date": "2027-02-20",
+            "duration_minutes": "155",
+            "end_time": "15:35",
+            "round_count": "5",
+            "start_time": "13:00"
+          }
+        },
+        "reconfirms_stale_reasons": [
+          "tournament_duration_minutes_changed",
+          "tournament_end_time_changed"
+        ],
+        "reference": "changes_and_confirmations/2026-27/Kongsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {
+          "date": "2027-02-20",
+          "duration_minutes": "180",
+          "end": "16:00",
+          "start": "13:00"
+        },
+        "supersedes": "manual_booking:rvv-0184:2026-09-28T07:47:53.686407+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Calendar 13:00-16:00 adopted over the club's stated 15:35 end on current main (PR #863 rebuild, #853/#860); club statement superseded as history",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0184"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:08:07.005390+00:00",
+      "details": {
+        "association_id": "calendar_booking:eb8f4317d4ed61617c194a8aa840c73b45af089afa8cbdad00d7fafd12ed74db:rvv-0111",
+        "event_fingerprint": "eb8f4317d4ed61617c194a8aa840c73b45af089afa8cbdad00d7fafd12ed74db"
+      },
+      "event": "release_calendar_booking",
+      "note": "Superseded by the calendar-booked interval re-confirmed on current main (PR #863 rebuild, #853/#860); old association kept as history",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0111"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:08:07.747010+00:00",
+      "details": {
+        "association_id": "calendar_booking:e2d12742f0b4b87d7fef6c37cfd82d0b2f106c239fcb05f45bd5708ddbaa5e93:rvv-0105",
+        "event_fingerprint": "e2d12742f0b4b87d7fef6c37cfd82d0b2f106c239fcb05f45bd5708ddbaa5e93"
+      },
+      "event": "release_calendar_booking",
+      "note": "Superseded by the calendar-booked interval re-confirmed on current main (PR #863 rebuild, #853/#860); old association kept as history",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0105"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:08:08.464334+00:00",
+      "details": {
+        "association_id": "calendar_booking:cae96b2ed9ee57e9c3010f7656c085c355e31be1e0ed03466044df6138391d8e:rvv-0119",
+        "event_fingerprint": "cae96b2ed9ee57e9c3010f7656c085c355e31be1e0ed03466044df6138391d8e"
+      },
+      "event": "release_calendar_booking",
+      "note": "Superseded by the calendar-booked interval re-confirmed on current main (PR #863 rebuild, #853/#860); old association kept as history",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0119"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:08:09.094587+00:00",
+      "details": {
+        "association_id": "calendar_booking:5f18ebbbc47ede66126586f3e9cd62deb1263f68704c8fe346377021cd4ea7b0:rvv-0189",
+        "event_fingerprint": "5f18ebbbc47ede66126586f3e9cd62deb1263f68704c8fe346377021cd4ea7b0"
+      },
+      "event": "release_calendar_booking",
+      "note": "Superseded by the calendar-booked interval re-confirmed on current main (PR #863 rebuild, #853/#860); old association kept as history",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0189"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:08:09.692769+00:00",
+      "details": {
+        "association_id": "calendar_booking:5d352532ceadb0e4f7418a0846bcd9691786e5b8ab4688b39e371cfe0e175127:rvv-0160",
+        "event_fingerprint": "5d352532ceadb0e4f7418a0846bcd9691786e5b8ab4688b39e371cfe0e175127"
+      },
+      "event": "release_calendar_booking",
+      "note": "Superseded by the calendar-booked interval re-confirmed on current main (PR #863 rebuild, #853/#860); old association kept as history",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0160"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T08:08:10.277231+00:00",
+      "details": {
+        "association_id": "calendar_booking:dd9292af125ab25ac6c22a35090db87e7cde7f53e8c3e66535dd040d0d9ef227:rvv-0136",
+        "event_fingerprint": "dd9292af125ab25ac6c22a35090db87e7cde7f53e8c3e66535dd040d0d9ef227"
+      },
+      "event": "release_calendar_booking",
+      "note": "Superseded by the calendar-booked interval re-confirmed on current main (PR #863 rebuild, #853/#860); old association kept as history",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0136"
     }
   ]
 }
