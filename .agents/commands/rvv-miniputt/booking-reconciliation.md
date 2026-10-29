@@ -21,6 +21,19 @@ Reconciliation records authoritative existing-booking facts; it is not a plannin
 - Check calendar association trust, venue, event coverage and **raw active ownership**, including stale active associations. Auto-link only a single unambiguous supported event; otherwise use explicit release/rebind with evidence and authorization. A cancelled tournament must not silently donate or retain a booking for another tournament. Do not invent an event or conceal a real overlap.
 - Re-verify worksheet/live source -> accepted assertion -> effective canonical date/start/end/duration -> booking status -> export/rendered HTML. Export matching canonical is insufficient if canonical disagrees with accepted source facts. Recheck idempotency and affected neighboring tournaments.
 
+### Choose the mutation owner from the source of the changed fact
+
+Do **not** choose `booking-set` versus `confirm-calendar-booking` from the interval you want to end up with. First identify which evidence actually asserted each changed field, and preserve that source semantics in canonical provenance.
+
+- If a worksheet/email/manual source explicitly states the accepted date/start/end, use `booking-set` with exactly those source-stated fields. `stated_interval` must be a faithful transcription of that source. Never copy a calendar observation or current canonical value into `--stated-*` merely to make the manual assertion match.
+- If the manual source confirms only that the tournament is booked and states **no interval**, while one trusted unambiguous calendar event supplies the actual date/start/end, the calendar event owns the interval correction. Use `confirm-calendar-booking` for the exact event. Keep the no-window manual assertion as separate booking-existence provenance; do not re-record it merely because the effective interval changed, and never add stated fields the source did not contain.
+- If an older manual source explicitly stated one interval but later accepted calendar/booker evidence establishes a different real interval, preserve the older manual statement unchanged as historical evidence and adopt the newer real interval under the newer authority. Do not rewrite or re-record the older source as though it stated the new calendar value.
+- `booking-set --supersede` changes the lifecycle of a manual assertion; it does not transfer calendar facts into manual authority. Use it only when the replacement assertion is itself supported by manual/operator source evidence and its `stated_interval` still mirrors that evidence.
+- When the supported commands cannot retire/supersede a conflicting club-wide manual interpretation while preserving the original source statement and the newer calendar authority, stop and report that as a repository capability gap. Do not manufacture a replacement assertion to make status output green.
+- After any correction, verify provenance as well as the interval: the intended authority must be active, ended records must remain in acceptance history, and `accepted_evidence` must point to the active record whose accepted interval equals the effective canonical interval. For event-fingerprint replacement, exactly one association for that tournament/event lineage should remain active; old fingerprints belong in released/superseded history.
+
+These rules are generic source-authority rules, not a special case for one club or season.
+
 ### Operator-facing reconciliation wording
 
 Keep machine/audit status values intact, but do not expose a conservative internal `ambiguous` label as if event identity itself were uncertain when the assessment already establishes a single strong candidate. In operator tables and summaries, prefer these meanings:
