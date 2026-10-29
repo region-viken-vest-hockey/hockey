@@ -405,6 +405,7 @@ def run(
     booking_status: dict[str, Any] | None = None
     booking_reconciliation: dict[str, Any] | None = None
     booking_reconciliation_error: str | None = None
+    public_history: dict[str, Any] | None = None
     try:
         from ..season.baseline_overlay import resolve_canonical_state
         from ..application.canonical_season.store_facade import (
@@ -436,6 +437,7 @@ def run(
             errors.append(f"Godkjenningsprojeksjon feilet: {exc}")
         try:
             booking_status = booking_status_report(season=resolved["season"], root=resolved["root"])
+            public_history = public_change_history_for_season(season=resolved["season"], root=resolved["root"])
             status_revision = str((booking_status or {}).get("canonical_state_revision") or "")
             if canonical_revision and not status_revision:
                 errors.append(
@@ -806,6 +808,7 @@ def run(
         "export_fingerprint": export_fingerprint,
         "approval_status": approval_status,
         "booking_status": booking_status,
+        "public_change_history": public_history,
     }
     # Immutable public/source presentation context. The normal pipeline captures
     # it from the live workspace once, here; a canonical `season export` passes
@@ -1049,8 +1052,7 @@ def run(
                 _stale_changes = primary_export_path / SEASON_CHANGES_FILENAME
                 if _stale_changes.exists():
                     _stale_changes.unlink()
-            _history = public_change_history_for_season(season=resolved["season"], root=resolved["root"])
-            _write_public_history_html(_history, str(primary_export_path), season_plan_href=f"{basename}.html")
+            _write_public_history_html(public_history, str(primary_export_path), season_plan_href=f"{basename}.html")
         except Exception as exc:  # noqa: BLE001
             errors.append(f"Endringslogg-side feilet: {exc}")
 
