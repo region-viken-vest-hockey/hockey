@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from tournament_scheduler.booking.calendar_bookings import booking_assessment
+from tournament_scheduler.booking.calendar_bookings import booking_status_report as _booking_status_report
+from tournament_scheduler.booking.refresh_consequences import refresh_tournament_consequences
 from tournament_scheduler.season.state import (
     canonical_state_revision,
     schedule_fingerprint,
@@ -313,6 +315,12 @@ def refresh_calendars(
     }
     if dry_run:
         result["canonical_state_revision"] = before_revision
+        # Read-only: both projections are computed from in-memory state, so the
+        # dry run states each tournament's consequence without committing it.
+        result["tournament_consequences"] = refresh_tournament_consequences(
+            _booking_status_report(problem=before_resolved_problem, plan=plan, decisions=decisions),
+            _booking_status_report(problem=resolved_problem, plan=plan, decisions=decisions),
+        )
         if reconcile_clubs_present:
             # Nothing is committed in a dry run, so the current canonical
             # revision remains before_revision for as long as this result is
