@@ -37,13 +37,13 @@ def _interval(*, date="2026-10-16", start="10:30", end="13:00"):
     return {"date": date, "start": start, "end": end}
 
 
-def _comparison(status, *, planned=None, observed=None):
-    planned = planned or _interval()
+def _comparison(status, *, effective=None, observed=None):
+    effective = effective or _interval()
     return {
         "status": status,
-        "effective_canonical": {"date": planned["date"], "start": planned["start"], "end": planned["end"]},
+        "effective_canonical": {"date": effective["date"], "start": effective["start"], "end": effective["end"]},
         "observed": observed,
-        "same_date": observed is None or observed["date"] == planned["date"],
+        "same_date": observed is None or observed["date"] == effective["date"],
         "start_delta_minutes": None,
         "end_delta_minutes": None,
     }
