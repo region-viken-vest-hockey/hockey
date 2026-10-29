@@ -37,8 +37,7 @@ from ..shared import (
     _attributable_blockers,
 )
 
-from .associations import _align_tournament_to_authoritative_interval
-from .start_only_interval import alignment_interval
+from .start_only_interval import align_booked_interval
 from .common import _record_rejected_booking_evidence
 from .validation import (
     manual_assertion_matches_existing as _manual_assertion_matches_existing,
@@ -151,20 +150,14 @@ def set_manual_booking_assertion(
             "start": stated_interval.get("start"),
             "end": stated_interval.get("end"),
         }
-        updated_schedule, updated_decisions_for_interval, aligned_tournament, source_interval_alignment, override_record = _align_tournament_to_authoritative_interval(
-            schedule=schedule,
-            decisions=decisions,
-            tournament_id=tournament_id,
-            interval=alignment_interval(stated_interval, tournament, resolved_problem, interval_date),
-            actor=resolved_actor,
-            note=note,
-            now=now,
-            problem=resolved_problem,
-            authority="manual_club_confirmation_interval",
+        (
+            updated_schedule, updated_decisions_for_interval, aligned_tournament,
+            source_interval_alignment, override_record, start_only_classification,
+        ) = align_booked_interval(
+            schedule=schedule, decisions=decisions, tournament_id=tournament_id, stated_interval=stated_interval,
+            interval_date=interval_date, actor=resolved_actor, note=note, now=now, problem=resolved_problem,
             request_id=f"manual-booking:{tournament_id}:{stable_payload_sha256(request_payload)}",
             reference=reference or note or "manual booking assertion",
-            accepted_key="accepted_source_interval",
-            freeze_default_equal_interval=True,
         )
         verification_problem = _resolve_plan_problem(updated_schedule, resolved_problem, updated_decisions_for_interval)
         verification = verify_candidate(updated_schedule["plan"], verification_problem) if verification_problem else verify_candidate(updated_schedule["plan"])
@@ -183,7 +176,7 @@ def set_manual_booking_assertion(
             updated_schedule["plan"],
             list(verification.get("violations") or []),
             tournament_id=tournament_id,
-            accepted_interval=(source_interval_alignment or {}).get("accepted_source_interval"),
+            accepted_interval=(source_interval_alignment or {}).get("accepted_source_interval") or start_only_classification,
             authority=booking_authority,
         )
         booking_feasibility_warnings = classified["accepted_exceptions"]
