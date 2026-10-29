@@ -15,6 +15,7 @@ from typing import Any, Mapping
 
 from tournament_scheduler.booking.interval_facts import tournament_occupancy_interval_facts
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
+from tournament_scheduler.season.state import schedule_fingerprint
 
 from .associations import _align_tournament_to_authoritative_interval
 
@@ -83,4 +84,5 @@ def align_booked_interval(
         schedule, tournament_id=tournament_id, interval_date=interval_date,
         start=str(stated_interval.get("start") or ""), problem=problem,
     )
-    return updated_schedule, dict(decisions), aligned, None, None, classification
+    refreshed = {**dict(decisions), "schedule_fingerprint": schedule_fingerprint(updated_schedule["plan"])}
+    return updated_schedule, refreshed, aligned, None, None, classification

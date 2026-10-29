@@ -11,6 +11,8 @@ explicit stated window.
 
 from __future__ import annotations
 
+import pytest
+
 from tournament_scheduler.application.canonical_season.store_facade import (
     booking_status_report,
     load_decisions,
@@ -77,3 +79,35 @@ def test_derived_end_does_not_pin_the_effective_interval_after_the_proposal_chan
     assert row["canonical_interval"]["end_time"] == "15:30"
     record = load_decisions("2026-2027", root=root)[MANUAL_BOOKING_ASSERTIONS_KEY][0]
     assert "end" not in record["stated_interval"]
+
+
+def test_start_only_statement_on_a_sealed_season_is_refused_as_unexplained_delta(tmp_path):
+    """A start-only move records no canonical mutation, so a sealed season must refuse it (#869)."""
+    from tests.test_published_season_sealing import _REPAIRABLE_EXISTING_ID, _write_sealed_repairable_season
+    from tournament_scheduler.application.canonical_season.store_facade import SeasonStateError
+
+    root = tmp_path / "season"
+    _write_sealed_repairable_season(root)
+
+    with pytest.raises(SeasonStateError, match="sealed-season state would not reconcile"):
+        set_manual_booking_assertion(
+            season="2026-2027",
+            root=root,
+            tournament_id=_REPAIRABLE_EXISTING_ID,
+            booking_status="booked",
+            actor="booker",
+            reference="email:sorby",
+            stated_date="2026-10-03",
+            stated_start="13:00",
+        )
+
+
+def test_start_only_statement_refreshes_the_canonical_schedule_fingerprint(tmp_path):
+    from tournament_scheduler.season.state import schedule_fingerprint
+
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="15:00")])
+
+    _state_start(root, _proposal(120))
+
+    decisions = load_decisions("2026-2027", root=root)
+    assert decisions["schedule_fingerprint"] == schedule_fingerprint(load_schedule("2026-2027", root=root)["plan"])

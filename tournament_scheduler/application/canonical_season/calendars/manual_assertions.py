@@ -335,7 +335,7 @@ def set_manual_booking_assertion(
     if dry_run:
         return result
     updated_snapshot = snapshot.with_schedule(schedule).with_decisions(updated)
-    if source_interval_alignment is not None:
+    if schedule != snapshot.schedule:
         service._assert_published_sealed_reconciliation(updated_snapshot, action="set_manual_booking_assertion")
     committed = service._commit(updated_snapshot)
     committed_problem = _resolve_plan_problem(committed.schedule, problem, committed.decisions)
