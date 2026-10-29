@@ -78,6 +78,7 @@ from .stage4_export_manual_schedule import (
 )
 from .stage4_export_verification import _build_export_verification_problem
 from .season_changes_view import write_html as _write_season_changes_html
+from .public_history_view import public_change_history_for_season, write_html as _write_public_history_html
 from .verification_context import build_verification_context
 from .public_export_context import (
     build_public_export_context,
@@ -1048,6 +1049,8 @@ def run(
                 _stale_changes = primary_export_path / SEASON_CHANGES_FILENAME
                 if _stale_changes.exists():
                     _stale_changes.unlink()
+            _history = public_change_history_for_season(season=resolved["season"], root=resolved["root"])
+            _write_public_history_html(_history, str(primary_export_path), season_plan_href=f"{basename}.html")
         except Exception as exc:  # noqa: BLE001
             errors.append(f"Endringslogg-side feilet: {exc}")
 
