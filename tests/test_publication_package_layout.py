@@ -14,6 +14,7 @@ PUBLICATION_MODULES = {
     "export_lifecycle",
     "mutation_history",
     "projection_guard",
+    "public_history",
     "scope",
 }
 
