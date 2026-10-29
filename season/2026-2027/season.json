@@ -1,5 +1,5 @@
 {
-  "canonical_state_revision": "3e26ddecd9ede4c7051f234e2e1dd34a5cd34d40f3ce9768a54b1d0f0c89f595",
+  "canonical_state_revision": "fcc73d2dfd8253b36074e4ecfa4d8b7a06f28e6a7de169719c38cbe63f70cfd7",
   "layout_version": 2,
   "partitions": [
     {
@@ -10,17 +10,17 @@
     {
       "name": "operations",
       "path": "decisions/operations.json",
-      "sha256": "0feb03fcf427a43d46bca132de65879687fab52c91c0e3f8c61816701471eb88"
+      "sha256": "b552f07a0a33ebf5466a2a00b65155fb887eccd882b18643261c3da80c39cf22"
     },
     {
       "name": "history",
       "path": "decisions/history.json",
-      "sha256": "f4fce7608e47233de90d46c8ce05b144f3ec28ab2e418164318bb064482d25db"
+      "sha256": "ba9834a06d18448b5f19c20ed5ac947a60a2de51801dd46912d4c0f0c0dbc8c9"
     },
     {
       "name": "booking_evidence",
       "path": "decisions/booking_evidence.json",
-      "sha256": "7ce7dd67a96e549c574f47477d3de690b68d0b7cddc6cc1799e8efb7910b2f36"
+      "sha256": "d6ea13eeecd100855dd32e6a3594ccf7eff967880774963d6c0e144f0a35b61e"
     },
     {
       "name": "protections",

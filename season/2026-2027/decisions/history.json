@@ -59498,6 +59498,258 @@
       "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
       "tournament_fingerprint": null,
       "tournament_id": "rvv-0136"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T09:25:00.973969+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "KIF ishockey - Miniputt (U12)",
+        "event_fingerprint": "2cee1e84ccf92a2c0f91b8e5fda186d3b077ad5d2c50d2e2e452d8f4a8c8eba2",
+        "ice_time_override_id": "",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-15",
+            "duration_minutes": 120,
+            "end_time": "17:00",
+            "start_time": "15:00"
+          },
+          "changed": false,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2026-11-15",
+            "duration_minutes": "120",
+            "end_time": "17:00",
+            "round_count": "3",
+            "start_time": "15:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar booking authority for the accepted interval (PR #863 rebuild, #860 authority model): Kongsberg-club-wide-confirmed-booked-interval-from-calendar",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": "b46a1be4cdbda454420e6995934da96d293be47099a92647b7386def1604ee15",
+      "tournament_id": "rvv-0053"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T09:25:01.984843+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "KIF Ishockey - Miniputt (U11)",
+        "event_fingerprint": "6d5185ce5ffaf872e338b99265b547c44755b09b6efb03174cf718367822f086",
+        "ice_time_override_id": "",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-23",
+            "duration_minutes": 150,
+            "end_time": "13:00",
+            "start_time": "10:30"
+          },
+          "changed": false,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2027-01-23",
+            "duration_minutes": "150",
+            "end_time": "13:00",
+            "round_count": "5",
+            "start_time": "10:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar booking authority for the accepted interval (PR #863 rebuild, #860 authority model): Kongsberg-club-wide-confirmed-booked-interval-from-calendar",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": "7ae5d75b96907123f4eefc143f6a94dc3a62358165d50db9d7d82fcdc5b0978d",
+      "tournament_id": "rvv-0113"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T09:25:02.968647+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "KIF ishockey - Miniputt (U10)",
+        "event_fingerprint": "94ceec0d46cb7c7b37ec7cc27d1d0df4e982647722448ec03389758fe1faa82f",
+        "ice_time_override_id": "",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-02-21",
+            "duration_minutes": 150,
+            "end_time": "13:00",
+            "start_time": "10:30"
+          },
+          "changed": false,
+          "previous_interval": {
+            "age_group": "U10",
+            "date": "2027-02-21",
+            "duration_minutes": "150",
+            "end_time": "13:00",
+            "round_count": "5",
+            "start_time": "10:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar booking authority for the accepted interval (PR #863 rebuild, #860 authority model): Kongsberg-club-wide-confirmed-booked-interval-from-calendar",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": "0c9c3928dd0a50a43c380a36a08ef46df3c591a1e421fad7f954336aeb3a9708",
+      "tournament_id": "rvv-0158"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T09:25:03.877178+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "KIF ishockey - Miniputt (U9)",
+        "event_fingerprint": "12950c8b7ae936cf19ea0458cdadc07091567b994fc449262e34036311abec03",
+        "ice_time_override_id": "",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-02-20",
+            "duration_minutes": 180,
+            "end_time": "16:00",
+            "start_time": "13:00"
+          },
+          "changed": false,
+          "previous_interval": {
+            "age_group": "U9",
+            "date": "2027-02-20",
+            "duration_minutes": "180",
+            "end_time": "16:00",
+            "round_count": "5",
+            "start_time": "13:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar booking authority for the accepted interval (PR #863 rebuild, #860 authority model): Calendar-booking-13:00-16:00-accepted-over-club-stated-15:35",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": "4f7d13c3a32fb69ccb62cd8438992b37d51e9293a0f9c5be2fa2dd791a6f2ddf",
+      "tournament_id": "rvv-0184"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T09:26:31.567140+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U12",
+          "date": "2026-11-15",
+          "duration_minutes": "120",
+          "end_time": "17:00",
+          "round_count": "3",
+          "start_time": "15:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "",
+        "interval_alignment": null,
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Kongsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": "manual_booking:rvv-0053:2026-10-29T08:05:35.522456+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club-wide confirmation re-recorded without a stated interval: the booked interval is the calendar authority (PR #863, #860 authority model)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0053"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T09:26:55.452226+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U11",
+          "date": "2027-01-23",
+          "duration_minutes": "150",
+          "end_time": "13:00",
+          "round_count": "5",
+          "start_time": "10:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "",
+        "interval_alignment": null,
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Kongsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": "manual_booking:rvv-0113:2026-10-29T08:05:59.454791+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club-wide confirmation re-recorded without a stated interval: the booked interval is the calendar authority (PR #863, #860 authority model)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0113"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T09:27:26.188790+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U10",
+          "date": "2027-02-21",
+          "duration_minutes": "150",
+          "end_time": "13:00",
+          "round_count": "5",
+          "start_time": "10:30"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "",
+        "interval_alignment": null,
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Kongsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": "manual_booking:rvv-0158:2026-10-29T08:06:21.710396+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club-wide confirmation re-recorded without a stated interval: the booked interval is the calendar authority (PR #863, #860 authority model)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0158"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-29T09:27:52.061678+00:00",
+      "details": {
+        "asserted_interval": {
+          "age_group": "U9",
+          "date": "2027-02-20",
+          "duration_minutes": "180",
+          "end_time": "16:00",
+          "round_count": "5",
+          "start_time": "13:00"
+        },
+        "authority": "manual_club_confirmation",
+        "booking_feasibility_warnings": [],
+        "booking_status": "booked",
+        "ice_time_override_id": "",
+        "interval_alignment": null,
+        "reconfirms_stale_reasons": [],
+        "reference": "changes_and_confirmations/2026-27/Kongsberg.txt",
+        "source_scope": "club_wide_interpretation",
+        "stated_interval": {},
+        "supersedes": "manual_booking:rvv-0184:2026-10-29T08:06:43.711271+00:00"
+      },
+      "event": "set_manual_booking_assertion",
+      "note": "Club-wide confirmation re-recorded without a stated interval: the booked interval is the calendar authority (PR #863, #860 authority model)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0184"
     }
   ]
 }
