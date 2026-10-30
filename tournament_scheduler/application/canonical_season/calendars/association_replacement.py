@@ -26,6 +26,7 @@ def replaced_association_ids(
     tournament_id: str,
     event: Mapping[str, Any],
     base_problem: Mapping[str, Any] | None,
+    attested_same_booking: bool = False,
 ) -> list[str]:
     """Return the active associations this confirmation replaces, or refuse.
 
@@ -35,6 +36,10 @@ def replaced_association_ids(
     A vanished event is not proof of an edit by itself: a different start or
     title is a different booking. The calendar's source identity is a content
     hash, so these facts are the only continuity evidence available here.
+
+    An operator attestation that the calendar block is the same booking (the
+    manual-supersession path) lets the start and end move too, since a host can
+    retime its own booking. Club, date and title still have to match.
     """
 
     new_fingerprint = str(event.get("fingerprint") or "")
@@ -60,12 +65,13 @@ def replaced_association_ids(
             f"{[str(record.get('id') or '') for record in prior]}; resolve them before replacing"
         )
     replaced = prior[0]
-    continuity = (
+    continuity = [
         ("club", str(event.get("club") or "")),
         ("date", str(event.get("date") or "")),
-        ("start", str(event.get("start") or "")),
         ("title", str(event.get("calendar_event") or event.get("title") or "")),
-    )
+    ]
+    if not attested_same_booking:
+        continuity.insert(2, ("start", str(event.get("start") or "")))
     if any(str(replaced.get(key) or "") != value for key, value in continuity):
         raise SeasonStateError(
             f"Tournament {tournament_id} active calendar association {replaced.get('id')} is a different "
@@ -83,11 +89,18 @@ def retire_replaced_associations(
     base_problem: Mapping[str, Any] | None,
     superseded_by: str,
     now: str,
+    attested_same_booking: bool = False,
 ) -> list[dict[str, Any]]:
     """Refuse or retire the replaced associations, keeping their facts unchanged."""
 
     replaced = set(
-        replaced_association_ids(decisions, tournament_id=tournament_id, event=event, base_problem=base_problem)
+        replaced_association_ids(
+            decisions,
+            tournament_id=tournament_id,
+            event=event,
+            base_problem=base_problem,
+            attested_same_booking=attested_same_booking,
+        )
     )
     retired: list[dict[str, Any]] = []
     for record in records:

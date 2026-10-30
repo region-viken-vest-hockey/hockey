@@ -331,7 +331,7 @@ def confirm_calendar_booking(
     )
     records = retire_replaced_associations(
         decisions, records, tournament_id=tournament_id, event=event, base_problem=base_problem,
-        superseded_by=str(assoc.get("id") or ""), now=checked_at,
+        superseded_by=str(assoc.get("id") or ""), now=checked_at, attested_same_booking=bool(supersede_manual_assertion_id),
     )
     updated, superseded_manual_ids = record_calendar_association(updated, records=records, association=assoc, tournament=tournament, problem=updated_problem, now=checked_at, supersede_manual_assertion_id=supersede_manual_assertion_id)
     evidence = new_booking_evidence_record(

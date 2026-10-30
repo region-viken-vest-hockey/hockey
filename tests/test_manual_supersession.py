@@ -50,10 +50,34 @@ def test_multiple_active_positives_block_supersession():
         _record(decisions, "m1")
 
 
-def test_club_wide_assertion_is_not_superseded():
-    decisions = {MANUAL_BOOKING_ASSERTIONS_KEY: [_manual("m1", scope="club_wide_interpretation")]}
+def test_source_level_club_wide_assertion_is_not_superseded():
+    decisions = {MANUAL_BOOKING_ASSERTIONS_KEY: [_manual("m1", scope="club_wide")]}
 
     with pytest.raises(SeasonStateError, match="not tournament-scoped"):
+        _record(decisions, "m1")
+
+
+def test_club_wide_interpretation_negative_blocks_supersession():
+    decisions = {
+        MANUAL_BOOKING_ASSERTIONS_KEY: [
+            _manual("m1", scope="club_wide_interpretation"),
+            _manual("m2", scope="club_wide_interpretation", booking_status="not-booked"),
+        ]
+    }
+
+    with pytest.raises(SeasonStateError, match="non-positive manual assertions"):
+        _record(decisions, "m1")
+
+
+def test_several_club_wide_interpretation_positives_block_supersession():
+    decisions = {
+        MANUAL_BOOKING_ASSERTIONS_KEY: [
+            _manual("m1", scope="club_wide_interpretation"),
+            _manual("m2", scope="club_wide_interpretation"),
+        ]
+    }
+
+    with pytest.raises(SeasonStateError, match="multiple active manual booking assertions"):
         _record(decisions, "m1")
 
 

@@ -15,6 +15,7 @@ from tournament_scheduler.booking.calendar_bookings import (
 )
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
 
+_SUPERSEDABLE_SCOPES = frozenset({"tournament", "club_wide_interpretation"})
 _INTERVAL_STALE_REASONS = frozenset(
     f"tournament_{key}_changed" for key in ("date", "start_time", "duration_minutes", "end_time")
 )
@@ -95,7 +96,11 @@ def record_calendar_association(
         raise SeasonStateError(
             f"Manual booking assertion {supersede_manual_assertion_id!r} is not active for tournament {tournament_id}"
         )
-    if str(target.get("source_scope") or "") != "tournament":
+    # A club-wide interpretation is one record per tournament under a shared source statement
+    # (#490). Superseding it touches only this tournament's record; the source statement and
+    # the other tournaments' interpretations stay as they are. A source-level statement is not
+    # a per-tournament record, so it is never superseded here.
+    if str(target.get("source_scope") or "") not in _SUPERSEDABLE_SCOPES:
         raise SeasonStateError(f"Manual booking assertion {supersede_manual_assertion_id!r} is not tournament-scoped")
     reasons = manual_assertion_stale_reasons(target, problem=problem, tournament=tournament)
     # A changed fact other than the interval may mean two different bookings. Refuse rather than
