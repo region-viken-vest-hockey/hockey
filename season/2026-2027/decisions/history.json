@@ -58917,6 +58917,430 @@
       "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:21.428480+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:e6079f3cfabdfae9",
+        "reference": "U11 Serierunde",
+        "request_id": "calendar-booking:1f4df38bf449329d82e786494d93c1f564a033244be6e195a973f18ca649ceaf",
+        "supersedes": "ice-time-override:233c2065da48ed99"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0002"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:21.428480+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U11 Serierunde",
+        "event_fingerprint": "1f4df38bf449329d82e786494d93c1f564a033244be6e195a973f18ca649ceaf",
+        "ice_time_override_id": "ice-time-override:e6079f3cfabdfae9",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-22",
+            "duration_minutes": 140,
+            "end_time": "14:20",
+            "start_time": "12:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2026-11-22",
+            "duration_minutes": "110",
+            "end_time": "13:50",
+            "round_count": "5",
+            "start_time": "12:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": "957131fb39e50f7cfee6c0cc1413cbb7580f12e73e3677d1e00319b1007c40de",
+      "tournament_id": "rvv-0002"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:22.247297+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:999a6bb828af466a",
+        "reference": "Serierunde JU10",
+        "request_id": "calendar-booking:8962fb69f61586b582da4423eff2657ddbc9106dc535fd9d39cb3ce338e483b8",
+        "supersedes": "ice-time-override:de2abf5cadfdc6af"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0042"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:22.247297+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Serierunde JU10",
+        "event_fingerprint": "8962fb69f61586b582da4423eff2657ddbc9106dc535fd9d39cb3ce338e483b8",
+        "ice_time_override_id": "ice-time-override:999a6bb828af466a",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-08",
+            "duration_minutes": 140,
+            "end_time": "14:20",
+            "start_time": "12:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "JU10",
+            "date": "2026-11-08",
+            "duration_minutes": "110",
+            "end_time": "13:50",
+            "round_count": "5",
+            "start_time": "12:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": "b4beb7db92a1f625125aff867acb24f13f34512e89b2b83ad4392607e9621e3b",
+      "tournament_id": "rvv-0042"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:23.051447+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:d9da6da81005c024",
+        "reference": "U9 Serierunde",
+        "request_id": "calendar-booking:f566b20b1e3baa621b4ed1bbbe02acdfaf0cff7d034e72a86c70206ad5a5d136",
+        "supersedes": "ice-time-override:6fb93d93382686af"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0097"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:23.051447+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U9 Serierunde",
+        "event_fingerprint": "f566b20b1e3baa621b4ed1bbbe02acdfaf0cff7d034e72a86c70206ad5a5d136",
+        "ice_time_override_id": "ice-time-override:d9da6da81005c024",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-10",
+            "duration_minutes": 140,
+            "end_time": "14:20",
+            "start_time": "12:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U9",
+            "date": "2027-01-10",
+            "duration_minutes": "110",
+            "end_time": "13:50",
+            "round_count": "5",
+            "start_time": "12:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": "18a391bae26a0ffb56008791421fb4b5eb23ddf4cb4a0f44b90c2145c4f54eb6",
+      "tournament_id": "rvv-0097"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:23.835909+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:383e5fe2db133e9e",
+        "reference": "U10 Serierunde",
+        "request_id": "calendar-booking:78747f4943016f73bcdaa08ca425c9025c403d65e4b72cca197ca234fccd9522",
+        "supersedes": "ice-time-override:2e9cc88ae53cac1b"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0117"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:23.835909+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U10 Serierunde",
+        "event_fingerprint": "78747f4943016f73bcdaa08ca425c9025c403d65e4b72cca197ca234fccd9522",
+        "ice_time_override_id": "ice-time-override:383e5fe2db133e9e",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-24",
+            "duration_minutes": 140,
+            "end_time": "14:20",
+            "start_time": "12:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U10",
+            "date": "2027-01-24",
+            "duration_minutes": "110",
+            "end_time": "13:50",
+            "round_count": "5",
+            "start_time": "12:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": "a60adaac0e86377c29ad22b00f57202351405abf842ffef5ba9d99623ce71aa7",
+      "tournament_id": "rvv-0117"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:24.640743+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:f85ccfecc5db5d84",
+        "reference": "JU10 Serierunde",
+        "request_id": "calendar-booking:97d1e95d8bbd4c5f275a3a1916f4109d8c410ab1eb51c30778184d911c6630ea",
+        "supersedes": "ice-time-override:bd29600813a47e62"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0125"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:24.640743+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "JU10 Serierunde",
+        "event_fingerprint": "97d1e95d8bbd4c5f275a3a1916f4109d8c410ab1eb51c30778184d911c6630ea",
+        "ice_time_override_id": "ice-time-override:f85ccfecc5db5d84",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-31",
+            "duration_minutes": 140,
+            "end_time": "16:50",
+            "start_time": "14:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "JU10",
+            "date": "2027-01-31",
+            "duration_minutes": "110",
+            "end_time": "16:20",
+            "round_count": "5",
+            "start_time": "14:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": "3b68fce00256bbe1d835b1655f5d2725c086cd8d9c5527c0e5b56ab799047a2a",
+      "tournament_id": "rvv-0125"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:25.457629+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:07ba20655eb6393b",
+        "reference": "U10 Serierunde",
+        "request_id": "calendar-booking:0b307eb60d749f5d43c42499de8f7e58e211b36d64b1c6dea58cd2dad90754cd",
+        "supersedes": "ice-time-override:1dc6d3004c8333ac"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0147"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:25.457629+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U10 Serierunde",
+        "event_fingerprint": "0b307eb60d749f5d43c42499de8f7e58e211b36d64b1c6dea58cd2dad90754cd",
+        "ice_time_override_id": "ice-time-override:07ba20655eb6393b",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-02-20",
+            "duration_minutes": 140,
+            "end_time": "16:50",
+            "start_time": "14:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U10",
+            "date": "2027-02-20",
+            "duration_minutes": "110",
+            "end_time": "16:20",
+            "round_count": "5",
+            "start_time": "14:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": "0f05cbdc5ebd97fa5864280daa34c714421fccc12bae003bf7ef47fd48ee7dc2",
+      "tournament_id": "rvv-0147"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:26.265893+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:234b1dd15a9b3696",
+        "reference": "U10 Serierunde",
+        "request_id": "calendar-booking:5da258f2cd545ea523b85f0306fe5c0bbf156948fe8fd88b36fbdb1a34112c00",
+        "supersedes": "ice-time-override:0037df8e251cd12b"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0174"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:26.265893+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U10 Serierunde",
+        "event_fingerprint": "5da258f2cd545ea523b85f0306fe5c0bbf156948fe8fd88b36fbdb1a34112c00",
+        "ice_time_override_id": "ice-time-override:234b1dd15a9b3696",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-03-07",
+            "duration_minutes": 140,
+            "end_time": "14:20",
+            "start_time": "12:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U10",
+            "date": "2027-03-07",
+            "duration_minutes": "110",
+            "end_time": "13:50",
+            "round_count": "5",
+            "start_time": "12:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": "65ddc6c08a71e436c072055afe0822ac0dc33a4d3d6062a68661628c686e2e94",
+      "tournament_id": "rvv-0174"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:27.091289+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:db54be657365a746",
+        "reference": "U8 Serierunde",
+        "request_id": "calendar-booking:646895c4bfdb22b925b24a4a6aa23cafc8b37a8afa4e51cc80fca8977998b5b4",
+        "supersedes": "ice-time-override:96ab01ea3ccde6c6"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0190"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-30T11:09:27.091289+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U8 Serierunde",
+        "event_fingerprint": "646895c4bfdb22b925b24a4a6aa23cafc8b37a8afa4e51cc80fca8977998b5b4",
+        "ice_time_override_id": "ice-time-override:db54be657365a746",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-23",
+            "duration_minutes": 140,
+            "end_time": "15:20",
+            "start_time": "13:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U8",
+            "date": "2027-01-23",
+            "duration_minutes": "110",
+            "end_time": "14:50",
+            "round_count": "5",
+            "start_time": "13:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": "666d55b8a14d7af2aa9a5b94ee5d6f5b426f0f1ea5e789e69c90dbd9d9bfe96b",
+      "tournament_id": "rvv-0190"
     }
   ]
 }

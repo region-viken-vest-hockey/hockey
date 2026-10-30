@@ -1,6 +1,6 @@
 {
   "actor": "claude-code",
-  "canonical_state_revision": "f3715ac8ea35917016a8826da0f2f5b8c3226d46da927ccb1b2e1356c7898420",
+  "canonical_state_revision": "d47d75bcf583601519cbcf47ace9d0d5230897034f011e608311d6da6eff9ca2",
   "created_at": "2026-09-18T19:44:06.643372+00:00",
   "decisions": {
     "mp_unplaced_placement_U11_2026_10_18_1": {
@@ -22,13 +22,14 @@
       "status": "pending_review"
     },
     "rvv-0002": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-30T11:09:21.428480+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "957131fb39e50f7cfee6c0cc1413cbb7580f12e73e3677d1e00319b1007c40de",
+      "approved_placement_fingerprint": "b6ba262b8ad293aeed2cde370c1522b8171a66fdb2ecfacc3c459ddde3de151e",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0003": {
       "approved_at": "2026-10-15T21:46:17.792726+00:00",
@@ -390,13 +391,14 @@
       "status": "approved"
     },
     "rvv-0042": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-30T11:09:22.247297+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "b4beb7db92a1f625125aff867acb24f13f34512e89b2b83ad4392607e9621e3b",
+      "approved_placement_fingerprint": "8387fd8004d447579e1f55235baf6dad1a8d863ed1b5578d2746163030bb5cee",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0043": {
       "approved_at": "2026-09-30T18:10:32.979485+00:00",
@@ -847,13 +849,14 @@
       "status": "approved"
     },
     "rvv-0097": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-30T11:09:23.051447+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "18a391bae26a0ffb56008791421fb4b5eb23ddf4cb4a0f44b90c2145c4f54eb6",
+      "approved_placement_fingerprint": "48eff6b79188b7277032fc12ae7698b0ba305bdd547dcba13c4c78ab232ba5a0",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0098": {
       "approved_at": "2026-09-22T14:08:32.892908+00:00",
@@ -1031,13 +1034,14 @@
       "status": "pending_review"
     },
     "rvv-0117": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-30T11:09:23.835909+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "a60adaac0e86377c29ad22b00f57202351405abf842ffef5ba9d99623ce71aa7",
+      "approved_placement_fingerprint": "8b0a570eed5c2ad5eb8a71f22d8253ee89fa48f231c27821a75499998064379d",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0118": {
       "approved_at": "2026-09-28T19:51:15.455913+00:00",
@@ -1103,13 +1107,14 @@
       "status": "approved"
     },
     "rvv-0125": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-30T11:09:24.640743+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "3b68fce00256bbe1d835b1655f5d2725c086cd8d9c5527c0e5b56ab799047a2a",
+      "approved_placement_fingerprint": "83f0752cd614a0754ef0d6b42ee3d881a63738cdd835a7d503e0ab695cbba048",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0126": {
       "approved_at": "2026-09-29T17:10:58.893299+00:00",
@@ -1306,13 +1311,14 @@
       "status": "pending_review"
     },
     "rvv-0147": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-30T11:09:25.457629+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "0f05cbdc5ebd97fa5864280daa34c714421fccc12bae003bf7ef47fd48ee7dc2",
+      "approved_placement_fingerprint": "5b651482435020130d438539853f1f732fa704fd5137f57c6e7d47ef92e65dcd",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0149": {
       "approved_at": "2026-09-29T17:11:00.430217+00:00",
@@ -1549,13 +1555,14 @@
       "status": "pending_review"
     },
     "rvv-0174": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-30T11:09:26.265893+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "65ddc6c08a71e436c072055afe0822ac0dc33a4d3d6062a68661628c686e2e94",
+      "approved_placement_fingerprint": "6b6935f8c8d1ecf1b395e2d5895859b5a1228f32a94a09c8abc5706e8b1a6d01",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0175": {
       "approved_at": "2026-09-22T14:08:43.727855+00:00",
@@ -1686,13 +1693,14 @@
       "status": "approved"
     },
     "rvv-0190": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-30T11:09:27.091289+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "666d55b8a14d7af2aa9a5b94ee5d6f5b426f0f1ea5e789e69c90dbd9d9bfe96b",
+      "approved_placement_fingerprint": "5aa21873450b67bee0e52a7e9af121a9ad959357c71537e4ec6e06c72fcd555c",
+      "note": "Calendar is source of truth (operator go-ahead 2026-10-30); Frisk Asker live calendar block",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0191": {
       "approved_at": null,
@@ -181545,5 +181553,5 @@
     "sealed_by": "niclasl",
     "state": "published_sealed"
   },
-  "updated_at": "2026-10-30T10:03:56.761072+00:00"
+  "updated_at": "2026-10-30T11:09:27.091289+00:00"
 }
