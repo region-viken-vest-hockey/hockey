@@ -10,10 +10,10 @@ from tournament_scheduler.season.state import canonical_state_revision, schedule
 from tournament_scheduler.infrastructure.canonical_season_store import CanonicalSeasonSnapshot, SeasonStateError
 from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 from tournament_scheduler.planning.derived_state import reconcile_plan_derived_state
-from tournament_scheduler.planning.contract import verify_candidate
 from tournament_scheduler.serialization.season_plan import SEASON_PLAN_SCHEMA_VERSION
 
 from .shared import _operator_identity, _now_iso, _resolve_plan_problem
+from .single_operation_gate import verify_single_operation_candidate
 
 TeamIdentity = tuple[str, str, str]
 RenameMapping = tuple[TeamIdentity, TeamIdentity]
@@ -296,7 +296,7 @@ def rename_teams(
     renamed_problem = _resolve_plan_problem(updated_schedule, None, updated_decisions)
     if renamed_problem is None:
         raise SeasonStateError("Team rename lost the promoted verification-context problem")
-    result = verify_candidate(plan, renamed_problem)
+    result = verify_single_operation_candidate(before_plan, plan, resolved_problem, candidate_problem=renamed_problem)
     if not result.get("ok", True):
         messages = "; ".join(str(v.get("message") or v.get("code")) for v in result.get("violations", []))
         raise SeasonStateError(f"Refusing canonical team rename: candidate fails hard verification: {messages}")
