@@ -69,7 +69,7 @@ def test_identity_rename_still_refused_by_an_independent_hard_violation(tmp_path
     schedule["plan"]["tournaments"].append(clash)
     schedule_path.write_text(json.dumps(schedule, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    with pytest.raises(SeasonStateError, match="rvv-0901"):
+    with pytest.raises(SeasonStateError) as refusal:
         rename_teams(
             season="2026-2027",
             root=root,
@@ -77,3 +77,19 @@ def test_identity_rename_still_refused_by_an_independent_hard_violation(tmp_path
             request_id="rename-with-independent-violation",
             dry_run=True,
         )
+    # The refusal is the team and arena collision the clash creates, not the accepted floor.
+    assert "Team 'A Gul' is scheduled in 2 tournaments on 2027-03-06: ['rvv-0900', 'rvv-0901']" in str(refusal.value)
+    assert "Arena conflict Baerum ishall 2027-03-06" in str(refusal.value)
+    assert "ice_time_minutes" not in str(refusal.value)
+
+    # Removing the clash makes the same rename admissible, so the collision is the only cause.
+    schedule["plan"]["tournaments"].pop()
+    schedule_path.write_text(json.dumps(schedule, ensure_ascii=False, indent=2), encoding="utf-8")
+    applied = rename_teams(
+        season="2026-2027",
+        root=root,
+        mappings=MAPPING,
+        request_id="rename-with-independent-violation",
+        actor="tester",
+    )
+    assert applied["dry_run"] is False
