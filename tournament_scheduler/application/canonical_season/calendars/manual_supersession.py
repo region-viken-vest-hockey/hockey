@@ -18,39 +18,29 @@ from tournament_scheduler.infrastructure.canonical_season_store import SeasonSta
 _INTERVAL_STALE_REASONS = frozenset(
     f"tournament_{key}_changed" for key in ("date", "start_time", "duration_minutes", "end_time")
 )
+# A club-wide interpretation is one record per tournament under a shared source statement (#490).
+# Superseding it touches only that record; the source statement and other tournaments' records stay.
+_SUPERSEDABLE_SCOPES = frozenset({"tournament", "club_wide_interpretation"})
 
 
-def record_calendar_association(
-    decisions: Mapping[str, Any],
+def supersession_target(
+    manual_records: list[dict[str, Any]],
     *,
-    records: list[dict[str, Any]],
+    tournament_id: str,
+    supersede_manual_assertion_id: str,
     association: Mapping[str, Any],
-    tournament: Mapping[str, Any],
     problem: Mapping[str, Any] | None,
-    now: str,
-    supersede_manual_assertion_id: str | None = None,
-) -> tuple[dict[str, Any], list[str]]:
-    """Write a calendar association and, when the operator names one, supersede that manual positive.
+    tournament: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Validate an operator's supersession request and return the record it supersedes.
 
-    Supersession needs an explicit ``supersede_manual_assertion_id`` because no record links a
-    manual assertion to a calendar event, so interval changes alone cannot prove the same booking.
-    The operator's note is the audited attestation. Both writes land in the same returned
-    decisions mapping, so the association and the supersession commit together or not at all.
+    Returns ``None`` when this same confirmation already superseded the record (a retry), and
+    raises when the request is not eligible. Nothing is written here.
     """
 
-    updated = dict(decisions)
-    updated[CALENDAR_BOOKING_ASSOCIATIONS_KEY] = records
-    if not supersede_manual_assertion_id:
-        return updated, []
-    tournament_id = str(tournament.get("id") or "")
     association_id = str(association.get("id") or "")
     if not str(association.get("note") or "").strip():
         raise SeasonStateError("Superseding a manual booking assertion requires a --note attestation")
-    manual_records = [
-        dict(record)
-        for record in updated.get(MANUAL_BOOKING_ASSERTIONS_KEY) or []
-        if isinstance(record, Mapping)
-    ]
     active = [
         record
         for record in manual_records
@@ -86,7 +76,7 @@ def record_calendar_association(
         and str(record.get("superseded_by") or "") == association_id
         for record in manual_records
     ):
-        return updated, []
+        return None
     target = next(
         (record for record in active if str(record.get("id") or "") == supersede_manual_assertion_id),
         None,
@@ -95,7 +85,8 @@ def record_calendar_association(
         raise SeasonStateError(
             f"Manual booking assertion {supersede_manual_assertion_id!r} is not active for tournament {tournament_id}"
         )
-    if str(target.get("source_scope") or "") != "tournament":
+    # A source-level statement is not a per-tournament record, so it is never superseded here.
+    if str(target.get("source_scope") or "") not in _SUPERSEDABLE_SCOPES:
         raise SeasonStateError(f"Manual booking assertion {supersede_manual_assertion_id!r} is not tournament-scoped")
     reasons = manual_assertion_stale_reasons(target, problem=problem, tournament=tournament)
     # A changed fact other than the interval may mean two different bookings. Refuse rather than
@@ -105,9 +96,79 @@ def record_calendar_association(
             f"Manual booking assertion {supersede_manual_assertion_id!r} also changed {sorted(set(reasons) - _INTERVAL_STALE_REASONS)}; "
             "it is not superseded"
         )
+    return target
+
+
+def supersession_attested(
+    decisions: Mapping[str, Any],
+    *,
+    tournament_id: str,
+    supersede_manual_assertion_id: str | None,
+    association: Mapping[str, Any],
+    problem: Mapping[str, Any] | None,
+    tournament: Mapping[str, Any],
+) -> bool:
+    """True only when the operator's supersession request validates (#567).
+
+    This is the only condition that lets a calendar block's start and end move for an existing
+    association; a bare assertion id is not enough, because the request still has to pass every
+    guard in ``supersession_target``.
+    """
+
+    if not supersede_manual_assertion_id:
+        return False
+    manual_records = [dict(r) for r in decisions.get(MANUAL_BOOKING_ASSERTIONS_KEY) or [] if isinstance(r, Mapping)]
+    return supersession_target(
+        manual_records,
+        tournament_id=tournament_id,
+        supersede_manual_assertion_id=supersede_manual_assertion_id,
+        association=association,
+        problem=problem,
+        tournament=tournament,
+    ) is not None
+
+
+def record_calendar_association(
+    decisions: Mapping[str, Any],
+    *,
+    records: list[dict[str, Any]],
+    association: Mapping[str, Any],
+    tournament: Mapping[str, Any],
+    problem: Mapping[str, Any] | None,
+    now: str,
+    supersede_manual_assertion_id: str | None = None,
+) -> tuple[dict[str, Any], list[str]]:
+    """Write a calendar association and, when the operator names one, supersede that manual positive.
+
+    Supersession needs an explicit ``supersede_manual_assertion_id`` because no record links a
+    manual assertion to a calendar event, so interval changes alone cannot prove the same booking.
+    The operator's note is the audited attestation. Both writes land in the same returned
+    decisions mapping, so the association and the supersession commit together or not at all.
+    """
+
+    updated = dict(decisions)
+    updated[CALENDAR_BOOKING_ASSOCIATIONS_KEY] = records
+    if not supersede_manual_assertion_id:
+        return updated, []
+    manual_records = [
+        dict(record)
+        for record in updated.get(MANUAL_BOOKING_ASSERTIONS_KEY) or []
+        if isinstance(record, Mapping)
+    ]
+    target = supersession_target(
+        manual_records,
+        tournament_id=str(tournament.get("id") or ""),
+        supersede_manual_assertion_id=supersede_manual_assertion_id,
+        association=association,
+        problem=problem,
+        tournament=tournament,
+    )
+    if target is None:
+        return updated, []
+    reasons = manual_assertion_stale_reasons(target, problem=problem, tournament=tournament)
     target["status"] = MANUAL_ASSERTION_SUPERSEDED
     target["superseded_at"] = now
-    target["superseded_by"] = association_id
+    target["superseded_by"] = str(association.get("id") or "")
     target["supersede_reason"] = str(association.get("note") or "").strip()
     target["superseded_stale_reasons"] = list(reasons)
     updated[MANUAL_BOOKING_ASSERTIONS_KEY] = manual_records
