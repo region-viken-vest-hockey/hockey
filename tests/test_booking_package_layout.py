@@ -12,6 +12,7 @@ BOOKING_MODULES = {
     "arena_conflict_decision",
     "accepted_provenance",
     "arena_conflicts",
+    "assertion_bridge",
     "assessment_candidates",
     "assessment_export",
     "calendar_audit",

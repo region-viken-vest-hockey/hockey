@@ -817,7 +817,7 @@ class CanonicalSeasonService:
         expected_revision: str | None = None,
         supersede: bool = False,
         problem: dict[str, Any] | None = None,
-        dry_run: bool = False,
+        dry_run: bool = False, pin: bool = False, pin_reason: str | None = None,
     ) -> dict[str, Any]:
         return _calendars.set_manual_booking_assertion(
             self,
@@ -835,7 +835,7 @@ class CanonicalSeasonService:
             expected_revision=expected_revision,
             supersede=supersede,
             problem=problem,
-            dry_run=dry_run,
+            dry_run=dry_run, pin=pin, pin_reason=pin_reason,
         )
 
     def clear_manual_booking_assertion(

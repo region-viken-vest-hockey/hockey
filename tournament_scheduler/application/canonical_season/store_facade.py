@@ -737,7 +737,7 @@ def set_manual_booking_assertion(
     expected_revision: str | None = None,
     supersede: bool = False,
     problem: dict[str, Any] | None = None,
-    dry_run: bool = False,
+    dry_run: bool = False, pin: bool = False, pin_reason: str | None = None,
 ) -> dict[str, Any]:
     return _service(root).set_manual_booking_assertion(
         season=season,
@@ -754,7 +754,7 @@ def set_manual_booking_assertion(
         expected_revision=expected_revision,
         supersede=supersede,
         problem=problem,
-        dry_run=dry_run,
+        dry_run=dry_run, pin=pin, pin_reason=pin_reason,
     )
 
 

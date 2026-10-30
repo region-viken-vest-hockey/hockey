@@ -55,6 +55,8 @@ def manual_assertion_matches_existing(
         and str(existing.get("reference") or "") == reference
         and str(existing.get("source_assertion_id") or "")
         == str(candidate.get("source_assertion_id") or "")
+        and bool(existing.get("pinned")) == bool(candidate.get("pinned"))
+        and str(existing.get("pin_reason") or "") == str(candidate.get("pin_reason") or "")
     )
 
 

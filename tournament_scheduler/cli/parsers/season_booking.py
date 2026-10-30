@@ -154,6 +154,8 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
         action="store_true",
         help="Replace a different active assertion for this tournament (requires --note)",
     )
+    season_booking_set.add_argument("--pin", action="store_true", help="Deliberately outlive a differing calendar (rare; needs --pin-reason)")
+    season_booking_set.add_argument("--pin-reason", default=None, help="Why this assertion must outlive the calendar (requires --pin)")
     season_booking_set.add_argument("--dry-run", action="store_true", help="Preview without writing canonical state")
     season_booking_set.add_argument("--json", action="store_true", help="Print structured JSON")
 
