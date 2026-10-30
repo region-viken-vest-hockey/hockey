@@ -58878,6 +58878,45 @@
       "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "Niclas Lindgren",
+      "at": "2026-10-30T10:03:56.761072+00:00",
+      "details": {
+        "blocked_sources": [],
+        "calendar_fingerprint": "83206b678202939a802d0a1fbc42fb2c4215bb43cac55a521b7b38a420a501cd",
+        "planned_tournament_reconciliation": {
+          "Kongsberg": {
+            "count": 8,
+            "requires_review_count": 8
+          },
+          "Ringerike": {
+            "count": 22,
+            "requires_review_count": 0
+          }
+        },
+        "previous_calendar_fingerprint": "d09cd72abe551412c23deaef30180d1e98b4ec41b1f0a3166000c4fb2805f1fd",
+        "previous_snapshot": {
+          "calendar_fingerprint": "d09cd72abe551412c23deaef30180d1e98b4ec41b1f0a3166000c4fb2805f1fd",
+          "captured_at": "2026-10-30T10:03:56.761072+00:00",
+          "had_prior_calendar_evidence": true,
+          "had_prior_source_policy": true,
+          "path": "evidence/calendar/d75cd4f39f93e9459dd0fbfbdfda6e748201a6fa1eb4fee7efb4cb439e7d71b4.json",
+          "sha256": "d75cd4f39f93e9459dd0fbfbdfda6e748201a6fa1eb4fee7efb4cb439e7d71b4",
+          "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0"
+        },
+        "source_count": 9,
+        "source_policy_changes": [],
+        "source_policy_fingerprint": "2b6052db01f4b2ff6bfa0e38c170260d43ff2696f8b17de17f2822bb56d612d0",
+        "stage2_fingerprint": "71516839a0f938f8eb84f2bf58a551c80cb2d0027d484fbee2e5fb5af8acf80c",
+        "target_club": null
+      },
+      "event": "refresh_calendar_evidence",
+      "note": "Refresh calendar evidence before publication review",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ]
 }
