@@ -189,6 +189,44 @@ def test_dry_run_reports_the_same_supersession_that_apply_writes(tmp_path):
     assert preview["association"]["start"] == applied["association"]["start"]
 
 
+def test_a_moved_start_with_an_ineligible_assertion_id_is_refused_before_any_write(tmp_path):
+    """A bare assertion id does not attest the same booking: the request must validate first (#567)."""
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="13:30")])
+    first = _event("2026-09-12", "13:30", "14:50", title="U10 Serierunde", club="A")
+    _confirm(root, first, _ice(80, [first]), "t1", note="accept the calendar block")
+    before = load_decisions("2026-2027", root=root)
+    moved = _event("2026-09-12", "13:00", "14:20", title="U10 Serierunde", club="A")
+
+    with pytest.raises(SeasonStateError, match="is not active for tournament t1"):
+        _confirm(root, moved, _ice(80, [moved]), "t1", supersede="manual_booking:t1:not-a-record", note="attested")
+
+    assert load_decisions("2026-2027", root=root) == before
+
+
+def test_moved_start_replacement_previews_and_applies_identically(tmp_path):
+    """Dry-run and apply agree on a replacement of an existing association, not just on a first confirmation."""
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12", start="13:30")])
+    _club_statement(root, "t1", "2026-09-12", "13:30")
+    first = _event("2026-09-12", "13:30", "14:50", title="U10 Serierunde", club="A")
+    _confirm(root, first, _ice(80, [first]), "t1", note="accept the calendar block")
+    manual_id = _positive_for(load_decisions("2026-2027", root=root), "t1")[0]["id"]
+    before = load_decisions("2026-2027", root=root)
+    moved = _event("2026-09-12", "13:00", "14:20", title="U10 Serierunde", club="A")
+
+    preview = _confirm(root, moved, _ice(80, [moved]), "t1", supersede=manual_id, note="same booking, retimed", dry_run=True)
+
+    assert load_decisions("2026-2027", root=root) == before
+    applied = _confirm(root, moved, _ice(80, [moved]), "t1", supersede=manual_id, note="same booking, retimed")
+    assert preview["superseded_manual_assertions"] == applied["superseded_manual_assertions"] == [manual_id]
+    assert preview["association"]["id"] == applied["association"]["id"]
+    assert (preview["association"]["start"], preview["association"]["end"]) == (applied["association"]["start"], applied["association"]["end"]) == ("13:00", "14:20")
+    decisions = load_decisions("2026-2027", root=root)
+    active = _active_associations(decisions, "t1")
+    assert [r["id"] for r in active] == [applied["association"]["id"]]
+    retired = [r for r in decisions[CALENDAR_BOOKING_ASSOCIATIONS_KEY] if r["tournament_id"] == "t1" and r["status"] != "active"]
+    assert [r["superseded_by"] for r in retired] == [applied["association"]["id"]]
+
+
 # The ten Frisk Asker tournaments blocked on club-wide interpretations (rvv-0065 ... rvv-0191).
 # Each block is the live Frisk Asker calendar event for that tournament, from the 30 Oct feed.
 FRISK_BLOCKED = [
