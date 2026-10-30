@@ -1,6 +1,6 @@
 {
   "actor": "claude-code",
-  "canonical_state_revision": "d47d75bcf583601519cbcf47ace9d0d5230897034f011e608311d6da6eff9ca2",
+  "canonical_state_revision": "5f2d42a9745196882e51539f45e6f323629205d741e14caca7bf78c81ac8b1a3",
   "created_at": "2026-09-18T19:44:06.643372+00:00",
   "decisions": {
     "mp_unplaced_placement_U11_2026_10_18_1": {
@@ -486,13 +486,14 @@
       "status": "approved"
     },
     "rvv-0053": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-30T20:10:02.736090+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "b46a1be4cdbda454420e6995934da96d293be47099a92647b7386def1604ee15",
+      "approved_placement_fingerprint": "eac97b13011ff17f05c1565e9feba748f2b9765b6d5ba9c3fec493298cd136ae",
+      "note": "Calendar booking is the confirmation; the club stated no end time (planned end was plan-derived)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0054": {
       "approved_at": null,
@@ -924,10 +925,11 @@
       "status": "pending_review"
     },
     "rvv-0105": {
-      "approved_at": "2026-09-29T18:41:54.663088+00:00",
+      "approved_at": "2026-10-30T20:10:32.349227+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "2c602c2c3c640f0af090a3323236af6297fb4e515a63bea022091f39ad4ef193",
-      "note": "Jar calendar reconciliation: single overlapping event, date/start/age-group all match ('Serieturnering' title)",
+      "approved_placement_fingerprint": "9c24bf103fb03b040b9f6e87e8e8e646c068202c8591f6f8674f7634a0e5c51f",
+      "note": "Calendar booking is the confirmation; adopt the exact booked end (one-minute planning rounding difference)",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -979,11 +981,11 @@
       "status": "approved"
     },
     "rvv-0111": {
-      "approved_at": "2026-10-15T22:01:34.915293+00:00",
-      "approved_by": "Niclas Lindgren",
+      "approved_at": "2026-10-30T20:10:33.576842+00:00",
+      "approved_by": "niclasl",
       "approved_fingerprint": "cb8e180cfbb97031872d0e95e8fb9d2ae9e30741f739c294fbc39c1a6bd3d8f3",
       "approved_placement_fingerprint": "72e1fcfbdb4ac8205fdf2b1d1e786e6f9a5a87738db81243dcd93a9fa7de1cca",
-      "note": "Re-approved individually 2026-10-16: booking evidence matches exact interval (calendar-confirmed or manual club confirmation); placement unchanged vs published baseline",
+      "note": "Calendar booking is the confirmation; adopt the exact booked end (one-minute planning rounding difference)",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -998,13 +1000,14 @@
       "status": "approved"
     },
     "rvv-0113": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-30T20:10:03.587052+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "7ae5d75b96907123f4eefc143f6a94dc3a62358165d50db9d7d82fcdc5b0978d",
+      "approved_placement_fingerprint": "879c24273246d4edd7a224cb583ee96be153e89ec6a6278676651c239a1d5b86",
+      "note": "Calendar booking is the confirmation; the club stated no end time (planned end was plan-derived)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0114": {
       "approved_at": "2026-09-29T17:10:58.175811+00:00",
@@ -1053,10 +1056,11 @@
       "status": "approved"
     },
     "rvv-0119": {
-      "approved_at": "2026-09-29T18:41:55.400750+00:00",
+      "approved_at": "2026-10-30T20:10:34.848109+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "2a91ae91bb69cccee6bcac1654c211ec358df149f9e05c40bcc0cc74f2e3a647",
-      "note": "Jar calendar reconciliation: single overlapping event, date/start/age-group all match ('Serieturnering' title)",
+      "approved_placement_fingerprint": "3e97ba091ee28cf03d74de2a9f0c31c724efe0339624f76c245a11d280bcc211",
+      "note": "Calendar booking is the confirmation; adopt the exact booked end (one-minute planning rounding difference)",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -1208,10 +1212,11 @@
       "status": "approved"
     },
     "rvv-0136": {
-      "approved_at": "2026-09-29T18:41:57.640988+00:00",
+      "approved_at": "2026-10-30T20:10:36.045165+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "a787454820fd54d1692011a353f55775b20cfc43416e122a45d15187476a6dee",
-      "note": "Jar calendar reconciliation: single overlapping event, date/start/age-group all match ('Serieturnering' title)",
+      "approved_placement_fingerprint": "b9190a85c9790d4c5af887887ba99b0eecd1c6d30b8e846c1ca8bf20a6c71787",
+      "note": "Calendar booking is the confirmation; adopt the exact booked end (one-minute planning rounding difference)",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -1407,13 +1412,14 @@
       "status": "pending_review"
     },
     "rvv-0158": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-30T20:10:04.440819+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "0c9c3928dd0a50a43c380a36a08ef46df3c591a1e421fad7f954336aeb3a9708",
+      "approved_placement_fingerprint": "73ff7d8a5972e309ad73544a5837224aed8047f1c3fe5471fc851bdeeba8f7bb",
+      "note": "Calendar booking is the confirmation; the club stated no end time (planned end was plan-derived)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0159": {
       "approved_at": "2026-09-25T11:05:27.776403+00:00",
@@ -1425,10 +1431,11 @@
       "status": "approved"
     },
     "rvv-0160": {
-      "approved_at": "2026-09-29T18:41:56.905069+00:00",
+      "approved_at": "2026-10-30T20:10:37.216141+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "8ebb060dd8ef2997b70cf8a5b5d775fbe2c8a3eaf5a2c6a9cdfddc4e1e257c87",
-      "note": "Jar calendar reconciliation: single overlapping event, date/start/age-group all match ('Serieturnering' title)",
+      "approved_placement_fingerprint": "37ba68b6e8e794b186c1729b0a28c57bb9088cef6c463207305794ee55f0b59c",
+      "note": "Calendar booking is the confirmation; adopt the exact booked end (one-minute planning rounding difference)",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -1648,13 +1655,14 @@
       "status": "approved"
     },
     "rvv-0184": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-30T20:10:05.271115+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "4f7d13c3a32fb69ccb62cd8438992b37d51e9293a0f9c5be2fa2dd791a6f2ddf",
+      "approved_placement_fingerprint": "560457d4a2725d2dbe1d164572ac698390e468859fb332d84c9da2a9534833d4",
+      "note": "Calendar booking is the confirmation; the club stated no end time (planned end was plan-derived)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0185": {
       "approved_at": "2026-09-22T14:08:44.339476+00:00",
@@ -1684,10 +1692,11 @@
       "status": "approved"
     },
     "rvv-0189": {
-      "approved_at": "2026-09-29T18:41:56.155297+00:00",
+      "approved_at": "2026-10-30T20:10:38.432349+00:00",
       "approved_by": "niclasl",
       "approved_fingerprint": "98ac728ccf884cdc9b8cc24eedb87a02711d2faa6b1901ab74e3b09c62badff9",
-      "note": "Jar calendar reconciliation: single overlapping event, date/start/age-group all match ('Serieturnering' title)",
+      "approved_placement_fingerprint": "ef657c451f8d2213dea492aa05742ce920305661f4d0318977d14919b682dc81",
+      "note": "Calendar booking is the confirmation; adopt the exact booked end (one-minute planning rounding difference)",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -181553,5 +181562,5 @@
     "sealed_by": "niclasl",
     "state": "published_sealed"
   },
-  "updated_at": "2026-10-30T11:09:27.091289+00:00"
+  "updated_at": "2026-10-30T20:10:38.432349+00:00"
 }
