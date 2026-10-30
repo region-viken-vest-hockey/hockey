@@ -1,7 +1,9 @@
 """Shared hard-verification gate for scoped single operations.
 
-Replace, swap, move and remove verify the candidate against the pre-operation
-canonical state with the same baseline classification batch maintenance uses.
+Replace, swap, move, remove and rename verify the candidate against the pre-operation
+canonical state with the same baseline classification batch maintenance uses. A rename
+moves no placement, so an unchanged accepted booking interval is not a new violation,
+while anything new or worsened still blocks.
 Writers and dry-run previews both go through this module, so the preview
 verdict is the writer verdict by construction.
 
