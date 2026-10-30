@@ -1,6 +1,6 @@
 {
   "actor": "claude-code",
-  "canonical_state_revision": "bfbd3632b6476c0301779e56b11d41fdb4cf619a699644b051a44a4f4ab0df4d",
+  "canonical_state_revision": "b42e22cd53e87a16f5e1de73caa13d9e10fd7f80a7a1dd49a08b246cbdfe9270",
   "created_at": "2026-09-18T19:44:06.643372+00:00",
   "decisions": {
     "mp_unplaced_placement_U11_2026_10_18_1": {
@@ -182,7 +182,7 @@
     "rvv-0020": {
       "approved_at": "2026-10-15T10:08:45.993967+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "f4aa816f0c42967aebf83fe46859f87a07cf717a4d52c3d10447d05affb90da6",
+      "approved_fingerprint": "7976ee6fa52069823ff348bb66285380b4d85a543b80dab54152592330d46b88",
       "approved_placement_fingerprint": "53deb6a23ba063ec72d44745b8aead4b9ed4663207b6f731389b42dc8d9abe79",
       "note": "Operator confirmed Skien calendar event matches planned interval (2026-10-15)",
       "participants_locked": false,
@@ -819,7 +819,7 @@
     "rvv-0094": {
       "approved_at": "2026-09-25T11:05:49.002417+00:00",
       "approved_by": "nicli",
-      "approved_fingerprint": "11a859b5ce9d912428ccee46252c532dd878a250f95e7e08bc9b48ff143e224e",
+      "approved_fingerprint": "6fc1cc0f8496b268e91b16bb2e907da8d49554edbd2b1b3001cd67e72d491daa",
       "approved_placement_fingerprint": null,
       "note": "Tønsberg confirmed: 'Rest is booked as per season_plan' (changes_and_confirmations/2026-27/Tønsberg.txt).",
       "participants_locked": false,
@@ -1232,7 +1232,7 @@
     "rvv-0139": {
       "approved_at": "2026-09-27T19:28:24.907877+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "8a6e6af92ce64c7531d0b1df918e7c461aaec2ad818849a46e666d365c7f2236",
+      "approved_fingerprint": "11782f87b3f89cc4d086564a3c9499b2df84d07635aa9cfeafe714b9d5af4ef9",
       "note": "Reapproved: roster/content unaffected by the unrelated Kongsberg U11 (mp_unplaced_placement_U11_2026_10_18_1) move to 2026-11-08; staleness was triggered only by the season-wide schedule fingerprint change.",
       "participants_locked": false,
       "placement_locked": true,
@@ -1382,7 +1382,7 @@
     "rvv-0156": {
       "approved_at": "2026-09-22T14:20:24.146740+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "8a9d37416f38920aa08175f5e1b5cd466a0bb12b57bfb48846bf013b4de9e7f3",
+      "approved_fingerprint": "e612db916545ad4f04618763bee6d8ecec4fd120df5a1402078b82625a914bcb",
       "approved_placement_fingerprint": null,
       "note": "Tønsberg confirmed this updated schedule",
       "participants_locked": false,
@@ -1597,7 +1597,7 @@
     "rvv-0179": {
       "approved_at": "2026-10-27T14:20:33.636131+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "880c82e1cda164ab5e0bf93ce3146303588ed488739f2a8c8114d2a01e301792",
+      "approved_fingerprint": "38b27da452254cc502d8f5cff43c6d1ff678c6c91ab38916313a81cea6ca2ba2",
       "approved_placement_fingerprint": "d1bbfe4ef44950d3c9e202aed663c55faa4f18593740e670bce0fdf885120e4c",
       "note": "Stated 13:30-14:50 accepted as canonical for #853/#860 (approved in session); 80 min is below the JU8 governing minimum and stays a feasibility finding",
       "participants_locked": false,
@@ -1706,13 +1706,17 @@
   },
   "export_state": {
     "calendar_fingerprint": "d09cd72abe551412c23deaef30180d1e98b4ec41b1f0a3166000c4fb2805f1fd",
+    "export_dir": "export/2026-10-30T0912",
+    "fresh_at": "2026-10-30T09:13:22.908965+00:00",
+    "fresh_by": "niclasl",
+    "fresh_canonical_revision": "b42e22cd53e87a16f5e1de73caa13d9e10fd7f80a7a1dd49a08b246cbdfe9270",
     "requires_fresh_audit": true,
-    "requires_fresh_export": true,
+    "requires_fresh_export": false,
     "stale_at": "2026-10-27T09:53:00.670041+00:00",
     "stale_reason": "calendar_evidence_refreshed",
-    "status": "stale"
+    "status": "fresh"
   },
-  "schedule_fingerprint": "63c066260752dcc419b34bce9177faf435ea32b65577de22104a3d34d80ee7ad",
+  "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
   "schema_version": 1,
   "season": "2026-2027",
   "season_lifecycle": {
@@ -181545,5 +181549,5 @@
     "sealed_by": "niclasl",
     "state": "published_sealed"
   },
-  "updated_at": "2026-10-27T17:26:27.258951+00:00"
+  "updated_at": "2026-10-30T09:13:22.908965+00:00"
 }

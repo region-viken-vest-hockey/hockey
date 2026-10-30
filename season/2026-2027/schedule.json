@@ -1,264 +1,8 @@
 {
   "applied_from": {
-    "actor": "nicli",
-    "operational_acceptability": {
-      "added_by_category": {},
-      "after_counts": {
-        "fixed_busy_placement": 10,
-        "host_confirmation_dependency": 0,
-        "manual_calendar_placement": 89,
-        "unresolved_placement_obligation": 9
-      },
-      "after_profile": {
-        "fixed_busy_placement": [
-          "rvv-0024",
-          "rvv-0037",
-          "rvv-0048",
-          "rvv-0095",
-          "rvv-0102",
-          "rvv-0121",
-          "rvv-0128",
-          "rvv-0155",
-          "rvv-0157",
-          "rvv-0179"
-        ],
-        "host_confirmation_dependency": [],
-        "manual_calendar_placement": [
-          "mp_unplaced_placement_U11_2026_10_18_1",
-          "rvv-0003",
-          "rvv-0004",
-          "rvv-0005",
-          "rvv-0007",
-          "rvv-0008",
-          "rvv-0009",
-          "rvv-0011",
-          "rvv-0013",
-          "rvv-0017",
-          "rvv-0018",
-          "rvv-0020",
-          "rvv-0021",
-          "rvv-0026",
-          "rvv-0028",
-          "rvv-0029",
-          "rvv-0030",
-          "rvv-0031",
-          "rvv-0034",
-          "rvv-0035",
-          "rvv-0039",
-          "rvv-0040",
-          "rvv-0041",
-          "rvv-0045",
-          "rvv-0049",
-          "rvv-0050",
-          "rvv-0051",
-          "rvv-0052",
-          "rvv-0053",
-          "rvv-0055",
-          "rvv-0061",
-          "rvv-0062",
-          "rvv-0066",
-          "rvv-0071",
-          "rvv-0076",
-          "rvv-0077",
-          "rvv-0082",
-          "rvv-0090",
-          "rvv-0091",
-          "rvv-0093",
-          "rvv-0094",
-          "rvv-0096",
-          "rvv-0098",
-          "rvv-0101",
-          "rvv-0105",
-          "rvv-0107",
-          "rvv-0108",
-          "rvv-0109",
-          "rvv-0110",
-          "rvv-0111",
-          "rvv-0112",
-          "rvv-0113",
-          "rvv-0115",
-          "rvv-0119",
-          "rvv-0123",
-          "rvv-0124",
-          "rvv-0129",
-          "rvv-0131",
-          "rvv-0132",
-          "rvv-0133",
-          "rvv-0136",
-          "rvv-0138",
-          "rvv-0139",
-          "rvv-0141",
-          "rvv-0144",
-          "rvv-0145",
-          "rvv-0150",
-          "rvv-0153",
-          "rvv-0154",
-          "rvv-0156",
-          "rvv-0158",
-          "rvv-0159",
-          "rvv-0160",
-          "rvv-0161",
-          "rvv-0162",
-          "rvv-0165",
-          "rvv-0166",
-          "rvv-0168",
-          "rvv-0169",
-          "rvv-0171",
-          "rvv-0172",
-          "rvv-0175",
-          "rvv-0176",
-          "rvv-0177",
-          "rvv-0180",
-          "rvv-0183",
-          "rvv-0184",
-          "rvv-0185",
-          "rvv-0189"
-        ],
-        "unresolved_placement_obligation": [
-          "unplaced_placement:U10:2026-12-26:1",
-          "unplaced_placement:U10:2026-12-27:1",
-          "unplaced_placement:U11:2026-11-07:1",
-          "unplaced_placement:U11:2026-12-06:1",
-          "unplaced_placement:U11:2027-02-20:1",
-          "unplaced_placement:U12:2026-10-17:1",
-          "unplaced_placement:U12:2026-12-27:1",
-          "unplaced_placement:U12:2027-03-14:1",
-          "unplaced_placement:U9:2026-11-28:1"
-        ]
-      },
-      "allowed": {
-        "allow_host_confirmation": false,
-        "allow_manual_placement": false
-      },
-      "before_counts": {
-        "fixed_busy_placement": 10,
-        "host_confirmation_dependency": 0,
-        "manual_calendar_placement": 90,
-        "unresolved_placement_obligation": 9
-      },
-      "before_profile": {
-        "fixed_busy_placement": [
-          "rvv-0024",
-          "rvv-0037",
-          "rvv-0048",
-          "rvv-0095",
-          "rvv-0102",
-          "rvv-0121",
-          "rvv-0128",
-          "rvv-0155",
-          "rvv-0157",
-          "rvv-0179"
-        ],
-        "host_confirmation_dependency": [],
-        "manual_calendar_placement": [
-          "mp_unplaced_placement_U11_2026_10_18_1",
-          "rvv-0003",
-          "rvv-0004",
-          "rvv-0005",
-          "rvv-0007",
-          "rvv-0008",
-          "rvv-0009",
-          "rvv-0011",
-          "rvv-0013",
-          "rvv-0016",
-          "rvv-0017",
-          "rvv-0018",
-          "rvv-0020",
-          "rvv-0021",
-          "rvv-0026",
-          "rvv-0028",
-          "rvv-0029",
-          "rvv-0030",
-          "rvv-0031",
-          "rvv-0034",
-          "rvv-0035",
-          "rvv-0039",
-          "rvv-0040",
-          "rvv-0041",
-          "rvv-0045",
-          "rvv-0049",
-          "rvv-0050",
-          "rvv-0051",
-          "rvv-0052",
-          "rvv-0053",
-          "rvv-0055",
-          "rvv-0061",
-          "rvv-0062",
-          "rvv-0066",
-          "rvv-0071",
-          "rvv-0076",
-          "rvv-0077",
-          "rvv-0082",
-          "rvv-0090",
-          "rvv-0091",
-          "rvv-0093",
-          "rvv-0094",
-          "rvv-0096",
-          "rvv-0098",
-          "rvv-0101",
-          "rvv-0105",
-          "rvv-0107",
-          "rvv-0108",
-          "rvv-0109",
-          "rvv-0110",
-          "rvv-0111",
-          "rvv-0112",
-          "rvv-0113",
-          "rvv-0115",
-          "rvv-0119",
-          "rvv-0123",
-          "rvv-0124",
-          "rvv-0129",
-          "rvv-0131",
-          "rvv-0132",
-          "rvv-0133",
-          "rvv-0136",
-          "rvv-0138",
-          "rvv-0139",
-          "rvv-0141",
-          "rvv-0144",
-          "rvv-0145",
-          "rvv-0150",
-          "rvv-0153",
-          "rvv-0154",
-          "rvv-0156",
-          "rvv-0158",
-          "rvv-0159",
-          "rvv-0160",
-          "rvv-0161",
-          "rvv-0162",
-          "rvv-0165",
-          "rvv-0166",
-          "rvv-0168",
-          "rvv-0169",
-          "rvv-0171",
-          "rvv-0172",
-          "rvv-0175",
-          "rvv-0176",
-          "rvv-0177",
-          "rvv-0180",
-          "rvv-0183",
-          "rvv-0184",
-          "rvv-0185",
-          "rvv-0189"
-        ],
-        "unresolved_placement_obligation": [
-          "unplaced_placement:U10:2026-12-26:1",
-          "unplaced_placement:U10:2026-12-27:1",
-          "unplaced_placement:U11:2026-11-07:1",
-          "unplaced_placement:U11:2026-12-06:1",
-          "unplaced_placement:U11:2027-02-20:1",
-          "unplaced_placement:U12:2026-10-17:1",
-          "unplaced_placement:U12:2026-12-27:1",
-          "unplaced_placement:U12:2027-03-14:1",
-          "unplaced_placement:U9:2026-11-28:1"
-        ]
-      },
-      "ok": true,
-      "regressions": [],
-      "schema_version": 1
-    },
-    "previous_revision": "24b70e7d8482c0d2b81e45b97254714228b6736c9e6e2b978f3bdf05b38a3ad8"
+    "actor": "Niclas Lindgren",
+    "operation": "team_identity_rename",
+    "previous_revision": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6"
   },
   "arena_normalization": {
     "changed": true,
@@ -382,7 +126,7 @@
     ]
   },
   "created_at": "2026-09-18T19:44:06.643372+00:00",
-  "fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+  "fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
   "plan": {
     "arena_counts": {
       "Askerhallen": 44,
@@ -7789,7 +7533,7 @@
           {
             "actual": 5,
             "target": 6,
-            "team": "Jar"
+            "team": "Wildcats Turkis"
           }
         ]
       },
@@ -7810,7 +7554,7 @@
           {
             "actual": 2,
             "target": 3,
-            "team": "Jar"
+            "team": "Wildcats Turkis"
           }
         ]
       },
@@ -7831,7 +7575,7 @@
           {
             "actual": 3,
             "target": 3,
-            "team": "Jar"
+            "team": "Wildcats Turkis"
           }
         ]
       },
@@ -8653,7 +8397,7 @@
           {
             "actual": 5,
             "target": 6,
-            "team": "Jutul Kittens"
+            "team": "Wildcats Rosa"
           }
         ]
       },
@@ -8674,7 +8418,7 @@
           {
             "actual": 2,
             "target": 3,
-            "team": "Jutul Kittens"
+            "team": "Wildcats Rosa"
           }
         ]
       },
@@ -8695,7 +8439,7 @@
           {
             "actual": 3,
             "target": 3,
-            "team": "Jutul Kittens"
+            "team": "Wildcats Rosa"
           }
         ]
       },
@@ -11344,7 +11088,7 @@
         },
         {
           "code": "booking_feasibility_warnings",
-          "count": 23
+          "count": 24
         }
       ],
       "publishable": false,
@@ -11359,7 +11103,7 @@
         },
         {
           "code": "external_calendar_conflicts",
-          "count": 10
+          "count": 9
         },
         {
           "code": "participation_shortfalls",
@@ -13322,14 +13066,14 @@
         "date": "2026-11-29",
         "games": [
           {
-            "away": "Jutul Kittens",
+            "away": "Wildcats Rosa",
             "home": "Frisk Asker",
             "parallel_slot": 0,
             "round_number": 1
           },
           {
             "away": "Skien",
-            "home": "Jar",
+            "home": "Wildcats Turkis",
             "parallel_slot": 1,
             "round_number": 1
           },
@@ -13340,20 +13084,20 @@
             "round_number": 2
           },
           {
-            "away": "Jutul Kittens",
-            "home": "Jar",
+            "away": "Wildcats Rosa",
+            "home": "Wildcats Turkis",
             "parallel_slot": 1,
             "round_number": 2
           },
           {
-            "away": "Jar",
+            "away": "Wildcats Turkis",
             "home": "Frisk Asker",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
             "away": "Skien",
-            "home": "Jutul Kittens",
+            "home": "Wildcats Rosa",
             "parallel_slot": 1,
             "round_number": 3
           }
@@ -13370,12 +13114,12 @@
           {
             "age_group": "JU8",
             "club": "Jar",
-            "label": "Jar"
+            "label": "Wildcats Turkis"
           },
           {
             "age_group": "JU8",
             "club": "Jutul",
-            "label": "Jutul Kittens"
+            "label": "Wildcats Rosa"
           },
           {
             "age_group": "JU8",
@@ -15855,13 +15599,13 @@
         "games": [
           {
             "away": "Ringerike 1",
-            "home": "Jar",
+            "home": "Wildcats Turkis",
             "parallel_slot": 0,
             "round_number": 1
           },
           {
             "away": "Skien",
-            "home": "Jutul Kittens",
+            "home": "Wildcats Rosa",
             "parallel_slot": 1,
             "round_number": 1
           },
@@ -15873,12 +15617,12 @@
           },
           {
             "away": "Ringerike 1",
-            "home": "Jutul Kittens",
+            "home": "Wildcats Rosa",
             "parallel_slot": 1,
             "round_number": 2
           },
           {
-            "away": "Jar",
+            "away": "Wildcats Turkis",
             "home": "Frisk Asker",
             "parallel_slot": 0,
             "round_number": 3
@@ -15890,14 +15634,14 @@
             "round_number": 3
           },
           {
-            "away": "Jutul Kittens",
+            "away": "Wildcats Rosa",
             "home": "Frisk Asker",
             "parallel_slot": 0,
             "round_number": 4
           },
           {
             "away": "Skien",
-            "home": "Jar",
+            "home": "Wildcats Turkis",
             "parallel_slot": 1,
             "round_number": 4
           },
@@ -15908,8 +15652,8 @@
             "round_number": 5
           },
           {
-            "away": "Jutul Kittens",
-            "home": "Jar",
+            "away": "Wildcats Rosa",
+            "home": "Wildcats Turkis",
             "parallel_slot": 1,
             "round_number": 5
           }
@@ -15926,12 +15670,12 @@
           {
             "age_group": "JU8",
             "club": "Jar",
-            "label": "Jar"
+            "label": "Wildcats Turkis"
           },
           {
             "age_group": "JU8",
             "club": "Jutul",
-            "label": "Jutul Kittens"
+            "label": "Wildcats Rosa"
           },
           {
             "age_group": "JU8",
@@ -18525,14 +18269,14 @@
         "date": "2026-11-07",
         "games": [
           {
-            "away": "Jutul Kittens",
+            "away": "Wildcats Rosa",
             "home": "Frisk Asker",
             "parallel_slot": 0,
             "round_number": 1
           },
           {
             "away": "Skien",
-            "home": "Jar",
+            "home": "Wildcats Turkis",
             "parallel_slot": 1,
             "round_number": 1
           },
@@ -18543,20 +18287,20 @@
             "round_number": 2
           },
           {
-            "away": "Jutul Kittens",
-            "home": "Jar",
+            "away": "Wildcats Rosa",
+            "home": "Wildcats Turkis",
             "parallel_slot": 1,
             "round_number": 2
           },
           {
-            "away": "Jar",
+            "away": "Wildcats Turkis",
             "home": "Frisk Asker",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
             "away": "Skien",
-            "home": "Jutul Kittens",
+            "home": "Wildcats Rosa",
             "parallel_slot": 1,
             "round_number": 3
           }
@@ -18573,12 +18317,12 @@
           {
             "age_group": "JU8",
             "club": "Jar",
-            "label": "Jar"
+            "label": "Wildcats Turkis"
           },
           {
             "age_group": "JU8",
             "club": "Jutul",
-            "label": "Jutul Kittens"
+            "label": "Wildcats Rosa"
           },
           {
             "age_group": "JU8",
@@ -19647,14 +19391,14 @@
         "date": "2027-01-17",
         "games": [
           {
-            "away": "Jutul Kittens",
+            "away": "Wildcats Rosa",
             "home": "Frisk Asker",
             "parallel_slot": 0,
             "round_number": 1
           },
           {
             "away": "Skien",
-            "home": "Jar",
+            "home": "Wildcats Turkis",
             "parallel_slot": 1,
             "round_number": 1
           },
@@ -19665,20 +19409,20 @@
             "round_number": 2
           },
           {
-            "away": "Jutul Kittens",
-            "home": "Jar",
+            "away": "Wildcats Rosa",
+            "home": "Wildcats Turkis",
             "parallel_slot": 1,
             "round_number": 2
           },
           {
-            "away": "Jar",
+            "away": "Wildcats Turkis",
             "home": "Frisk Asker",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
             "away": "Skien",
-            "home": "Jutul Kittens",
+            "home": "Wildcats Rosa",
             "parallel_slot": 1,
             "round_number": 3
           }
@@ -19695,12 +19439,12 @@
           {
             "age_group": "JU8",
             "club": "Jar",
-            "label": "Jar"
+            "label": "Wildcats Turkis"
           },
           {
             "age_group": "JU8",
             "club": "Jutul",
-            "label": "Jutul Kittens"
+            "label": "Wildcats Rosa"
           },
           {
             "age_group": "JU8",
@@ -22976,14 +22720,14 @@
         "date": "2027-02-13",
         "games": [
           {
-            "away": "Jutul Kittens",
+            "away": "Wildcats Rosa",
             "home": "Frisk Asker",
             "parallel_slot": 0,
             "round_number": 1
           },
           {
             "away": "Skien",
-            "home": "Jar",
+            "home": "Wildcats Turkis",
             "parallel_slot": 1,
             "round_number": 1
           },
@@ -22994,20 +22738,20 @@
             "round_number": 2
           },
           {
-            "away": "Jutul Kittens",
-            "home": "Jar",
+            "away": "Wildcats Rosa",
+            "home": "Wildcats Turkis",
             "parallel_slot": 1,
             "round_number": 2
           },
           {
-            "away": "Jar",
+            "away": "Wildcats Turkis",
             "home": "Frisk Asker",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
             "away": "Skien",
-            "home": "Jutul Kittens",
+            "home": "Wildcats Rosa",
             "parallel_slot": 1,
             "round_number": 3
           }
@@ -23024,12 +22768,12 @@
           {
             "age_group": "JU8",
             "club": "Jar",
-            "label": "Jar"
+            "label": "Wildcats Turkis"
           },
           {
             "age_group": "JU8",
             "club": "Jutul",
-            "label": "Jutul Kittens"
+            "label": "Wildcats Rosa"
           },
           {
             "age_group": "JU8",
@@ -26395,14 +26139,14 @@
         "date": "2027-03-13",
         "games": [
           {
-            "away": "Jutul Kittens",
+            "away": "Wildcats Rosa",
             "home": "Frisk Asker",
             "parallel_slot": 0,
             "round_number": 1
           },
           {
             "away": "Skien",
-            "home": "Jar",
+            "home": "Wildcats Turkis",
             "parallel_slot": 1,
             "round_number": 1
           },
@@ -26413,20 +26157,20 @@
             "round_number": 2
           },
           {
-            "away": "Jutul Kittens",
-            "home": "Jar",
+            "away": "Wildcats Rosa",
+            "home": "Wildcats Turkis",
             "parallel_slot": 1,
             "round_number": 2
           },
           {
-            "away": "Jar",
+            "away": "Wildcats Turkis",
             "home": "Frisk Asker",
             "parallel_slot": 0,
             "round_number": 3
           },
           {
             "away": "Skien",
-            "home": "Jutul Kittens",
+            "home": "Wildcats Rosa",
             "parallel_slot": 1,
             "round_number": 3
           }
@@ -26443,12 +26187,12 @@
           {
             "age_group": "JU8",
             "club": "Jar",
-            "label": "Jar"
+            "label": "Wildcats Turkis"
           },
           {
             "age_group": "JU8",
             "club": "Jutul",
-            "label": "Jutul Kittens"
+            "label": "Wildcats Rosa"
           },
           {
             "age_group": "JU8",
@@ -33472,13 +33216,6 @@
         "tournament_id": "rvv-0157"
       },
       {
-        "age_group": "JU8",
-        "date": "2027-03-13",
-        "host_club": "Frisk Asker",
-        "reason": "external calendar conflict requires manual resolution",
-        "tournament_id": "rvv-0179"
-      },
-      {
         "age_group": "U12",
         "date": "2026-11-14",
         "host_club": "Frisk Asker",
@@ -35633,40 +35370,6 @@
       },
       {
         "actual": "2",
-        "age_group": "JU8",
-        "category": "participation_under_target",
-        "club": "Jar",
-        "club_pool": {
-          "age_group": "JU8",
-          "classification": "single_team_deviation",
-          "club": "Jar",
-          "club_pool_actual": 2,
-          "club_pool_deviation": -1,
-          "club_pool_target": 3,
-          "counts_as_unresolved_shortfall": true,
-          "minor_shortfall_threshold": null,
-          "nominal_target_per_team": 3,
-          "planning_significance": "material",
-          "registered_team_count": 1,
-          "scope": "before_christmas",
-          "team_distribution": [
-            {
-              "actual": 2,
-              "target": 3,
-              "team": "Jar"
-            }
-          ]
-        },
-        "club_pool_classification": "single_team_deviation",
-        "club_pool_significance": "material",
-        "counts_as_unresolved_shortfall": true,
-        "half": "before_christmas",
-        "label": "Jar",
-        "reason": "actual participation count does not match target",
-        "target": "3"
-      },
-      {
-        "actual": "2",
         "age_group": "JU10",
         "category": "participation_under_target",
         "club": "Jar",
@@ -37293,6 +36996,40 @@
         "target": "3"
       },
       {
+        "actual": "2",
+        "age_group": "JU8",
+        "category": "participation_under_target",
+        "club": "Jar",
+        "club_pool": {
+          "age_group": "JU8",
+          "classification": "single_team_deviation",
+          "club": "Jar",
+          "club_pool_actual": 2,
+          "club_pool_deviation": -1,
+          "club_pool_target": 3,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": null,
+          "nominal_target_per_team": 3,
+          "planning_significance": "material",
+          "registered_team_count": 1,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 2,
+              "target": 3,
+              "team": "Wildcats Turkis"
+            }
+          ]
+        },
+        "club_pool_classification": "single_team_deviation",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Wildcats Turkis",
+        "reason": "actual participation count does not match target",
+        "target": "3"
+      },
+      {
         "actual": "3",
         "age_group": "U10",
         "category": "participation_under_target",
@@ -37816,40 +37553,6 @@
         "target": "4"
       },
       {
-        "actual": "2",
-        "age_group": "JU8",
-        "category": "participation_under_target",
-        "club": "Jutul",
-        "club_pool": {
-          "age_group": "JU8",
-          "classification": "single_team_deviation",
-          "club": "Jutul",
-          "club_pool_actual": 2,
-          "club_pool_deviation": -1,
-          "club_pool_target": 3,
-          "counts_as_unresolved_shortfall": true,
-          "minor_shortfall_threshold": null,
-          "nominal_target_per_team": 3,
-          "planning_significance": "material",
-          "registered_team_count": 1,
-          "scope": "before_christmas",
-          "team_distribution": [
-            {
-              "actual": 2,
-              "target": 3,
-              "team": "Jutul Kittens"
-            }
-          ]
-        },
-        "club_pool_classification": "single_team_deviation",
-        "club_pool_significance": "material",
-        "counts_as_unresolved_shortfall": true,
-        "half": "before_christmas",
-        "label": "Jutul Kittens",
-        "reason": "actual participation count does not match target",
-        "target": "3"
-      },
-      {
         "actual": "3",
         "age_group": "U10",
         "category": "participation_under_target",
@@ -38097,6 +37800,40 @@
         "label": "Jutul/Jar Kittens",
         "reason": "actual participation count does not match target",
         "target": "5"
+      },
+      {
+        "actual": "2",
+        "age_group": "JU8",
+        "category": "participation_under_target",
+        "club": "Jutul",
+        "club_pool": {
+          "age_group": "JU8",
+          "classification": "single_team_deviation",
+          "club": "Jutul",
+          "club_pool_actual": 2,
+          "club_pool_deviation": -1,
+          "club_pool_target": 3,
+          "counts_as_unresolved_shortfall": true,
+          "minor_shortfall_threshold": null,
+          "nominal_target_per_team": 3,
+          "planning_significance": "material",
+          "registered_team_count": 1,
+          "scope": "before_christmas",
+          "team_distribution": [
+            {
+              "actual": 2,
+              "target": 3,
+              "team": "Wildcats Rosa"
+            }
+          ]
+        },
+        "club_pool_classification": "single_team_deviation",
+        "club_pool_significance": "material",
+        "counts_as_unresolved_shortfall": true,
+        "half": "before_christmas",
+        "label": "Wildcats Rosa",
+        "reason": "actual participation count does not match target",
+        "target": "3"
       },
       {
         "actual": "3",
@@ -41094,26 +40831,23 @@
   },
   "plan_schema_version": 1,
   "promoted_from": {
-    "export_fresh_at": "2026-10-16T06:28:38.722354+00:00",
-    "export_fresh_revision": "245e425ef51ba508c04a5ca42d5c20220ecafb0d9e4acf8d35e5e27b41ef89ee",
-    "export_stale": true,
-    "export_stale_at": "2026-10-27T09:53:00.670041+00:00",
-    "export_stale_reason": "calendar evidence refreshed",
+    "export_fresh_at": "2026-10-30T09:13:22.908965+00:00",
+    "export_fresh_revision": "b42e22cd53e87a16f5e1de73caa13d9e10fd7f80a7a1dd49a08b246cbdfe9270",
     "public_export_context_fingerprint": "f5ac564e3b0f7eac33196110185cb082556676d5fe9f8bbd33ea0be77bbfc415",
     "run_id": "20260918T135604Z-8d38f146",
     "stage3_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
     "stage4_export_dir": "/tmp/2026-09-18T1900",
     "stage4_export_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
     "verification_context_candidate_fingerprint": "17b91a521c5715f23441e008b858457421cda3538d79907eb2ab1373dfa8377a",
-    "verification_context_problem_fingerprint": "a9976643db10dde83d954cb7a54e601d833e85b3ab9505c69c965acec1e845a4",
+    "verification_context_problem_fingerprint": "8e1c662aba676f594a9941636146e6aa4b2cc947ef69b714120aa3675ece3bbb",
     "verification_context_schema_version": 1,
     "verification_context_verified_ok": true,
     "work_dir": ".pipeline"
   },
-  "revision": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+  "revision": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
   "schema_version": 1,
   "season": "2026-2027",
-  "updated_at": "2026-10-27T09:53:00.670041+00:00",
+  "updated_at": "2026-10-30T09:12:49.046512+00:00",
   "verification_context": {
     "calendar_evidence": {
       "blocked_sources": [],
@@ -136677,12 +136411,12 @@
         {
           "age_group": "JU8",
           "club": "Jar",
-          "label": "Jar"
+          "label": "Wildcats Turkis"
         },
         {
           "age_group": "JU8",
           "club": "Jutul",
-          "label": "Jutul Kittens"
+          "label": "Wildcats Rosa"
         },
         {
           "age_group": "JU8",
@@ -205758,7 +205492,7 @@
         }
       ]
     },
-    "problem_fingerprint": "df984335e364923d1ff4e307cfbd23f082b570b318cf35d34f86d9454d1334df",
+    "problem_fingerprint": "8e1c662aba676f594a9941636146e6aa4b2cc947ef69b714120aa3675ece3bbb",
     "run_id": "20260918T135604Z-8d38f146",
     "schema_version": 1,
     "verify_ok": true

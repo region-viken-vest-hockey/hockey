@@ -1,21 +1,21 @@
 {
-  "canonical_state_revision": "bfbd3632b6476c0301779e56b11d41fdb4cf619a699644b051a44a4f4ab0df4d",
+  "canonical_state_revision": "b42e22cd53e87a16f5e1de73caa13d9e10fd7f80a7a1dd49a08b246cbdfe9270",
   "layout_version": 2,
   "partitions": [
     {
       "name": "schedule",
       "path": "schedule.json",
-      "sha256": "8a4df673ee3d98af28e8a315f30015f23ab8c79168b8dd9fb1006e18cb718147"
+      "sha256": "c86e5437cfffac3d3eb8651452953fb05dead3b81f75a46e52bba41b8350a119"
     },
     {
       "name": "operations",
       "path": "decisions/operations.json",
-      "sha256": "c67141313e6a00e06748e38dfd3a172f3a95857276ef64eed6ae05cd276ca140"
+      "sha256": "fc7d64940f465a8dcf7445c1a824332f514a689a013b751ccd2b52265d60ab31"
     },
     {
       "name": "history",
       "path": "decisions/history.json",
-      "sha256": "abb1755fcbfa777e75c1de518b6827931962d93a0a25e15886a78f9416df997c"
+      "sha256": "7390ca29be70027d1a3949fbd4a299707b35e4094dca39d30186bce875f61a0c"
     },
     {
       "name": "booking_evidence",
@@ -28,6 +28,6 @@
       "sha256": "2e7eff03b3db6c073371b9ff200a86f0d16900eb20c2611b5e70b78a3a8ca8ed"
     }
   ],
-  "schedule_fingerprint": "1b8cdeae5e15ce035589cca222ac683d4b34b1746c772a4ea3b4e0c9ebe419e6",
+  "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
   "season": "2026-2027"
 }
