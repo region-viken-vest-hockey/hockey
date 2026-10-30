@@ -79,8 +79,8 @@ It is based on the planner code, not on the marketing/docs wording, so it calls 
 | Skjev kampfordeling: Sandefjord (Sandefjord Penguins Ishockeyklubb, U7) | Sandefjord (Sandefjord Penguins Ishockeyklubb, U7) (Sandefjord Penguins Ishockeyklubb, U7) spiller 15 kamper, mens snittet for U7 er 0.0 — 15.0 flere enn snittet. | Anbefaling |
 | Skjev kampfordeling: Tønsberg (Tønsberg, U7) | Tønsberg (Tønsberg, U7) (Tønsberg, U7) spiller 15 kamper, mens snittet for U7 er 0.0 — 15.0 flere enn snittet. | Anbefaling |
 | Skjev kampfordeling: Frisk Asker | Frisk Asker (Frisk Asker, JU8) spiller 24 kamper, mens snittet for JU8 er 14.4 — 9.6 flere enn snittet. | Anbefaling |
-| Skjev kampfordeling: Jar | Jar (Jar, JU8) spiller 24 kamper, mens snittet for JU8 er 14.4 — 9.6 flere enn snittet. | Anbefaling |
-| Skjev kampfordeling: Jutul Kittens | Jutul Kittens (Jutul, JU8) spiller 24 kamper, mens snittet for JU8 er 14.4 — 9.6 flere enn snittet. | Anbefaling |
+| Skjev kampfordeling: Wildcats Turkis | Wildcats Turkis (Jar, JU8) spiller 24 kamper, mens snittet for JU8 er 14.4 — 9.6 flere enn snittet. | Anbefaling |
+| Skjev kampfordeling: Wildcats Rosa | Wildcats Rosa (Jutul, JU8) spiller 24 kamper, mens snittet for JU8 er 14.4 — 9.6 flere enn snittet. | Anbefaling |
 | Skjev kampfordeling: Ringerike 1 (Ringerike, JU8) | Ringerike 1 (Ringerike, JU8) (Ringerike, JU8) spiller 24 kamper, mens snittet for JU8 er 0.0 — 24.0 flere enn snittet. | Anbefaling |
 | Skjev kampfordeling: Skien (Skien, JU8) | Skien (Skien, JU8) (Skien, JU8) spiller 24 kamper, mens snittet for JU8 er 0.0 — 24.0 flere enn snittet. | Anbefaling |
 | Skjev kampfordeling: Frisk Asker 1 (Frisk Asker, U8) | Frisk Asker 1 (Frisk Asker, U8) (Frisk Asker, U8) spiller 30 kamper, mens snittet for U8 er 0.0 — 30.0 flere enn snittet. | Anbefaling |
