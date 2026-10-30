@@ -302,7 +302,7 @@ def _cmd_season_booking_set(args: argparse.Namespace) -> int:
         stated_end=args.stated_end,
         expected_revision=args.expected_revision,
         supersede=args.supersede,
-        dry_run=args.dry_run,
+        dry_run=args.dry_run, pin=args.pin, pin_reason=args.pin_reason,
     )
     if args.json:
         _emit_json(result)

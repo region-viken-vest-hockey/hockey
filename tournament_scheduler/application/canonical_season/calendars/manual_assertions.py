@@ -19,6 +19,7 @@ from tournament_scheduler.booking.calendar_bookings import (
     new_manual_assertion_record,
     validate_stated_interval,
 )
+from tournament_scheduler.booking.assertion_bridge import bridge_fields, validate_pin
 from tournament_scheduler.season.exception_policy import reclassify_accepted_source_interval
 from tournament_scheduler.season.state import (
     canonical_state_revision,
@@ -62,7 +63,7 @@ def set_manual_booking_assertion(
     expected_revision: str | None = None,
     supersede: bool = False,
     problem: dict[str, Any] | None = None,
-    dry_run: bool = False,
+    dry_run: bool = False, pin: bool = False, pin_reason: str | None = None,
 ) -> dict[str, Any]:
     """Record an explicit operator/club booking assertion for one tournament.
 
@@ -90,6 +91,10 @@ def set_manual_booking_assertion(
             f"Unknown manual assertion source scope: {source_scope!r}; "
             f"expected one of {', '.join(MANUAL_ASSERTION_SCOPES)}"
         )
+    try:
+        pin_reason = validate_pin(pin, pin_reason)
+    except ValueError as exc:
+        raise SeasonStateError(str(exc)) from exc
     linked_source_id = str(source_assertion_id or "").strip() or None
     try:
         stated_interval = validate_stated_interval(stated_start, stated_end, stated_date) or None
@@ -161,15 +166,10 @@ def set_manual_booking_assertion(
         )
         verification_problem = _resolve_plan_problem(updated_schedule, resolved_problem, updated_decisions_for_interval)
         verification = verify_candidate(updated_schedule["plan"], verification_problem) if verification_problem else verify_candidate(updated_schedule["plan"])
-        # A source-authoritative interval below the governing *planning* floor is
-        # recorded exactly and surfaced as a durable feasibility finding, never a
-        # new-placement planning violation. The shared policy owner matches the
-        # exact accepted facts from the projected canonical evidence; the planning
-        # verifier stays strict for proposals, and genuine playing shortfalls or
-        # overlaps remain hard blockers.
-        booking_authority = BOOKING_AUTHORITY_MANUAL
-        if source_scope == "club_wide_interpretation":
-            booking_authority = BOOKING_AUTHORITY_MANUAL_INTERPRETATION
+        # A source-authoritative interval below the governing *planning* floor is recorded exactly and surfaced as a
+        # durable feasibility finding, never a new-placement planning violation. The shared policy owner matches the
+        # exact accepted facts; the planning verifier stays strict for proposals, and real shortfalls or overlaps block.
+        booking_authority = BOOKING_AUTHORITY_MANUAL_INTERPRETATION if source_scope == "club_wide_interpretation" else BOOKING_AUTHORITY_MANUAL
         source_reference = reference or note
         classified = reclassify_accepted_source_interval(
             verification_problem,
@@ -243,6 +243,7 @@ def set_manual_booking_assertion(
         source_revision=current_revision,
         source_assertion_id=linked_source_id,
     )
+    candidate.update(bridge_fields(tournament, resolved_problem, pin_reason))
     if booking_feasibility_warnings:
         candidate["booking_feasibility_warnings"] = [
             str(blocker.get("code") or "") for blocker in booking_feasibility_warnings
@@ -306,7 +307,7 @@ def set_manual_booking_assertion(
             "source_scope": candidate["source_scope"],
             "reference": reference or "",
             "asserted_interval": candidate["asserted_interval"],
-            "stated_interval": candidate["stated_interval"],
+            "stated_interval": candidate["stated_interval"], "calendar_baseline": candidate["calendar_baseline"], "pinned": bool(candidate.get("pinned")),
             "supersedes": candidate.get("supersedes") or "",
             "reconfirms_stale_reasons": candidate.get("reconfirms_stale_reasons") or [],
             "interval_alignment": source_interval_alignment,
