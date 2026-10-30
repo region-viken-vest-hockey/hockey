@@ -33,8 +33,9 @@ def _run_forumbooking_scraper(
 ) -> tuple[list[CalendarEvent], str]:
     """Scrape a Forumbooking weekly schedule by clicking next period.
 
-    Returns ``(events, raw_html)``. Failures are intentionally non-throwing so
-    Stage 2 can mark the source empty/blocked using its normal policy.
+    Returns ``(events, raw_html)``. A browser or navigation failure is raised,
+    not returned as an empty result: Stage 2 reads a clean zero-event return as
+    a genuinely empty calendar, so a failure must reach it as a scrape error.
     """
     from playwright.sync_api import sync_playwright
 
@@ -44,9 +45,9 @@ def _run_forumbooking_scraper(
     end_ref = end_date.replace(hour=23, minute=59, second=59, microsecond=0)
     max_weeks = max(1, ((end_ref.date() - start_ref.date()).days // 7) + 4)
 
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        try:
             page = browser.new_page(viewport={"width": 375, "height": 900})
             page.goto(url, timeout=30_000, wait_until="domcontentloaded")
             page.wait_for_timeout(2_000)
@@ -67,10 +68,8 @@ def _run_forumbooking_scraper(
                     break
                 if not _click_next_period(page):
                     break
-
+        finally:
             browser.close()
-    except Exception:
-        pass
 
     seen: set[tuple[str, str, str]] = set()
     unique: list[CalendarEvent] = []
