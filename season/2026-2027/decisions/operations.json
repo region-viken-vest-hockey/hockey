@@ -1,6 +1,6 @@
 {
   "actor": "claude-code",
-  "canonical_state_revision": "b42e22cd53e87a16f5e1de73caa13d9e10fd7f80a7a1dd49a08b246cbdfe9270",
+  "canonical_state_revision": "f3715ac8ea35917016a8826da0f2f5b8c3226d46da927ccb1b2e1356c7898420",
   "created_at": "2026-09-18T19:44:06.643372+00:00",
   "decisions": {
     "mp_unplaced_placement_U11_2026_10_18_1": {
@@ -1705,16 +1705,12 @@
     }
   },
   "export_state": {
-    "calendar_fingerprint": "d09cd72abe551412c23deaef30180d1e98b4ec41b1f0a3166000c4fb2805f1fd",
-    "export_dir": "export/2026-10-30T0912",
-    "fresh_at": "2026-10-30T09:13:22.908965+00:00",
-    "fresh_by": "niclasl",
-    "fresh_canonical_revision": "b42e22cd53e87a16f5e1de73caa13d9e10fd7f80a7a1dd49a08b246cbdfe9270",
+    "calendar_fingerprint": "83206b678202939a802d0a1fbc42fb2c4215bb43cac55a521b7b38a420a501cd",
     "requires_fresh_audit": true,
-    "requires_fresh_export": false,
-    "stale_at": "2026-10-27T09:53:00.670041+00:00",
+    "requires_fresh_export": true,
+    "stale_at": "2026-10-30T10:03:56.761072+00:00",
     "stale_reason": "calendar_evidence_refreshed",
-    "status": "fresh"
+    "status": "stale"
   },
   "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
   "schema_version": 1,
@@ -181549,5 +181545,5 @@
     "sealed_by": "niclasl",
     "state": "published_sealed"
   },
-  "updated_at": "2026-10-30T09:13:22.908965+00:00"
+  "updated_at": "2026-10-30T10:03:56.761072+00:00"
 }
