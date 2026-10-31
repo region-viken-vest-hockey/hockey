@@ -61741,6 +61741,22 @@
       "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
       "tournament_fingerprint": "e16837180716eaa3b5f17c437344ae019fa23064d16e3ebf6e6f3d3c5cf48e1c",
       "tournament_id": "rvv-0133"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T09:20:30.997118+00:00",
+      "details": {
+        "canonical_state_revision": "0757a7674f631f5126e292fcde0a750aa1ff2a07871c85502797310c2a7640c7",
+        "export_dir": "export/2026-10-31T0920",
+        "previous_export_status": "stale",
+        "previous_requires_fresh_export": true
+      },
+      "event": "mark_export_fresh",
+      "note": "canonical export",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ]
 }
