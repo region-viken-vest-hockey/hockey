@@ -5,17 +5,17 @@
     {
       "name": "schedule",
       "path": "schedule.json",
-      "sha256": "20777dff07e6049afc88b3ae5cde02382c3b22156857cf690dbd3929e1290a4d"
+      "sha256": "42abcb513da3267517f7f9c70a820621b37db7e6b3a7f5342dbc39dee6cad399"
     },
     {
       "name": "operations",
       "path": "decisions/operations.json",
-      "sha256": "91184db58bc7e1b430708763cec68bfb8aa686a471bebbedd8b4d3c9d0dd59c1"
+      "sha256": "429ead90bf32507a2ca2fb43d8f3d750ffb0837918bd3ca3f1cce24ba03e8462"
     },
     {
       "name": "history",
       "path": "decisions/history.json",
-      "sha256": "ee533b5f3106f8376d2bd0ce90180ea59c4cab294e3f9ebe8436702bb98f2988"
+      "sha256": "731890c054d59301b111ccc8708c10f6ce6fe555131aceb676ca192fa225ba8a"
     },
     {
       "name": "booking_evidence",
