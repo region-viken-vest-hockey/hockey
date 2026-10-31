@@ -1,6 +1,6 @@
 {
   "actor": "claude-code",
-  "canonical_state_revision": "b89b5bade09a6eb6b2e4b59f917c1ee1c1ce60f76472b2aa6c44f527f2155f7f",
+  "canonical_state_revision": "6cd65064585b5b624f491ac4e9ebcab33988c3a460818cc439e46dbc52850d31",
   "created_at": "2026-09-18T19:44:06.643372+00:00",
   "decisions": {
     "mp_unplaced_placement_U11_2026_10_18_1": {
@@ -137,13 +137,14 @@
       "status": "approved"
     },
     "rvv-0015": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T08:36:31.832325+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "cd33de551fe3d409f2f335eb03a3639a2d2ed12903f44a773c11466d48e63b7a",
+      "approved_placement_fingerprint": "3b7a821ef05ce7b729530e91bdbe20306110a54a27daeec14c2ea2aeba46843b",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0016": {
       "approved_at": null,
@@ -192,11 +193,11 @@
       "status": "approved"
     },
     "rvv-0021": {
-      "approved_at": "2026-10-15T21:46:19.154976+00:00",
-      "approved_by": "Niclas Lindgren",
+      "approved_at": "2026-10-31T08:36:39.493556+00:00",
+      "approved_by": "niclasl",
       "approved_fingerprint": "dd1a87db93f17dcb20b52418cfa9a1a6407eadbeeef5127f730bba6b57a85b7d",
       "approved_placement_fingerprint": "9c7536f03aad0e7f62f2a6b8d89591a227779b9a8883a1467477842d574decec",
-      "note": "Holmen confirmed booking via live Sportello calendar (2026-10-15); interval set by booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -536,13 +537,14 @@
       "status": "pending_review"
     },
     "rvv-0058": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T08:36:32.699943+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "9ed3dcadcdd32ad6e7f417f2438ab49b85763a35d2a39820453dfcec85924f5a",
+      "approved_placement_fingerprint": "4768fc7ab27e04889cadbaa2eb0fed1f7f1b0b740fb55c113653634f46dc9717",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0059": {
       "approved_at": "2026-09-29T17:10:52.960066+00:00",
@@ -592,13 +594,14 @@
       "status": "approved"
     },
     "rvv-0064": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T08:36:37.809159+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "f4d48e9e473d90ff2fc2f4a1b823cac40e28b67cb7cf5a890ba5bfcbca970f22",
+      "approved_placement_fingerprint": "d912d70d408c3bba667c42396afb9c6d3ca459dc095c651fb9da1cda9b5ee3a8",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0065": {
       "approved_at": "2026-10-31T07:39:45.017552+00:00",
@@ -649,13 +652,14 @@
       "status": "approved"
     },
     "rvv-0072": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T08:36:33.571801+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "0937396313161e15ea7c41a74730b54375c5129236fa9cab7a32513a212850ec",
+      "approved_placement_fingerprint": "ffb5bfde3df33bf9adaa9058165d82756da42eb8839982d50681f805a58d3db4",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0073": {
       "approved_at": "2026-09-29T17:10:54.425497+00:00",
@@ -713,13 +717,14 @@
       "status": "pending_review"
     },
     "rvv-0080": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T08:36:36.974302+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "7a236bea5ad19f78f67e021629319d80b101e3db9e6d41cd71be386c571d5cbb",
+      "approved_placement_fingerprint": "bff712b454976d077d53fc615dedb309e1954b59fbbbcd6deecec99366229f30",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0081": {
       "approved_at": "2026-09-29T17:10:55.180795+00:00",
@@ -778,13 +783,14 @@
       "status": "approved"
     },
     "rvv-0089": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T08:36:34.445214+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "9d07318df9ae9ff39447679f9223c3ee5b2d0cda411bfcb73c5b329cf95a85e7",
+      "approved_placement_fingerprint": "8a3322097e53de34a53fe90b35b8773de6f4581cc9463f1b006c4b4fe4905b91",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0090": {
       "approved_at": "2026-10-27T14:19:47.496564+00:00",
@@ -1314,13 +1320,14 @@
       "status": "approved"
     },
     "rvv-0146": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T08:36:38.659075+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "c08d028223ab69947491e8b4dd97161cca70851056cb5a215343fccbb78094ec",
+      "approved_placement_fingerprint": "e84f5f40e06ff5b37d661984fd25800264af0a534c081c0b3dcaa60bdc4dc046",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0147": {
       "approved_at": "2026-10-30T11:09:25.457629+00:00",
@@ -1352,13 +1359,14 @@
       "status": "approved"
     },
     "rvv-0151": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T08:36:35.280810+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "7d1d81e6aff1fead016314d35d5e75a873dec269441cbf0b006223e4a984cc70",
+      "approved_placement_fingerprint": "bc989d1f87beb32ac140ac1e5e850ed5571a0884d8917eb119f9d01afc79d12c",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0152": {
       "approved_at": "2026-10-15T22:01:35.568078+00:00",
@@ -1503,13 +1511,14 @@
       "status": "approved"
     },
     "rvv-0167": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T08:36:36.126032+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "cc1c1344700988b8c812e7a897c186037935db202d878d9588b5813be0a57348",
+      "approved_placement_fingerprint": "6cf29c92acd8f27be854a306bbd8bdfdcf8b0fbdb3fd1c1ba6f521e43cdff3c0",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0168": {
       "approved_at": "2026-10-15T21:35:52.845414+00:00",
@@ -181571,5 +181580,5 @@
     "sealed_by": "niclasl",
     "state": "published_sealed"
   },
-  "updated_at": "2026-10-31T07:42:23.194982+00:00"
+  "updated_at": "2026-10-31T08:36:39.493556+00:00"
 }
