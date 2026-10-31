@@ -244,62 +244,20 @@ FRISK_BLOCKED = [
 
 
 @pytest.mark.skipif(not (ROOT_SEASON / "2026-2027" / "schedule.json").exists(), reason="canonical season not present")
-def test_copied_season_supersedes_the_ten_blocked_frisk_asker_interpretations(tmp_path):
-    """Run the real confirmations on a copy of the canonical season, never the live state."""
+def test_canonical_season_has_the_ten_frisk_asker_blocks_adopted(tmp_path):
+    """Read-only end-state check on a copy of the canonical season (#567, #860).
+
+    The supersession workflow itself is covered by the hermetic tests above. This pins the
+    outcome the maintainer approved: each of the ten Frisk Asker Serierunde blocks is the single
+    active calendar association for its tournament, matches its canonical interval, has no active
+    manual positive left (its manual assertion is kept as superseded history).
+    """
     root = tmp_path / "season"
     shutil.copytree(ROOT_SEASON / "2026-2027", root / "2026-2027")
-    decisions_before = load_decisions("2026-2027", root=root)
-    targets = {tid for tid, *_ in FRISK_BLOCKED}
-    untouched_before = [
-        r for r in decisions_before[MANUAL_BOOKING_ASSERTIONS_KEY] if r["tournament_id"] not in targets
-    ]
-    from tournament_scheduler.application.canonical_season.store_facade import (
-        load_schedule,
-        release_change_protections,
-    )
-
-    # Eight of these tournaments carry an accepted placement protection that pins the start to the
-    # superseded club time. Releasing it is a separate canonical decision, not part of #567, so the
-    # copy releases it explicitly here, as the operator would, before exercising the supersession.
-    placement_ids = [
-        r["id"]
-        for r in decisions_before["change_protections"]
-        if r["tournament_id"] in targets and r["kind"] == "placement_field" and r["status"] == "active"
-    ]
-    release_change_protections(
-        season="2026-2027",
-        root=root,
-        protection_ids=placement_ids,
-        request_id="567-copy-release-superseded-frisk-start-protections",
-        actor="operator",
-        note="copy-only precondition: placement pins to superseded club start times (#567 regression)",
-    )
+    from tournament_scheduler.application.canonical_season.store_facade import load_schedule
 
     schedule = load_schedule("2026-2027", root=root)
     problem = schedule["verification_context"]["problem"]
-    frisk = problem["club_busy_intervals"]["Frisk Asker"]
-    plan = {t["id"]: t for t in schedule["plan"]["tournaments"]}
-
-    # The arena-conflict check reads canonical state, so apply the blocks in order of their calendar
-    # start: an earlier block moves out of the way before a later one is checked against it.
-    for tid, title, start, end in sorted(FRISK_BLOCKED, key=lambda item: item[2]):
-        date_str = plan[tid]["date"]
-        event = next(
-            e
-            for e in frisk
-            if e.get("date") == date_str and e.get("calendar_event") == title and e.get("start") == start and e.get("end") == end
-        )
-        named = _positive_for(load_decisions("2026-2027", root=root), tid)[0]["id"]
-        confirm_calendar_booking(
-            season="2026-2027",
-            root=root,
-            event_fingerprint=event_fingerprint(dict(event, club="Frisk Asker")),
-            tournament_id=tid,
-            actor="operator",
-            note="calendar is the source of truth; operator go-ahead 2026-10-30 (#567)",
-            supersede_manual_assertion_id=named,
-        )
-
     decisions = load_decisions("2026-2027", root=root)
     report = booking_status_report(season="2026-2027", root=root, problem=problem)
     for tid, title, start, end in FRISK_BLOCKED:
@@ -308,5 +266,6 @@ def test_copied_season_supersedes_the_ten_blocked_frisk_asker_interpretations(tm
         assert (active[0]["start"], active[0]["end"]) == (start, end), tid
         assert _tournament_row(report, tid)["interval_comparison"]["status"] == "matches", tid
         assert _positive_for(decisions, tid) == [], tid
-    untouched_after = [r for r in decisions[MANUAL_BOOKING_ASSERTIONS_KEY] if r["tournament_id"] not in targets]
-    assert untouched_after == untouched_before
+        assert any(
+            r["tournament_id"] == tid and r["status"] == "superseded" for r in decisions[MANUAL_BOOKING_ASSERTIONS_KEY]
+        ), tid
