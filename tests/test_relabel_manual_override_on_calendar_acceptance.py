@@ -10,12 +10,15 @@ not a clean calendar-authority transition: the active override must carry
 
 from __future__ import annotations
 
+import pytest
+
 from tournament_scheduler.application.canonical_season.store_facade import (
     confirm_calendar_booking,
     load_decisions,
     set_manual_booking_assertion,
 )
 from tournament_scheduler.booking.calendar_bookings import event_fingerprint
+from tournament_scheduler.season.ice_time_overrides import relabels_to_calendar_authority
 from tests.test_approval_lifecycle import _host_a_problem, _promote, _tournament
 
 EVENT = {
@@ -122,3 +125,42 @@ def test_an_operator_override_without_authority_is_left_alone(tmp_path):
 
     assert result["ice_time_override"] is None
     assert _active_overrides(root) == before
+
+
+def test_preview_and_apply_agree_and_the_manual_override_is_released(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([EVENT])
+    manual = _manual_with_equal_minutes(root, problem)
+    old = _active_overrides(root)[0]
+
+    preview = _confirm(root, problem, manual["id"], dry_run=True)
+    applied = _confirm(root, problem, manual["id"])
+
+    keys = ("tournament_id", "minutes", "authority", "status", "type", "request_id")
+    assert {k: preview["ice_time_override"][k] for k in keys} == {k: applied["ice_time_override"][k] for k in keys}
+    rows = {
+        row["id"]: row
+        for row in load_decisions("2026-2027", root=root).get("ice_time_minutes_overrides", [])
+        if row.get("tournament_id") == "t1"
+    }
+    assert rows[old["id"]]["status"] != "active"
+    assert rows[applied["ice_time_override"]["id"]]["status"] == "active"
+
+
+@pytest.mark.parametrize(
+    ("existing_authority", "incoming", "expected"),
+    [
+        ("manual_club_confirmation_interval", "calendar_event_association", True),
+        (None, "calendar_event_association", False),
+        ("", "calendar_event_association", False),
+        ("calendar_event_association", "calendar_event_association", False),
+        ("host_confirmed", "calendar_event_association", False),
+        ("manual_club_confirmation_interval", "manual_club_confirmation_interval", False),
+        ("manual_club_confirmation_interval", "", False),
+    ],
+)
+def test_only_a_manual_derived_override_is_replaced_by_calendar_authority(existing_authority, incoming, expected):
+    existing = None if existing_authority is None else {"authority": existing_authority}
+
+    assert relabels_to_calendar_authority(existing, incoming) is expected
+    assert relabels_to_calendar_authority(None, incoming) is False
