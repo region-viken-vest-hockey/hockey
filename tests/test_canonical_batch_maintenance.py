@@ -963,3 +963,60 @@ def test_batch_refuses_cancelling_and_restoring_the_same_tournament(
             dry_run=True,
         )
     assert (_schedule_bytes(root), _decisions_bytes(root)) == before
+
+
+def test_batch_cancel_one_and_restore_another_attributes_only_the_net_count_change(
+    tmp_path: Path,
+) -> None:
+    """Teams in both tournaments net to zero; only the others carry a count change."""
+    _work_dir, root = _promote(tmp_path)
+    # u10-a (K1, X1, Y1, Z1) is cancelled first; u10-b (K1, X1, W1, V1) shares K1 and X1.
+    first = batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=[{"op": "cancel", "tournament_id": "u10-a-20260912", "reason": "lost ice"}],
+        scope=["u10-a-20260912"],
+        request_id="cancel-a-first",
+        actor="tester",
+        dry_run=True,
+    )
+    codes = ("participation_count_changed", "temporal_coverage_materially_worse")
+    accepted = sorted(
+        {
+            f"{item['club']}|{item['team']}|U10={item['code']}"
+            for item in first["regression_acceptance"]["unaccepted_regressions"]
+            if item["code"] in codes
+        }
+    )
+    batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=[{"op": "cancel", "tournament_id": "u10-a-20260912", "reason": "lost ice"}],
+        scope=["u10-a-20260912"],
+        request_id="cancel-a-first",
+        actor="tester",
+        accept_regressions=accepted,
+        accept_regression_reason="ice unavailable; participants accept one fewer appearance",
+    )
+
+    # Restore A and cancel B in one batch: K1 and X1 lose B and regain A (net zero).
+    preview = batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=[
+            {"op": "restore", "tournament_id": "u10-a-20260912"},
+            {"op": "cancel", "tournament_id": "u10-b-20260920", "reason": "swap which one is lost"},
+        ],
+        scope=["u10-a-20260912", "u10-b-20260920"],
+        request_id="restore-a-cancel-b",
+        actor="tester",
+        dry_run=True,
+    )
+    count_teams = {
+        item["team"]
+        for item in preview["regression_acceptance"]["unaccepted_regressions"]
+        if item["code"] == "participation_count_changed"
+    }
+    # Y1/Z1 regain an appearance, W1/V1 lose one; K1/X1 net to zero.
+    assert count_teams == {"Y1", "Z1", "W1", "V1"}
+    assert "K1" not in count_teams and "X1" not in count_teams
