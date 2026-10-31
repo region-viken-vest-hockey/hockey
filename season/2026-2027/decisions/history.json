@@ -61136,6 +61136,231 @@
       "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
       "tournament_fingerprint": "dd1a87db93f17dcb20b52418cfa9a1a6407eadbeeef5127f730bba6b57a85b7d",
       "tournament_id": "rvv-0021"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:47:05.195128+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 110,
+        "override_id": "ice-time-override:4499dc754891481c",
+        "reference": "U12 (2015)",
+        "request_id": "calendar-booking:156589cc4ea4928bf2e1c44797ac3e7df276b8c86ade4a365eb80f951d3d133f",
+        "supersedes": "ice-time-override:d358ce30044c6767"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0003"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:47:05.195128+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U12 (2015)",
+        "event_fingerprint": "156589cc4ea4928bf2e1c44797ac3e7df276b8c86ade4a365eb80f951d3d133f",
+        "ice_time_override_id": "ice-time-override:4499dc754891481c",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-10-10",
+            "duration_minutes": 110,
+            "end_time": "15:50",
+            "start_time": "14:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2026-10-10",
+            "duration_minutes": "110",
+            "end_time": "15:50",
+            "round_count": "3",
+            "start_time": "14:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "previous_fingerprint": "037c62a9db4d90ff8302640d3e7260cf7324a9add5dfb0c0f4079d90418d9ef6",
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "037c62a9db4d90ff8302640d3e7260cf7324a9add5dfb0c0f4079d90418d9ef6",
+      "tournament_id": "rvv-0003"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:47:06.012901+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 110,
+        "override_id": "ice-time-override:f82786ea4fe75999",
+        "reference": "U12 (2015)",
+        "request_id": "calendar-booking:81ba42f7ea8c6c1c56feb4068f18b97e765fc62cf92494fb07686f9291b8207e",
+        "supersedes": "ice-time-override:53800632f13dae1e"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0004"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:47:06.012901+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U12 (2015)",
+        "event_fingerprint": "81ba42f7ea8c6c1c56feb4068f18b97e765fc62cf92494fb07686f9291b8207e",
+        "ice_time_override_id": "ice-time-override:f82786ea4fe75999",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-10-10",
+            "duration_minutes": 110,
+            "end_time": "13:50",
+            "start_time": "12:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2026-10-10",
+            "duration_minutes": "110",
+            "end_time": "13:50",
+            "round_count": "3",
+            "start_time": "12:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "previous_fingerprint": "37d4321c34cb2152ae049e4169379d2dc677cc5eebbf4252452a753af2f135dc",
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "37d4321c34cb2152ae049e4169379d2dc677cc5eebbf4252452a753af2f135dc",
+      "tournament_id": "rvv-0004"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:47:06.834767+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 150,
+        "override_id": "ice-time-override:870d3f1b64210946",
+        "reference": "KIF ishockey - Miniput turnering U8",
+        "request_id": "calendar-booking:f40dcb4a1ab854c3045356a7143c87151892eee2ede05dcb468492f41777f45f",
+        "supersedes": "ice-time-override:38e995c9bee733a1"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0029"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:47:06.834767+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "KIF ishockey - Miniput turnering U8",
+        "event_fingerprint": "f40dcb4a1ab854c3045356a7143c87151892eee2ede05dcb468492f41777f45f",
+        "ice_time_override_id": "ice-time-override:870d3f1b64210946",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-03-13",
+            "duration_minutes": 150,
+            "end_time": "13:00",
+            "start_time": "10:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U8",
+            "date": "2027-03-13",
+            "duration_minutes": "150",
+            "end_time": "13:00",
+            "round_count": "5",
+            "start_time": "10:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "564544047b03618d17a9f7e92247dabea0da8b19e886bab5bfc61e418b53531a",
+      "tournament_id": "rvv-0029"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:47:07.668989+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "KIF Ishockey - Miniputt (U12)",
+        "event_fingerprint": "bc0ba6bc01f6cf4178e156a63a712ce37b13f9a66c505cf3ab3f30fabd0fdf85",
+        "ice_time_override_id": "",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-03-14",
+            "duration_minutes": 120,
+            "end_time": "14:30",
+            "start_time": "12:30"
+          },
+          "changed": false,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2027-03-14",
+            "duration_minutes": "120",
+            "end_time": "14:30",
+            "round_count": "3",
+            "start_time": "12:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "fe75ff2fa43e5a223634a5e6e354990d9072ba7d032446f545dccbaade2ed01e",
+      "tournament_id": "rvv-0162"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:47:08.480263+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "KIF ishockey - Miniputt (U12)",
+        "event_fingerprint": "8e9be13ba232eabb77b126f700c706cfc75c6b3be429b853d3724c0d00a14bf4",
+        "ice_time_override_id": "",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-03-07",
+            "duration_minutes": 120,
+            "end_time": "12:00",
+            "start_time": "10:00"
+          },
+          "changed": false,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2027-03-07",
+            "duration_minutes": "120",
+            "end_time": "12:00",
+            "round_count": "3",
+            "start_time": "10:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "b90d751d14212721b45a9be4ea593f130526a07cb03fd729d2f30f7843db9538",
+      "tournament_id": "rvv-0176"
     }
   ]
 }
