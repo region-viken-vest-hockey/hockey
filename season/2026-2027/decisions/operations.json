@@ -1,6 +1,6 @@
 {
   "actor": "claude-code",
-  "canonical_state_revision": "0757a7674f631f5126e292fcde0a750aa1ff2a07871c85502797310c2a7640c7",
+  "canonical_state_revision": "d2f2cd9ab0f5eebd35e9464e2a53ba8847767660219a5aa4fcc864ac1276da94",
   "created_at": "2026-09-18T19:44:06.643372+00:00",
   "decisions": {
     "mp_unplaced_placement_U11_2026_10_18_1": {
@@ -413,13 +413,14 @@
       "status": "approved"
     },
     "rvv-0044": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T19:35:58.926085+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "290708b26bd896c095b66dd12f7ddc0b71baf29a82da02c7198fce0ad0aa1ce7",
+      "approved_placement_fingerprint": "3bf5dcc6ec8edf877796ee75c8829efa72c3605e0a35e3804b2edfeb0b0655f2",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0045": {
       "approved_at": "2026-09-25T11:04:15.300322+00:00",
@@ -1041,13 +1042,14 @@
       "status": "approved"
     },
     "rvv-0116": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T19:35:59.748910+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "eece1e36ab4f28b4b70cfa87842a2d04ca2576018a101e9626b92feeec5c23f7",
+      "approved_placement_fingerprint": "65a9a3cb9cfe1269e3d9d6d6642c257ce824ad543d3eac818bb2e7bbe2172861",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0117": {
       "approved_at": "2026-10-31T09:01:49.073320+00:00",
@@ -1573,13 +1575,14 @@
       "status": "approved"
     },
     "rvv-0173": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T19:36:00.558051+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "78fdec5048ae393719da07918702a9d7c5ee27a31aae1dd7a9f0b5afdfa1c5bd",
+      "approved_placement_fingerprint": "21160796448fd0d16b1be25e7bdb51ff6c3d80bf23d947f7ab48efe9d6d52210",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0174": {
       "approved_at": "2026-10-31T09:01:51.693720+00:00",
@@ -1746,17 +1749,17 @@
   },
   "export_state": {
     "calendar_fingerprint": "83206b678202939a802d0a1fbc42fb2c4215bb43cac55a521b7b38a420a501cd",
-    "export_dir": "export/2026-10-31T0920",
-    "fresh_at": "2026-10-31T09:20:30.997118+00:00",
+    "export_dir": "export/2026-10-31T1936",
+    "fresh_at": "2026-10-31T19:36:41.276646+00:00",
     "fresh_by": "niclasl",
-    "fresh_canonical_revision": "0757a7674f631f5126e292fcde0a750aa1ff2a07871c85502797310c2a7640c7",
+    "fresh_canonical_revision": "d2f2cd9ab0f5eebd35e9464e2a53ba8847767660219a5aa4fcc864ac1276da94",
     "requires_fresh_audit": true,
     "requires_fresh_export": false,
     "stale_at": "2026-10-30T10:03:56.761072+00:00",
     "stale_reason": "calendar_evidence_refreshed",
     "status": "fresh"
   },
-  "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+  "schedule_fingerprint": "c2813ddec9b7ffd942c553900d0705a9258ed716d4f127d363822ae8e9c35162",
   "schema_version": 1,
   "season": "2026-2027",
   "season_lifecycle": {
@@ -181589,5 +181592,5 @@
     "sealed_by": "niclasl",
     "state": "published_sealed"
   },
-  "updated_at": "2026-10-31T09:20:30.997118+00:00"
+  "updated_at": "2026-10-31T19:36:41.276646+00:00"
 }

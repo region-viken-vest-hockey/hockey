@@ -13,6 +13,7 @@ PUBLICATION_MODULES = {
     "evidence",
     "export_lifecycle",
     "mutation_history",
+    "mutation_history_cancellation",
     "projection_guard",
     "public_history",
     "scope",

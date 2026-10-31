@@ -3,8 +3,7 @@
 A cancellation is the first-class ``cancelled`` flag on one tournament plus the
 release of its active guest reservations. Batch maintenance applies it, and the
 booking authority it ends is released after the candidate is accepted (see
-``booking.calendar_bookings.release_booking_authority_for_new_cancellations``).
-"""
+``booking.calendar_bookings.release_booking_authority_for_new_cancellations``)."""
 
 from __future__ import annotations
 
@@ -89,3 +88,4 @@ def _apply_cancel_to_plan(
         "released_guest_reservations": released_guest_reservations,
         "notifications_required": notifications_required,
     }
+

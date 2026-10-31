@@ -776,3 +776,247 @@ def test_batch_swap_and_swap_back_adds_no_roster_protection(tmp_path: Path) -> N
     # nothing may be newly protected.
     assert preview["protections_to_add"] == []
 
+
+
+_CANCEL_C_ACCEPTANCES = [
+    f"{club}|{team}|U10={code}"
+    for club, team in (("C", "C1"), ("C", "C2"), ("D", "D1"), ("D", "D2"))
+    for code in ("participation_count_changed", "temporal_coverage_materially_worse")
+]
+
+
+def _cancel_c(root: Path) -> None:
+    batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=[{"op": "cancel", "tournament_id": "u10-c-20261018", "reason": "lost ice"}],
+        scope=["u10-c-20261018"],
+        request_id="cancel-c-for-restore",
+        actor="tester",
+        accept_regressions=_CANCEL_C_ACCEPTANCES,
+        accept_regression_reason="ice unavailable; all four U10 teams accept one fewer appearance",
+    )
+
+
+def test_batch_restore_reinstates_a_cancelled_tournament_in_one_atomic_batch(
+    tmp_path: Path,
+) -> None:
+    _work_dir, root = _promote(tmp_path)
+    _cancel_c(root)
+    assert _tournaments_by_id(root)["u10-c-20261018"]["cancelled"] is True
+    before_other = {
+        tid: tournament
+        for tid, tournament in _tournaments_by_id(root).items()
+        if tid != "u10-c-20261018"
+    }
+
+    # Restore and adopt a different start time in the same atomic scenario.
+    operations = [
+        {"op": "restore", "tournament_id": "u10-c-20261018", "reason": "host calendar shows it"},
+        {"op": "move", "tournament_id": "u10-c-20261018", "start_time": "16:00"},
+    ]
+    # Like a cancellation, a restoration changes every participant's
+    # appearance count, so the change must be accepted explicitly per team.
+    bare = batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=operations,
+        scope=["u10-c-20261018"],
+        request_id="restore-c",
+        actor="tester",
+        dry_run=True,
+    )
+    assert bare["refused"] is True
+    assert {
+        (item["team"], item["code"])
+        for item in bare["regression_acceptance"]["unaccepted_regressions"]
+    } == {(team, "participation_count_changed") for team in ("C1", "C2", "D1", "D2")}
+
+    acceptances = [
+        f"{club}|{team}|U10=participation_count_changed"
+        for club, team in (("C", "C1"), ("C", "C2"), ("D", "D1"), ("D", "D2"))
+    ]
+    reason = "host calendar confirms the tournament; teams regain the appearance"
+    preview = batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=operations,
+        scope=["u10-c-20261018"],
+        request_id="restore-c",
+        actor="tester",
+        dry_run=True,
+        accept_regressions=acceptances,
+        accept_regression_reason=reason,
+    )
+    assert preview["committed"] is False
+    assert preview["restorations"][0]["tournament_id"] == "u10-c-20261018"
+    assert preview["restorations"][0]["previous_cancellation_reason"] == "lost ice"
+    assert preview["restorations"][0]["notifications_required"]
+    assert preview["verdict"]["applicable"] is True, preview["refusal_reasons"]
+    assert _tournaments_by_id(root)["u10-c-20261018"]["cancelled"] is True
+
+    result = batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=operations,
+        scope=["u10-c-20261018"],
+        request_id="restore-c",
+        actor="tester",
+        accept_regressions=acceptances,
+        accept_regression_reason=reason,
+    )
+    assert result["committed"] is True
+    restored = _tournaments_by_id(root)["u10-c-20261018"]
+    assert not restored.get("cancelled")
+    assert "cancellation_reason" not in restored
+    assert restored["start_time"] == "16:00"
+    # Nothing outside the declared scope changes.
+    after = _tournaments_by_id(root)
+    assert {tid: t for tid, t in after.items() if tid != "u10-c-20261018"} == before_other
+    # The restored tournament is an active booking row again, not cancelled history.
+    report = booking_status_report(season="2026-2027", root=root)
+    assert "u10-c-20261018" in {row["tournament_id"] for row in report["tournaments"]}
+    assert report["cancelled_tournaments"] == []
+
+
+def test_batch_restore_refuses_a_tournament_that_is_not_cancelled(tmp_path: Path) -> None:
+    _work_dir, root = _promote(tmp_path)
+    before = (_schedule_bytes(root), _decisions_bytes(root))
+    with pytest.raises(SeasonStateError, match="not cancelled"):
+        batch_maintenance(
+            season="2026-2027",
+            root=root,
+            operations=[{"op": "restore", "tournament_id": "u10-c-20261018"}],
+            scope=["u10-c-20261018"],
+            request_id="restore-active",
+            actor="tester",
+        )
+    assert (_schedule_bytes(root), _decisions_bytes(root)) == before
+
+
+def test_batch_restore_must_stay_inside_the_declared_scope(tmp_path: Path) -> None:
+    _work_dir, root = _promote(tmp_path)
+    _cancel_c(root)
+    preview = batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=[{"op": "restore", "tournament_id": "u10-c-20261018"}],
+        scope=["u10-a-20260912"],
+        request_id="restore-out-of-scope",
+        actor="tester",
+        dry_run=True,
+    )
+    assert preview["refused"] is True
+    assert preview["referenced_outside_scope"] == ["u10-c-20261018"]
+
+
+def test_published_history_replay_applies_a_batch_restoration() -> None:
+    """A sealed season's lifecycle reconciliation must replay cancel then restore."""
+    from tournament_scheduler.publication.mutation_history import replay_recorded_mutations
+
+    seed = {
+        "t1": {
+            "id": "t1",
+            "date": "2026-09-12",
+            "start_time": "10:00",
+            "duration_minutes": 120,
+            "end_time": "12:00",
+            "arena": "Arena A",
+            "host_club": "A",
+            "age_group": "U10",
+            "participants": [],
+        }
+    }
+    history = [
+        {
+            "event": "batch_maintenance",
+            "details": {"cancellations": [{"tournament_id": "t1", "reason": "lost ice"}]},
+        },
+        {
+            "event": "batch_maintenance",
+            "details": {"restorations": [{"tournament_id": "t1", "reason": "calendar shows it"}]},
+        },
+    ]
+    projection, applied = replay_recorded_mutations(seed, history[:1])
+    assert projection["t1"]["cancelled"] is True
+    projection, applied = replay_recorded_mutations(seed, history)
+    assert projection["t1"]["cancelled"] is False
+    assert projection["t1"]["cancellation_reason"] == ""
+    assert [item["event"] for item in applied] == ["batch_cancel", "batch_restore"]
+
+
+@pytest.mark.parametrize("order", [("cancel", "restore"), ("restore", "cancel")])
+def test_batch_refuses_cancelling_and_restoring_the_same_tournament(
+    tmp_path: Path, order: tuple[str, str]
+) -> None:
+    """History replay applies cancellations before restorations, so either order is refused."""
+    _work_dir, root = _promote(tmp_path)
+    before = (_schedule_bytes(root), _decisions_bytes(root))
+    with pytest.raises(SeasonStateError, match="both cancelled and restored"):
+        batch_maintenance(
+            season="2026-2027",
+            root=root,
+            operations=[{"op": op, "tournament_id": "u10-c-20261018"} for op in order],
+            scope=["u10-c-20261018"],
+            request_id="cancel-and-restore",
+            actor="tester",
+            dry_run=True,
+        )
+    assert (_schedule_bytes(root), _decisions_bytes(root)) == before
+
+
+def test_batch_cancel_one_and_restore_another_attributes_only_the_net_count_change(
+    tmp_path: Path,
+) -> None:
+    """Teams in both tournaments net to zero; only the others carry a count change."""
+    _work_dir, root = _promote(tmp_path)
+    # u10-a (K1, X1, Y1, Z1) is cancelled first; u10-b (K1, X1, W1, V1) shares K1 and X1.
+    first = batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=[{"op": "cancel", "tournament_id": "u10-a-20260912", "reason": "lost ice"}],
+        scope=["u10-a-20260912"],
+        request_id="cancel-a-first",
+        actor="tester",
+        dry_run=True,
+    )
+    codes = ("participation_count_changed", "temporal_coverage_materially_worse")
+    accepted = sorted(
+        {
+            f"{item['club']}|{item['team']}|U10={item['code']}"
+            for item in first["regression_acceptance"]["unaccepted_regressions"]
+            if item["code"] in codes
+        }
+    )
+    batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=[{"op": "cancel", "tournament_id": "u10-a-20260912", "reason": "lost ice"}],
+        scope=["u10-a-20260912"],
+        request_id="cancel-a-first",
+        actor="tester",
+        accept_regressions=accepted,
+        accept_regression_reason="ice unavailable; participants accept one fewer appearance",
+    )
+
+    # Restore A and cancel B in one batch: K1 and X1 lose B and regain A (net zero).
+    preview = batch_maintenance(
+        season="2026-2027",
+        root=root,
+        operations=[
+            {"op": "restore", "tournament_id": "u10-a-20260912"},
+            {"op": "cancel", "tournament_id": "u10-b-20260920", "reason": "swap which one is lost"},
+        ],
+        scope=["u10-a-20260912", "u10-b-20260920"],
+        request_id="restore-a-cancel-b",
+        actor="tester",
+        dry_run=True,
+    )
+    count_teams = {
+        item["team"]
+        for item in preview["regression_acceptance"]["unaccepted_regressions"]
+        if item["code"] == "participation_count_changed"
+    }
+    # Y1/Z1 regain an appearance, W1/V1 lose one; K1/X1 net to zero.
+    assert count_teams == {"Y1", "Z1", "W1", "V1"}
+    assert "K1" not in count_teams and "X1" not in count_teams

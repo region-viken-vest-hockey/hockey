@@ -41,6 +41,9 @@ from tournament_scheduler.publication.projection_guard import (
     occupied_end_time,
 )
 
+from tournament_scheduler.publication.mutation_history_cancellation import (
+    apply_batch_cancel_restore,
+)
 from tournament_scheduler.publication.baseline import (
     PARTICIPANT_SEPARATOR,
     participant_parts,
@@ -277,15 +280,9 @@ def replay_recorded_mutations(
                     raise PublishedMutationHistoryError("batch swap history entry is not an object")
                 _apply_swap(projection, swap)
                 applied.append({"event": "batch_swap"})
-            for cancellation in details.get("cancellations") or []:
-                if not isinstance(cancellation, Mapping):
-                    raise PublishedMutationHistoryError("batch cancellation history entry is not an object")
-                tournament_id = str(cancellation.get("tournament_id") or "")
-                entry = projection.get(tournament_id)
-                if entry is not None:
-                    entry["cancelled"] = True
-                    entry["cancellation_reason"] = str(cancellation.get("reason") or "")
-                    applied.append({"event": "batch_cancel", "tournament_id": tournament_id})
+            apply_batch_cancel_restore(
+                projection, details, applied, error=PublishedMutationHistoryError
+            )
             for removal in details.get("removals") or []:
                 if not isinstance(removal, Mapping):
                     raise PublishedMutationHistoryError("batch removal history entry is not an object")
