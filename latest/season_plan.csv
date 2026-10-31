@@ -137,12 +137,12 @@ date,arena,age_group,home,away,parallel_slot
 2026-10-18,Askerhallen,U9,Frisk Asker 2,Sandefjord,1
 2026-10-18,Askerhallen,U9,Jar Blå,Jutul Hvit,2
 2026-10-18,Askerhallen,U9,Jutul Rød,Jar Hvit,3
-2026-11-29,Skien ishall,JU8,Frisk Asker,Jutul Kittens,0
-2026-11-29,Skien ishall,JU8,Jar,Skien,1
+2026-11-29,Skien ishall,JU8,Frisk Asker,Wildcats Rosa,0
+2026-11-29,Skien ishall,JU8,Wildcats Turkis,Skien,1
 2026-11-29,Skien ishall,JU8,Frisk Asker,Skien,0
-2026-11-29,Skien ishall,JU8,Jar,Jutul Kittens,1
-2026-11-29,Skien ishall,JU8,Frisk Asker,Jar,0
-2026-11-29,Skien ishall,JU8,Jutul Kittens,Skien,1
+2026-11-29,Skien ishall,JU8,Wildcats Turkis,Wildcats Rosa,1
+2026-11-29,Skien ishall,JU8,Frisk Asker,Wildcats Turkis,0
+2026-11-29,Skien ishall,JU8,Wildcats Rosa,Skien,1
 2026-10-18,Holmen ishall,U10,Holmen Hockey Rød,Frisk Asker 3,0
 2026-10-18,Holmen ishall,U10,Jar Blå,Jutul Rød,1
 2026-10-18,Holmen ishall,U10,Ringerike 3,Kongsberg,2
@@ -414,19 +414,19 @@ date,arena,age_group,home,away,parallel_slot
 2026-11-15,Skien ishall,JU12,Skien,Frisk Asker Svart,1
 2026-11-15,Skien ishall,JU12,Frisk Asker Svart,Ringerike 1,0
 2026-11-15,Skien ishall,JU12,Skien,Ringerike 2,1
-2026-11-21,Schjongshallen,JU8,Jar,Ringerike 1,0
-2026-11-21,Schjongshallen,JU8,Jutul Kittens,Skien,1
+2026-11-21,Schjongshallen,JU8,Wildcats Turkis,Ringerike 1,0
+2026-11-21,Schjongshallen,JU8,Wildcats Rosa,Skien,1
 2026-11-21,Schjongshallen,JU8,Frisk Asker,Skien,0
-2026-11-21,Schjongshallen,JU8,Jutul Kittens,Ringerike 1,1
-2026-11-21,Schjongshallen,JU8,Frisk Asker,Jar,0
+2026-11-21,Schjongshallen,JU8,Wildcats Rosa,Ringerike 1,1
+2026-11-21,Schjongshallen,JU8,Frisk Asker,Wildcats Turkis,0
 2026-11-21,Schjongshallen,JU8,Ringerike 1,Skien,1
-2026-11-21,Schjongshallen,JU8,Frisk Asker,Jutul Kittens,0
-2026-11-21,Schjongshallen,JU8,Jar,Skien,1
+2026-11-21,Schjongshallen,JU8,Frisk Asker,Wildcats Rosa,0
+2026-11-21,Schjongshallen,JU8,Wildcats Turkis,Skien,1
 2026-11-21,Schjongshallen,JU8,Frisk Asker,Ringerike 1,0
-2026-11-21,Schjongshallen,JU8,Jar,Jutul Kittens,1
+2026-11-21,Schjongshallen,JU8,Wildcats Turkis,Wildcats Rosa,1
 2026-11-21,Schjongshallen,JU8,(Pause),Frisk Asker,
-2026-11-21,Schjongshallen,JU8,(Pause),Jar,
-2026-11-21,Schjongshallen,JU8,(Pause),Jutul Kittens,
+2026-11-21,Schjongshallen,JU8,(Pause),Wildcats Turkis,
+2026-11-21,Schjongshallen,JU8,(Pause),Wildcats Rosa,
 2026-11-21,Schjongshallen,JU8,(Pause),Ringerike 1,
 2026-11-21,Schjongshallen,JU8,(Pause),Skien,
 2026-11-21,Holmen ishall,U10,Holmen Hockey Hvit,Frisk Asker 1,0
@@ -712,12 +712,12 @@ date,arena,age_group,home,away,parallel_slot
 2026-12-12,Schjongshallen,U11,Frisk Asker 3,Sandefjord,0
 2026-12-12,Schjongshallen,U11,Ringerike Gul,Jar Gul,1
 2026-12-12,Schjongshallen,U11,Tønsberg Rød,Kongsberg,2
-2026-11-07,Baerum ishall,JU8,Frisk Asker,Jutul Kittens,0
-2026-11-07,Baerum ishall,JU8,Jar,Skien,1
+2026-11-07,Baerum ishall,JU8,Frisk Asker,Wildcats Rosa,0
+2026-11-07,Baerum ishall,JU8,Wildcats Turkis,Skien,1
 2026-11-07,Baerum ishall,JU8,Frisk Asker,Skien,0
-2026-11-07,Baerum ishall,JU8,Jar,Jutul Kittens,1
-2026-11-07,Baerum ishall,JU8,Frisk Asker,Jar,0
-2026-11-07,Baerum ishall,JU8,Jutul Kittens,Skien,1
+2026-11-07,Baerum ishall,JU8,Wildcats Turkis,Wildcats Rosa,1
+2026-11-07,Baerum ishall,JU8,Frisk Asker,Wildcats Turkis,0
+2026-11-07,Baerum ishall,JU8,Wildcats Rosa,Skien,1
 2026-12-13,Tonsberghallen,U12,Jutul Rød,Tønsberg Rød,0
 2026-12-13,Tonsberghallen,U12,Ringerike 2,Ringerike 1,1
 2026-12-13,Tonsberghallen,U12,Ringerike 1,Tønsberg Rød,0
@@ -832,12 +832,12 @@ date,arena,age_group,home,away,parallel_slot
 2027-01-16,Kongsberghallen,JU12,Kongsberg/Tønsberg,Ringerike 2,1
 2027-01-16,Kongsberghallen,JU12,Kongsberg/Tønsberg,Skien,0
 2027-01-16,Kongsberghallen,JU12,Ringerike 2,Frisk Asker Orange,1
-2027-01-17,Askerhallen,JU8,Frisk Asker,Jutul Kittens,0
-2027-01-17,Askerhallen,JU8,Jar,Skien,1
+2027-01-17,Askerhallen,JU8,Frisk Asker,Wildcats Rosa,0
+2027-01-17,Askerhallen,JU8,Wildcats Turkis,Skien,1
 2027-01-17,Askerhallen,JU8,Frisk Asker,Skien,0
-2027-01-17,Askerhallen,JU8,Jar,Jutul Kittens,1
-2027-01-17,Askerhallen,JU8,Frisk Asker,Jar,0
-2027-01-17,Askerhallen,JU8,Jutul Kittens,Skien,1
+2027-01-17,Askerhallen,JU8,Wildcats Turkis,Wildcats Rosa,1
+2027-01-17,Askerhallen,JU8,Frisk Asker,Wildcats Turkis,0
+2027-01-17,Askerhallen,JU8,Wildcats Rosa,Skien,1
 2027-01-16,Baerum ishall,U12,Frisk Asker 2,Ringerike 2,0
 2027-01-16,Baerum ishall,U12,Jutul Grønn,Jar Rød,1
 2027-01-16,Baerum ishall,U12,Jar Rød,Ringerike 2,0
@@ -1197,12 +1197,12 @@ date,arena,age_group,home,away,parallel_slot
 2027-02-13,Jar Isforum,U8,Frisk Asker 4,Jar Rød,1
 2027-02-13,Jar Isforum,U8,Holmen Hockey Blå,Jutul Rød,2
 2027-02-13,Jar Isforum,U8,Jar Svart,Holmen Hockey Hvit,3
-2027-02-13,Jar Isforum,JU8,Frisk Asker,Jutul Kittens,0
-2027-02-13,Jar Isforum,JU8,Jar,Skien,1
+2027-02-13,Jar Isforum,JU8,Frisk Asker,Wildcats Rosa,0
+2027-02-13,Jar Isforum,JU8,Wildcats Turkis,Skien,1
 2027-02-13,Jar Isforum,JU8,Frisk Asker,Skien,0
-2027-02-13,Jar Isforum,JU8,Jar,Jutul Kittens,1
-2027-02-13,Jar Isforum,JU8,Frisk Asker,Jar,0
-2027-02-13,Jar Isforum,JU8,Jutul Kittens,Skien,1
+2027-02-13,Jar Isforum,JU8,Wildcats Turkis,Wildcats Rosa,1
+2027-02-13,Jar Isforum,JU8,Frisk Asker,Wildcats Turkis,0
+2027-02-13,Jar Isforum,JU8,Wildcats Rosa,Skien,1
 2027-02-13,Schjongshallen,U11,Jar Oransje,Jar Grønn,0
 2027-02-13,Schjongshallen,U11,Ringerike Svart,Ringerike Gul,1
 2027-02-13,Schjongshallen,U11,Tønsberg Rød,Holmen Hockey Rød,2
@@ -1566,12 +1566,12 @@ date,arena,age_group,home,away,parallel_slot
 2027-02-14,Schjongshallen,U9,Jutul Rød,Holmen Hockey Sort,1
 2027-02-14,Schjongshallen,U9,Ringerike 1,Jar Rød,2
 2027-02-14,Schjongshallen,U9,Skien,Frisk Asker 1,3
-2027-03-13,Askerhallen,JU8,Frisk Asker,Jutul Kittens,0
-2027-03-13,Askerhallen,JU8,Jar,Skien,1
+2027-03-13,Askerhallen,JU8,Frisk Asker,Wildcats Rosa,0
+2027-03-13,Askerhallen,JU8,Wildcats Turkis,Skien,1
 2027-03-13,Askerhallen,JU8,Frisk Asker,Skien,0
-2027-03-13,Askerhallen,JU8,Jar,Jutul Kittens,1
-2027-03-13,Askerhallen,JU8,Frisk Asker,Jar,0
-2027-03-13,Askerhallen,JU8,Jutul Kittens,Skien,1
+2027-03-13,Askerhallen,JU8,Wildcats Turkis,Wildcats Rosa,1
+2027-03-13,Askerhallen,JU8,Frisk Asker,Wildcats Turkis,0
+2027-03-13,Askerhallen,JU8,Wildcats Rosa,Skien,1
 2027-03-13,Askerhallen,U11,Frisk Asker 2,Kongsberg,0
 2027-03-13,Askerhallen,U11,Holmen Hockey Rød,Jar Hvit,1
 2027-03-13,Askerhallen,U11,Jar Grønn,Holmen Hockey Hvit,2

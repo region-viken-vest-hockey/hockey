@@ -173,12 +173,13 @@ BEGIN:VEVENT
 SUMMARY:JU8 — Skien ishall
 DTSTART:20261129T114500Z
 DTEND:20261129T142000Z
-UID:5bc94286-27ab-51de-813b-58cd3e5cbec6
+UID:557bbe3e-c872-5f0b-944a-699c9e84bfb7
 CATEGORIES:JU8
 DESCRIPTION:Arena: Skien ishall\nAldersgruppe: JU8\nVert: Skien\nDeltakend
- e lag (4): Frisk Asker\, Jar\, Jutul Kittens\, Skien\n\nKamper:\n  Frisk A
- sker vs Jutul Kittens\n  Jar vs Skien\n  Frisk Asker vs Skien\n  Jar vs Ju
- tul Kittens\n  Frisk Asker vs Jar\n  Jutul Kittens vs Skien
+ e lag (4): Frisk Asker\, Wildcats Turkis\, Wildcats Rosa\, Skien\n\nKamper
+ :\n  Frisk Asker vs Wildcats Rosa\n  Wildcats Turkis vs Skien\n  Frisk Ask
+ er vs Skien\n  Wildcats Turkis vs Wildcats Rosa\n  Frisk Asker vs Wildcats
+  Turkis\n  Wildcats Rosa vs Skien
 LOCATION:Skien ishall
 END:VEVENT
 BEGIN:VEVENT
@@ -440,7 +441,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:JU10 — Askerhallen
 DTSTART:20261108T120000Z
-DTEND:20261108T135000Z
+DTEND:20261108T142000Z
 UID:49822fb5-07b0-5e3b-a8eb-bf5f8c2c53bb
 CATEGORIES:JU10
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: JU10\nVert: Frisk Asker\nDel
@@ -525,16 +526,17 @@ BEGIN:VEVENT
 SUMMARY:AVLYST: JU8 — Schjongshallen
 DTSTART:20261121T114500Z
 DTEND:20261121T142000Z
-UID:3ca13c68-0d01-5bb8-8297-ebcb22b65b18
+UID:f47f193b-0e18-5f15-bcd7-4a1587b8f72d
 CATEGORIES:JU8
 DESCRIPTION:AVLYST: Ringerike JU8 team retiring from the season\; Ringerik
  e was the sole JU8 host with no other JU8 squad available (#483 item 2)\n
  \nArena: Schjongshallen\nAldersgruppe: JU8\nVert: Ringerike\nDeltakende la
- g (5): Frisk Asker\, Jar\, Jutul Kittens\, Ringerike 1\, Skien\n\nKamper:
- \n  Jar vs Ringerike 1\n  Jutul Kittens vs Skien\n  Frisk Asker vs Skien\n
-   Jutul Kittens vs Ringerike 1\n  Frisk Asker vs Jar\n  Ringerike 1 vs Ski
- en\n  Frisk Asker vs Jutul Kittens\n  Jar vs Skien\n  Frisk Asker vs Ringe
- rike 1\n  Jar vs Jutul Kittens
+ g (5): Frisk Asker\, Wildcats Turkis\, Wildcats Rosa\, Ringerike 1\, Skien
+ \n\nKamper:\n  Wildcats Turkis vs Ringerike 1\n  Wildcats Rosa vs Skien\n 
+  Frisk Asker vs Skien\n  Wildcats Rosa vs Ringerike 1\n  Frisk Asker vs Wi
+ ldcats Turkis\n  Ringerike 1 vs Skien\n  Frisk Asker vs Wildcats Rosa\n  W
+ ildcats Turkis vs Skien\n  Frisk Asker vs Ringerike 1\n  Wildcats Turkis v
+ s Wildcats Rosa
 LOCATION:Schjongshallen
 STATUS:CANCELLED
 END:VEVENT
@@ -672,9 +674,9 @@ LOCATION:Baerum ishall
 END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U11 — Askerhallen
-DTSTART:20261128T150000Z
+DTSTART:20261128T143000Z
 DTEND:20261128T165000Z
-UID:b0a5140e-361b-531d-84d7-b9596c4f8028
+UID:345ce8d1-aa31-517f-81bb-5507d74097ac
 CATEGORIES:U11
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U11\nVert: Frisk Asker\nDelt
  akende lag (6): Frisk Asker 4\, Jar Grønn\, Ringerike Svart\, Tønsberg R
@@ -799,7 +801,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:JU10 — Jar Isforum
 DTSTART:20261205T120000Z
-DTEND:20261205T142000Z
+DTEND:20261205T143000Z
 UID:49d74708-1595-5c36-b49d-17bd22cbd200
 CATEGORIES:JU10
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: JU10\nVert: Jar\nDeltakende 
@@ -901,12 +903,13 @@ BEGIN:VEVENT
 SUMMARY:JU8 — Baerum ishall
 DTSTART:20261107T173000Z
 DTEND:20261107T200000Z
-UID:2c62bdc3-1a9d-5bad-84d9-6e10629404d8
+UID:563888e4-9dff-5efd-a069-0e0c233804a6
 CATEGORIES:JU8
 DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: JU8\nVert: Jutul\nDeltaken
- de lag (4): Frisk Asker\, Jar\, Jutul Kittens\, Skien\n\nKamper:\n  Frisk 
- Asker vs Jutul Kittens\n  Jar vs Skien\n  Frisk Asker vs Skien\n  Jar vs J
- utul Kittens\n  Frisk Asker vs Jar\n  Jutul Kittens vs Skien
+ de lag (4): Frisk Asker\, Wildcats Turkis\, Wildcats Rosa\, Skien\n\nKampe
+ r:\n  Frisk Asker vs Wildcats Rosa\n  Wildcats Turkis vs Skien\n  Frisk As
+ ker vs Skien\n  Wildcats Turkis vs Wildcats Rosa\n  Frisk Asker vs Wildcat
+ s Turkis\n  Wildcats Rosa vs Skien
 LOCATION:Baerum ishall
 END:VEVENT
 BEGIN:VEVENT
@@ -976,7 +979,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U9 — Askerhallen
 DTSTART:20270110T120000Z
-DTEND:20270110T135000Z
+DTEND:20270110T142000Z
 UID:267d6f75-84f8-578f-8fb1-47958cd46b79
 CATEGORIES:U9
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U9\nVert: Frisk Asker\nDelta
@@ -1061,12 +1064,13 @@ BEGIN:VEVENT
 SUMMARY:JU8 — Askerhallen
 DTSTART:20270117T120000Z
 DTEND:20270117T132000Z
-UID:5d212a8c-a609-572e-a4e4-a617fc55fd12
+UID:e073bec9-6878-5780-896e-f4968ec9cde7
 CATEGORIES:JU8
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: JU8\nVert: Frisk Asker\nDelt
- akende lag (4): Frisk Asker\, Jar\, Jutul Kittens\, Skien\n\nKamper:\n  Fr
- isk Asker vs Jutul Kittens\n  Jar vs Skien\n  Frisk Asker vs Skien\n  Jar 
- vs Jutul Kittens\n  Frisk Asker vs Jar\n  Jutul Kittens vs Skien
+ akende lag (4): Frisk Asker\, Wildcats Turkis\, Wildcats Rosa\, Skien\n\nK
+ amper:\n  Frisk Asker vs Wildcats Rosa\n  Wildcats Turkis vs Skien\n  Fris
+ k Asker vs Skien\n  Wildcats Turkis vs Wildcats Rosa\n  Frisk Asker vs Wil
+ dcats Turkis\n  Wildcats Rosa vs Skien
 LOCATION:Askerhallen
 END:VEVENT
 BEGIN:VEVENT
@@ -1135,7 +1139,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U8 — Jar Isforum
 DTSTART:20270117T150000Z
-DTEND:20270117T173400Z
+DTEND:20270117T173500Z
 UID:a5004705-f3f7-57a0-9b72-1abbaa8f1d06
 CATEGORIES:U8
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: U8\nVert: Jar\nDeltakende la
@@ -1171,7 +1175,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U11 — Kongsberghallen
 DTSTART:20270123T103000Z
-DTEND:20270123T125000Z
+DTEND:20270123T130000Z
 UID:0661f74c-19cd-5b0b-9b31-1a1278a96eed
 CATEGORIES:U11
 DESCRIPTION:Arena: Kongsberghallen\nAldersgruppe: U11\nVert: Kongsberg\nDe
@@ -1243,7 +1247,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U10 — Askerhallen
 DTSTART:20270124T120000Z
-DTEND:20270124T135000Z
+DTEND:20270124T142000Z
 UID:b1f6757c-583f-5b44-b318-1fe401f6d295
 CATEGORIES:U10
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U10\nVert: Frisk Asker\nDelt
@@ -1277,7 +1281,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U12 — Jar Isforum
 DTSTART:20270124T123000Z
-DTEND:20270124T140900Z
+DTEND:20270124T141000Z
 UID:433351be-6d5e-5067-9af8-6b3dcda2553d
 CATEGORIES:U12
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: U12\nVert: Jar\nDeltakende l
@@ -1353,7 +1357,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:JU10 — Askerhallen
 DTSTART:20270131T143000Z
-DTEND:20270131T162000Z
+DTEND:20270131T165000Z
 UID:b515c265-5bd9-56b9-9991-caecc6224f07
 CATEGORIES:JU10
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: JU10\nVert: Frisk Asker\nDel
@@ -1448,9 +1452,9 @@ LOCATION:Jar Isforum
 END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U7 — Askerhallen
-DTSTART:20270206T133000Z
-DTEND:20270206T152000Z
-UID:4083080f-97c5-5665-894c-93918af7a8c9
+DTSTART:20270206T130000Z
+DTEND:20270206T145000Z
+UID:83c4dd60-7974-5bc8-9b6c-b1838c51c49c
 CATEGORIES:U7
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U7\nVert: Frisk Asker\nDelta
  kende lag (8): Frisk Asker 1\, Jar Grønn\, Jar Blå\, Holmen Hockey Hvit
@@ -1469,7 +1473,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U11 — Jar Isforum
 DTSTART:20270207T141500Z
-DTEND:20270207T163400Z
+DTEND:20270207T163500Z
 UID:500eeb58-2b4f-5db1-8dc9-5ff950957eea
 CATEGORIES:U11
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: U11\nVert: Jar\nDeltakende l
@@ -1520,12 +1524,13 @@ BEGIN:VEVENT
 SUMMARY:JU8 — Jar Isforum
 DTSTART:20270213T144000Z
 DTEND:20270213T171500Z
-UID:05fdbeb5-5f81-5c3d-8b65-5fbd5eb2d358
+UID:810806ee-7294-516b-b67d-251b41566be5
 CATEGORIES:JU8
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: JU8\nVert: Jar\nDeltakende l
- ag (4): Frisk Asker\, Jar\, Jutul Kittens\, Skien\n\nKamper:\n  Frisk Aske
- r vs Jutul Kittens\n  Jar vs Skien\n  Frisk Asker vs Skien\n  Jar vs Jutul
-  Kittens\n  Frisk Asker vs Jar\n  Jutul Kittens vs Skien
+ ag (4): Frisk Asker\, Wildcats Turkis\, Wildcats Rosa\, Skien\n\nKamper:\n
+   Frisk Asker vs Wildcats Rosa\n  Wildcats Turkis vs Skien\n  Frisk Asker 
+ vs Skien\n  Wildcats Turkis vs Wildcats Rosa\n  Frisk Asker vs Wildcats Tu
+ rkis\n  Wildcats Rosa vs Skien
 LOCATION:Jar Isforum
 END:VEVENT
 BEGIN:VEVENT
@@ -1611,7 +1616,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U10 — Askerhallen
 DTSTART:20270220T143000Z
-DTEND:20270220T162000Z
+DTEND:20270220T165000Z
 UID:171d219b-3bd9-5c56-b1cf-219bdeb8e7ba
 CATEGORIES:U10
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U10\nVert: Frisk Asker\nDelt
@@ -1815,7 +1820,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U11 — Jar Isforum
 DTSTART:20270306T173000Z
-DTEND:20270306T195000Z
+DTEND:20270306T200000Z
 UID:36fc2bd3-5576-5660-9e73-971b1c42aaa1
 CATEGORIES:U11
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: U11\nVert: Jar\nDeltakende l
@@ -1947,7 +1952,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U10 — Askerhallen
 DTSTART:20270307T120000Z
-DTEND:20270307T135000Z
+DTEND:20270307T142000Z
 UID:f070303c-12c5-551f-a280-d90fcfa9f8e8
 CATEGORIES:U10
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U10\nVert: Frisk Asker\nDelt
@@ -2018,20 +2023,21 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:JU8 — Askerhallen
 DTSTART:20270313T130000Z
-DTEND:20270313T150000Z
-UID:704940fd-8adc-5786-bfa3-112db4b106c2
+DTEND:20270313T142000Z
+UID:e7ab0df3-27c1-55a3-a13f-c40084357388
 CATEGORIES:JU8
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: JU8\nVert: Frisk Asker\nDelt
- akende lag (4): Frisk Asker\, Jar\, Jutul Kittens\, Skien\n\nKamper:\n  Fr
- isk Asker vs Jutul Kittens\n  Jar vs Skien\n  Frisk Asker vs Skien\n  Jar 
- vs Jutul Kittens\n  Frisk Asker vs Jar\n  Jutul Kittens vs Skien
+ akende lag (4): Frisk Asker\, Wildcats Turkis\, Wildcats Rosa\, Skien\n\nK
+ amper:\n  Frisk Asker vs Wildcats Rosa\n  Wildcats Turkis vs Skien\n  Fris
+ k Asker vs Skien\n  Wildcats Turkis vs Wildcats Rosa\n  Frisk Asker vs Wil
+ dcats Turkis\n  Wildcats Rosa vs Skien
 LOCATION:Askerhallen
 END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U11 — Askerhallen
-DTSTART:20270313T150000Z
+DTSTART:20270313T143000Z
 DTEND:20270313T165000Z
-UID:8c90fa53-0708-5253-9b6b-936d167c6a4c
+UID:024c7e0b-e297-5f2d-ae56-957bd619c350
 CATEGORIES:U11
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U11\nVert: Frisk Asker\nDelt
  akende lag (6): Frisk Asker 2\, Kongsberg\, Jar Grønn\, Holmen Hockey Rø
@@ -2078,7 +2084,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U7 — Jar Isforum
 DTSTART:20270124T141500Z
-DTEND:20270124T164900Z
+DTEND:20270124T165000Z
 UID:504d89e9-85e6-5a6b-b3e8-5d5696a85026
 CATEGORIES:U7
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: U7\nVert: Jar\nDeltakende la
@@ -2098,7 +2104,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U8 — Askerhallen
 DTSTART:20270123T130000Z
-DTEND:20270123T145000Z
+DTEND:20270123T152000Z
 UID:898bdcef-3859-5a43-a3be-ece7b9a39e07
 CATEGORIES:U8
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U8\nVert: Frisk Asker\nDelta
@@ -2118,7 +2124,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U9 — Kongsberghallen
 DTSTART:20270220T130000Z
-DTEND:20270220T153500Z
+DTEND:20270220T160000Z
 UID:df46833f-8746-598f-bf0f-968ff5955e1e
 CATEGORIES:U9
 DESCRIPTION:Arena: Kongsberghallen\nAldersgruppe: U9\nVert: Kongsberg\nDel
@@ -2158,7 +2164,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U10 — Kongsberghallen
 DTSTART:20270221T103000Z
-DTEND:20270221T125000Z
+DTEND:20270221T130000Z
 UID:f0221445-c39f-54a3-93a5-d95329e76000
 CATEGORIES:U10
 DESCRIPTION:Arena: Kongsberghallen\nAldersgruppe: U10\nVert: Kongsberg\nDe
@@ -2205,7 +2211,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U11 — Kongsberghallen
 DTSTART:20261108T163000Z
-DTEND:20261108T185000Z
+DTEND:20261108T190000Z
 UID:8dcb6f46-b20e-53f9-a41a-1cb73809cf4b
 CATEGORIES:U11
 DESCRIPTION:Arena: Kongsberghallen\nAldersgruppe: U11\nVert: Kongsberg\nDe
@@ -2252,7 +2258,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U10 — Jar Isforum
 DTSTART:20261114T120000Z
-DTEND:20261114T142000Z
+DTEND:20261114T143000Z
 UID:37a79030-5aac-545d-bc7e-069bf6cf5579
 CATEGORIES:U10
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: U10\nVert: Jar\nDeltakende l
@@ -2288,9 +2294,9 @@ STATUS:CANCELLED
 END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U10 — Askerhallen
-DTSTART:20270123T170000Z
+DTSTART:20270123T163000Z
 DTEND:20270123T185000Z
-UID:bc87c312-3c05-5a67-864c-fd40aa0fe118
+UID:4621f3df-65fc-512c-8d22-452f4a2715de
 CATEGORIES:U10
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U10\nVert: Frisk Asker\nDelt
  akende lag (6): Frisk Asker 1\, Frisk Asker 4\, Holmen Hockey Rød\, Ringe
@@ -2341,7 +2347,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U11 — Jar Isforum
 DTSTART:20261128T120000Z
-DTEND:20261128T142000Z
+DTEND:20261128T143000Z
 UID:5ad709a6-d08c-5c8d-857d-1c1655343b7d
 CATEGORIES:U11
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: U11\nVert: Jar\nDeltakende l
@@ -2357,7 +2363,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U11 — Askerhallen
 DTSTART:20261122T120000Z
-DTEND:20261122T135000Z
+DTEND:20261122T142000Z
 UID:34681382-ae1a-5e9a-9e26-402184f6568c
 CATEGORIES:U11
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U11\nVert: Frisk Asker\nDelt
@@ -2394,9 +2400,9 @@ STATUS:CANCELLED
 END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U11 — Askerhallen
-DTSTART:20261129T150000Z
-DTEND:20261129T165000Z
-UID:f700b09d-b89c-54dd-af06-58547423aacd
+DTSTART:20261129T140000Z
+DTEND:20261129T162000Z
+UID:d5088720-31b2-572b-85cb-5232de48aa60
 CATEGORIES:U11
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U11\nVert: Frisk Asker\nDelt
  akende lag (6): Jar Gul\, Jar Oransje\, Frisk Asker 3\, Sandefjord\, Ringe
@@ -2412,7 +2418,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U11 — Jar Isforum
 DTSTART:20261114T150000Z
-DTEND:20261114T172000Z
+DTEND:20261114T173000Z
 UID:71e72109-b7f5-5dea-9af3-eef2c97aaf54
 CATEGORIES:U11
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: U11\nVert: Jar\nDeltakende l
@@ -2447,9 +2453,9 @@ LOCATION:Tonsberghallen
 END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U11 — Askerhallen
-DTSTART:20270307T150000Z
-DTEND:20270307T165000Z
-UID:1d42984d-15fb-58cc-ac33-296619919584
+DTSTART:20270307T153000Z
+DTEND:20270307T175000Z
+UID:2638617f-90a1-531c-a7db-57b15933532c
 CATEGORIES:U11
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U11\nVert: Frisk Asker\nDelt
  akende lag (6): Frisk Asker 4\, Jar Svart\, Ringerike Gul\, Sandefjord\, J
@@ -2464,9 +2470,9 @@ LOCATION:Askerhallen
 END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U11 — Askerhallen
-DTSTART:20270206T153000Z
+DTSTART:20270206T150000Z
 DTEND:20270206T172000Z
-UID:bb5a1ac4-2d98-566b-991f-1d1d0c5cfa04
+UID:72507a23-dc92-595a-8e4e-0368c95efa83
 CATEGORIES:U11
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U11\nVert: Frisk Asker\nDelt
  akende lag (6): Frisk Asker 1\, Jar Grønn\, Holmen Hockey Rød\, Jar Blå
@@ -2592,7 +2598,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U12 — Jar Isforum
 DTSTART:20261129T123000Z
-DTEND:20261129T141000Z
+DTEND:20261129T142000Z
 UID:5f90f180-f5bc-5c95-83ef-4eee5ff87eff
 CATEGORIES:U12
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: U12\nVert: Jar\nDeltakende l
@@ -2631,7 +2637,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U12 — Kongsberghallen
 DTSTART:20261115T150000Z
-DTEND:20261115T164000Z
+DTEND:20261115T170000Z
 UID:8ada4ffa-fb49-5636-bd01-37f14a0a8a10
 CATEGORIES:U12
 DESCRIPTION:Arena: Kongsberghallen\nAldersgruppe: U12\nVert: Kongsberg\nDe
@@ -2696,9 +2702,9 @@ LOCATION:Askerhallen
 END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U8 — Askerhallen
-DTSTART:20261121T153000Z
+DTSTART:20261121T150000Z
 DTEND:20261121T172000Z
-UID:41ed11aa-da25-5a4f-ad13-cd1917bcc9f1
+UID:7c5a8600-4530-57be-9d62-3b22b79b4c6c
 CATEGORIES:U8
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U8\nVert: Frisk Asker\nDelta
  kende lag (8): Frisk Asker 1\, Frisk Asker 4\, Holmen Hockey Hvit\, Jutul 
@@ -2740,7 +2746,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U9 — Baerum ishall
 DTSTART:20261219T160000Z
-DTEND:20261219T183600Z
+DTEND:20261219T183500Z
 UID:8c79b2d9-92c6-5bc3-8302-08059fff30dd
 CATEGORIES:U9
 DESCRIPTION:Arena: Baerum ishall\nAldersgruppe: U9\nVert: Jutul\nDeltakend
@@ -2825,7 +2831,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U11 — Jar Isforum
 DTSTART:20270123T150000Z
-DTEND:20270123T171900Z
+DTEND:20270123T172000Z
 UID:2421076b-15aa-5daa-9bb0-c4d2f8a62325
 CATEGORIES:U11
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: U11\nVert: Jar\nDeltakende l
@@ -2871,7 +2877,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U12 — Jar Isforum
 DTSTART:20270131T133000Z
-DTEND:20270131T150900Z
+DTEND:20270131T151000Z
 UID:b243603e-c10a-5b71-b48b-725b3c33eed2
 CATEGORIES:U12
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: U12\nVert: Jar\nDeltakende l
@@ -2902,9 +2908,9 @@ LOCATION:Askerhallen
 END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U9 — Askerhallen
-DTSTART:20270117T143000Z
-DTEND:20270117T162000Z
-UID:3d527b6d-2b15-516a-8cfb-227e30fb2f1b
+DTSTART:20270117T133000Z
+DTEND:20270117T155000Z
+UID:faaa6e76-b11d-59a0-aace-48e9ac91e863
 CATEGORIES:U9
 DESCRIPTION:Arena: Askerhallen\nAldersgruppe: U9\nVert: Frisk Asker\nDelta
  kende lag (8): Jutul Hvit\, Jar Blå\, Frisk Asker 4\, Sandefjord\, Skien
@@ -2922,7 +2928,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:U10 — Jar Isforum
 DTSTART:20261115T150000Z
-DTEND:20261115T172000Z
+DTEND:20261115T173000Z
 UID:09d1bece-3637-5a0c-8375-58ffda71daea
 CATEGORIES:U10
 DESCRIPTION:Arena: Jar Isforum\nAldersgruppe: U10\nVert: Jar\nDeltakende l
