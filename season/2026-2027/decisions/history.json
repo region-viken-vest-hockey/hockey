@@ -60131,6 +60131,481 @@
       "schedule_fingerprint": "cd443b7c55ac069f1dcd10306dff3c44bc29b1815bc98674be12933808cc7cc2",
       "tournament_fingerprint": "32af365cffbb870f322e6e83277ae89d0ca0b9bb94f0c3e7b605bfc7299c18e0",
       "tournament_id": "rvv-0135"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:16.629187+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:df51d09b233fa972"
+        ],
+        "request_id": "860-release-rvv-0070"
+      },
+      "event": "release_change_protection",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "cd443b7c55ac069f1dcd10306dff3c44bc29b1815bc98674be12933808cc7cc2",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:17.008865+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:8992c4e62c53f8aa",
+        "reference": "U11 Serierunde",
+        "request_id": "calendar-booking:0548252e9ac8037406cc2457fd0d9f97ec0773974b1c5ea067249cb00b925b2a",
+        "supersedes": "ice-time-override:4ef784e3f61567a1"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "cd443b7c55ac069f1dcd10306dff3c44bc29b1815bc98674be12933808cc7cc2",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0070"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:17.008865+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U11 Serierunde",
+        "event_fingerprint": "0548252e9ac8037406cc2457fd0d9f97ec0773974b1c5ea067249cb00b925b2a",
+        "ice_time_override_id": "ice-time-override:8992c4e62c53f8aa",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-29",
+            "duration_minutes": 140,
+            "end_time": "16:20",
+            "start_time": "14:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2026-11-29",
+            "duration_minutes": "110",
+            "end_time": "16:50",
+            "round_count": "5",
+            "start_time": "15:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "fae36c819c91222f79d1fd5c61a0f46afe812ca5155e01b435d1ea65e61ec13f",
+      "tournament_fingerprint": "df0c6be561bd54e660689183bc28bbfd5ea827ebddcdce1e057aab338f68a79e",
+      "tournament_id": "rvv-0070"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:17.806434+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:6fab44bcabfebf8e"
+        ],
+        "request_id": "860-release-rvv-0100"
+      },
+      "event": "release_change_protection",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "fae36c819c91222f79d1fd5c61a0f46afe812ca5155e01b435d1ea65e61ec13f",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:18.181664+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:1224c2c34c89101c",
+        "reference": "U11 Serierunde",
+        "request_id": "calendar-booking:3458b97eeb727438caf14908750511324f7cf771e7b08c56600d22324fe90026",
+        "supersedes": "ice-time-override:e0331d719f7dafbd"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "fae36c819c91222f79d1fd5c61a0f46afe812ca5155e01b435d1ea65e61ec13f",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0100"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:18.181664+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U11 Serierunde",
+        "event_fingerprint": "3458b97eeb727438caf14908750511324f7cf771e7b08c56600d22324fe90026",
+        "ice_time_override_id": "ice-time-override:1224c2c34c89101c",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-03-07",
+            "duration_minutes": 140,
+            "end_time": "17:50",
+            "start_time": "15:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2027-03-07",
+            "duration_minutes": "110",
+            "end_time": "16:50",
+            "round_count": "5",
+            "start_time": "15:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1009a916c1b63a3ba7b3d3fc8c26a4374145033a879cd3d1b8ddae32231128a2",
+      "tournament_fingerprint": "4b2d9552b37efb374603580e727eb19d9e0eedfcd0dabb59a091abadee7dd270",
+      "tournament_id": "rvv-0100"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:18.899607+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:6ba87acddcb7533d"
+        ],
+        "request_id": "860-release-rvv-0134"
+      },
+      "event": "release_change_protection",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1009a916c1b63a3ba7b3d3fc8c26a4374145033a879cd3d1b8ddae32231128a2",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:19.256302+00:00",
+      "details": {
+        "booking_feasibility_warnings": [
+          {
+            "accepted_booking_interval": true,
+            "accepted_exception": {
+              "authority": "calendar_event_association",
+              "interval": {
+                "date": "2027-02-06",
+                "duration_minutes": "110",
+                "end_time": "14:50",
+                "start_time": "13:00"
+              },
+              "record_id": "",
+              "rule": "ice_time_governing_minimum",
+              "source_assertion_id": "",
+              "tournament_id": "rvv-0134"
+            },
+            "age_group": "U7",
+            "code": "ice_time_governing_minimum",
+            "configured_ice_time_minutes": 110,
+            "message": "Tournament rvv-0134 (U7) has an accepted booking interval of 110 minutes, below the governing minimum booking window of 120 minutes",
+            "minimum_required_minutes": 120,
+            "rule_id": "tournament_ice_booking_duration",
+            "tournament_id": "rvv-0134"
+          }
+        ],
+        "calendar_event": "U7 Serierunde",
+        "event_fingerprint": "5974590e2f139ee7f36835e46af86c742c07e4a2ac770a80494cdb9b19ca8c16",
+        "ice_time_override_id": "",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-02-06",
+            "duration_minutes": 110,
+            "end_time": "14:50",
+            "start_time": "13:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U7",
+            "date": "2027-02-06",
+            "duration_minutes": "110",
+            "end_time": "15:20",
+            "round_count": "5",
+            "start_time": "13:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "ec87131e52d4b24ae4af27f8c9c1b330858d3fc9060d29b7ff612c9b2be99039",
+      "tournament_fingerprint": "4bbd1fe67aeda334f7e810d5819d3683a08ac8e6ea51b3b8a9666d0e410e4019",
+      "tournament_id": "rvv-0134"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:19.977627+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:53e75a2bfb5f81d5"
+        ],
+        "request_id": "860-release-rvv-0127"
+      },
+      "event": "release_change_protection",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "ec87131e52d4b24ae4af27f8c9c1b330858d3fc9060d29b7ff612c9b2be99039",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:20.341359+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:85a6b5270c5a4b93",
+        "reference": "U11 Serierunde",
+        "request_id": "calendar-booking:1c7430ce660ab6391c2176607b7d166510280ae4628bad3ae3ce2d520ba86466",
+        "supersedes": "ice-time-override:f7d5883da9024a82"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "ec87131e52d4b24ae4af27f8c9c1b330858d3fc9060d29b7ff612c9b2be99039",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0127"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:20.341359+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U11 Serierunde",
+        "event_fingerprint": "1c7430ce660ab6391c2176607b7d166510280ae4628bad3ae3ce2d520ba86466",
+        "ice_time_override_id": "ice-time-override:85a6b5270c5a4b93",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-02-06",
+            "duration_minutes": 140,
+            "end_time": "17:20",
+            "start_time": "15:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2027-02-06",
+            "duration_minutes": "110",
+            "end_time": "17:20",
+            "round_count": "5",
+            "start_time": "15:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "035515e2939175053b41981c7516cf468bad8412103f448c8c8f603b11929959",
+      "tournament_fingerprint": "631af9e9d2c3f0a9c0ad067e7c607c011fbf3686f48fb91633b35a85c9008c7a",
+      "tournament_id": "rvv-0127"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:21.048712+00:00",
+      "details": {
+        "booking_feasibility_warnings": [
+          {
+            "accepted_booking_interval": true,
+            "accepted_exception": {
+              "authority": "calendar_event_association",
+              "interval": {
+                "date": "2027-03-13",
+                "duration_minutes": "80",
+                "end_time": "14:20",
+                "start_time": "13:00"
+              },
+              "record_id": "",
+              "rule": "ice_time_governing_minimum",
+              "source_assertion_id": "",
+              "tournament_id": "rvv-0179"
+            },
+            "age_group": "JU8",
+            "code": "ice_time_governing_minimum",
+            "configured_ice_time_minutes": 80,
+            "message": "Tournament rvv-0179 (JU8) has an accepted booking interval of 80 minutes, below the governing minimum booking window of 120 minutes",
+            "minimum_required_minutes": 120,
+            "rule_id": "tournament_ice_booking_duration",
+            "tournament_id": "rvv-0179"
+          }
+        ],
+        "calendar_event": "JU8 Serierunde",
+        "event_fingerprint": "35aaf86a3e682e054672d4ff58e32c9b90075fc54dec4ac0c473f400bc5cb7c2",
+        "ice_time_override_id": "",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-03-13",
+            "duration_minutes": 80,
+            "end_time": "14:20",
+            "start_time": "13:00"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "JU8",
+            "date": "2027-03-13",
+            "duration_minutes": "80",
+            "end_time": "14:50",
+            "round_count": "3",
+            "start_time": "13:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": "38b27da452254cc502d8f5cff43c6d1ff678c6c91ab38916313a81cea6ca2ba2",
+      "schedule_fingerprint": "1aedeb524d57a1379be99593a682193f8edc3aa51cbcaceea2b46fdecb18dbd5",
+      "tournament_fingerprint": "bab07f9609c410feef2ad0b4e5efbe807ffd29116a1932f77d294731d71e031b",
+      "tournament_id": "rvv-0179"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:21.761164+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:633311b3edf2ce77"
+        ],
+        "request_id": "860-release-rvv-0181"
+      },
+      "event": "release_change_protection",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1aedeb524d57a1379be99593a682193f8edc3aa51cbcaceea2b46fdecb18dbd5",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:22.115357+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:a0f28b72a411fe37",
+        "reference": "U11 Serierunde",
+        "request_id": "calendar-booking:cc77dd33ec559218449ce122c77205ce5516eb47da1c1ddf94562b922be73e0f",
+        "supersedes": "ice-time-override:7947bdf5cb61a2e4"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "1aedeb524d57a1379be99593a682193f8edc3aa51cbcaceea2b46fdecb18dbd5",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0181"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:22.115357+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U11 Serierunde",
+        "event_fingerprint": "cc77dd33ec559218449ce122c77205ce5516eb47da1c1ddf94562b922be73e0f",
+        "ice_time_override_id": "ice-time-override:a0f28b72a411fe37",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-03-13",
+            "duration_minutes": 140,
+            "end_time": "16:50",
+            "start_time": "14:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2027-03-13",
+            "duration_minutes": "110",
+            "end_time": "16:50",
+            "round_count": "5",
+            "start_time": "15:00"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "15b2818356b0637879d3d91b493e5b5b0180a09334ed31f67f6bbb70c1f0b352",
+      "tournament_fingerprint": "42803a1ae9df90e1636e94dd47c63ae3f80f79cbad62656b447a20b14eb91d93",
+      "tournament_id": "rvv-0181"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:22.833879+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:6ab85c0f6e793dff"
+        ],
+        "request_id": "860-release-rvv-0191"
+      },
+      "event": "release_change_protection",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "15b2818356b0637879d3d91b493e5b5b0180a09334ed31f67f6bbb70c1f0b352",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:23.194982+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:3ea3d83a5001c66b",
+        "reference": "U9 Serierunde",
+        "request_id": "calendar-booking:a8a091e011c02d48b265af3ea1218febebc7f6510aa45a21da59a02cb4f86ec2",
+        "supersedes": "ice-time-override:82b8779da2b232e4"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "15b2818356b0637879d3d91b493e5b5b0180a09334ed31f67f6bbb70c1f0b352",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0191"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T07:42:23.194982+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U9 Serierunde",
+        "event_fingerprint": "a8a091e011c02d48b265af3ea1218febebc7f6510aa45a21da59a02cb4f86ec2",
+        "ice_time_override_id": "ice-time-override:3ea3d83a5001c66b",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-01-17",
+            "duration_minutes": 140,
+            "end_time": "15:50",
+            "start_time": "13:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U9",
+            "date": "2027-01-17",
+            "duration_minutes": "110",
+            "end_time": "16:20",
+            "round_count": "5",
+            "start_time": "14:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "3ef2912a7e423c249e5357e0b5f843fecac25336d86b14afc45ece767b3dff3b",
+      "tournament_id": "rvv-0191"
     }
   ]
 }

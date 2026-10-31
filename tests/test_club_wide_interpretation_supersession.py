@@ -266,14 +266,15 @@ def test_copied_season_supersedes_the_ten_blocked_frisk_asker_interpretations(tm
         for r in decisions_before["change_protections"]
         if r["tournament_id"] in targets and r["kind"] == "placement_field" and r["status"] == "active"
     ]
-    release_change_protections(
-        season="2026-2027",
-        root=root,
-        protection_ids=placement_ids,
-        request_id="567-copy-release-superseded-frisk-start-protections",
-        actor="operator",
-        note="copy-only precondition: placement pins to superseded club start times (#567 regression)",
-    )
+    if placement_ids:  # none left once the live season has adopted the calendar starts
+        release_change_protections(
+            season="2026-2027",
+            root=root,
+            protection_ids=placement_ids,
+            request_id="567-copy-release-superseded-frisk-start-protections",
+            actor="operator",
+            note="copy-only precondition: placement pins to superseded club start times (#567 regression)",
+        )
 
     schedule = load_schedule("2026-2027", root=root)
     problem = schedule["verification_context"]["problem"]
@@ -289,7 +290,10 @@ def test_copied_season_supersedes_the_ten_blocked_frisk_asker_interpretations(tm
             for e in frisk
             if e.get("date") == date_str and e.get("calendar_event") == title and e.get("start") == start and e.get("end") == end
         )
-        named = _positive_for(load_decisions("2026-2027", root=root), tid)[0]["id"]
+        positives = _positive_for(load_decisions("2026-2027", root=root), tid)
+        if not positives:
+            continue  # already adopted on the live season; the final assertions still cover it
+        named = positives[0]["id"]
         confirm_calendar_booking(
             season="2026-2027",
             root=root,

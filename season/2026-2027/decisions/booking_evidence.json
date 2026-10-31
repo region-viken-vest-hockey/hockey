@@ -1263,7 +1263,9 @@
       "note": "Apply worksheet-stated actual booked interval 15:00-16:50",
       "source_revision": "872f15346e1770db935101676a444c083fd80d7662d99ec9bfc9d6230af5c61a",
       "start": "15:00",
-      "status": "active",
+      "status": "superseded",
+      "superseded_at": "2026-10-31T07:42:17.008865+00:00",
+      "superseded_by": "calendar_booking:0548252e9ac8037406cc2457fd0d9f97ec0773974b1c5ea067249cb00b925b2a:rvv-0070",
       "title": "U11 Serierunde",
       "tournament_facts": {
         "age_group": "U11",
@@ -1391,7 +1393,9 @@
       "note": "Apply worksheet-stated actual booked interval 15:00-16:50",
       "source_revision": "b93cb63509ae6d1750d48a56106c9183dcd8a998088ad4a51c634141eba79ce3",
       "start": "15:00",
-      "status": "active",
+      "status": "superseded",
+      "superseded_at": "2026-10-31T07:42:18.181664+00:00",
+      "superseded_by": "calendar_booking:3458b97eeb727438caf14908750511324f7cf771e7b08c56600d22324fe90026:rvv-0100",
       "title": "U11 Serierunde",
       "tournament_facts": {
         "age_group": "U11",
@@ -1550,7 +1554,9 @@
       "note": "Apply worksheet-stated actual booked interval 15:30-17:20",
       "source_revision": "8af7169ca7f085a8b622547f4a16a6bd30b088aa1e9cd25470375f903d387043",
       "start": "15:30",
-      "status": "active",
+      "status": "superseded",
+      "superseded_at": "2026-10-31T07:42:20.341359+00:00",
+      "superseded_by": "calendar_booking:1c7430ce660ab6391c2176607b7d166510280ae4628bad3ae3ce2d520ba86466:rvv-0127",
       "title": "U11 Serierunde",
       "tournament_facts": {
         "age_group": "U11",
@@ -1581,7 +1587,9 @@
       "note": "Apply worksheet-stated actual booked interval 13:30-15:20",
       "source_revision": "dabc724638af299030f0d0aa704946c6ffeb6d631e5d010f1d7c4ced3098748e",
       "start": "13:30",
-      "status": "active",
+      "status": "superseded",
+      "superseded_at": "2026-10-31T07:42:19.256302+00:00",
+      "superseded_by": "calendar_booking:5974590e2f139ee7f36835e46af86c742c07e4a2ac770a80494cdb9b19ca8c16:rvv-0134",
       "title": "U7 Serierunde",
       "tournament_facts": {
         "age_group": "U7",
@@ -1709,7 +1717,9 @@
       "note": "Apply worksheet-stated actual booked interval 15:00-16:50",
       "source_revision": "47b2bfd7ef706356e5c5f6208f3c8a9e75711fdeb34561c3266307b6b7ead5fe",
       "start": "15:00",
-      "status": "active",
+      "status": "superseded",
+      "superseded_at": "2026-10-31T07:42:22.115357+00:00",
+      "superseded_by": "calendar_booking:cc77dd33ec559218449ce122c77205ce5516eb47da1c1ddf94562b922be73e0f:rvv-0181",
       "title": "U11 Serierunde",
       "tournament_facts": {
         "age_group": "U11",
@@ -1773,7 +1783,9 @@
       "note": "Apply worksheet-stated actual booked interval 14:30-16:20",
       "source_revision": "d846d39d297a77305e8e9b67ad8f8a9182ae310afd85a732c1fd496aace7ed1d",
       "start": "14:30",
-      "status": "active",
+      "status": "superseded",
+      "superseded_at": "2026-10-31T07:42:23.194982+00:00",
+      "superseded_by": "calendar_booking:a8a091e011c02d48b265af3ea1218febebc7f6510aa45a21da59a02cb4f86ec2:rvv-0191",
       "title": "U9 Serierunde",
       "tournament_facts": {
         "age_group": "U9",
@@ -3741,7 +3753,9 @@
       "note": "Stated 13:30-14:50 accepted as canonical for #853/#860 (approved in session); 80 min is below the JU8 governing minimum and stays a feasibility finding",
       "source_revision": "142721aa76980ee98ab3a9a4efda65b1c1b669e87388d02bf72595a393276c78",
       "start": "13:30",
-      "status": "active",
+      "status": "superseded",
+      "superseded_at": "2026-10-31T07:42:21.048712+00:00",
+      "superseded_by": "calendar_booking:35aaf86a3e682e054672d4ff58e32c9b90075fc54dec4ac0c473f400bc5cb7c2:rvv-0179",
       "title": "JU8 Serierunde",
       "tournament_facts": {
         "age_group": "JU8",
@@ -4440,6 +4454,223 @@
         "end_time": "18:50",
         "round_count": "5",
         "start_time": "16:30"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Frisk Asker",
+      "created_at": "2026-10-31T07:42:17.080205+00:00",
+      "created_by": "niclasl",
+      "date": "2026-11-29",
+      "end": "16:20",
+      "event_fingerprint": "0548252e9ac8037406cc2457fd0d9f97ec0773974b1c5ea067249cb00b925b2a",
+      "id": "calendar_booking:0548252e9ac8037406cc2457fd0d9f97ec0773974b1c5ea067249cb00b925b2a:rvv-0070",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "source_revision": "c712cfdaf8cbe71be559a0b3d374205d70cc08ebfb4868865f4ea1804377aede",
+      "start": "14:00",
+      "status": "active",
+      "title": "U11 Serierunde",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Askerhallen",
+        "date": "2026-11-29",
+        "host_club": "Frisk Asker",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0070",
+      "tournament_interval": {
+        "age_group": "U11",
+        "date": "2026-11-29",
+        "duration_minutes": "140",
+        "end_time": "16:20",
+        "round_count": "5",
+        "start_time": "14:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Frisk Asker",
+      "created_at": "2026-10-31T07:42:18.249962+00:00",
+      "created_by": "niclasl",
+      "date": "2027-03-07",
+      "end": "17:50",
+      "event_fingerprint": "3458b97eeb727438caf14908750511324f7cf771e7b08c56600d22324fe90026",
+      "id": "calendar_booking:3458b97eeb727438caf14908750511324f7cf771e7b08c56600d22324fe90026:rvv-0100",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "source_revision": "c2e1fa410e3648298e2adfef46f44d4f1ac15d43073e5852469bbb92126af647",
+      "start": "15:30",
+      "status": "active",
+      "title": "U11 Serierunde",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Askerhallen",
+        "date": "2027-03-07",
+        "host_club": "Frisk Asker",
+        "start_time": "15:30"
+      },
+      "tournament_id": "rvv-0100",
+      "tournament_interval": {
+        "age_group": "U11",
+        "date": "2027-03-07",
+        "duration_minutes": "140",
+        "end_time": "17:50",
+        "round_count": "5",
+        "start_time": "15:30"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Frisk Asker",
+      "created_at": "2026-10-31T07:42:19.339993+00:00",
+      "created_by": "niclasl",
+      "date": "2027-02-06",
+      "end": "14:50",
+      "event_fingerprint": "5974590e2f139ee7f36835e46af86c742c07e4a2ac770a80494cdb9b19ca8c16",
+      "id": "calendar_booking:5974590e2f139ee7f36835e46af86c742c07e4a2ac770a80494cdb9b19ca8c16:rvv-0134",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "source_revision": "6d370a7441bf3bc7cee28d9b5672cb4a88a01729ff5f3078d91239bb98c58804",
+      "start": "13:00",
+      "status": "active",
+      "title": "U7 Serierunde",
+      "tournament_facts": {
+        "age_group": "U7",
+        "arena": "Askerhallen",
+        "date": "2027-02-06",
+        "host_club": "Frisk Asker",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0134",
+      "tournament_interval": {
+        "age_group": "U7",
+        "date": "2027-02-06",
+        "duration_minutes": "110",
+        "end_time": "14:50",
+        "round_count": "5",
+        "start_time": "13:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Frisk Asker",
+      "created_at": "2026-10-31T07:42:20.433824+00:00",
+      "created_by": "niclasl",
+      "date": "2027-02-06",
+      "end": "17:20",
+      "event_fingerprint": "1c7430ce660ab6391c2176607b7d166510280ae4628bad3ae3ce2d520ba86466",
+      "id": "calendar_booking:1c7430ce660ab6391c2176607b7d166510280ae4628bad3ae3ce2d520ba86466:rvv-0127",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "source_revision": "e6edde98d36e0752d4cc908aafdb70db0a80acf7165cb5df63eee6b9bf61eeb7",
+      "start": "15:00",
+      "status": "active",
+      "title": "U11 Serierunde",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Askerhallen",
+        "date": "2027-02-06",
+        "host_club": "Frisk Asker",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0127",
+      "tournament_interval": {
+        "age_group": "U11",
+        "date": "2027-02-06",
+        "duration_minutes": "140",
+        "end_time": "17:20",
+        "round_count": "5",
+        "start_time": "15:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Frisk Asker",
+      "created_at": "2026-10-31T07:42:21.136104+00:00",
+      "created_by": "niclasl",
+      "date": "2027-03-13",
+      "end": "14:20",
+      "event_fingerprint": "35aaf86a3e682e054672d4ff58e32c9b90075fc54dec4ac0c473f400bc5cb7c2",
+      "id": "calendar_booking:35aaf86a3e682e054672d4ff58e32c9b90075fc54dec4ac0c473f400bc5cb7c2:rvv-0179",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "source_revision": "3165f2a6cab7fa30d80113625b265382d4c7551436baec1dd60f7c3d1c67837c",
+      "start": "13:00",
+      "status": "active",
+      "title": "JU8 Serierunde",
+      "tournament_facts": {
+        "age_group": "JU8",
+        "arena": "Askerhallen",
+        "date": "2027-03-13",
+        "host_club": "Frisk Asker",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0179",
+      "tournament_interval": {
+        "age_group": "JU8",
+        "date": "2027-03-13",
+        "duration_minutes": "80",
+        "end_time": "14:20",
+        "round_count": "3",
+        "start_time": "13:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Frisk Asker",
+      "created_at": "2026-10-31T07:42:22.180785+00:00",
+      "created_by": "niclasl",
+      "date": "2027-03-13",
+      "end": "16:50",
+      "event_fingerprint": "cc77dd33ec559218449ce122c77205ce5516eb47da1c1ddf94562b922be73e0f",
+      "id": "calendar_booking:cc77dd33ec559218449ce122c77205ce5516eb47da1c1ddf94562b922be73e0f:rvv-0181",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "source_revision": "497a7f9f98221f67b4f23978021e665acac7e43afcf6ca3314a731a0c7672568",
+      "start": "14:30",
+      "status": "active",
+      "title": "U11 Serierunde",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Askerhallen",
+        "date": "2027-03-13",
+        "host_club": "Frisk Asker",
+        "start_time": "14:30"
+      },
+      "tournament_id": "rvv-0181",
+      "tournament_interval": {
+        "age_group": "U11",
+        "date": "2027-03-13",
+        "duration_minutes": "140",
+        "end_time": "16:50",
+        "round_count": "5",
+        "start_time": "14:30"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Frisk Asker",
+      "created_at": "2026-10-31T07:42:23.261201+00:00",
+      "created_by": "niclasl",
+      "date": "2027-01-17",
+      "end": "15:50",
+      "event_fingerprint": "a8a091e011c02d48b265af3ea1218febebc7f6510aa45a21da59a02cb4f86ec2",
+      "id": "calendar_booking:a8a091e011c02d48b265af3ea1218febebc7f6510aa45a21da59a02cb4f86ec2:rvv-0191",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "source_revision": "b9723e512f3bade442fe39f51245e52da0bbd6a81d706eb593fef46da0c85257",
+      "start": "13:30",
+      "status": "active",
+      "title": "U9 Serierunde",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Askerhallen",
+        "date": "2027-01-17",
+        "host_club": "Frisk Asker",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0191",
+      "tournament_interval": {
+        "age_group": "U9",
+        "date": "2027-01-17",
+        "duration_minutes": "140",
+        "end_time": "15:50",
+        "round_count": "5",
+        "start_time": "13:30"
       }
     }
   ],
@@ -9991,7 +10222,15 @@
         "end": "16:50",
         "start": "15:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "superseded_at": "2026-10-31T07:42:17.008865+00:00",
+      "superseded_by": "calendar_booking:0548252e9ac8037406cc2457fd0d9f97ec0773974b1c5ea067249cb00b925b2a:rvv-0070",
+      "superseded_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": "manual_booking:rvv-0070:2026-09-28T20:29:01.755733+00:00",
       "tournament_facts": {
         "age_group": "U11",
@@ -10194,7 +10433,15 @@
         "end": "16:50",
         "start": "15:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "superseded_at": "2026-10-31T07:42:18.181664+00:00",
+      "superseded_by": "calendar_booking:3458b97eeb727438caf14908750511324f7cf771e7b08c56600d22324fe90026:rvv-0100",
+      "superseded_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": "manual_booking:rvv-0100:2026-09-28T20:34:05.570617+00:00",
       "tournament_facts": {
         "age_group": "U11",
@@ -10439,7 +10686,14 @@
         "end": "17:20",
         "start": "15:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "superseded_at": "2026-10-31T07:42:20.341359+00:00",
+      "superseded_by": "calendar_booking:1c7430ce660ab6391c2176607b7d166510280ae4628bad3ae3ce2d520ba86466:rvv-0127",
+      "superseded_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": "manual_booking:rvv-0127:2026-09-28T20:30:24.841393+00:00",
       "tournament_facts": {
         "age_group": "U11",
@@ -10488,7 +10742,14 @@
         "end": "15:20",
         "start": "13:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "superseded_at": "2026-10-31T07:42:19.256302+00:00",
+      "superseded_by": "calendar_booking:5974590e2f139ee7f36835e46af86c742c07e4a2ac770a80494cdb9b19ca8c16:rvv-0134",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": "manual_booking:rvv-0134:2026-09-28T20:34:21.569851+00:00",
       "tournament_facts": {
         "age_group": "U7",
@@ -10684,7 +10945,14 @@
         "end": "16:50",
         "start": "15:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "superseded_at": "2026-10-31T07:42:22.115357+00:00",
+      "superseded_by": "calendar_booking:cc77dd33ec559218449ce122c77205ce5516eb47da1c1ddf94562b922be73e0f:rvv-0181",
+      "superseded_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": "manual_booking:rvv-0181:2026-09-28T20:31:29.905716+00:00",
       "tournament_facts": {
         "age_group": "U11",
@@ -10782,7 +11050,15 @@
         "end": "16:20",
         "start": "14:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "superseded_at": "2026-10-31T07:42:23.194982+00:00",
+      "superseded_by": "calendar_booking:a8a091e011c02d48b265af3ea1218febebc7f6510aa45a21da59a02cb4f86ec2:rvv-0191",
+      "superseded_stale_reasons": [
+        "tournament_duration_minutes_changed",
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": "manual_booking:rvv-0191:2026-09-28T20:31:54.339333+00:00",
       "tournament_facts": {
         "age_group": "U9",
@@ -12489,7 +12765,14 @@
         "end": "14:50",
         "start": "13:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "superseded_at": "2026-10-31T07:42:21.048712+00:00",
+      "superseded_by": "calendar_booking:35aaf86a3e682e054672d4ff58e32c9b90075fc54dec4ac0c473f400bc5cb7c2:rvv-0179",
+      "superseded_stale_reasons": [
+        "tournament_end_time_changed",
+        "tournament_start_time_changed"
+      ],
       "supersedes": "manual_booking:rvv-0179:2026-09-28T20:31:22.049307+00:00",
       "tournament_facts": {
         "age_group": "JU8",
@@ -13136,30 +13419,6 @@
       "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
       "checked_at": "2026-09-28T07:30:59.502406+00:00",
       "checked_by": "niclasl",
-      "date": "2027-02-06",
-      "event_fingerprint": "5974590e2f139ee7f36835e46af86c742c07e4a2ac770a80494cdb9b19ca8c16",
-      "host_club": "Frisk Asker",
-      "id": "booking_evidence:rvv-0134:2026-09-28T07:30:59.502406+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "single_overlapping_event_requires_confirmation",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "13:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U7",
-        "arena": "Askerhallen",
-        "date": "2027-02-06",
-        "host_club": "Frisk Asker",
-        "start_time": "13:00"
-      },
-      "tournament_id": "rvv-0134"
-    },
-    {
-      "arena": "Askerhallen",
-      "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
-      "checked_at": "2026-09-28T07:30:59.502406+00:00",
-      "checked_by": "niclasl",
       "date": "2027-02-21",
       "event_fingerprint": "",
       "host_club": "Frisk Asker",
@@ -13232,30 +13491,6 @@
       "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
       "checked_at": "2026-09-28T07:30:59.502406+00:00",
       "checked_by": "niclasl",
-      "date": "2027-03-13",
-      "event_fingerprint": "e786ab6bcea2aa0bc4096ac12f3591bf44fb6a224818cadd59d75f7b9059ad66",
-      "host_club": "Frisk Asker",
-      "id": "booking_evidence:rvv-0181:2026-09-28T07:30:59.502406+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "single_overlapping_event_requires_confirmation",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "15:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Askerhallen",
-        "date": "2027-03-13",
-        "host_club": "Frisk Asker",
-        "start_time": "15:00"
-      },
-      "tournament_id": "rvv-0181"
-    },
-    {
-      "arena": "Askerhallen",
-      "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
-      "checked_at": "2026-09-28T07:30:59.502406+00:00",
-      "checked_by": "niclasl",
       "date": "2026-11-08",
       "event_fingerprint": "279e0ef25481cb1e97bce1c571d7b190443bb10a33289ba4262e85bdb0b44ee3",
       "host_club": "Frisk Asker",
@@ -13274,78 +13509,6 @@
         "start_time": "16:00"
       },
       "tournament_id": "rvv-0078"
-    },
-    {
-      "arena": "Askerhallen",
-      "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
-      "checked_at": "2026-09-28T07:30:59.502406+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-29",
-      "event_fingerprint": "f2243b97a6df5ae811052a4d575d312ca1943461edde592dd1a06b1afd63bd91",
-      "host_club": "Frisk Asker",
-      "id": "booking_evidence:rvv-0070:2026-09-28T07:30:59.502406+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "single_overlapping_event_requires_confirmation",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "15:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Askerhallen",
-        "date": "2026-11-29",
-        "host_club": "Frisk Asker",
-        "start_time": "15:00"
-      },
-      "tournament_id": "rvv-0070"
-    },
-    {
-      "arena": "Askerhallen",
-      "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
-      "checked_at": "2026-09-28T07:30:59.502406+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-03-07",
-      "event_fingerprint": "b862b98e51b0c67949abd367f2207669b3242803960d8b7973aa74e1a52d0545",
-      "host_club": "Frisk Asker",
-      "id": "booking_evidence:rvv-0100:2026-09-28T07:30:59.502406+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "single_overlapping_event_requires_confirmation",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "15:30",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Askerhallen",
-        "date": "2027-03-07",
-        "host_club": "Frisk Asker",
-        "start_time": "15:30"
-      },
-      "tournament_id": "rvv-0100"
-    },
-    {
-      "arena": "Askerhallen",
-      "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
-      "checked_at": "2026-09-28T07:30:59.502406+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-02-06",
-      "event_fingerprint": "837cff4ac0214472d9a7c19b4bd5cee9629d5a8925de843f052e6771317c5e4e",
-      "host_club": "Frisk Asker",
-      "id": "booking_evidence:rvv-0127:2026-09-28T07:30:59.502406+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "single_overlapping_event_requires_confirmation",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "15:30",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Askerhallen",
-        "date": "2027-02-06",
-        "host_club": "Frisk Asker",
-        "start_time": "15:30"
-      },
-      "tournament_id": "rvv-0127"
     },
     {
       "arena": "Askerhallen",
@@ -13442,30 +13605,6 @@
         "start_time": "16:00"
       },
       "tournament_id": "rvv-0120"
-    },
-    {
-      "arena": "Askerhallen",
-      "calendar_fingerprint": "1c3527cdf80f28da0ddf82d32bc1173a3f4a3a3b5575138b490502e297cc0af3",
-      "checked_at": "2026-09-28T07:30:59.502406+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-01-17",
-      "event_fingerprint": "151a45e0bf71db3605fdb9216b038e341b140e558684e4939d449c5bf86ff367",
-      "host_club": "Frisk Asker",
-      "id": "booking_evidence:rvv-0191:2026-09-28T07:30:59.502406+00:00",
-      "note": "Redo after concurrent-session reset",
-      "reason": "single_overlapping_event_requires_confirmation",
-      "source_calendar_status": "known",
-      "source_revision": "85da4b188bfbe031196683b467299042a91ccd3466fef6098e4adeb07b5e2b8e",
-      "start_time": "15:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U9",
-        "arena": "Askerhallen",
-        "date": "2027-01-17",
-        "host_club": "Frisk Asker",
-        "start_time": "15:00"
-      },
-      "tournament_id": "rvv-0191"
     },
     {
       "arena": "Askerhallen",
@@ -16253,33 +16392,6 @@
     },
     {
       "arena": "Askerhallen",
-      "booking_feasibility_warnings": [
-        "ice_time_governing_minimum"
-      ],
-      "calendar_fingerprint": "c5c1f09c10fb78cc1d485b798feb05e229bc50dd7b85a19d25f1c64b13c74484",
-      "checked_at": "2026-10-27T14:20:33.636131+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-03-13",
-      "event_fingerprint": "5b78d668352511a690851d3643390b4346f95a45b00b9a23808ae711c4b4db26",
-      "host_club": "Frisk Asker",
-      "id": "booking_evidence:rvv-0179:2026-10-27T14:20:33.636131+00:00",
-      "note": "Stated 13:30-14:50 accepted as canonical for #853/#860 (approved in session); 80 min is below the JU8 governing minimum and stays a feasibility finding",
-      "reason": "operator_confirmed_calendar_booking_association",
-      "source_calendar_status": "known",
-      "source_revision": "142721aa76980ee98ab3a9a4efda65b1c1b669e87388d02bf72595a393276c78",
-      "start_time": "13:30",
-      "status": "confirmed_booked",
-      "tournament_facts": {
-        "age_group": "JU8",
-        "arena": "Askerhallen",
-        "date": "2027-03-13",
-        "host_club": "Frisk Asker",
-        "start_time": "13:30"
-      },
-      "tournament_id": "rvv-0179"
-    },
-    {
-      "arena": "Askerhallen",
       "calendar_fingerprint": "ddb3395c5750cc89504f30590d0e2346a32deb40110e0178d1c19a4094c9fd33",
       "checked_at": "2026-10-30T11:09:21.428480+00:00",
       "checked_by": "niclasl",
@@ -16805,6 +16917,180 @@
         "start_time": "16:30"
       },
       "tournament_id": "rvv-0135"
+    },
+    {
+      "arena": "Askerhallen",
+      "calendar_fingerprint": "ddb3395c5750cc89504f30590d0e2346a32deb40110e0178d1c19a4094c9fd33",
+      "checked_at": "2026-10-31T07:42:17.008865+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-29",
+      "event_fingerprint": "0548252e9ac8037406cc2457fd0d9f97ec0773974b1c5ea067249cb00b925b2a",
+      "host_club": "Frisk Asker",
+      "id": "booking_evidence:rvv-0070:2026-10-31T07:42:17.008865+00:00",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "c712cfdaf8cbe71be559a0b3d374205d70cc08ebfb4868865f4ea1804377aede",
+      "start_time": "14:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Askerhallen",
+        "date": "2026-11-29",
+        "host_club": "Frisk Asker",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0070"
+    },
+    {
+      "arena": "Askerhallen",
+      "calendar_fingerprint": "ddb3395c5750cc89504f30590d0e2346a32deb40110e0178d1c19a4094c9fd33",
+      "checked_at": "2026-10-31T07:42:18.181664+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-03-07",
+      "event_fingerprint": "3458b97eeb727438caf14908750511324f7cf771e7b08c56600d22324fe90026",
+      "host_club": "Frisk Asker",
+      "id": "booking_evidence:rvv-0100:2026-10-31T07:42:18.181664+00:00",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "c2e1fa410e3648298e2adfef46f44d4f1ac15d43073e5852469bbb92126af647",
+      "start_time": "15:30",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Askerhallen",
+        "date": "2027-03-07",
+        "host_club": "Frisk Asker",
+        "start_time": "15:30"
+      },
+      "tournament_id": "rvv-0100"
+    },
+    {
+      "arena": "Askerhallen",
+      "booking_feasibility_warnings": [
+        "ice_time_governing_minimum"
+      ],
+      "calendar_fingerprint": "ddb3395c5750cc89504f30590d0e2346a32deb40110e0178d1c19a4094c9fd33",
+      "checked_at": "2026-10-31T07:42:19.256302+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-02-06",
+      "event_fingerprint": "5974590e2f139ee7f36835e46af86c742c07e4a2ac770a80494cdb9b19ca8c16",
+      "host_club": "Frisk Asker",
+      "id": "booking_evidence:rvv-0134:2026-10-31T07:42:19.256302+00:00",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "6d370a7441bf3bc7cee28d9b5672cb4a88a01729ff5f3078d91239bb98c58804",
+      "start_time": "13:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U7",
+        "arena": "Askerhallen",
+        "date": "2027-02-06",
+        "host_club": "Frisk Asker",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0134"
+    },
+    {
+      "arena": "Askerhallen",
+      "calendar_fingerprint": "ddb3395c5750cc89504f30590d0e2346a32deb40110e0178d1c19a4094c9fd33",
+      "checked_at": "2026-10-31T07:42:20.341359+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-02-06",
+      "event_fingerprint": "1c7430ce660ab6391c2176607b7d166510280ae4628bad3ae3ce2d520ba86466",
+      "host_club": "Frisk Asker",
+      "id": "booking_evidence:rvv-0127:2026-10-31T07:42:20.341359+00:00",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "e6edde98d36e0752d4cc908aafdb70db0a80acf7165cb5df63eee6b9bf61eeb7",
+      "start_time": "15:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Askerhallen",
+        "date": "2027-02-06",
+        "host_club": "Frisk Asker",
+        "start_time": "15:00"
+      },
+      "tournament_id": "rvv-0127"
+    },
+    {
+      "arena": "Askerhallen",
+      "booking_feasibility_warnings": [
+        "ice_time_governing_minimum"
+      ],
+      "calendar_fingerprint": "ddb3395c5750cc89504f30590d0e2346a32deb40110e0178d1c19a4094c9fd33",
+      "checked_at": "2026-10-31T07:42:21.048712+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-03-13",
+      "event_fingerprint": "35aaf86a3e682e054672d4ff58e32c9b90075fc54dec4ac0c473f400bc5cb7c2",
+      "host_club": "Frisk Asker",
+      "id": "booking_evidence:rvv-0179:2026-10-31T07:42:21.048712+00:00",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "3165f2a6cab7fa30d80113625b265382d4c7551436baec1dd60f7c3d1c67837c",
+      "start_time": "13:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "JU8",
+        "arena": "Askerhallen",
+        "date": "2027-03-13",
+        "host_club": "Frisk Asker",
+        "start_time": "13:00"
+      },
+      "tournament_id": "rvv-0179"
+    },
+    {
+      "arena": "Askerhallen",
+      "calendar_fingerprint": "ddb3395c5750cc89504f30590d0e2346a32deb40110e0178d1c19a4094c9fd33",
+      "checked_at": "2026-10-31T07:42:22.115357+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-03-13",
+      "event_fingerprint": "cc77dd33ec559218449ce122c77205ce5516eb47da1c1ddf94562b922be73e0f",
+      "host_club": "Frisk Asker",
+      "id": "booking_evidence:rvv-0181:2026-10-31T07:42:22.115357+00:00",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "497a7f9f98221f67b4f23978021e665acac7e43afcf6ca3314a731a0c7672568",
+      "start_time": "14:30",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Askerhallen",
+        "date": "2027-03-13",
+        "host_club": "Frisk Asker",
+        "start_time": "14:30"
+      },
+      "tournament_id": "rvv-0181"
+    },
+    {
+      "arena": "Askerhallen",
+      "calendar_fingerprint": "ddb3395c5750cc89504f30590d0e2346a32deb40110e0178d1c19a4094c9fd33",
+      "checked_at": "2026-10-31T07:42:23.194982+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-01-17",
+      "event_fingerprint": "a8a091e011c02d48b265af3ea1218febebc7f6510aa45a21da59a02cb4f86ec2",
+      "host_club": "Frisk Asker",
+      "id": "booking_evidence:rvv-0191:2026-10-31T07:42:23.194982+00:00",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "b9723e512f3bade442fe39f51245e52da0bbd6a81d706eb593fef46da0c85257",
+      "start_time": "13:30",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Askerhallen",
+        "date": "2027-01-17",
+        "host_club": "Frisk Asker",
+        "start_time": "13:30"
+      },
+      "tournament_id": "rvv-0191"
     }
   ]
 }
