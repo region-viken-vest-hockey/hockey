@@ -52,15 +52,6 @@ def _changes(before: Mapping[str, Any], after: Mapping[str, Any]) -> list[dict[s
     return changes
 
 
-def changed_tournament_ids(history: Mapping[str, Any] | None) -> frozenset[str]:
-    """Tournament ids with at least one public history entry; empty when history is unavailable."""
-
-    if not isinstance(history, Mapping):
-        return frozenset()
-    tournaments = history.get("tournaments") or {}
-    return frozenset(str(tournament_id) for tournament_id, entries in tournaments.items() if entries)
-
-
 def _label(entry: Mapping[str, Any]) -> str:
     parts = [str(entry.get("host_club") or ""), str(entry.get("date") or ""), str(entry.get("start_time") or "")]
     return " ".join(part for part in parts if part)
