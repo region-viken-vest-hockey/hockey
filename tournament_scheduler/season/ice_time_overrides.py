@@ -152,6 +152,16 @@ def active_overrides(decisions: Mapping[str, Any]) -> dict[str, int]:
     return resolved
 
 
+def relabels_to_calendar_authority(existing: Mapping[str, Any] | None, authority: str) -> bool:
+    """True when accepting a calendar block should replace a manual-derived override of equal minutes (#860).
+
+    Only the ``manual_club_confirmation_interval`` label is replaced; an operator override
+    without an authority keeps its meaning.
+    """
+
+    return authority == "calendar_event_association" and str((existing or {}).get("authority") or "") == "manual_club_confirmation_interval"
+
+
 def override_for_tournament(
     decisions: Mapping[str, Any],
     tournament_id: str,
