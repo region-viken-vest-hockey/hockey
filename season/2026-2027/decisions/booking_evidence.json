@@ -4672,6 +4672,161 @@
         "round_count": "5",
         "start_time": "13:30"
       }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Holmen",
+      "created_at": "2026-10-31T08:47:05.261323+00:00",
+      "created_by": "niclasl",
+      "date": "2026-10-10",
+      "end": "15:50",
+      "event_fingerprint": "156589cc4ea4928bf2e1c44797ac3e7df276b8c86ade4a365eb80f951d3d133f",
+      "id": "calendar_booking:156589cc4ea4928bf2e1c44797ac3e7df276b8c86ade4a365eb80f951d3d133f:rvv-0003",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "source_revision": "6cd65064585b5b624f491ac4e9ebcab33988c3a460818cc439e46dbc52850d31",
+      "start": "14:00",
+      "status": "active",
+      "title": "U12 (2015)",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-10-10",
+        "host_club": "Holmen",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0003",
+      "tournament_interval": {
+        "age_group": "U12",
+        "date": "2026-10-10",
+        "duration_minutes": "110",
+        "end_time": "15:50",
+        "round_count": "3",
+        "start_time": "14:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Holmen",
+      "created_at": "2026-10-31T08:47:06.078467+00:00",
+      "created_by": "niclasl",
+      "date": "2026-10-10",
+      "end": "13:50",
+      "event_fingerprint": "81ba42f7ea8c6c1c56feb4068f18b97e765fc62cf92494fb07686f9291b8207e",
+      "id": "calendar_booking:81ba42f7ea8c6c1c56feb4068f18b97e765fc62cf92494fb07686f9291b8207e:rvv-0004",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "source_revision": "879f2230df9ac5315696d51f5564e49aef2c5b2324324ae873c8c6315afd77bc",
+      "start": "12:00",
+      "status": "active",
+      "title": "U12 (2015)",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-10-10",
+        "host_club": "Holmen",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0004",
+      "tournament_interval": {
+        "age_group": "U12",
+        "date": "2026-10-10",
+        "duration_minutes": "110",
+        "end_time": "13:50",
+        "round_count": "3",
+        "start_time": "12:00"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Kongsberg",
+      "created_at": "2026-10-31T08:47:06.900589+00:00",
+      "created_by": "niclasl",
+      "date": "2027-03-13",
+      "end": "13:00",
+      "event_fingerprint": "f40dcb4a1ab854c3045356a7143c87151892eee2ede05dcb468492f41777f45f",
+      "id": "calendar_booking:f40dcb4a1ab854c3045356a7143c87151892eee2ede05dcb468492f41777f45f:rvv-0029",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "source_revision": "bd1fee0a17cfad6a9781899c5792638a61b6abcf7debb07951666d38bcfdc727",
+      "start": "10:30",
+      "status": "active",
+      "title": "KIF ishockey - Miniput turnering U8",
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Kongsberghallen",
+        "date": "2027-03-13",
+        "host_club": "Kongsberg",
+        "start_time": "10:30"
+      },
+      "tournament_id": "rvv-0029",
+      "tournament_interval": {
+        "age_group": "U8",
+        "date": "2027-03-13",
+        "duration_minutes": "150",
+        "end_time": "13:00",
+        "round_count": "5",
+        "start_time": "10:30"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Kongsberg",
+      "created_at": "2026-10-31T08:47:07.734492+00:00",
+      "created_by": "niclasl",
+      "date": "2027-03-14",
+      "end": "14:30",
+      "event_fingerprint": "bc0ba6bc01f6cf4178e156a63a712ce37b13f9a66c505cf3ab3f30fabd0fdf85",
+      "id": "calendar_booking:bc0ba6bc01f6cf4178e156a63a712ce37b13f9a66c505cf3ab3f30fabd0fdf85:rvv-0162",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "source_revision": "258e41eb0c15bc648021bc8db8145d5f6b73c86f696f4116ec8b1ad1e887fc86",
+      "start": "12:30",
+      "status": "active",
+      "title": "KIF Ishockey - Miniputt (U12)",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Kongsberghallen",
+        "date": "2027-03-14",
+        "host_club": "Kongsberg",
+        "start_time": "12:30"
+      },
+      "tournament_id": "rvv-0162",
+      "tournament_interval": {
+        "age_group": "U12",
+        "date": "2027-03-14",
+        "duration_minutes": "120",
+        "end_time": "14:30",
+        "round_count": "3",
+        "start_time": "12:30"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Kongsberg",
+      "created_at": "2026-10-31T08:47:08.544964+00:00",
+      "created_by": "niclasl",
+      "date": "2027-03-07",
+      "end": "12:00",
+      "event_fingerprint": "8e9be13ba232eabb77b126f700c706cfc75c6b3be429b853d3724c0d00a14bf4",
+      "id": "calendar_booking:8e9be13ba232eabb77b126f700c706cfc75c6b3be429b853d3724c0d00a14bf4:rvv-0176",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "source_revision": "698aa5cc3323a61ea360171cb1c8c1bf2d4bc9c822c08a2b8cf642a5bb383133",
+      "start": "10:00",
+      "status": "active",
+      "title": "KIF ishockey - Miniputt (U12)",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Kongsberghallen",
+        "date": "2027-03-07",
+        "host_club": "Kongsberg",
+        "start_time": "10:00"
+      },
+      "tournament_id": "rvv-0176",
+      "tournament_interval": {
+        "age_group": "U12",
+        "date": "2027-03-07",
+        "duration_minutes": "120",
+        "end_time": "12:00",
+        "round_count": "3",
+        "start_time": "10:00"
+      }
     }
   ],
   "club_booking_source_assertions": [
@@ -6160,7 +6315,11 @@
         "end": "12:00",
         "start": "10:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "superseded_at": "2026-10-31T08:47:08.480263+00:00",
+      "superseded_by": "calendar_booking:8e9be13ba232eabb77b126f700c706cfc75c6b3be429b853d3724c0d00a14bf4:rvv-0176",
+      "superseded_stale_reasons": [],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U12",
@@ -6202,7 +6361,11 @@
         "end": "14:30",
         "start": "12:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "superseded_at": "2026-10-31T08:47:07.668989+00:00",
+      "superseded_by": "calendar_booking:bc0ba6bc01f6cf4178e156a63a712ce37b13f9a66c505cf3ab3f30fabd0fdf85:rvv-0162",
+      "superseded_stale_reasons": [],
       "supersedes": null,
       "tournament_facts": {
         "age_group": "U12",
@@ -12607,7 +12770,11 @@
         "end": "15:50",
         "start": "14:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "superseded_at": "2026-10-31T08:47:05.195128+00:00",
+      "superseded_by": "calendar_booking:156589cc4ea4928bf2e1c44797ac3e7df276b8c86ade4a365eb80f951d3d133f:rvv-0003",
+      "superseded_stale_reasons": [],
       "supersedes": "manual_booking:rvv-0003:2026-09-28T05:58:29.455441+00:00",
       "tournament_facts": {
         "age_group": "U12",
@@ -12655,7 +12822,11 @@
         "end": "13:50",
         "start": "12:00"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "superseded_at": "2026-10-31T08:47:06.012901+00:00",
+      "superseded_by": "calendar_booking:81ba42f7ea8c6c1c56feb4068f18b97e765fc62cf92494fb07686f9291b8207e:rvv-0004",
+      "superseded_stale_reasons": [],
       "supersedes": "manual_booking:rvv-0004:2026-09-28T05:58:34.055765+00:00",
       "tournament_facts": {
         "age_group": "U12",
@@ -12755,7 +12926,11 @@
         "end": "13:00",
         "start": "10:30"
       },
-      "status": "active",
+      "status": "superseded",
+      "supersede_reason": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "superseded_at": "2026-10-31T08:47:06.834767+00:00",
+      "superseded_by": "calendar_booking:f40dcb4a1ab854c3045356a7143c87151892eee2ede05dcb468492f41777f45f:rvv-0029",
+      "superseded_stale_reasons": [],
       "supersedes": "manual_booking:rvv-0029:2026-09-28T07:46:40.602545+00:00",
       "tournament_facts": {
         "age_group": "U8",
@@ -13795,54 +13970,6 @@
       "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
       "checked_at": "2026-09-30T19:21:11.444731+00:00",
       "checked_by": "niclasl",
-      "date": "2026-10-10",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0003:2026-09-30T19:21:11.444731+00:00",
-      "note": "",
-      "reason": "source_coverage_unproven",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
-      "start_time": "14:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Holmen ishall",
-        "date": "2026-10-10",
-        "host_club": "Holmen",
-        "start_time": "14:00"
-      },
-      "tournament_id": "rvv-0003"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
-      "checked_at": "2026-09-30T19:21:11.444731+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-10-10",
-      "event_fingerprint": "",
-      "host_club": "Holmen",
-      "id": "booking_evidence:rvv-0004:2026-09-30T19:21:11.444731+00:00",
-      "note": "",
-      "reason": "source_coverage_unproven",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
-      "start_time": "13:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Holmen ishall",
-        "date": "2026-10-10",
-        "host_club": "Holmen",
-        "start_time": "13:00"
-      },
-      "tournament_id": "rvv-0004"
-    },
-    {
-      "arena": "Holmen ishall",
-      "calendar_fingerprint": "abe027211b659a58bbce866abd410a232b930c3d9449710419d7b506653cdf15",
-      "checked_at": "2026-09-30T19:21:11.444731+00:00",
-      "checked_by": "niclasl",
       "date": "2026-11-01",
       "event_fingerprint": "",
       "host_club": "Holmen",
@@ -14107,30 +14234,6 @@
       "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
       "checked_at": "2026-09-30T19:21:48.123920+00:00",
       "checked_by": "niclasl",
-      "date": "2026-10-11",
-      "event_fingerprint": "",
-      "host_club": "Kongsberg",
-      "id": "booking_evidence:rvv-0029:2026-09-30T19:21:48.123920+00:00",
-      "note": "Kongsberg confirmed OK per club",
-      "reason": "source_coverage_unproven",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
-      "start_time": "15:30",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U8",
-        "arena": "Kongsberghallen",
-        "date": "2026-10-11",
-        "host_club": "Kongsberg",
-        "start_time": "15:30"
-      },
-      "tournament_id": "rvv-0029"
-    },
-    {
-      "arena": "Kongsberghallen",
-      "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
-      "checked_at": "2026-09-30T19:21:48.123920+00:00",
-      "checked_by": "niclasl",
       "date": "2027-01-16",
       "event_fingerprint": "43b97872ccdba74072592342760bf2ad5a314f352774066f8557bfe4a548dd3e",
       "host_club": "Kongsberg",
@@ -14149,54 +14252,6 @@
         "start_time": "10:30"
       },
       "tournament_id": "rvv-0103"
-    },
-    {
-      "arena": "Kongsberghallen",
-      "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
-      "checked_at": "2026-09-30T19:21:48.123920+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-03-14",
-      "event_fingerprint": "bc0ba6bc01f6cf4178e156a63a712ce37b13f9a66c505cf3ab3f30fabd0fdf85",
-      "host_club": "Kongsberg",
-      "id": "booking_evidence:rvv-0162:2026-09-30T19:21:48.123920+00:00",
-      "note": "Kongsberg confirmed OK per club",
-      "reason": "single_overlapping_event_requires_confirmation",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
-      "start_time": "12:30",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Kongsberghallen",
-        "date": "2027-03-14",
-        "host_club": "Kongsberg",
-        "start_time": "12:30"
-      },
-      "tournament_id": "rvv-0162"
-    },
-    {
-      "arena": "Kongsberghallen",
-      "calendar_fingerprint": "1bf85a82d26f18864079580a62973b24bc2bb7eb15f6e851b7da031f92e2fe7d",
-      "checked_at": "2026-09-30T19:21:48.123920+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-03-07",
-      "event_fingerprint": "8e9be13ba232eabb77b126f700c706cfc75c6b3be429b853d3724c0d00a14bf4",
-      "host_club": "Kongsberg",
-      "id": "booking_evidence:rvv-0176:2026-09-30T19:21:48.123920+00:00",
-      "note": "Kongsberg confirmed OK per club",
-      "reason": "single_overlapping_event_requires_confirmation",
-      "source_calendar_status": "source_review_required",
-      "source_revision": "02b83a195445ee6a09ae4d2202b36738c8ae5f892c2a6f4ff9170647600c6486",
-      "start_time": "10:00",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Kongsberghallen",
-        "date": "2027-03-07",
-        "host_club": "Kongsberg",
-        "start_time": "10:00"
-      },
-      "tournament_id": "rvv-0176"
     },
     {
       "arena": "Kongsberghallen",
@@ -17131,6 +17186,126 @@
         "start_time": "11:30"
       },
       "tournament_id": "rvv-0021"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "ee8a3f98065f15aa97b80f858f5a8127cdfc6506093e3d8c4aed9fe82d507fdd",
+      "checked_at": "2026-10-31T08:47:05.195128+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-10-10",
+      "event_fingerprint": "156589cc4ea4928bf2e1c44797ac3e7df276b8c86ade4a365eb80f951d3d133f",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0003:2026-10-31T08:47:05.195128+00:00",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "6cd65064585b5b624f491ac4e9ebcab33988c3a460818cc439e46dbc52850d31",
+      "start_time": "14:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-10-10",
+        "host_club": "Holmen",
+        "start_time": "14:00"
+      },
+      "tournament_id": "rvv-0003"
+    },
+    {
+      "arena": "Holmen ishall",
+      "calendar_fingerprint": "ee8a3f98065f15aa97b80f858f5a8127cdfc6506093e3d8c4aed9fe82d507fdd",
+      "checked_at": "2026-10-31T08:47:06.012901+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-10-10",
+      "event_fingerprint": "81ba42f7ea8c6c1c56feb4068f18b97e765fc62cf92494fb07686f9291b8207e",
+      "host_club": "Holmen",
+      "id": "booking_evidence:rvv-0004:2026-10-31T08:47:06.012901+00:00",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "879f2230df9ac5315696d51f5564e49aef2c5b2324324ae873c8c6315afd77bc",
+      "start_time": "12:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Holmen ishall",
+        "date": "2026-10-10",
+        "host_club": "Holmen",
+        "start_time": "12:00"
+      },
+      "tournament_id": "rvv-0004"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "calendar_fingerprint": "aeaf156681a66c1d1800f6c89a2858fc49c6baca33e0c932fc4491317560210e",
+      "checked_at": "2026-10-31T08:47:06.834767+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-03-13",
+      "event_fingerprint": "f40dcb4a1ab854c3045356a7143c87151892eee2ede05dcb468492f41777f45f",
+      "host_club": "Kongsberg",
+      "id": "booking_evidence:rvv-0029:2026-10-31T08:47:06.834767+00:00",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "bd1fee0a17cfad6a9781899c5792638a61b6abcf7debb07951666d38bcfdc727",
+      "start_time": "10:30",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U8",
+        "arena": "Kongsberghallen",
+        "date": "2027-03-13",
+        "host_club": "Kongsberg",
+        "start_time": "10:30"
+      },
+      "tournament_id": "rvv-0029"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "calendar_fingerprint": "aeaf156681a66c1d1800f6c89a2858fc49c6baca33e0c932fc4491317560210e",
+      "checked_at": "2026-10-31T08:47:07.668989+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-03-14",
+      "event_fingerprint": "bc0ba6bc01f6cf4178e156a63a712ce37b13f9a66c505cf3ab3f30fabd0fdf85",
+      "host_club": "Kongsberg",
+      "id": "booking_evidence:rvv-0162:2026-10-31T08:47:07.668989+00:00",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "258e41eb0c15bc648021bc8db8145d5f6b73c86f696f4116ec8b1ad1e887fc86",
+      "start_time": "12:30",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Kongsberghallen",
+        "date": "2027-03-14",
+        "host_club": "Kongsberg",
+        "start_time": "12:30"
+      },
+      "tournament_id": "rvv-0162"
+    },
+    {
+      "arena": "Kongsberghallen",
+      "calendar_fingerprint": "aeaf156681a66c1d1800f6c89a2858fc49c6baca33e0c932fc4491317560210e",
+      "checked_at": "2026-10-31T08:47:08.480263+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-03-07",
+      "event_fingerprint": "8e9be13ba232eabb77b126f700c706cfc75c6b3be429b853d3724c0d00a14bf4",
+      "host_club": "Kongsberg",
+      "id": "booking_evidence:rvv-0176:2026-10-31T08:47:08.480263+00:00",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. The unique matching calendar event is accepted; the interval is unchanged",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "source_review_required",
+      "source_revision": "698aa5cc3323a61ea360171cb1c8c1bf2d4bc9c822c08a2b8cf642a5bb383133",
+      "start_time": "10:00",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Kongsberghallen",
+        "date": "2027-03-07",
+        "host_club": "Kongsberg",
+        "start_time": "10:00"
+      },
+      "tournament_id": "rvv-0176"
     }
   ]
 }
