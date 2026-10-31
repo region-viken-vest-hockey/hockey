@@ -943,3 +943,23 @@ def test_published_history_replay_applies_a_batch_restoration() -> None:
     assert projection["t1"]["cancelled"] is False
     assert projection["t1"]["cancellation_reason"] == ""
     assert [item["event"] for item in applied] == ["batch_cancel", "batch_restore"]
+
+
+@pytest.mark.parametrize("order", [("cancel", "restore"), ("restore", "cancel")])
+def test_batch_refuses_cancelling_and_restoring_the_same_tournament(
+    tmp_path: Path, order: tuple[str, str]
+) -> None:
+    """History replay applies cancellations before restorations, so either order is refused."""
+    _work_dir, root = _promote(tmp_path)
+    before = (_schedule_bytes(root), _decisions_bytes(root))
+    with pytest.raises(SeasonStateError, match="both cancelled and restored"):
+        batch_maintenance(
+            season="2026-2027",
+            root=root,
+            operations=[{"op": op, "tournament_id": "u10-c-20261018"} for op in order],
+            scope=["u10-c-20261018"],
+            request_id="cancel-and-restore",
+            actor="tester",
+            dry_run=True,
+        )
+    assert (_schedule_bytes(root), _decisions_bytes(root)) == before

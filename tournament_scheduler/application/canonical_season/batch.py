@@ -218,6 +218,22 @@ def batch_maintenance(
     normalized_operations = [
         _normalize_batch_operation(operation) for operation in operations
     ]
+    # Decision history records cancellations and restorations in separate lists
+    # and replays cancellations first, so one tournament cannot be both
+    # cancelled and restored in the same batch: its net outcome would depend on
+    # an order the replay does not keep.
+    cancelled_op_ids = {
+        str(op["tournament_id"]) for op in normalized_operations if op["op"] == "cancel"
+    }
+    contradictory = sorted(
+        cancelled_op_ids
+        & {str(op["tournament_id"]) for op in normalized_operations if op["op"] == "restore"}
+    )
+    if contradictory:
+        raise SeasonStateError(
+            "Refusing canonical batch: a tournament cannot be both cancelled and restored "
+            "in one batch: " + ", ".join(contradictory)
+        )
     # A cancellation deliberately removes one appearance from every participant
     # of that tournament and a restoration gives it back. Only a batch that
     # actually cancels or restores a tournament may widen the acceptable-
