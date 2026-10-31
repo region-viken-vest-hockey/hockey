@@ -6054,6 +6054,24 @@
       },
       "tournament_id": "rvv-0030",
       "value": "13:15"
+    },
+    {
+      "created_at": "2026-10-31T19:34:50.057023+00:00",
+      "created_by": "niclasl",
+      "field": "start_time",
+      "id": "change:2060216767388a75",
+      "kind": "placement_field",
+      "note": "Restore three Jutul tournaments cancelled as lost ice; Jutul calendar now carries them",
+      "request_id": "jutul:2026-10-31-restore-calendar-tournaments",
+      "source_event": "move",
+      "status": "active",
+      "team": {
+        "age_group": "",
+        "club": "",
+        "label": "rvv-0173:start_time"
+      },
+      "tournament_id": "rvv-0173",
+      "value": "18:15"
     }
   ],
   "holiday_date_exceptions": [
@@ -8891,6 +8909,54 @@
       "request_id": "calendar-booking:292ea7b71b0ef9395e9ccbd721cd7a79a6bf25634dad8c7db94029357e335484",
       "status": "active",
       "tournament_id": "rvv-0133",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U11",
+      "authority": "calendar_event_association",
+      "created_at": "2026-10-31T19:35:58.926085+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 140,
+      "id": "ice-time-override:55e224709fdbf291",
+      "minimum_minutes": 120,
+      "minutes": 140,
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "reference": "TURNERING U11",
+      "request_id": "calendar-booking:b6e5fbea14637e9791c6cf86a649e5190faeb70e11e32cf42f35c8baf774b0bf",
+      "status": "active",
+      "tournament_id": "rvv-0044",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U9",
+      "authority": "calendar_event_association",
+      "created_at": "2026-10-31T19:35:59.748910+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 155,
+      "id": "ice-time-override:8a309f453661da7f",
+      "minimum_minutes": 120,
+      "minutes": 150,
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "reference": "TURNERING U9",
+      "request_id": "calendar-booking:328d94a886cfb7bc7c3ff7f9b943f2a9b9d77df30989f276c2e29728ec462201",
+      "status": "active",
+      "tournament_id": "rvv-0116",
+      "type": "tournament_ice_time_override"
+    },
+    {
+      "age_group": "U12",
+      "authority": "calendar_event_association",
+      "created_at": "2026-10-31T19:36:00.558051+00:00",
+      "created_by": "niclasl",
+      "default_minutes": 100,
+      "id": "ice-time-override:01afe1df65c61fb4",
+      "minimum_minutes": 60,
+      "minutes": 100,
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "reference": "TURNERING U12",
+      "request_id": "calendar-booking:1625c529e88e4178c0aca1ea0e03a6c615ad87764c04e8c3c5f0a63ef8619d60",
+      "status": "active",
+      "tournament_id": "rvv-0173",
       "type": "tournament_ice_time_override"
     }
   ],

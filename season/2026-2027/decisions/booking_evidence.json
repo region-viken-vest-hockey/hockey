@@ -4893,6 +4893,99 @@
         "round_count": "3",
         "start_time": "13:30"
       }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-10-31T19:35:58.995446+00:00",
+      "created_by": "niclasl",
+      "date": "2026-11-14",
+      "end": "19:50",
+      "event_fingerprint": "b6e5fbea14637e9791c6cf86a649e5190faeb70e11e32cf42f35c8baf774b0bf",
+      "id": "calendar_booking:b6e5fbea14637e9791c6cf86a649e5190faeb70e11e32cf42f35c8baf774b0bf:rvv-0044",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "source_revision": "a3b24ef4e76555a7d953984d509e5bb7eff39a298a3ec944444520b560c77a12",
+      "start": "17:30",
+      "status": "active",
+      "title": "TURNERING U11",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Baerum ishall",
+        "date": "2026-11-14",
+        "host_club": "Jutul",
+        "start_time": "17:30"
+      },
+      "tournament_id": "rvv-0044",
+      "tournament_interval": {
+        "age_group": "U11",
+        "date": "2026-11-14",
+        "duration_minutes": "140",
+        "end_time": "19:50",
+        "round_count": "5",
+        "start_time": "17:30"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-10-31T19:35:59.815571+00:00",
+      "created_by": "niclasl",
+      "date": "2026-11-21",
+      "end": "20:00",
+      "event_fingerprint": "328d94a886cfb7bc7c3ff7f9b943f2a9b9d77df30989f276c2e29728ec462201",
+      "id": "calendar_booking:328d94a886cfb7bc7c3ff7f9b943f2a9b9d77df30989f276c2e29728ec462201:rvv-0116",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "source_revision": "b5679eb8efe6213944efeab4547f995d5b1c89c64c08fcd99377546f80c2b271",
+      "start": "17:30",
+      "status": "active",
+      "title": "TURNERING U9",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Baerum ishall",
+        "date": "2026-11-21",
+        "host_club": "Jutul",
+        "start_time": "17:30"
+      },
+      "tournament_id": "rvv-0116",
+      "tournament_interval": {
+        "age_group": "U9",
+        "date": "2026-11-21",
+        "duration_minutes": "150",
+        "end_time": "20:00",
+        "round_count": "5",
+        "start_time": "17:30"
+      }
+    },
+    {
+      "availability": "fixed_busy",
+      "club": "Jutul",
+      "created_at": "2026-10-31T19:36:00.625070+00:00",
+      "created_by": "niclasl",
+      "date": "2027-03-06",
+      "end": "19:55",
+      "event_fingerprint": "1625c529e88e4178c0aca1ea0e03a6c615ad87764c04e8c3c5f0a63ef8619d60",
+      "id": "calendar_booking:1625c529e88e4178c0aca1ea0e03a6c615ad87764c04e8c3c5f0a63ef8619d60:rvv-0173",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "source_revision": "247cbfa2df2434c186968ffe46b4aa48a41547342b0dd17399b8de9e1cbc268d",
+      "start": "18:15",
+      "status": "active",
+      "title": "TURNERING U12",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Baerum ishall",
+        "date": "2027-03-06",
+        "host_club": "Jutul",
+        "start_time": "18:15"
+      },
+      "tournament_id": "rvv-0173",
+      "tournament_interval": {
+        "age_group": "U12",
+        "date": "2027-03-06",
+        "duration_minutes": "100",
+        "end_time": "19:55",
+        "round_count": "3",
+        "start_time": "18:15"
+      }
     }
   ],
   "club_booking_source_assertions": [
@@ -14524,30 +14617,6 @@
       "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
       "checked_at": "2026-09-30T19:37:01.229755+00:00",
       "checked_by": "niclasl",
-      "date": "2026-11-21",
-      "event_fingerprint": "1051d10fce94bd46f43a438127f8f01223e96640dfe7a39835d6841cbb1446b6",
-      "host_club": "Jutul",
-      "id": "booking_evidence:rvv-0116:2026-09-30T19:37:01.229755+00:00",
-      "note": "Fresh Bærum Ishall reconciliation",
-      "reason": "single_overlapping_event_requires_confirmation",
-      "source_calendar_status": "known",
-      "source_revision": "45c387748b5ba024636dcf147f0d34031683d532ed6acd3b842d05b55b40ff73",
-      "start_time": "17:20",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U9",
-        "arena": "Baerum ishall",
-        "date": "2026-11-21",
-        "host_club": "Jutul",
-        "start_time": "17:20"
-      },
-      "tournament_id": "rvv-0116"
-    },
-    {
-      "arena": "Baerum ishall",
-      "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
-      "checked_at": "2026-09-30T19:37:01.229755+00:00",
-      "checked_by": "niclasl",
       "date": "2027-01-24",
       "event_fingerprint": "c77b120df07e06f3ed1ddafc66de87723035366d31fffd2d0a9f227f4febe87a",
       "host_club": "Jutul",
@@ -14614,54 +14683,6 @@
         "start_time": "17:45"
       },
       "tournament_id": "rvv-0137"
-    },
-    {
-      "arena": "Baerum ishall",
-      "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
-      "checked_at": "2026-09-30T19:37:01.229755+00:00",
-      "checked_by": "niclasl",
-      "date": "2027-03-06",
-      "event_fingerprint": "cb5c52c956e60c2827d50b42bc6616334b26a3025f42efe70c7dcab276acbf0b",
-      "host_club": "Jutul",
-      "id": "booking_evidence:rvv-0173:2026-09-30T19:37:01.229755+00:00",
-      "note": "Fresh Bærum Ishall reconciliation",
-      "reason": "single_overlapping_event_requires_confirmation",
-      "source_calendar_status": "known",
-      "source_revision": "45c387748b5ba024636dcf147f0d34031683d532ed6acd3b842d05b55b40ff73",
-      "start_time": "14:20",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U12",
-        "arena": "Baerum ishall",
-        "date": "2027-03-06",
-        "host_club": "Jutul",
-        "start_time": "14:20"
-      },
-      "tournament_id": "rvv-0173"
-    },
-    {
-      "arena": "Baerum ishall",
-      "calendar_fingerprint": "da08079b0ec5df308f2890fbca35ce875c6b98e9547c193145b5c5c7e41e927c",
-      "checked_at": "2026-09-30T19:37:01.229755+00:00",
-      "checked_by": "niclasl",
-      "date": "2026-11-14",
-      "event_fingerprint": "b6e5fbea14637e9791c6cf86a649e5190faeb70e11e32cf42f35c8baf774b0bf",
-      "host_club": "Jutul",
-      "id": "booking_evidence:rvv-0044:2026-09-30T19:37:01.229755+00:00",
-      "note": "Fresh Bærum Ishall reconciliation",
-      "reason": "single_overlapping_event_requires_confirmation",
-      "source_calendar_status": "known",
-      "source_revision": "45c387748b5ba024636dcf147f0d34031683d532ed6acd3b842d05b55b40ff73",
-      "start_time": "17:20",
-      "status": "ambiguous",
-      "tournament_facts": {
-        "age_group": "U11",
-        "arena": "Baerum ishall",
-        "date": "2026-11-14",
-        "host_club": "Jutul",
-        "start_time": "17:20"
-      },
-      "tournament_id": "rvv-0044"
     },
     {
       "arena": "Schjongshallen",
@@ -17428,6 +17449,78 @@
         "start_time": "13:30"
       },
       "tournament_id": "rvv-0133"
+    },
+    {
+      "arena": "Baerum ishall",
+      "calendar_fingerprint": "26d1a372188f0316bbde20cd568f4feb83d299905262e61dd26ff16771de53ef",
+      "checked_at": "2026-10-31T19:35:58.926085+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-14",
+      "event_fingerprint": "b6e5fbea14637e9791c6cf86a649e5190faeb70e11e32cf42f35c8baf774b0bf",
+      "host_club": "Jutul",
+      "id": "booking_evidence:rvv-0044:2026-10-31T19:35:58.926085+00:00",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "a3b24ef4e76555a7d953984d509e5bb7eff39a298a3ec944444520b560c77a12",
+      "start_time": "17:30",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U11",
+        "arena": "Baerum ishall",
+        "date": "2026-11-14",
+        "host_club": "Jutul",
+        "start_time": "17:30"
+      },
+      "tournament_id": "rvv-0044"
+    },
+    {
+      "arena": "Baerum ishall",
+      "calendar_fingerprint": "26d1a372188f0316bbde20cd568f4feb83d299905262e61dd26ff16771de53ef",
+      "checked_at": "2026-10-31T19:35:59.748910+00:00",
+      "checked_by": "niclasl",
+      "date": "2026-11-21",
+      "event_fingerprint": "328d94a886cfb7bc7c3ff7f9b943f2a9b9d77df30989f276c2e29728ec462201",
+      "host_club": "Jutul",
+      "id": "booking_evidence:rvv-0116:2026-10-31T19:35:59.748910+00:00",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "b5679eb8efe6213944efeab4547f995d5b1c89c64c08fcd99377546f80c2b271",
+      "start_time": "17:30",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U9",
+        "arena": "Baerum ishall",
+        "date": "2026-11-21",
+        "host_club": "Jutul",
+        "start_time": "17:30"
+      },
+      "tournament_id": "rvv-0116"
+    },
+    {
+      "arena": "Baerum ishall",
+      "calendar_fingerprint": "26d1a372188f0316bbde20cd568f4feb83d299905262e61dd26ff16771de53ef",
+      "checked_at": "2026-10-31T19:36:00.558051+00:00",
+      "checked_by": "niclasl",
+      "date": "2027-03-06",
+      "event_fingerprint": "1625c529e88e4178c0aca1ea0e03a6c615ad87764c04e8c3c5f0a63ef8619d60",
+      "host_club": "Jutul",
+      "id": "booking_evidence:rvv-0173:2026-10-31T19:36:00.558051+00:00",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "reason": "operator_confirmed_calendar_booking_association",
+      "source_calendar_status": "known",
+      "source_revision": "247cbfa2df2434c186968ffe46b4aa48a41547342b0dd17399b8de9e1cbc268d",
+      "start_time": "18:15",
+      "status": "confirmed_booked",
+      "tournament_facts": {
+        "age_group": "U12",
+        "arena": "Baerum ishall",
+        "date": "2027-03-06",
+        "host_club": "Jutul",
+        "start_time": "18:15"
+      },
+      "tournament_id": "rvv-0173"
     }
   ]
 }

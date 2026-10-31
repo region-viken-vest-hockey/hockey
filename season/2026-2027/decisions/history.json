@@ -61757,6 +61757,713 @@
       "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T19:34:50.057023+00:00",
+      "details": {
+        "accepted_regressions": [
+          {
+            "age_group": "U9",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Rød|U9",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 8,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Rød"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Grønn|U9",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 6,
+              "before": 5,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Grønn"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jutul",
+            "code": "more_gaps_under_14_days",
+            "consequence": "Jutul|Jutul Grønn|U9",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 2,
+              "before": 1,
+              "code": "more_gaps_under_14_days",
+              "delta": 1
+            },
+            "team": "Jutul Grønn"
+          },
+          {
+            "age_group": "U9",
+            "club": "Holmen",
+            "code": "participation_count_changed",
+            "consequence": "Holmen|Holmen Hockey Sort|U9",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 7,
+              "before": 6,
+              "code": "participation_count_changed"
+            },
+            "team": "Holmen Hockey Sort"
+          },
+          {
+            "age_group": "U9",
+            "club": "Holmen",
+            "code": "more_gaps_under_14_days",
+            "consequence": "Holmen|Holmen Hockey Sort|U9",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 3,
+              "before": 2,
+              "code": "more_gaps_under_14_days",
+              "delta": 1
+            },
+            "team": "Holmen Hockey Sort"
+          },
+          {
+            "age_group": "U9",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker 2|U9",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 7,
+              "before": 6,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker 2"
+          },
+          {
+            "age_group": "U9",
+            "club": "Frisk Asker",
+            "code": "more_gaps_under_14_days",
+            "consequence": "Frisk Asker|Frisk Asker 2|U9",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 2,
+              "before": 1,
+              "code": "more_gaps_under_14_days",
+              "delta": 1
+            },
+            "team": "Frisk Asker 2"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jar",
+            "code": "participation_count_changed",
+            "consequence": "Jar|Jar Rød|U9",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 7,
+              "before": 6,
+              "code": "participation_count_changed"
+            },
+            "team": "Jar Rød"
+          },
+          {
+            "age_group": "U9",
+            "club": "Kongsberg",
+            "code": "participation_count_changed",
+            "consequence": "Kongsberg|Kongsberg|U9",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 8,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Kongsberg"
+          },
+          {
+            "age_group": "U9",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker 4|U9",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 8,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker 4"
+          },
+          {
+            "age_group": "U9",
+            "club": "Frisk Asker",
+            "code": "more_gaps_under_14_days",
+            "consequence": "Frisk Asker|Frisk Asker 4|U9",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 3,
+              "before": 2,
+              "code": "more_gaps_under_14_days",
+              "delta": 1
+            },
+            "team": "Frisk Asker 4"
+          },
+          {
+            "age_group": "U9",
+            "club": "Tønsberg",
+            "code": "participation_count_changed",
+            "consequence": "Tønsberg|Tønsberg|U9",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 7,
+              "before": 6,
+              "code": "participation_count_changed"
+            },
+            "team": "Tønsberg"
+          },
+          {
+            "age_group": "U9",
+            "club": "Tønsberg",
+            "code": "travel_materially_worse",
+            "consequence": "Tønsberg|Tønsberg|U9",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "absolute_threshold_km": 50,
+              "after_km": 432,
+              "before_km": 340,
+              "code": "travel_materially_worse",
+              "delta_km": 92,
+              "relative_increase": 0.27058823529411763,
+              "relative_threshold": 0.25
+            },
+            "team": "Tønsberg"
+          },
+          {
+            "age_group": "U12",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Rød|U12",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 12,
+              "before": 11,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Rød"
+          },
+          {
+            "age_group": "U12",
+            "club": "Jutul",
+            "code": "more_gaps_under_14_days",
+            "consequence": "Jutul|Jutul Rød|U12",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 7,
+              "before": 6,
+              "code": "more_gaps_under_14_days",
+              "delta": 1
+            },
+            "team": "Jutul Rød"
+          },
+          {
+            "age_group": "U12",
+            "club": "Jar",
+            "code": "participation_count_changed",
+            "consequence": "Jar|Jar Svart|U12",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 10,
+              "before": 9,
+              "code": "participation_count_changed"
+            },
+            "team": "Jar Svart"
+          },
+          {
+            "age_group": "U12",
+            "club": "Ringerike",
+            "code": "participation_count_changed",
+            "consequence": "Ringerike|Ringerike 1|U12",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 10,
+              "before": 9,
+              "code": "participation_count_changed"
+            },
+            "team": "Ringerike 1"
+          },
+          {
+            "age_group": "U12",
+            "club": "Ringerike",
+            "code": "more_gaps_under_14_days",
+            "consequence": "Ringerike|Ringerike 1|U12",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 4,
+              "before": 3,
+              "code": "more_gaps_under_14_days",
+              "delta": 1
+            },
+            "team": "Ringerike 1"
+          },
+          {
+            "age_group": "U12",
+            "club": "Holmen",
+            "code": "participation_count_changed",
+            "consequence": "Holmen|Holmen Hockey Hvit|U12",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 9,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Holmen Hockey Hvit"
+          },
+          {
+            "age_group": "U11",
+            "club": "Jar",
+            "code": "participation_count_changed",
+            "consequence": "Jar|Jar Blå|U11",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 11,
+              "before": 10,
+              "code": "participation_count_changed"
+            },
+            "team": "Jar Blå"
+          },
+          {
+            "age_group": "U11",
+            "club": "Jar",
+            "code": "more_gaps_under_14_days",
+            "consequence": "Jar|Jar Blå|U11",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 7,
+              "before": 5,
+              "code": "more_gaps_under_14_days",
+              "delta": 2
+            },
+            "team": "Jar Blå"
+          },
+          {
+            "age_group": "U11",
+            "club": "Kongsberg",
+            "code": "participation_count_changed",
+            "consequence": "Kongsberg|Kongsberg|U11",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 10,
+              "before": 9,
+              "code": "participation_count_changed"
+            },
+            "team": "Kongsberg"
+          },
+          {
+            "age_group": "U11",
+            "club": "Kongsberg",
+            "code": "more_gaps_under_7_days",
+            "consequence": "Kongsberg|Kongsberg|U11",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 2,
+              "before": 1,
+              "code": "more_gaps_under_7_days",
+              "delta": 1
+            },
+            "team": "Kongsberg"
+          },
+          {
+            "age_group": "U11",
+            "club": "Kongsberg",
+            "code": "more_gaps_under_14_days",
+            "consequence": "Kongsberg|Kongsberg|U11",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 5,
+              "before": 4,
+              "code": "more_gaps_under_14_days",
+              "delta": 1
+            },
+            "team": "Kongsberg"
+          },
+          {
+            "age_group": "U11",
+            "club": "Tønsberg",
+            "code": "participation_count_changed",
+            "consequence": "Tønsberg|Tønsberg Rød|U11",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 10,
+              "before": 9,
+              "code": "participation_count_changed"
+            },
+            "team": "Tønsberg Rød"
+          },
+          {
+            "age_group": "U11",
+            "club": "Sandefjord Penguins",
+            "code": "participation_count_changed",
+            "consequence": "Sandefjord Penguins|Sandefjord|U11",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 10,
+              "before": 9,
+              "code": "participation_count_changed"
+            },
+            "team": "Sandefjord"
+          },
+          {
+            "age_group": "U11",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker 4|U11",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 10,
+              "before": 9,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker 4"
+          },
+          {
+            "age_group": "U11",
+            "club": "Frisk Asker",
+            "code": "more_gaps_under_7_days",
+            "consequence": "Frisk Asker|Frisk Asker 4|U11",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 2,
+              "before": 1,
+              "code": "more_gaps_under_7_days",
+              "delta": 1
+            },
+            "team": "Frisk Asker 4"
+          },
+          {
+            "age_group": "U11",
+            "club": "Frisk Asker",
+            "code": "more_gaps_under_14_days",
+            "consequence": "Frisk Asker|Frisk Asker 4|U11",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 6,
+              "before": 5,
+              "code": "more_gaps_under_14_days",
+              "delta": 1
+            },
+            "team": "Frisk Asker 4"
+          },
+          {
+            "age_group": "U11",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Rød|U11",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 9,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Rød"
+          },
+          {
+            "age_group": "U11",
+            "club": "Jutul",
+            "code": "more_gaps_under_14_days",
+            "consequence": "Jutul|Jutul Rød|U11",
+            "reason": "Jutul published TURNERING events for these three tournaments in its hall calendar; they take place, so the teams' restored appearances and resulting spacing are accepted",
+            "regression": {
+              "after": 5,
+              "before": 4,
+              "code": "more_gaps_under_14_days",
+              "delta": 1
+            },
+            "team": "Jutul Rød"
+          }
+        ],
+        "after_schedule_revision": "278556d5427c2e6a91b738c7f31c241bd1cf640258b49cb27bd81ce0fa3990b7",
+        "before_canonical_revision": "0757a7674f631f5126e292fcde0a750aa1ff2a07871c85502797310c2a7640c7",
+        "before_schedule_revision": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+        "cancellations": [],
+        "changed_tournament_ids": [
+          "rvv-0044",
+          "rvv-0116",
+          "rvv-0173"
+        ],
+        "declared_scope": [
+          "rvv-0044",
+          "rvv-0116",
+          "rvv-0173"
+        ],
+        "moves": [
+          {
+            "changed": true,
+            "new_placement": {
+              "arena": "Baerum ishall",
+              "date": "2027-03-06",
+              "host_club": "Jutul",
+              "start_time": "18:15"
+            },
+            "old_placement": {
+              "arena": "Baerum ishall",
+              "date": "2027-03-06",
+              "host_club": "Jutul",
+              "start_time": "14:20"
+            },
+            "tournament_id": "rvv-0173"
+          }
+        ],
+        "operational_acceptable": true,
+        "operations": [
+          {
+            "op": "restore",
+            "reason": "Jutul calendar carries TURNERING U11 17:30-19:50 on 2026-11-14",
+            "tournament_id": "rvv-0044"
+          },
+          {
+            "op": "restore",
+            "reason": "Jutul calendar carries TURNERING U9 17:30-20:00 on 2026-11-21",
+            "tournament_id": "rvv-0116"
+          },
+          {
+            "op": "restore",
+            "reason": "Jutul calendar carries TURNERING U12 18:15-19:55 on 2027-03-06",
+            "tournament_id": "rvv-0173"
+          },
+          {
+            "allow_cross_half": false,
+            "arena": null,
+            "date": null,
+            "host_club": null,
+            "op": "move",
+            "start_time": "18:15",
+            "tournament_id": "rvv-0173"
+          }
+        ],
+        "protections_added": [
+          "change:2060216767388a75"
+        ],
+        "removals": [],
+        "request_id": "jutul:2026-10-31-restore-calendar-tournaments",
+        "restorations": [
+          {
+            "age_group": "U11",
+            "date": "2026-11-14",
+            "notifications_required": [
+              "Inform host club 'Jutul' (arena 'Baerum ishall') that the 2026-11-14 U11 tournament rvv-0044 is reinstated and the ice is needed again; previously released guest reservations are not revived."
+            ],
+            "previous_cancellation_reason": "Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice",
+            "reason": "Jutul calendar carries TURNERING U11 17:30-19:50 on 2026-11-14",
+            "tournament_id": "rvv-0044"
+          },
+          {
+            "age_group": "U9",
+            "date": "2026-11-21",
+            "notifications_required": [
+              "Inform host club 'Jutul' (arena 'Baerum ishall') that the 2026-11-21 U9 tournament rvv-0116 is reinstated and the ice is needed again; previously released guest reservations are not revived."
+            ],
+            "previous_cancellation_reason": "Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice",
+            "reason": "Jutul calendar carries TURNERING U9 17:30-20:00 on 2026-11-21",
+            "tournament_id": "rvv-0116"
+          },
+          {
+            "age_group": "U12",
+            "date": "2027-03-06",
+            "notifications_required": [
+              "Inform host club 'Jutul' (arena 'Baerum ishall') that the 2027-03-06 U12 tournament rvv-0173 is reinstated and the ice is needed again; previously released guest reservations are not revived."
+            ],
+            "previous_cancellation_reason": "Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice",
+            "reason": "Jutul calendar carries TURNERING U12 18:15-19:55 on 2027-03-06",
+            "tournament_id": "rvv-0173"
+          }
+        ],
+        "reviewed_token": "rs-e8ba9794b66cd6a37b7b731a75dc2173deb5b886d96afd443ada3e70a8506dea",
+        "swaps": [],
+        "verification_ok": true
+      },
+      "event": "batch_maintenance",
+      "note": "Restore three Jutul tournaments cancelled as lost ice; Jutul calendar now carries them",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "278556d5427c2e6a91b738c7f31c241bd1cf640258b49cb27bd81ce0fa3990b7",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T19:35:58.926085+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:55e224709fdbf291",
+        "reference": "TURNERING U11",
+        "request_id": "calendar-booking:b6e5fbea14637e9791c6cf86a649e5190faeb70e11e32cf42f35c8baf774b0bf",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "278556d5427c2e6a91b738c7f31c241bd1cf640258b49cb27bd81ce0fa3990b7",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0044"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T19:35:58.926085+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING U11",
+        "event_fingerprint": "b6e5fbea14637e9791c6cf86a649e5190faeb70e11e32cf42f35c8baf774b0bf",
+        "ice_time_override_id": "ice-time-override:55e224709fdbf291",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-14",
+            "duration_minutes": 140,
+            "end_time": "19:50",
+            "start_time": "17:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U11",
+            "date": "2026-11-14",
+            "duration_minutes": "140",
+            "end_time": "19:50",
+            "round_count": "5",
+            "start_time": "17:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "278556d5427c2e6a91b738c7f31c241bd1cf640258b49cb27bd81ce0fa3990b7",
+      "tournament_fingerprint": "290708b26bd896c095b66dd12f7ddc0b71baf29a82da02c7198fce0ad0aa1ce7",
+      "tournament_id": "rvv-0044"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T19:35:59.748910+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 150,
+        "override_id": "ice-time-override:8a309f453661da7f",
+        "reference": "TURNERING U9",
+        "request_id": "calendar-booking:328d94a886cfb7bc7c3ff7f9b943f2a9b9d77df30989f276c2e29728ec462201",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "278556d5427c2e6a91b738c7f31c241bd1cf640258b49cb27bd81ce0fa3990b7",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0116"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T19:35:59.748910+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING U9",
+        "event_fingerprint": "328d94a886cfb7bc7c3ff7f9b943f2a9b9d77df30989f276c2e29728ec462201",
+        "ice_time_override_id": "ice-time-override:8a309f453661da7f",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-21",
+            "duration_minutes": 150,
+            "end_time": "20:00",
+            "start_time": "17:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U9",
+            "date": "2026-11-21",
+            "duration_minutes": "155",
+            "end_time": "19:55",
+            "round_count": "5",
+            "start_time": "17:20"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "c2813ddec9b7ffd942c553900d0705a9258ed716d4f127d363822ae8e9c35162",
+      "tournament_fingerprint": "eece1e36ab4f28b4b70cfa87842a2d04ca2576018a101e9626b92feeec5c23f7",
+      "tournament_id": "rvv-0116"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T19:36:00.558051+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 100,
+        "override_id": "ice-time-override:01afe1df65c61fb4",
+        "reference": "TURNERING U12",
+        "request_id": "calendar-booking:1625c529e88e4178c0aca1ea0e03a6c615ad87764c04e8c3c5f0a63ef8619d60",
+        "supersedes": ""
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "c2813ddec9b7ffd942c553900d0705a9258ed716d4f127d363822ae8e9c35162",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0173"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T19:36:00.558051+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING U12",
+        "event_fingerprint": "1625c529e88e4178c0aca1ea0e03a6c615ad87764c04e8c3c5f0a63ef8619d60",
+        "ice_time_override_id": "ice-time-override:01afe1df65c61fb4",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-03-06",
+            "duration_minutes": 100,
+            "end_time": "19:55",
+            "start_time": "18:15"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2027-03-06",
+            "duration_minutes": "100",
+            "end_time": "19:55",
+            "round_count": "3",
+            "start_time": "18:15"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Jutul hall calendar carries a TURNERING event for this tournament; restored from lost-ice cancellation (PR 897)",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "c2813ddec9b7ffd942c553900d0705a9258ed716d4f127d363822ae8e9c35162",
+      "tournament_fingerprint": "78fdec5048ae393719da07918702a9d7c5ee27a31aae1dd7a9f0b5afdfa1c5bd",
+      "tournament_id": "rvv-0173"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T19:36:41.276646+00:00",
+      "details": {
+        "canonical_state_revision": "d2f2cd9ab0f5eebd35e9464e2a53ba8847767660219a5aa4fcc864ac1276da94",
+        "export_dir": "export/2026-10-31T1936",
+        "previous_export_status": "fresh",
+        "previous_requires_fresh_export": false
+      },
+      "event": "mark_export_fresh",
+      "note": "canonical export",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "c2813ddec9b7ffd942c553900d0705a9258ed716d4f127d363822ae8e9c35162",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ]
 }
