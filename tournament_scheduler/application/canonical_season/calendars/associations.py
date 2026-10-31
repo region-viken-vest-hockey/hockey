@@ -25,8 +25,7 @@ from tournament_scheduler.season.baseline_overlay import (
     approval_placement_fingerprint,
 )
 from tournament_scheduler.season.ice_time_overrides import (
-    project_overrides_into_problem,
-    override_for_tournament,
+    project_overrides_into_problem, override_for_tournament, relabels_to_calendar_authority,
     validate_and_normalize as validate_ice_time_override,
 )
 from tournament_scheduler.season.state import (
@@ -186,7 +185,7 @@ def _align_tournament_to_authoritative_interval(
         effective_minutes = int(previous_interval.get("duration_minutes") or 0)
     except (TypeError, ValueError):
         effective_minutes = 0
-    if effective_minutes != interval_minutes or (freeze_default_equal_interval and existing_override is None):
+    if effective_minutes != interval_minutes or (freeze_default_equal_interval and existing_override is None) or relabels_to_calendar_authority(existing_override, authority):
         normalized = validate_ice_time_override(
             {
                 "tournament_id": tournament_id,
