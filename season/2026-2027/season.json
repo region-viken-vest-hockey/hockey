@@ -1,5 +1,5 @@
 {
-  "canonical_state_revision": "0757a7674f631f5126e292fcde0a750aa1ff2a07871c85502797310c2a7640c7",
+  "canonical_state_revision": "0fc100a82170331645f432b518166fbed51088e226e639a5b58bbcd13f029309",
   "layout_version": 2,
   "partitions": [
     {
@@ -10,7 +10,7 @@
     {
       "name": "operations",
       "path": "decisions/operations.json",
-      "sha256": "429ead90bf32507a2ca2fb43d8f3d750ffb0837918bd3ca3f1cce24ba03e8462"
+      "sha256": "7727b65b6796ccc4783d53c1755250a881a949650c7565ef9dd1a41a11faee89"
     },
     {
       "name": "history",
