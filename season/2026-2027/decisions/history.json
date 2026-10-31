@@ -60606,6 +60606,536 @@
       "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
       "tournament_fingerprint": "3ef2912a7e423c249e5357e0b5f843fecac25336d86b14afc45ece767b3dff3b",
       "tournament_id": "rvv-0191"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:31.832325+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:fdbbc157b2e7c8b1",
+        "reference": "Turnering U8 RVV",
+        "request_id": "calendar-booking:24b65a5965ba4ec164817b498997cad6e011c3db28e00764f229e296a08d5fcb",
+        "supersedes": "ice-time-override:75901c8c5792de70"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0015"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:31.832325+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "Turnering U8 RVV",
+        "event_fingerprint": "24b65a5965ba4ec164817b498997cad6e011c3db28e00764f229e296a08d5fcb",
+        "ice_time_override_id": "ice-time-override:fdbbc157b2e7c8b1",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-12-12",
+            "duration_minutes": 155,
+            "end_time": "18:50",
+            "start_time": "16:15"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U8",
+            "date": "2026-12-12",
+            "duration_minutes": "155",
+            "end_time": "18:50",
+            "round_count": "5",
+            "start_time": "16:15"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "cd33de551fe3d409f2f335eb03a3639a2d2ed12903f44a773c11466d48e63b7a",
+      "tournament_id": "rvv-0015"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:32.699943+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:b1444addd7ba2b3c",
+        "reference": "TURNERING U9 RVV",
+        "request_id": "calendar-booking:8d45285bb1d04061035ba319af33ddbec1f3482f835b503c361d526249fd5b73",
+        "supersedes": "ice-time-override:283c5db164b6befe"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0058"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:32.699943+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING U9 RVV",
+        "event_fingerprint": "8d45285bb1d04061035ba319af33ddbec1f3482f835b503c361d526249fd5b73",
+        "ice_time_override_id": "ice-time-override:b1444addd7ba2b3c",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-12-13",
+            "duration_minutes": 155,
+            "end_time": "16:45",
+            "start_time": "14:10"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U9",
+            "date": "2026-12-13",
+            "duration_minutes": "155",
+            "end_time": "16:45",
+            "round_count": "5",
+            "start_time": "14:10"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "9ed3dcadcdd32ad6e7f417f2438ab49b85763a35d2a39820453dfcec85924f5a",
+      "tournament_id": "rvv-0058"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:33.571801+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 100,
+        "override_id": "ice-time-override:14d56746e435fb3a",
+        "reference": "TURNERING JU12",
+        "request_id": "calendar-booking:1430e655958a0a4f564afee62d95557b1c4e1e7d3e35c67b4426361d222c4f29",
+        "supersedes": "ice-time-override:546916fe3a62f334"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0072"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:33.571801+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING JU12",
+        "event_fingerprint": "1430e655958a0a4f564afee62d95557b1c4e1e7d3e35c67b4426361d222c4f29",
+        "ice_time_override_id": "ice-time-override:14d56746e435fb3a",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-03-13",
+            "duration_minutes": 100,
+            "end_time": "20:10",
+            "start_time": "18:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "JU12",
+            "date": "2027-03-13",
+            "duration_minutes": "100",
+            "end_time": "20:10",
+            "round_count": "3",
+            "start_time": "18:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "0937396313161e15ea7c41a74730b54375c5129236fa9cab7a32513a212850ec",
+      "tournament_id": "rvv-0072"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:34.445214+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 150,
+        "override_id": "ice-time-override:10af988007eb12a1",
+        "reference": "TURNERING JU8",
+        "request_id": "calendar-booking:e7136ba97e4bf889cbe70df3307d4ecfdfdc6fd13ecaf823c5ef51a5c5f71e95",
+        "supersedes": "ice-time-override:e87c968615911855"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0089"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:34.445214+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING JU8",
+        "event_fingerprint": "e7136ba97e4bf889cbe70df3307d4ecfdfdc6fd13ecaf823c5ef51a5c5f71e95",
+        "ice_time_override_id": "ice-time-override:10af988007eb12a1",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-11-07",
+            "duration_minutes": 150,
+            "end_time": "20:00",
+            "start_time": "17:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "JU8",
+            "date": "2026-11-07",
+            "duration_minutes": "150",
+            "end_time": "20:00",
+            "round_count": "3",
+            "start_time": "17:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "9d07318df9ae9ff39447679f9223c3ee5b2d0cda411bfcb73c5b329cf95a85e7",
+      "tournament_id": "rvv-0089"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:35.280810+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:e9b27d2ff1e4c78b",
+        "reference": "TURNERING U8",
+        "request_id": "calendar-booking:ddda6d853dce2d1652f1dd4a4c8cb7743e9277bd009072defeb599aa20301318",
+        "supersedes": "ice-time-override:219816083fc0ca1c"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0151"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:35.280810+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING U8",
+        "event_fingerprint": "ddda6d853dce2d1652f1dd4a4c8cb7743e9277bd009072defeb599aa20301318",
+        "ice_time_override_id": "ice-time-override:e9b27d2ff1e4c78b",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-02-20",
+            "duration_minutes": 155,
+            "end_time": "19:30",
+            "start_time": "16:55"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U8",
+            "date": "2027-02-20",
+            "duration_minutes": "155",
+            "end_time": "19:30",
+            "round_count": "5",
+            "start_time": "16:55"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "7d1d81e6aff1fead016314d35d5e75a873dec269441cbf0b006223e4a984cc70",
+      "tournament_id": "rvv-0151"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:36.126032+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 155,
+        "minimum_minutes": 120,
+        "minutes": 155,
+        "override_id": "ice-time-override:ea68d108ebe5d48f",
+        "reference": "TURNERING U7",
+        "request_id": "calendar-booking:bc1a09aafc18dd7288b6a667ade9b40b90de50b932eb92fde94da8c9d81e9855",
+        "supersedes": "ice-time-override:a8c2f26475bac598"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0167"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:36.126032+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING U7",
+        "event_fingerprint": "bc1a09aafc18dd7288b6a667ade9b40b90de50b932eb92fde94da8c9d81e9855",
+        "ice_time_override_id": "ice-time-override:ea68d108ebe5d48f",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-02-14",
+            "duration_minutes": 155,
+            "end_time": "16:45",
+            "start_time": "14:10"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U7",
+            "date": "2027-02-14",
+            "duration_minutes": "155",
+            "end_time": "16:45",
+            "round_count": "5",
+            "start_time": "14:10"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "cc1c1344700988b8c812e7a897c186037935db202d878d9588b5813be0a57348",
+      "tournament_id": "rvv-0167"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:36.974302+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 100,
+        "override_id": "ice-time-override:9b17148e5b92f2b6",
+        "reference": "TURNERING U12 RVV",
+        "request_id": "calendar-booking:d0eec1eef39d5dd4c10ebdea7bb28656c8f15d722f7bcaa20e5d8a3f57a4ce24",
+        "supersedes": "ice-time-override:89c3633cb2d8b653"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0080"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:36.974302+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING U12 RVV",
+        "event_fingerprint": "d0eec1eef39d5dd4c10ebdea7bb28656c8f15d722f7bcaa20e5d8a3f57a4ce24",
+        "ice_time_override_id": "ice-time-override:9b17148e5b92f2b6",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-12-12",
+            "duration_minutes": 100,
+            "end_time": "16:10",
+            "start_time": "14:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2026-12-12",
+            "duration_minutes": "100",
+            "end_time": "16:10",
+            "round_count": "3",
+            "start_time": "14:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "7a236bea5ad19f78f67e021629319d80b101e3db9e6d41cd71be386c571d5cbb",
+      "tournament_id": "rvv-0080"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:37.809159+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:8e164f4dbd487c96",
+        "reference": "TURNERING U10",
+        "request_id": "calendar-booking:9821e1cee140e70b6ffd488c04e8acf72d8bef94dc6bffe511d059aaee2342f5",
+        "supersedes": "ice-time-override:755a359b1d4a4057"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0064"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:37.809159+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING U10",
+        "event_fingerprint": "9821e1cee140e70b6ffd488c04e8acf72d8bef94dc6bffe511d059aaee2342f5",
+        "ice_time_override_id": "ice-time-override:8e164f4dbd487c96",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-03-13",
+            "duration_minutes": 140,
+            "end_time": "18:30",
+            "start_time": "16:10"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U10",
+            "date": "2027-03-13",
+            "duration_minutes": "140",
+            "end_time": "18:30",
+            "round_count": "5",
+            "start_time": "16:10"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "f4d48e9e473d90ff2fc2f4a1b823cac40e28b67cb7cf5a890ba5bfcbca970f22",
+      "tournament_id": "rvv-0064"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:38.659075+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 100,
+        "minimum_minutes": 60,
+        "minutes": 100,
+        "override_id": "ice-time-override:822c4561f70b49db",
+        "reference": "TURNERING U12",
+        "request_id": "calendar-booking:a094f97e4fecea7837b66ea47e61f8d67574562a8c8965487c61967378b4ed55",
+        "supersedes": "ice-time-override:9465aac273bb2426"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0146"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:38.659075+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "TURNERING U12",
+        "event_fingerprint": "a094f97e4fecea7837b66ea47e61f8d67574562a8c8965487c61967378b4ed55",
+        "ice_time_override_id": "ice-time-override:822c4561f70b49db",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2027-03-13",
+            "duration_minutes": 100,
+            "end_time": "16:10",
+            "start_time": "14:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U12",
+            "date": "2027-03-13",
+            "duration_minutes": "100",
+            "end_time": "16:10",
+            "round_count": "3",
+            "start_time": "14:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "c08d028223ab69947491e8b4dd97161cca70851056cb5a215343fccbb78094ec",
+      "tournament_id": "rvv-0146"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:39.493556+00:00",
+      "details": {
+        "authority": "calendar_event_association",
+        "default_minutes": 140,
+        "minimum_minutes": 120,
+        "minutes": 140,
+        "override_id": "ice-time-override:70c8eb613f69b54e",
+        "reference": "U10 (2017)",
+        "request_id": "calendar-booking:35505d1a07f865f9d56824f6268eede5cb1da2b1fb747a08ad35cf39e5e12d1e",
+        "supersedes": "ice-time-override:4ea20b804e9236ca"
+      },
+      "event": "set_ice_time_minutes",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0021"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T08:36:39.493556+00:00",
+      "details": {
+        "booking_feasibility_warnings": [],
+        "calendar_event": "U10 (2017)",
+        "event_fingerprint": "35505d1a07f865f9d56824f6268eede5cb1da2b1fb747a08ad35cf39e5e12d1e",
+        "ice_time_override_id": "ice-time-override:70c8eb613f69b54e",
+        "interval_alignment": {
+          "accepted_calendar_interval": {
+            "date": "2026-10-18",
+            "duration_minutes": 140,
+            "end_time": "13:50",
+            "start_time": "11:30"
+          },
+          "changed": true,
+          "previous_interval": {
+            "age_group": "U10",
+            "date": "2026-10-18",
+            "duration_minutes": "140",
+            "end_time": "13:50",
+            "round_count": "5",
+            "start_time": "11:30"
+          }
+        }
+      },
+      "event": "confirm_calendar_booking",
+      "note": "Calendar is the authority; the manual stated interval was copied from the calendar scrape, not stated by the club. Provenance only: the interval is unchanged",
+      "previous_fingerprint": "dd1a87db93f17dcb20b52418cfa9a1a6407eadbeeef5127f730bba6b57a85b7d",
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "dd1a87db93f17dcb20b52418cfa9a1a6407eadbeeef5127f730bba6b57a85b7d",
+      "tournament_id": "rvv-0021"
     }
   ]
 }
