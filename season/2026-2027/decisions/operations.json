@@ -1,16 +1,17 @@
 {
   "actor": "claude-code",
-  "canonical_state_revision": "5f2d42a9745196882e51539f45e6f323629205d741e14caca7bf78c81ac8b1a3",
+  "canonical_state_revision": "fb51dd4354296ba8440fcda6c9ab0feca75a6e3831247d39afa5a26feb4cd9c2",
   "created_at": "2026-09-18T19:44:06.643372+00:00",
   "decisions": {
     "mp_unplaced_placement_U11_2026_10_18_1": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T07:38:55.373253+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "294e96e91fd7677e81679d6aa16cae110e1cdfda92cc37bc8a559370577484bb",
+      "approved_placement_fingerprint": "e91a9520c58a951da4d9547db31ef46e7d6df279a8e4bf59c520a4694df1d78e",
+      "note": "Calendar booking is the confirmation; the club stated no end time (planned end was plan-derived)",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0001": {
       "approved_at": null,
@@ -600,13 +601,14 @@
       "status": "pending_review"
     },
     "rvv-0065": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T07:39:45.017552+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "b22495c3aa00e08607eea48b2833e9aeea8bceae4ebe1adc264b89cb2a040849",
+      "approved_placement_fingerprint": "ec227e801419272c97048b3fdf65ae68c2f31f90e5e1c0eb1c179935015ac5b4",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0066": {
       "approved_at": "2026-09-25T11:04:27.293827+00:00",
@@ -756,13 +758,14 @@
       "status": "approved"
     },
     "rvv-0087": {
-      "approved_at": null,
-      "approved_by": null,
-      "approved_fingerprint": null,
-      "note": "",
+      "approved_at": "2026-10-31T07:39:46.508973+00:00",
+      "approved_by": "niclasl",
+      "approved_fingerprint": "232f3d6d2569c17efbe6796d2b92195f6a5e7b6373fffbe1866690ab08c401bb",
+      "approved_placement_fingerprint": "400ce23d2fabb6be2d6a65a1f41c226220e0f5489c60d44bd79871e225d8ea27",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
       "participants_locked": false,
-      "placement_locked": false,
-      "status": "pending_review"
+      "placement_locked": true,
+      "status": "approved"
     },
     "rvv-0088": {
       "approved_at": "2026-09-28T18:50:44.853648+00:00",
@@ -1202,11 +1205,11 @@
       "status": "pending_review"
     },
     "rvv-0135": {
-      "approved_at": "2026-10-01T10:48:21.164804+00:00",
+      "approved_at": "2026-10-31T07:39:48.039838+00:00",
       "approved_by": "niclasl",
-      "approved_fingerprint": "089e0b3bf8d52f81403505800e90bd74366d15aab25c3aec26cc1c76b5613601",
-      "approved_placement_fingerprint": "9e1e5006ad0c155dab4651fe6bba8fa510a9f424d19ba679f942236f6bda631c",
-      "note": "Re-approved placement only after fairness roster repair fairness-u10-fa5-rvv-0135-jutul; interval 2027-01-23 17:00-18:50 Askerhallen, booking evidence unchanged",
+      "approved_fingerprint": "32af365cffbb870f322e6e83277ae89d0ca0b9bb94f0c3e7b605bfc7299c18e0",
+      "approved_placement_fingerprint": "de9adefae9b59b753785403a5cb35c08665bb07ced8552a89152637c021eed7f",
+      "note": "Maintainer decision: the calendar is authoritative for the booked start; adopting the calendar block",
       "participants_locked": false,
       "placement_locked": true,
       "status": "approved"
@@ -1729,7 +1732,7 @@
     "stale_reason": "calendar_evidence_refreshed",
     "status": "stale"
   },
-  "schedule_fingerprint": "dc9be1a9a4b3eb625563bddf5047bfbccd3f7df90814860cfc941856fdb10461",
+  "schedule_fingerprint": "cd443b7c55ac069f1dcd10306dff3c44bc29b1815bc98674be12933808cc7cc2",
   "schema_version": 1,
   "season": "2026-2027",
   "season_lifecycle": {
@@ -181562,5 +181565,5 @@
     "sealed_by": "niclasl",
     "state": "published_sealed"
   },
-  "updated_at": "2026-10-30T20:10:38.432349+00:00"
+  "updated_at": "2026-10-31T07:39:48.039838+00:00"
 }
