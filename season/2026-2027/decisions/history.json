@@ -61731,6 +61731,16 @@
       "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
       "tournament_fingerprint": "e16837180716eaa3b5f17c437344ae019fa23064d16e3ebf6e6f3d3c5cf48e1c",
       "tournament_id": "rvv-0133"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-10-31T09:07:40.063639+00:00",
+      "event": "approve",
+      "note": "Restore the participant lock removed by the calendar re-confirmation (#894 review). Original approval note: Jar confirmed this booking in their own calendar",
+      "previous_fingerprint": "e16837180716eaa3b5f17c437344ae019fa23064d16e3ebf6e6f3d3c5cf48e1c",
+      "schedule_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+      "tournament_fingerprint": "e16837180716eaa3b5f17c437344ae019fa23064d16e3ebf6e6f3d3c5cf48e1c",
+      "tournament_id": "rvv-0133"
     }
   ]
 }

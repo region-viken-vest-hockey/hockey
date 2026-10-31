@@ -1,5 +1,5 @@
 {
-  "canonical_state_revision": "2e03ad5fe524fb3bcec0f08af6b2ddd05c7a280f47931c8c82330e34dd5e4aae",
+  "canonical_state_revision": "0757a7674f631f5126e292fcde0a750aa1ff2a07871c85502797310c2a7640c7",
   "layout_version": 2,
   "partitions": [
     {
@@ -10,12 +10,12 @@
     {
       "name": "operations",
       "path": "decisions/operations.json",
-      "sha256": "6502924aad77f38f3341a81ca42c97e29603592a600a18cafd992496fa83ac4e"
+      "sha256": "91184db58bc7e1b430708763cec68bfb8aa686a471bebbedd8b4d3c9d0dd59c1"
     },
     {
       "name": "history",
       "path": "decisions/history.json",
-      "sha256": "4a157b91ee71320baf4ab66eeb431d2210ff41cf59cf6831748935dcd99a7e53"
+      "sha256": "ee533b5f3106f8376d2bd0ce90180ea59c4cab294e3f9ebe8436702bb98f2988"
     },
     {
       "name": "booking_evidence",
