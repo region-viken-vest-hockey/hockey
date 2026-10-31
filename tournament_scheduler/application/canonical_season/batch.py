@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-from collections import Counter
 from typing import Any, Mapping
 
 from tournament_scheduler.season.state import (
@@ -60,6 +59,12 @@ from tournament_scheduler.booking.calendar_bookings import (
     release_booking_authority_for_new_cancellations,
 )
 from .cancellation import _apply_cancel_to_plan
+from .cancel_restore_consequences import (
+    _cancelled_appearances,
+    _participation_acceptance_scope,
+    restoration_team_consequences,
+)
+from .restoration import _apply_restore_to_plan
 
 _BATCH_MOVE_FIELDS: tuple[str, ...] = ("date", "arena", "host_club", "start_time")
 
@@ -110,6 +115,15 @@ def _normalize_batch_operation(raw: Any) -> dict[str, Any]:
             "tournament_id": tournament_id,
             "reason": str(raw.get("reason") or raw.get("note") or ""),
         }
+    if op in ("restore", "restore_tournament", "uncancel"):
+        tournament_id = str(raw.get("tournament_id") or raw.get("id") or "").strip()
+        if not tournament_id:
+            raise SeasonStateError("A batch restore operation requires tournament_id")
+        return {
+            "op": "restore",
+            "tournament_id": tournament_id,
+            "reason": str(raw.get("reason") or raw.get("note") or ""),
+        }
     if op in ("remove_participant", "remove-participant", "participant_removal", "withdraw"):
         tournament_id = str(raw.get("tournament_id") or raw.get("id") or "").strip()
         remove_team = str(
@@ -139,79 +153,11 @@ def _batch_operation_tournament_ids(operation: Mapping[str, Any]) -> tuple[str, 
             str(operation.get("tournament_a") or ""),
             str(operation.get("tournament_b") or ""),
         )
-    if op == "cancel":
+    if op in ("cancel", "restore"):
         return (str(operation.get("tournament_id") or ""),)
     if op == "remove_participant":
         return (str(operation.get("tournament_id") or ""),)
     return ()
-
-
-def _cancelled_appearances(
-    plan: Mapping[str, Any],
-    tournament_ids: list[str],
-) -> Counter[tuple[str, str, str]]:
-    """Count each non-guest team's appearances in the named cancellations.
-
-    A team may equally be a deliberate batch removal (withdrawn from the whole
-    age group); that identity is tracked separately so its own shortfall stays
-    exempt. This count is the only participation loss a cancellation acceptance
-    may waive for a retained team.
-    """
-
-    wanted = {str(tournament_id) for tournament_id in tournament_ids}
-    appearances: Counter[tuple[str, str, str]] = Counter()
-    for tournament in plan.get("tournaments", []) or []:
-        if str(tournament.get("id") or "") not in wanted:
-            continue
-        age_group = str(tournament.get("age_group") or "")
-        for team in tournament.get("teams", []) or []:
-            if bool(team.get("guest", False)):
-                continue
-            appearances[
-                (
-                    str(team.get("club") or ""),
-                    str(team.get("label") or ""),
-                    str(team.get("age_group") or age_group),
-                )
-            ] += 1
-    return appearances
-
-
-def _participation_acceptance_scope(
-    team_consequences: Mapping[str, Mapping[str, Any]],
-    cancelled_appearances: Mapping[tuple[str, str, str], int],
-) -> set[tuple[str, str, str]]:
-    """Return the identities whose whole count delta a cancellation explains.
-
-    ``participation_count_changed`` is only attributable when the team's
-    before->final tournament-count loss equals the number of appearances it
-    lost to the batch's cancelled tournaments. A team that lost an additional
-    appearance for any other reason is excluded so its combined loss cannot be
-    waived by a single cancellation acceptance.
-    """
-
-    from tournament_scheduler.participation.team_schedule_quality import (
-        PARTICIPATION_COUNT_CHANGED,
-        consequence_team_identity,
-    )
-
-    eligible: set[tuple[str, str, str]] = set()
-    for analysis in team_consequences.values():
-        regression = next(
-            (
-                item
-                for item in analysis.get("material_regressions") or []
-                if item.get("code") == PARTICIPATION_COUNT_CHANGED
-            ),
-            None,
-        )
-        if regression is None:
-            continue
-        identity = consequence_team_identity(analysis)
-        lost = int(regression.get("before") or 0) - int(regression.get("after") or 0)
-        if lost > 0 and cancelled_appearances.get(identity, 0) == lost:
-            eligible.add(identity)
-    return eligible
 
 
 def batch_maintenance(
@@ -273,11 +219,12 @@ def batch_maintenance(
         _normalize_batch_operation(operation) for operation in operations
     ]
     # A cancellation deliberately removes one appearance from every participant
-    # of that tournament. Only a batch that actually cancels a tournament may
-    # widen the acceptable-regression codes to include that participation
-    # shortfall, and only for teams that played in a cancelled tournament.
+    # of that tournament and a restoration gives it back. Only a batch that
+    # actually cancels or restores a tournament may widen the acceptable-
+    # regression codes to include that participation change, and only for
+    # teams that played in a cancelled or restored tournament.
     cancel_requested = any(
-        operation.get("op") == "cancel" for operation in normalized_operations
+        operation.get("op") in ("cancel", "restore") for operation in normalized_operations
     )
     from tournament_scheduler.participation.team_schedule_quality import (
         ACCEPTABLE_REGRESSION_CODES,
@@ -349,6 +296,7 @@ def batch_maintenance(
     applied_moves: list[dict[str, Any]] = []
     applied_swaps: list[dict[str, Any]] = []
     applied_cancellations: list[dict[str, Any]] = []
+    applied_restorations: list[dict[str, Any]] = []
     applied_removals: list[dict[str, Any]] = []
     # A durable withdrawal is one decision per team identity; the affected
     # tournament ids are provenance, not the scope of the eligibility
@@ -412,6 +360,14 @@ def batch_maintenance(
                     reason=str(operation.get("reason") or ""),
                     actor=resolved_actor,
                     now=now,
+                )
+            )
+        elif op == "restore":
+            applied_restorations.append(
+                _apply_restore_to_plan(
+                    candidate_plan,
+                    tournament_id=operation["tournament_id"],
+                    reason=str(operation.get("reason") or ""),
                 )
             )
         elif op == "remove_participant":
@@ -694,6 +650,10 @@ def batch_maintenance(
         for cancellation in applied_cancellations
     ]
     cancelled_appearances = _cancelled_appearances(before_plan, cancelled_ids)
+    restored_appearances = _cancelled_appearances(
+        candidate_plan,
+        [str(restoration["tournament_id"]) for restoration in applied_restorations],
+    )
     if cancelled_ids:
         # A cancellation removes one appearance from every participant of the
         # cancelled tournament, so those retained teams get the same
@@ -711,6 +671,18 @@ def batch_maintenance(
             if key in removed_team_consequences:
                 continue
             team_consequences.setdefault(key, consequence)
+    team_consequences.update(
+        {
+            key: consequence
+            for key, consequence in restoration_team_consequences(
+                before_plan,
+                candidate_plan,
+                [str(restoration["tournament_id"]) for restoration in applied_restorations],
+                problem=resolved_problem,
+            ).items()
+            if key not in team_consequences
+        }
+    )
     # Participation-count acceptance is scoped to the identities whose whole
     # before->final count loss is exactly the cancellation loss; an extra
     # unrelated count change still refuses. Every other accepted code keeps
@@ -719,7 +691,7 @@ def batch_maintenance(
     if cancel_requested:
         code_scope = {
             PARTICIPATION_COUNT_CHANGED: _participation_acceptance_scope(
-                team_consequences, cancelled_appearances
+                team_consequences, cancelled_appearances, restored_appearances
             )
         }
     reconcile_plan_derived_state(
@@ -811,6 +783,7 @@ def batch_maintenance(
         "moves": applied_moves,
         "swaps": applied_swaps,
         "cancellations": applied_cancellations,
+        "restorations": applied_restorations,
         "removals": applied_removals,
         "removed_team_consequences": removed_team_consequences,
         "before_schedule_revision": before_fingerprint,
@@ -935,6 +908,7 @@ def batch_maintenance(
             "moves": applied_moves,
             "swaps": applied_swaps,
             "cancellations": applied_cancellations,
+            "restorations": applied_restorations,
             "removals": applied_removals,
             "protections_added": [
                 str(protection.get("id") or "") for protection in new_protections

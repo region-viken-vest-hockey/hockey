@@ -12,6 +12,9 @@ Translate club feedback into the narrowest supported scoped constraint before se
 ## Cancel
 Distinguish cancellation from postponement. Inspect booking and publication status, the reason and affected roster, participant appearance deficits, host obligation and downstream tournaments. Preview the cancellation and feasible replacement/reassignment alternatives; never silently remove accepted commitments. Apply only through supported canonical cancel/batch operations and explicit narrow regression acceptance when actually authorized; for a reviewed cancellation candidate, `season batch` can accept the exact reviewed consequence set with `--accept-reviewed-consequences` instead of reconstructing per-team arguments (see `season.md`). Preserve cancellation provenance and verify every affected team.
 
+## Restore
+A cancelled tournament whose cancellation reason no longer holds (for example the host calendar now carries the event the cancellation said was missing) is reinstated with the `restore` batch operation, never by editing canonical state. Establish the new evidence first (`booking-reconciliation.md`), then build one scenario: `restore` plus a `move` when the authoritative interval differs from the stored placement, with `--scope` naming the tournament. `restore` clears only the cancelled flag and reason; it does not revive released guest reservations or released booking authority, so re-confirm the booking afterwards through its own action. Like a cancellation it changes every non-guest participant's appearance count, so preview first and apply the exact reviewed consequences (`--accept-reviewed-consequences`). The report's `restorations[].notifications_required` names the host to inform.
+
 ## Add or materialize
 Distinguish a new tournament obligation from an existing unplaced obligation. Check authoritative registrations, host responsibility, age eligibility, capacity, calendar evidence, participation targets, spacing and other tournaments. Prefer repository `unplaced_tournament_placement` findings and revision-bound materialization options when applicable. Never hand-create a tournament in canonical JSON or infer booking from a free calendar slot. If there is no supported canonical creation path, report the capability gap.
 
@@ -34,7 +37,7 @@ Scenario schema `canonical-scenario/1`:
 }
 ```
 
-Operations are `move`, `swap_participants`, `cancel` and `remove_participant`. `scope` lists every tournament the scenario may change; any change outside it refuses the batch. A bare JSON array of operations is still accepted, but it carries no scope, so pass `--scope` explicitly. Unknown schema versions and keys are refused.
+Operations are `move`, `swap_participants`, `cancel`, `restore` and `remove_participant`. `scope` lists every tournament the scenario may change; any change outside it refuses the batch. A bare JSON array of operations is still accepted, but it carries no scope, so pass `--scope` explicitly. Unknown schema versions and keys are refused.
 
 Preview without writing, binding the preview to the revision you reviewed:
 

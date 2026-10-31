@@ -217,7 +217,7 @@ def add_season_mutation_parsers(season_sub: argparse._SubParsersAction) -> None:
         help=(
             "Path to a JSON scenario: either an array of operations, or a "
             "{\"schema\": \"canonical-scenario/1\", \"scope\": [...], \"operations\": [...]} object. "
-            "Operations: move, swap_participants, cancel, remove_participant"
+            "Operations: move, swap_participants, cancel, restore, remove_participant"
         ),
     )
     season_batch.add_argument(
