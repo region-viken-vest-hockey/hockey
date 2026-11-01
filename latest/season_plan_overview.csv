@@ -73,7 +73,7 @@ date,arena,age_group,host_club,team_count,game_count,furthest_travel,cancelled,c
 2027-01-23,Kongsberghallen,U11,Kongsberg,6,15,Sandefjord~88km,nei,
 2027-01-23,Schjongshallen,U12,Ringerike,4,6,Tønsberg Hvit~131km,nei,
 2027-01-23,Tonsberghallen,U7,Tønsberg,8,20,Jar Hvit~92km,nei,
-2026-11-21,Baerum ishall,U9,Jutul,8,20,Tønsberg~92km,ja,"Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice"
+2026-11-21,Baerum ishall,U9,Jutul,8,20,Tønsberg~92km,nei,
 2027-01-24,Askerhallen,U10,Frisk Asker,6,15,Jar Hvit~14km,nei,
 2027-03-13,Bugården ishall,U11,Sandefjord Penguins,6,15,Ringerike Svart~150km,nei,
 2027-01-24,Jar Isforum,U12,Jar,4,6,Kongsberg~75km,nei,
@@ -117,7 +117,7 @@ date,arena,age_group,host_club,team_count,game_count,furthest_travel,cancelled,c
 2027-03-06,Jar Isforum,JU10,Jar,5,10,Skien~122km,nei,
 2027-03-06,Schjongshallen,JU12,Ringerike,4,6,Frisk Asker Svart~50km,nei,
 2027-03-06,Holmen ishall,U10,Holmen,6,15,Tønsberg~83km,nei,
-2027-03-06,Baerum ishall,U12,Jutul,4,6,Ringerike 1~44km,ja,"Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice"
+2027-03-06,Baerum ishall,U12,Jutul,4,6,Ringerike 1~44km,nei,
 2027-03-07,Askerhallen,U10,Frisk Asker,6,15,Ringerike 3~50km,nei,
 2027-03-07,Kongsberghallen,U12,Kongsberg,4,6,Ringerike 2~85km,nei,
 2027-03-07,Holmen ishall,U8,Holmen,8,20,Skien~111km,nei,
@@ -143,7 +143,7 @@ date,arena,age_group,host_club,team_count,game_count,furthest_travel,cancelled,c
 2026-11-21,Schjongshallen,U11,Ringerike,6,15,Frisk Asker 2~50km,nei,
 2026-11-28,Jar Isforum,U11,Jar,6,15,Kongsberg~75km,nei,
 2026-11-22,Askerhallen,U11,Frisk Asker,6,15,Jar Blå~14km,nei,
-2026-11-14,Baerum ishall,U11,Jutul,6,15,Sandefjord~114km,ja,"Unresolved external calendar conflict at Jutul (Baerum ishall); no host confirmation obtained, considered lost ice"
+2026-11-14,Baerum ishall,U11,Jutul,6,15,Sandefjord~114km,nei,
 2026-11-29,Askerhallen,U11,Frisk Asker,6,15,Skien~109km,nei,
 2026-11-14,Jar Isforum,U11,Jar,6,15,Ringerike Gul~45km,nei,
 2027-01-31,Tonsberghallen,U11,Tønsberg,6,15,Ringerike Svart~131km,nei,
