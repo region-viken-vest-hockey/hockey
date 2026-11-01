@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "audit_id": "e182d2cf38e49ccf",
+  "generated_at": "2026-11-01T09:00:05Z",
+  "run_id": "legacy",
+  "export_fingerprint": "c2813ddec9b7ffd942c553900d0705a9258ed716d4f127d363822ae8e9c35162",
+  "audit_context_fingerprint": "7a1c0000f4ededb7acc21f6690bbdaa4862e370486180452649d2481088e7ca5",
+  "status": "REVIEW_REQUIRED",
+  "operator_assessment": {
+    "operator_summary": "Publication scope is ELIGIBLE: 45 changed tournaments, none added, removed, held or blocking; 40 interval changes are booked and 5 are participant-only. The three restored Jutul tournaments are included and each is bound to its calendar event. Season-wide planning debt is unchanged from the published baseline.",
+    "key_tradeoffs": [
+      {
+        "title": "Restored Jutul tournaments",
+        "summary": "rvv-0044, rvv-0116 and rvv-0173 were cancelled as lost ice and are reinstated because Jutul's calendar carries them. rvv-0116 follows the calendar's 150 min (5 min short of plan). About 30 teams regain an appearance and some get more gaps under 14 days; this was accepted explicitly when the restore was applied.",
+        "severity": "minor"
+      }
+    ],
+    "remaining_actions": [
+      {
+        "title": "Season-wide planning debt",
+        "summary": "Participation shortfalls, 9 unplaced Jar placements, hosting imbalances and manual calendar placements remain canonical maintenance work.",
+        "category": "planning_debt"
+      },
+      {
+        "title": "Frisk Asker JU12 on 2027-01-24",
+        "summary": "Confirm with Frisk Asker whether the 15:30-16:50 JU12 Serierunde is the moved rvv-0143; if so reinstate it with the restore operation.",
+        "category": "follow_up"
+      }
+    ],
+    "limitations": [
+      "Semantic review used the bounded audit overview, the publication scope, targeted per-tournament evidence for the three restored tournaments and a fresh dry-run calendar comparison, not every individual record."
+    ]
+  },
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "Season-wide participation shortfalls and club-pool shortfalls remain; they are pre-existing planning debt. The delta against the last publication adds and removes no tournament (183 = 183). Restoring rvv-0044, rvv-0116 and rvv-0173 returns one appearance to each of their non-guest teams, so it reduces rather than adds shortfalls.",
+      "severity": "major",
+      "confidence": "high",
+      "evidence_refs": [
+        "participation_shortfalls",
+        "participation_club_pools"
+      ]
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "Hosting-balance imbalances and 9 unplaced Jar placements remain, unchanged by this export. Hosting responsibility did not move: the three restored tournaments keep Jutul as host (the batch's hosting-responsibility gate passed).",
+      "severity": "major",
+      "confidence": "high",
+      "evidence_refs": [
+        "unresolved_tournament_placements",
+        "same_age_hosting_repairs"
+      ]
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "Restored rvv-0044 is 140 min (U11) and rvv-0173 is 100 min (U12), both at the governing minimum. rvv-0116 (U9) adopts the host calendar's 150 min (17:30-20:00), 5 min below the 155 min planned; it plays 20 of 28 games. This is a minor, visible shortfall from the booked reality, not a fabricated interval.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence_refs": [
+        "tournament_duration",
+        "underfilled_tournaments"
+      ]
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "The three restored tournaments coincide with TURNERING events in Jutul's Baerum ishall calendar (U11 2026-11-14 17:30-19:50, U9 2026-11-21 17:30-20:00, U12 2027-03-06 18:15-19:55); each is bound to its event through a confirmed calendar booking. A fresh dry-run scrape on 2026-11-01 matched the same intervals. 12 placements at Frisk Asker and Sandefjord remain unverifiable from calendars (unchanged).",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence_refs": [
+        "calendar_evidence"
+      ]
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "Jutul teams are in all three restored tournaments (Jutul Rod in U11 and U12; Jutul Rod and Jutul Gronn in U9).",
+      "severity": "info",
+      "confidence": "high",
+      "evidence_refs": []
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt én gang per dag?",
+      "finding": "Deterministic verification is ok with no violations. No team of the restored rosters plays another same-age tournament on 2026-11-14, 2026-11-21 or 2027-03-06.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence_refs": []
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "No club exceeds the hard maximum in the restored rosters; hard verification is ok.",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence_refs": []
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "Export consistency checks match the plan: 183 tournament rows in the overview CSV, 183 iCal events, 2331 game rows including pause rows. The public season plan HTML no longer carries the 'Endret etter publisering' tag. The iCal content is identical to the previous export except for the intended restores.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence_refs": [
+        "export_consistency"
+      ]
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?",
+      "finding": "The recorded active publication (2026-10-16) lags the live site: 42 of the 45 delta tournaments were already live from a later run (run-2026-10-31T09-20), so the baseline delta overstates what changes publicly. Publication scope is nevertheless ELIGIBLE (0 added, 0 removed, 0 held, 0 blocking; 40 interval changes all booked, 5 participant-only). One Frisk Asker JU12 Serierunde on 2027-01-24 15:30-16:50 has no matching published tournament; the cancelled rvv-0143 may have moved there and needs the club's confirmation.",
+      "severity": "minor",
+      "confidence": "medium",
+      "evidence_refs": [
+        "publication_scope"
+      ]
+    }
+  ],
+  "potential_missing_rule": [],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "c2813ddec9b7ffd942c553900d0705a9258ed716d4f127d363822ae8e9c35162",
+  "publication_gate_status": "operator_review_required"
+}
