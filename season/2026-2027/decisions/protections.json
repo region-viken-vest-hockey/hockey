@@ -6062,9 +6062,12 @@
       "id": "change:2060216767388a75",
       "kind": "placement_field",
       "note": "Restore three Jutul tournaments cancelled as lost ice; Jutul calendar now carries them",
+      "release_reason": "superseded by jutul:2026-11-01-hold-pending-confirmation",
+      "released_at": "2026-11-01T09:46:23.775375+00:00",
+      "released_by": "niclasl",
       "request_id": "jutul:2026-10-31-restore-calendar-tournaments",
       "source_event": "move",
-      "status": "active",
+      "status": "released",
       "team": {
         "age_group": "",
         "club": "",
