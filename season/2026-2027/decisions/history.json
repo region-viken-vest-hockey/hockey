@@ -62464,6 +62464,417 @@
       "schedule_fingerprint": "c2813ddec9b7ffd942c553900d0705a9258ed716d4f127d363822ae8e9c35162",
       "tournament_fingerprint": null,
       "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-11-01T09:46:21.514759+00:00",
+      "event": "unapprove",
+      "note": "Hold pending confirmation with Jutul (request jutul:2026-11-01-hold-pending-confirmation); lock came from the restore confirmation",
+      "previous_fingerprint": "290708b26bd896c095b66dd12f7ddc0b71baf29a82da02c7198fce0ad0aa1ce7",
+      "schedule_fingerprint": "c2813ddec9b7ffd942c553900d0705a9258ed716d4f127d363822ae8e9c35162",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0044"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-11-01T09:46:22.275744+00:00",
+      "event": "unapprove",
+      "note": "Hold pending confirmation with Jutul (request jutul:2026-11-01-hold-pending-confirmation); lock came from the restore confirmation",
+      "previous_fingerprint": "eece1e36ab4f28b4b70cfa87842a2d04ca2576018a101e9626b92feeec5c23f7",
+      "schedule_fingerprint": "c2813ddec9b7ffd942c553900d0705a9258ed716d4f127d363822ae8e9c35162",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0116"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-11-01T09:46:22.996017+00:00",
+      "event": "unapprove",
+      "note": "Hold pending confirmation with Jutul (request jutul:2026-11-01-hold-pending-confirmation); lock came from the restore confirmation",
+      "previous_fingerprint": "78fdec5048ae393719da07918702a9d7c5ee27a31aae1dd7a9f0b5afdfa1c5bd",
+      "schedule_fingerprint": "c2813ddec9b7ffd942c553900d0705a9258ed716d4f127d363822ae8e9c35162",
+      "tournament_fingerprint": null,
+      "tournament_id": "rvv-0173"
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-11-01T09:46:23.775375+00:00",
+      "details": {
+        "released_protection_ids": [
+          "change:2060216767388a75"
+        ],
+        "request_id": ""
+      },
+      "event": "release_change_protection",
+      "note": "superseded by jutul:2026-11-01-hold-pending-confirmation",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "c2813ddec9b7ffd942c553900d0705a9258ed716d4f127d363822ae8e9c35162",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-11-01T09:48:00.094428+00:00",
+      "details": {
+        "accepted_regressions": [
+          {
+            "age_group": "U9",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker 2|U9",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 6,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker 2"
+          },
+          {
+            "age_group": "U11",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker 4|U11",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 9,
+              "before": 10,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker 4"
+          },
+          {
+            "age_group": "U9",
+            "club": "Frisk Asker",
+            "code": "participation_count_changed",
+            "consequence": "Frisk Asker|Frisk Asker 4|U9",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Frisk Asker 4"
+          },
+          {
+            "age_group": "U12",
+            "club": "Holmen",
+            "code": "participation_count_changed",
+            "consequence": "Holmen|Holmen Hockey Hvit|U12",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 8,
+              "before": 9,
+              "code": "participation_count_changed"
+            },
+            "team": "Holmen Hockey Hvit"
+          },
+          {
+            "age_group": "U9",
+            "club": "Holmen",
+            "code": "participation_count_changed",
+            "consequence": "Holmen|Holmen Hockey Sort|U9",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 6,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Holmen Hockey Sort"
+          },
+          {
+            "age_group": "U11",
+            "club": "Jar",
+            "code": "participation_count_changed",
+            "consequence": "Jar|Jar Blå|U11",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 10,
+              "before": 11,
+              "code": "participation_count_changed"
+            },
+            "team": "Jar Blå"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jar",
+            "code": "participation_count_changed",
+            "consequence": "Jar|Jar Rød|U9",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 6,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Jar Rød"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jar",
+            "code": "temporal_coverage_materially_worse",
+            "consequence": "Jar|Jar Rød|U9",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 65,
+              "before": 43,
+              "code": "temporal_coverage_materially_worse",
+              "delta": 22,
+              "threshold_days": 60
+            },
+            "team": "Jar Rød"
+          },
+          {
+            "age_group": "U12",
+            "club": "Jar",
+            "code": "participation_count_changed",
+            "consequence": "Jar|Jar Svart|U12",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 9,
+              "before": 10,
+              "code": "participation_count_changed"
+            },
+            "team": "Jar Svart"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Grønn|U9",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 5,
+              "before": 6,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Grønn"
+          },
+          {
+            "age_group": "U11",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Rød|U11",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 8,
+              "before": 9,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Rød"
+          },
+          {
+            "age_group": "U12",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Rød|U12",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 11,
+              "before": 12,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Rød"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jutul",
+            "code": "participation_count_changed",
+            "consequence": "Jutul|Jutul Rød|U9",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Jutul Rød"
+          },
+          {
+            "age_group": "U9",
+            "club": "Jutul",
+            "code": "temporal_coverage_materially_worse",
+            "consequence": "Jutul|Jutul Rød|U9",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 76,
+              "before": 56,
+              "code": "temporal_coverage_materially_worse",
+              "delta": 20,
+              "threshold_days": 60
+            },
+            "team": "Jutul Rød"
+          },
+          {
+            "age_group": "U11",
+            "club": "Kongsberg",
+            "code": "participation_count_changed",
+            "consequence": "Kongsberg|Kongsberg|U11",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 9,
+              "before": 10,
+              "code": "participation_count_changed"
+            },
+            "team": "Kongsberg"
+          },
+          {
+            "age_group": "U9",
+            "club": "Kongsberg",
+            "code": "participation_count_changed",
+            "consequence": "Kongsberg|Kongsberg|U9",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 7,
+              "before": 8,
+              "code": "participation_count_changed"
+            },
+            "team": "Kongsberg"
+          },
+          {
+            "age_group": "U12",
+            "club": "Ringerike",
+            "code": "participation_count_changed",
+            "consequence": "Ringerike|Ringerike 1|U12",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 9,
+              "before": 10,
+              "code": "participation_count_changed"
+            },
+            "team": "Ringerike 1"
+          },
+          {
+            "age_group": "U11",
+            "club": "Sandefjord Penguins",
+            "code": "participation_count_changed",
+            "consequence": "Sandefjord Penguins|Sandefjord|U11",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 9,
+              "before": 10,
+              "code": "participation_count_changed"
+            },
+            "team": "Sandefjord"
+          },
+          {
+            "age_group": "U9",
+            "club": "Tønsberg",
+            "code": "participation_count_changed",
+            "consequence": "Tønsberg|Tønsberg|U9",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 6,
+              "before": 7,
+              "code": "participation_count_changed"
+            },
+            "team": "Tønsberg"
+          },
+          {
+            "age_group": "U11",
+            "club": "Tønsberg",
+            "code": "participation_count_changed",
+            "consequence": "Tønsberg|Tønsberg Rød|U11",
+            "reason": "Three Jutul tournaments are held back (AVLYST) until Jutul confirms them: their calendar and confirmation document disagree and participation is unconfirmed. This restores the previously published state; teams return to the earlier counts.",
+            "regression": {
+              "after": 9,
+              "before": 10,
+              "code": "participation_count_changed"
+            },
+            "team": "Tønsberg Rød"
+          }
+        ],
+        "after_schedule_revision": "9849089414a36ec41ff81bf525eac51ae4f99a995a1502a43fadaf53a3167238",
+        "before_canonical_revision": "fba0d3488fdb004b2ca60ac977831c91b6bd88b92f62c47d808b5823c135d7dd",
+        "before_schedule_revision": "278556d5427c2e6a91b738c7f31c241bd1cf640258b49cb27bd81ce0fa3990b7",
+        "cancellations": [
+          {
+            "age_group": "U11",
+            "notifications_required": [
+              "Inform host club 'Jutul' (arena 'Baerum ishall') that the 2026-11-14 U11 tournament rvv-0044 is cancelled and the booked ice is no longer needed."
+            ],
+            "original_date": "2026-11-14",
+            "reason": "Held back pending confirmation with Jutul: calendar events exist but differ from Jutul's confirmation document (rvv-0173 14:20 vs 18:15) and participation is unconfirmed; to be reinstated or finally cancelled once decided",
+            "released_guest_reservations": [],
+            "tournament_id": "rvv-0044"
+          },
+          {
+            "age_group": "U9",
+            "notifications_required": [
+              "Inform host club 'Jutul' (arena 'Baerum ishall') that the 2026-11-21 U9 tournament rvv-0116 is cancelled and the booked ice is no longer needed."
+            ],
+            "original_date": "2026-11-21",
+            "reason": "Held back pending confirmation with Jutul: calendar events exist but differ from Jutul's confirmation document (rvv-0173 14:20 vs 18:15) and participation is unconfirmed; to be reinstated or finally cancelled once decided",
+            "released_guest_reservations": [],
+            "tournament_id": "rvv-0116"
+          },
+          {
+            "age_group": "U12",
+            "notifications_required": [
+              "Inform host club 'Jutul' (arena 'Baerum ishall') that the 2027-03-06 U12 tournament rvv-0173 is cancelled and the booked ice is no longer needed."
+            ],
+            "original_date": "2027-03-06",
+            "reason": "Held back pending confirmation with Jutul: calendar events exist but differ from Jutul's confirmation document (rvv-0173 14:20 vs 18:15) and participation is unconfirmed; to be reinstated or finally cancelled once decided",
+            "released_guest_reservations": [],
+            "tournament_id": "rvv-0173"
+          }
+        ],
+        "changed_tournament_ids": [
+          "rvv-0044",
+          "rvv-0116",
+          "rvv-0173"
+        ],
+        "declared_scope": [
+          "rvv-0044",
+          "rvv-0116",
+          "rvv-0173"
+        ],
+        "moves": [],
+        "operational_acceptable": true,
+        "operations": [
+          {
+            "op": "cancel",
+            "reason": "Held back pending confirmation with Jutul: calendar events exist but differ from Jutul's confirmation document (rvv-0173 14:20 vs 18:15) and participation is unconfirmed; to be reinstated or finally cancelled once decided",
+            "tournament_id": "rvv-0044"
+          },
+          {
+            "op": "cancel",
+            "reason": "Held back pending confirmation with Jutul: calendar events exist but differ from Jutul's confirmation document (rvv-0173 14:20 vs 18:15) and participation is unconfirmed; to be reinstated or finally cancelled once decided",
+            "tournament_id": "rvv-0116"
+          },
+          {
+            "op": "cancel",
+            "reason": "Held back pending confirmation with Jutul: calendar events exist but differ from Jutul's confirmation document (rvv-0173 14:20 vs 18:15) and participation is unconfirmed; to be reinstated or finally cancelled once decided",
+            "tournament_id": "rvv-0173"
+          }
+        ],
+        "protections_added": [],
+        "removals": [],
+        "request_id": "jutul:2026-11-01-hold-pending-confirmation",
+        "restorations": [],
+        "reviewed_token": "rs-faf0dbaa7ad4b92adf029bc6d217d0bb539708f8b9ae7998f909e63ff4f0f62b",
+        "swaps": [],
+        "verification_ok": true
+      },
+      "event": "batch_maintenance",
+      "note": "Hold the three restored Jutul tournaments back (cancelled, AVLYST) until confirmed with Jutul",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "9849089414a36ec41ff81bf525eac51ae4f99a995a1502a43fadaf53a3167238",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
+    },
+    {
+      "actor": "niclasl",
+      "at": "2026-11-01T09:49:37.894839+00:00",
+      "details": {
+        "canonical_state_revision": "ca86a104b8677d3e880f292d2fda7c97e5c33e55c3b1e004bf1d69ae498485d9",
+        "export_dir": "export/2026-11-01T0949",
+        "previous_export_status": "fresh",
+        "previous_requires_fresh_export": false
+      },
+      "event": "mark_export_fresh",
+      "note": "canonical export",
+      "previous_fingerprint": null,
+      "schedule_fingerprint": "9849089414a36ec41ff81bf525eac51ae4f99a995a1502a43fadaf53a3167238",
+      "tournament_fingerprint": null,
+      "tournament_id": ""
     }
   ]
 }

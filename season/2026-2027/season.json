@@ -1,33 +1,33 @@
 {
-  "canonical_state_revision": "41c14bad5807cfa73b58e689e142deed87dbea54a7433941d13fde751fe90161",
+  "canonical_state_revision": "ca86a104b8677d3e880f292d2fda7c97e5c33e55c3b1e004bf1d69ae498485d9",
   "layout_version": 2,
   "partitions": [
     {
       "name": "schedule",
       "path": "schedule.json",
-      "sha256": "5cf02bb6469c34ea27146ec1b2f5b1af2e900c37d58ac610bc3b560dada87bc7"
+      "sha256": "125b543c6dcbf85a85a5d97cb9abeed843376f88240068ae3e8c72a51384ee62"
     },
     {
       "name": "operations",
       "path": "decisions/operations.json",
-      "sha256": "4e9709357028ff42fa575e1b8e8a911d4bd0cd929dac0af5bd8de528193f4c94"
+      "sha256": "b5b9b33248d6190d4b9674e9e68cbf6b6dd5b311e233e16356bb505d92efcf3f"
     },
     {
       "name": "history",
       "path": "decisions/history.json",
-      "sha256": "09d0a28a080f317e1088d634462d528cd93c1b75a6371671e5988b0a1e6053d9"
+      "sha256": "38a0227d67259e2062eb40fafadcf7aa4130c2c4a6fbbcd6cae0ed1ab4687988"
     },
     {
       "name": "booking_evidence",
       "path": "decisions/booking_evidence.json",
-      "sha256": "507f32ab882dfea24ed94264532d7ad8cb7ce545ea52bd8bdc90e7b29119e4fc"
+      "sha256": "79218b75da841fbbd01fdbd946b3f63cc784984826051361139c32327b4f0a12"
     },
     {
       "name": "protections",
       "path": "decisions/protections.json",
-      "sha256": "b1cb58cb807f5fbc9679183cc101033e6ff8d7e983e8a0fc779dc4278762b31b"
+      "sha256": "dd4f5ebb09abf1eaf40d81aac425d2688a4a2062a84f4fd98f60ae8138735212"
     }
   ],
-  "schedule_fingerprint": "278556d5427c2e6a91b738c7f31c241bd1cf640258b49cb27bd81ce0fa3990b7",
+  "schedule_fingerprint": "9849089414a36ec41ff81bf525eac51ae4f99a995a1502a43fadaf53a3167238",
   "season": "2026-2027"
 }

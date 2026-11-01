@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "audit_id": "d20f86f15ba5a5c6",
+  "generated_at": "2026-11-01T09:50:18Z",
+  "run_id": "legacy",
+  "export_fingerprint": "9849089414a36ec41ff81bf525eac51ae4f99a995a1502a43fadaf53a3167238",
+  "audit_context_fingerprint": "643543270ce64dc66c7940ceb645d53d58b5fcb906d4fcf297ec4aa35abe6525",
+  "status": "REVIEW_REQUIRED",
+  "operator_assessment": {
+    "operator_summary": "Publication scope is ELIGIBLE: exactly three changed tournaments, all Jutul hosted and cancelled again (held back pending confirmation with Jutul); nothing added, removed, held or blocking. Season-wide planning debt is unchanged.",
+    "key_tradeoffs": [
+      {
+        "title": "Jutul tournaments held back",
+        "summary": "rvv-0044, rvv-0116 and rvv-0173 are shown as AVLYST again until Jutul confirms them. Teams return to their previously published appearance counts. Reinstating them later needs the restore operation and a republish.",
+        "severity": "minor"
+      }
+    ],
+    "remaining_actions": [
+      {
+        "title": "Decide the Jutul tournaments",
+        "summary": "Confirm with Jutul whether 14 Nov (U11), 21 Nov (U9) and 6 Mar (U12) take place, and at which times, then reinstate or finally cancel.",
+        "category": "follow_up"
+      },
+      {
+        "title": "Season-wide planning debt",
+        "summary": "Participation shortfalls, 9 unplaced Jar placements, hosting imbalances and manual calendar placements remain canonical maintenance work.",
+        "category": "planning_debt"
+      }
+    ],
+    "limitations": [
+      "Semantic review used the bounded audit overview, the publication scope and the exact three-tournament delta, not every individual record."
+    ]
+  },
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "Season-wide participation shortfalls and club-pool shortfalls remain as pre-existing planning debt. Against the active publication (2026-11-01T0856) no tournament is added or removed (183 = 183); the only change is that three Jutul tournaments are cancelled again, which returns their teams to the counts published before today.",
+      "severity": "major",
+      "confidence": "high",
+      "evidence_refs": [
+        "participation_shortfalls",
+        "participation_club_pools"
+      ]
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "Hosting-balance imbalances and 9 unplaced Jar placements remain, unchanged. Hosting responsibility did not move; the three held-back tournaments keep Jutul as host (the batch hosting-responsibility gate passed).",
+      "severity": "major",
+      "confidence": "high",
+      "evidence_refs": [
+        "unresolved_tournament_placements",
+        "same_age_hosting_repairs"
+      ]
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "No active tournament changed duration or interval against the active publication; the three changed entries are cancelled and render as AVLYST.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence_refs": [
+        "tournament_duration",
+        "underfilled_tournaments"
+      ]
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "Hard verification is ok. The three cancelled tournaments no longer claim ice. Jutul calendar events still exist for them (14 Nov 17:30-19:50, 21 Nov 17:30-20:00, 6 Mar 18:15-19:55), so Jutul may have the ice held until the club decides.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence_refs": [
+        "calendar_evidence"
+      ]
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "Jutul teams are in all three restored tournaments (Jutul Rod in U11 and U12; Jutul Rod and Jutul Gronn in U9).",
+      "severity": "info",
+      "confidence": "high",
+      "evidence_refs": []
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt én gang per dag?",
+      "finding": "Deterministic verification is ok with no violations. No team of the restored rosters plays another same-age tournament on 2026-11-14, 2026-11-21 or 2027-03-06.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence_refs": []
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "No club exceeds the hard maximum in the restored rosters; hard verification is ok.",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence_refs": []
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "Export consistency checks match the plan: 183 tournament rows in the overview CSV, 183 iCal events, 2331 game rows including pause rows. The public season plan HTML no longer carries the 'Endret etter publisering' tag. The iCal content is identical to the previous export except for the intended restores.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence_refs": [
+        "export_consistency"
+      ]
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?",
+      "finding": "Publication scope is ELIGIBLE with exactly three changed tournaments (rvv-0044, rvv-0116, rvv-0173), 0 added, 0 removed, 0 held, 0 blocking. They are held back pending confirmation with Jutul: the calendar and Jutul confirmation document disagree for rvv-0173 (14:20 vs 18:15) and participation is unconfirmed. They had been public as active 28 Sep to 30 Sep and as AVLYST from 1 Oct to 1 Nov. A Frisk Asker JU12 Serierunde on 2027-01-24 15:30-16:50 still matches no published tournament.",
+      "severity": "minor",
+      "confidence": "medium",
+      "evidence_refs": [
+        "publication_scope"
+      ]
+    }
+  ],
+  "potential_missing_rule": [],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "9849089414a36ec41ff81bf525eac51ae4f99a995a1502a43fadaf53a3167238",
+  "publication_gate_status": "operator_review_required"
+}
