@@ -40,6 +40,14 @@ On success, report:
 - the published URL/result returned by the repository;
 - relevant warnings that remain non-blocking.
 
+## Record the publication on `main`
+
+A successful publish only changes the public site. The checkpoint that records it (publication evidence, operations history, `season.json` hashes, regenerated change-log) lands on `main` through a bookkeeping PR. Until that PR merges, `main` still treats the previous publication as the last recorded one.
+
+- Open the checkpoint PR immediately after publishing and merge it **before** the next publish or any other season change. Do not leave it open.
+- Before publishing, confirm there is no open or unmerged checkpoint PR for an earlier publication (`gh pr list --search "checkpoint publication" --state open`, and compare the live `latest/_meta.json` run id with the newest `season/*/evidence/publications/` entry). If one exists, merge it first.
+- A skipped checkpoint cannot be repaired cleanly later: the generated, hash-chained files (`operations.json`, `season.json`, `change-log.md`) conflict with every later publication's bookkeeping. This happened with run-2026-10-31T09-20 (PR #896 left open; only its evidence could be retained, in #902).
+
 ## Rollback
 
 Use the repository rollback/history commands documented in the shared RVV skill. Confirm the target published run with the user before performing a rollback because it is another public-facing change.
