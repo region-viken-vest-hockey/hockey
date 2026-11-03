@@ -295,6 +295,87 @@ def test_acceptance_commit_is_compare_and_swap_against_concurrent_writes(tmp_pat
     assert "competing-write" in json.dumps(decisions)
 
 
+def _edit_state(root, *, schedule=None, decisions=None):
+    """Write canonical files directly, as the existing fixtures do, to stage owner-shaped state."""
+
+    base = root / "2026-2027"
+    for name, edit in (("schedule.json", schedule), ("decisions.json", decisions)):
+        if edit is not None:
+            path = base / name
+            data = json.loads(path.read_text(encoding="utf-8"))
+            edit(data)
+            path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def _two_linked_interpretations(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12"), _tournament("t2", date_str="2026-09-19")])
+    problem = _host_a_problem([])
+    source = _source_set(root)["source"]
+    _interpretation(root, tournament_id="t1", source_id=source["id"], problem=problem)
+    _interpretation(root, tournament_id="t2", source_id=source["id"], problem=problem)
+    return root, source
+
+
+def test_acceptance_blocks_on_overlapping_club_stated_windows(tmp_path):
+    root, source = _two_linked_interpretations(tmp_path)
+
+    # Canonical placements are on different days, but the club's own list states
+    # overlapping windows for both IDs on the same day.
+    def stated(data):
+        windows = {"t1": ("10:00", "12:00"), "t2": ("11:00", "13:00")}
+        for record in data[MANUAL_BOOKING_ASSERTIONS_KEY]:
+            start, end = windows[record["tournament_id"]]
+            record["stated_interval"] = {"date": "2026-10-03", "start": start, "end": end}
+
+    _edit_state(root, decisions=stated)
+
+    preview = club_booking_acceptance_preview(season="2026-2027", root=root, source_id=source["id"])
+
+    assert [c["kind"] for c in preview["conflicts"]] == ["overlapping_source_intervals"]
+    assert preview["conflicts"][0]["tournament_pairs"] == [["t1", "t2"]]
+    with pytest.raises(SeasonStateError, match="overlapping_source_intervals"):
+        club_booking_acceptance_apply(
+            season="2026-2027", root=root, source_id=source["id"], reviewed_token=preview["reviewed_token"]
+        )
+
+
+def test_acceptance_blocks_when_a_linked_tournament_was_cancelled(tmp_path):
+    from tournament_scheduler.booking.calendar_bookings import release_booking_authority_for_new_cancellations
+
+    root, source = _two_linked_interpretations(tmp_path)
+    before_plan = load_schedule("2026-2027", root=root)["plan"]
+
+    def cancel(data):
+        for tournament in data["plan"]["tournaments"]:
+            if tournament["id"] == "t2":
+                tournament["cancelled"] = True
+
+    _edit_state(root, schedule=cancel)
+    after_plan = load_schedule("2026-2027", root=root)["plan"]
+
+    def release(data):
+        # The cancellation owner supersedes the linked interpretation, so it
+        # leaves the active rows -- the very case the preview must still see.
+        data.update(
+            release_booking_authority_for_new_cancellations(
+                data, before_plan=before_plan, after_plan=after_plan, now="2026-10-01T00:00:00+00:00", operation="cancel"
+            )
+        )
+
+    _edit_state(root, decisions=release)
+
+    preview = club_booking_acceptance_preview(season="2026-2027", root=root, source_id=source["id"])
+
+    assert preview["count"] == 1
+    assert [(c["kind"], c.get("tournament_id")) for c in preview["conflicts"]] == [
+        ("interpretation_tournament_cancelled", "t2")
+    ]
+    with pytest.raises(SeasonStateError, match="interpretation_tournament_cancelled"):
+        club_booking_acceptance_apply(
+            season="2026-2027", root=root, source_id=source["id"], reviewed_token=preview["reviewed_token"]
+        )
+
+
 def test_club_booking_source_report_groups_per_id_disposition(tmp_path):
     root = _promote(tmp_path, [_tournament("t1"), _tournament("t2", date_str="2026-09-13")])
     problem = _host_a_problem([])

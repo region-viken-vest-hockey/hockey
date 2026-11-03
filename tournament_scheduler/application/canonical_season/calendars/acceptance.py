@@ -7,8 +7,12 @@ import json
 from typing import Any, Mapping
 
 from tournament_scheduler.booking.calendar_bookings import (
+    MANUAL_ASSERTION_SUPERSEDED,
+    TOURNAMENT_CANCELLED_RELEASE_REASON,
     active_manual_assertions,
+    booking_status_report,
     club_booking_source_by_id,
+    manual_assertion_records,
     manual_assertion_stale_reasons,
 )
 from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
@@ -129,6 +133,43 @@ def _preview_from_snapshot(
                 "stated_interval": assertion.get("stated_interval"),
                 "source_revision": str(assertion.get("source_revision") or ""),
                 "conflicts": item_conflicts,
+            }
+        )
+
+    # A tournament cancelled after it was linked has its interpretation released
+    # (superseded) by the cancellation owner, so it no longer appears among the
+    # active rows; it must still block acceptance of the source as a whole.
+    active_ids = {str(a.get("tournament_id") or "") for a in linked}
+    for record in sorted(manual_assertion_records(decisions), key=lambda r: str(r.get("tournament_id") or "")):
+        tournament_id = str(record.get("tournament_id") or "")
+        if (
+            str(record.get("source_assertion_id") or "") == source_id
+            and str(record.get("status") or "") == MANUAL_ASSERTION_SUPERSEDED
+            and str(record.get("supersede_reason") or "") == TOURNAMENT_CANCELLED_RELEASE_REASON
+            and tournament_id not in active_ids
+            and (tournaments.get(tournament_id) or {}).get("cancelled")
+            and not any(c.get("tournament_id") == tournament_id for c in conflicts)
+        ):
+            conflicts.append(
+                {
+                    "kind": "interpretation_tournament_cancelled",
+                    "tournament_id": tournament_id,
+                    "message": (
+                        f"Tournament {tournament_id} was cancelled after being linked to this source; "
+                        "record the current reviewed source version before acceptance."
+                    ),
+                }
+            )
+
+    # The booking-source report is the owner of overlap review for one club list.
+    report = booking_status_report(problem=problem, plan=plan, decisions=decisions)
+    source_report = next((r for r in report.get("club_booking_sources") or [] if r.get("id") == source_id), {})
+    if source_report.get("overlapping_source_intervals"):
+        conflicts.append(
+            {
+                "kind": "overlapping_source_intervals",
+                "tournament_pairs": source_report["overlapping_source_intervals"],
+                "message": "The club-stated windows of linked interpretations overlap; the club must map them first.",
             }
         )
 
