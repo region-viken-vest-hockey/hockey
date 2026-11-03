@@ -45,7 +45,10 @@ On success, report:
 A successful publish only changes the public site. The checkpoint that records it (publication evidence, operations history, `season.json` hashes, regenerated change-log) lands on `main` through a bookkeeping PR. Until that PR merges, `main` still treats the previous publication as the last recorded one.
 
 - Open the checkpoint PR immediately after publishing and merge it **before** the next publish or any other season change. Do not leave it open.
-- Before publishing, confirm there is no open or unmerged checkpoint PR for an earlier publication (`gh pr list --search "checkpoint publication" --state open`, and compare the live `latest/_meta.json` run id with the newest `season/*/evidence/publications/` entry). If one exists, merge it first.
+- Before publishing, check the whole checkpoint history, not only the latest publication:
+  - list checkpoint PRs in **every** state (`gh pr list --search "checkpoint publication" --state all --json number,state,mergedAt`). An open PR must be merged first. A PR that is **closed and not merged** is a skipped checkpoint, so treat it as a gap;
+  - take `pages_commit` from the newest `season/*/evidence/publications/*/publication_evidence.json` on `main` and confirm `git log <pages_commit>..gh-pages --grep "Publish season run"` is empty. Any commit listed is a publication `main` never recorded. Comparing only the live run id with the newest evidence entry is not enough: it passes when an earlier checkpoint was skipped;
+  A gap means stop and report it. Do not publish on top of it.
 - A skipped checkpoint cannot be repaired cleanly later: the generated, hash-chained files (`operations.json`, `season.json`, `change-log.md`) conflict with every later publication's bookkeeping. This happened with run-2026-10-31T09-20 (PR #896 left open; only its evidence could be retained, in #902).
 
 ## Rollback
