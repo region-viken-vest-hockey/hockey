@@ -62,9 +62,7 @@ def _cmd_season_move(args: argparse.Namespace) -> int:
     if args.json:
         _emit_json(result)
     else:
-        _console.print(
-            f"[green]✓[/green] {_dry_run_label(args)} move of {args.tournament_id} for {args.season}"
-        )
+        _console.print(f"[green]✓[/green] {_dry_run_label(args)} move of {args.tournament_id} for {args.season}")
     return 0
 
 
@@ -118,9 +116,7 @@ def _cmd_season_remove_participant(args: argparse.Namespace) -> int:
     if args.json:
         _emit_json(result)
     else:
-        _console.print(
-            f"[green]✓[/green] {_dry_run_label(args)} removal of {args.remove_team} for {args.season}"
-        )
+        _console.print(f"[green]✓[/green] {_dry_run_label(args)} removal of {args.remove_team} for {args.season}")
     return 0
 
 
@@ -161,9 +157,7 @@ def _cmd_season_rename_teams(args: argparse.Namespace) -> int:
     for raw in args.mapping or []:
         parts = [part.strip() for part in raw.split(",")]
         if len(parts) != 4:
-            _console.print(
-                f"[red]✗[/red] Invalid --mapping {raw!r}: expected club,age_group,from_label,to_label"
-            )
+            _console.print(f"[red]✗[/red] Invalid --mapping {raw!r}: expected club,age_group,from_label,to_label")
             return 1
         club, age_group, from_label, to_label = parts
         mappings.append({"club": club, "age_group": age_group, "from_label": from_label, "to_label": to_label})
@@ -302,14 +296,14 @@ def _cmd_season_booking_set(args: argparse.Namespace) -> int:
         stated_end=args.stated_end,
         expected_revision=args.expected_revision,
         supersede=args.supersede,
-        dry_run=args.dry_run, pin=args.pin, pin_reason=args.pin_reason,
+        dry_run=args.dry_run,
+        pin=args.pin,
+        pin_reason=args.pin_reason,
     )
     if args.json:
         _emit_json(result)
     else:
-        _console.print(
-            f"[green]✓[/green] {_dry_run_label(args)} booking status {args.status} for {args.tournament_id}"
-        )
+        _console.print(f"[green]✓[/green] {_dry_run_label(args)} booking status {args.status} for {args.tournament_id}")
     return 0
 
 
@@ -381,7 +375,9 @@ def _cmd_season_confirm_calendar_booking(args: argparse.Namespace) -> int:
     if args.json:
         _emit_json(result)
     else:
-        _console.print(f"[green]✓[/green] {_dry_run_label(args)} calendar booking confirmation for {args.tournament_id}")
+        _console.print(
+            f"[green]✓[/green] {_dry_run_label(args)} calendar booking confirmation for {args.tournament_id}"
+        )
     return 0
 
 
@@ -460,4 +456,46 @@ def _cmd_season_reconcile_calendars(args: argparse.Namespace) -> int:
         _emit_json(result)
     else:
         _console.print(f"[green]✓[/green] {_dry_run_label(args)} calendar reconciliation for {args.club}")
+    return 0
+
+
+def _cmd_season_club_booking_acceptance_preview(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season club-booking-acceptance-preview`` — read-only preview."""
+    from ..application.canonical_season.store_facade import club_booking_acceptance_preview
+
+    result = club_booking_acceptance_preview(
+        season=args.season,
+        source_id=args.source_id,
+        root=args.root,
+        actor=args.actor,
+        note=args.note,
+        reference=args.reference or "",
+        expected_revision=args.expected_revision,
+    )
+    if args.json:
+        _emit_json(result)
+    else:
+        _console.print(f"[green]✓[/green] Club booking acceptance preview for source {args.source_id}")
+    return 0
+
+
+def _cmd_season_club_booking_acceptance_apply(args: argparse.Namespace) -> int:
+    """Handle ``rvv-miniputt season club-booking-acceptance-apply`` — atomic apply."""
+    from ..application.canonical_season.store_facade import club_booking_acceptance_apply
+
+    result = club_booking_acceptance_apply(
+        season=args.season,
+        source_id=args.source_id,
+        root=args.root,
+        actor=args.actor,
+        note=args.note,
+        reference=args.reference or "",
+        expected_revision=args.expected_revision,
+        reviewed_token=args.reviewed_token,
+        dry_run=args.dry_run,
+    )
+    if args.json:
+        _emit_json(result)
+    else:
+        _console.print(f"[green]✓[/green] {_dry_run_label(args)} club booking acceptance for source {args.source_id}")
     return 0

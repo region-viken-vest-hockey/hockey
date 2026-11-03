@@ -34,7 +34,6 @@ method here delegates to exactly one implementation; callers never need to
 know which internal module implements a command.
 """
 
-
 from __future__ import annotations
 
 import os
@@ -174,11 +173,23 @@ class CanonicalSeasonService:
         work_dir: str | os.PathLike[str] | None = None,
         actor: str | None = None,
         note: str = "",
-        dry_run: bool = False, club: str | None = None,
+        dry_run: bool = False,
+        club: str | None = None,
         allow_missing_sources: bool = False,
         allow_source_policy_change: bool = False,
     ) -> dict[str, Any]:
-        return _calendars.refresh_calendars(self, season=season, input_path=input_path, work_dir=work_dir, actor=actor, note=note, dry_run=dry_run, club=club, allow_missing_sources=allow_missing_sources, allow_source_policy_change=allow_source_policy_change)
+        return _calendars.refresh_calendars(
+            self,
+            season=season,
+            input_path=input_path,
+            work_dir=work_dir,
+            actor=actor,
+            note=note,
+            dry_run=dry_run,
+            club=club,
+            allow_missing_sources=allow_missing_sources,
+            allow_source_policy_change=allow_source_policy_change,
+        )
 
     def reconcile_config(
         self,
@@ -189,7 +200,9 @@ class CanonicalSeasonService:
         note: str = "",
         dry_run: bool = False,
     ) -> dict[str, Any]:
-        return _config_reconciliation.reconcile_config(self, season=season, input_path=input_path, actor=actor, note=note, dry_run=dry_run)
+        return _config_reconciliation.reconcile_config(
+            self, season=season, input_path=input_path, actor=actor, note=note, dry_run=dry_run
+        )
 
     def mark_export_fresh(
         self,
@@ -288,9 +301,14 @@ class CanonicalSeasonService:
         limit: int | None = None,
     ) -> dict[str, Any]:
         return _replacement_search.search_participant_replacements(
-            self, season=season, tournament_id=tournament_id,
-            replace_team_label=replace_team_label, eligible_clubs=eligible_clubs,
-            eligible_team_labels=eligible_team_labels, legal_only=legal_only, limit=limit,
+            self,
+            season=season,
+            tournament_id=tournament_id,
+            replace_team_label=replace_team_label,
+            eligible_clubs=eligible_clubs,
+            eligible_team_labels=eligible_team_labels,
+            legal_only=legal_only,
+            limit=limit,
         )
 
     def add_request_constraint(
@@ -306,7 +324,18 @@ class CanonicalSeasonService:
         actor: str | None = None,
         note: str = "",
     ) -> dict[str, Any]:
-        return _constraints.add_request_constraint(self, season=season, type=type, request_id=request_id, teams=teams, date_from=date_from, date_to=date_to, min_days=min_days, actor=actor, note=note)
+        return _constraints.add_request_constraint(
+            self,
+            season=season,
+            type=type,
+            request_id=request_id,
+            teams=teams,
+            date_from=date_from,
+            date_to=date_to,
+            min_days=min_days,
+            actor=actor,
+            note=note,
+        )
 
     def release_request_constraints(
         self,
@@ -317,7 +346,9 @@ class CanonicalSeasonService:
         actor: str | None = None,
         note: str = "",
     ) -> dict[str, Any]:
-        return _constraints.release_request_constraints(self, season=season, constraint_ids=constraint_ids, request_id=request_id, actor=actor, note=note)
+        return _constraints.release_request_constraints(
+            self, season=season, constraint_ids=constraint_ids, request_id=request_id, actor=actor, note=note
+        )
 
     def holiday_date_exception_report(
         self,
@@ -346,7 +377,9 @@ class CanonicalSeasonService:
         actor: str | None = None,
         note: str = "",
     ) -> dict[str, Any]:
-        return _constraints.disallow_holiday_dates(self, season=season, dates=dates, exception_ids=exception_ids, actor=actor, note=note)
+        return _constraints.disallow_holiday_dates(
+            self, season=season, dates=dates, exception_ids=exception_ids, actor=actor, note=note
+        )
 
     def banned_date_report(
         self,
@@ -365,7 +398,9 @@ class CanonicalSeasonService:
         actor: str | None = None,
         note: str = "",
     ) -> dict[str, Any]:
-        return _constraints.add_banned_date(self, season=season, date=date, request_id=request_id, actor=actor, note=note)
+        return _constraints.add_banned_date(
+            self, season=season, date=date, request_id=request_id, actor=actor, note=note
+        )
 
     def release_banned_dates(
         self,
@@ -377,7 +412,9 @@ class CanonicalSeasonService:
         actor: str | None = None,
         note: str = "",
     ) -> dict[str, Any]:
-        return _constraints.release_banned_dates(self, season=season, date_ids=date_ids, dates=dates, request_id=request_id, actor=actor, note=note)
+        return _constraints.release_banned_dates(
+            self, season=season, date_ids=date_ids, dates=dates, request_id=request_id, actor=actor, note=note
+        )
 
     def promote(
         self,
@@ -390,7 +427,8 @@ class CanonicalSeasonService:
         return _candidates.promote(self, work_dir=work_dir, season=season, actor=actor, force=force)
 
     def move_tournament(
-        self, *,
+        self,
+        *,
         season: str,
         tournament_id: str,
         date: str | None = None,
@@ -408,7 +446,25 @@ class CanonicalSeasonService:
         allow_host_confirmation: bool = False,
         expected_revision: str | None = None,
     ) -> dict[str, Any]:
-        return _placements.move_tournament(self, season=season, tournament_id=tournament_id, date=date, arena=arena, host_club=host_club, start_time=start_time, problem=problem, actor=actor, note=note, dry_run=dry_run, allow_cross_half=allow_cross_half, run_id=run_id, request_id=request_id, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, expected_revision=expected_revision)
+        return _placements.move_tournament(
+            self,
+            season=season,
+            tournament_id=tournament_id,
+            date=date,
+            arena=arena,
+            host_club=host_club,
+            start_time=start_time,
+            problem=problem,
+            actor=actor,
+            note=note,
+            dry_run=dry_run,
+            allow_cross_half=allow_cross_half,
+            run_id=run_id,
+            request_id=request_id,
+            allow_manual_placement=allow_manual_placement,
+            allow_host_confirmation=allow_host_confirmation,
+            expected_revision=expected_revision,
+        )
 
     def swap_participants(
         self,
@@ -426,7 +482,21 @@ class CanonicalSeasonService:
         accept_regressions: list[Any] | None = None,
         accept_regression_reason: str | None = None,
     ) -> dict[str, Any]:
-        return _roster.swap_participants(self, season=season, tournament_a_id=tournament_a_id, team_a_label=team_a_label, tournament_b_id=tournament_b_id, team_b_label=team_b_label, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id, accept_regressions=accept_regressions, accept_regression_reason=accept_regression_reason)
+        return _roster.swap_participants(
+            self,
+            season=season,
+            tournament_a_id=tournament_a_id,
+            team_a_label=team_a_label,
+            tournament_b_id=tournament_b_id,
+            team_b_label=team_b_label,
+            problem=problem,
+            actor=actor,
+            note=note,
+            dry_run=dry_run,
+            request_id=request_id,
+            accept_regressions=accept_regressions,
+            accept_regression_reason=accept_regression_reason,
+        )
 
     def replace_participant(
         self,
@@ -441,7 +511,18 @@ class CanonicalSeasonService:
         dry_run: bool = False,
         request_id: str | None = None,
     ) -> dict[str, Any]:
-        return _replacement.replace_participant(self, season=season, tournament_id=tournament_id, remove_team_label=remove_team_label, add_team_label=add_team_label, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id)
+        return _replacement.replace_participant(
+            self,
+            season=season,
+            tournament_id=tournament_id,
+            remove_team_label=remove_team_label,
+            add_team_label=add_team_label,
+            problem=problem,
+            actor=actor,
+            note=note,
+            dry_run=dry_run,
+            request_id=request_id,
+        )
 
     def remove_participant(
         self,
@@ -458,7 +539,20 @@ class CanonicalSeasonService:
         accept_regressions: list[Any] | None = None,
         accept_regression_reason: str | None = None,
     ) -> dict[str, Any]:
-        return _withdrawal.remove_participant(self, season=season, tournament_ids=tournament_ids, remove_team_label=remove_team_label, reconcile_withdrawal=reconcile_withdrawal, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id, accept_regressions=accept_regressions, accept_regression_reason=accept_regression_reason)
+        return _withdrawal.remove_participant(
+            self,
+            season=season,
+            tournament_ids=tournament_ids,
+            remove_team_label=remove_team_label,
+            reconcile_withdrawal=reconcile_withdrawal,
+            problem=problem,
+            actor=actor,
+            note=note,
+            dry_run=dry_run,
+            request_id=request_id,
+            accept_regressions=accept_regressions,
+            accept_regression_reason=accept_regression_reason,
+        )
 
     def withdrawal_report(
         self,
@@ -478,8 +572,15 @@ class CanonicalSeasonService:
         note: str = "",
         restore_participants: bool = False,
     ) -> dict[str, Any]:
-        return _withdrawal.release_participation_withdrawals(self, season=season, withdrawal_ids=withdrawal_ids, request_id=request_id, actor=actor, note=note, restore_participants=restore_participants)
-
+        return _withdrawal.release_participation_withdrawals(
+            self,
+            season=season,
+            withdrawal_ids=withdrawal_ids,
+            request_id=request_id,
+            actor=actor,
+            note=note,
+            restore_participants=restore_participants,
+        )
 
     def preview_retire_team(
         self,
@@ -545,6 +646,7 @@ class CanonicalSeasonService:
             rebalance_proposals=rebalance_proposals,
             host_club=host_club,
         )
+
     def batch_maintenance(
         self,
         *,
@@ -562,7 +664,22 @@ class CanonicalSeasonService:
         accept_regression_reason: str | None = None,
         accept_reviewed_consequences: str | None = None,
     ) -> dict[str, Any]:
-        return _batch.batch_maintenance(self, season=season, operations=operations, scope=scope, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, accept_regressions=accept_regressions, accept_regression_reason=accept_regression_reason, accept_reviewed_consequences=accept_reviewed_consequences)
+        return _batch.batch_maintenance(
+            self,
+            season=season,
+            operations=operations,
+            scope=scope,
+            problem=problem,
+            actor=actor,
+            note=note,
+            dry_run=dry_run,
+            request_id=request_id,
+            allow_manual_placement=allow_manual_placement,
+            allow_host_confirmation=allow_host_confirmation,
+            accept_regressions=accept_regressions,
+            accept_regression_reason=accept_regression_reason,
+            accept_reviewed_consequences=accept_reviewed_consequences,
+        )
 
     def rename_teams(
         self,
@@ -576,7 +693,17 @@ class CanonicalSeasonService:
         request_id: str | None = None,
         input_path: str | None = None,
     ) -> dict[str, Any]:
-        return _team_rename.rename_teams(self, season=season, mappings=mappings, problem=problem, actor=actor, note=note, dry_run=dry_run, request_id=request_id, input_path=input_path)
+        return _team_rename.rename_teams(
+            self,
+            season=season,
+            mappings=mappings,
+            problem=problem,
+            actor=actor,
+            note=note,
+            dry_run=dry_run,
+            request_id=request_id,
+            input_path=input_path,
+        )
 
     def apply_candidate(
         self,
@@ -597,7 +724,24 @@ class CanonicalSeasonService:
         operation: str = "global_regeneration",
         _scoped_authorization: Any | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-        return _candidates.apply_candidate(self, season=season, candidate=candidate, problem=problem, actor=actor, change_weights=change_weights, allow_guest_slot_changes=allow_guest_slot_changes, _history_event=_history_event, _new_change_protections=_new_change_protections, _new_participation_withdrawals=_new_participation_withdrawals, _release_participation_withdrawal_ids=_release_participation_withdrawal_ids, _release_change_protection_ids=_release_change_protection_ids, allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation, operation=operation, _scoped_authorization=_scoped_authorization)
+        return _candidates.apply_candidate(
+            self,
+            season=season,
+            candidate=candidate,
+            problem=problem,
+            actor=actor,
+            change_weights=change_weights,
+            allow_guest_slot_changes=allow_guest_slot_changes,
+            _history_event=_history_event,
+            _new_change_protections=_new_change_protections,
+            _new_participation_withdrawals=_new_participation_withdrawals,
+            _release_participation_withdrawal_ids=_release_participation_withdrawal_ids,
+            _release_change_protection_ids=_release_change_protection_ids,
+            allow_manual_placement=allow_manual_placement,
+            allow_host_confirmation=allow_host_confirmation,
+            operation=operation,
+            _scoped_authorization=_scoped_authorization,
+        )
 
     def season_lifecycle_report(self, season: str) -> dict[str, Any]:
         return _lifecycle_status.season_lifecycle_report(self, season=season)
@@ -622,7 +766,19 @@ class CanonicalSeasonService:
         note: str = "",
         publication_evidence: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
-        return _publication.seal_published_season(self, season=season, publication_id=publication_id, canonical_revision=canonical_revision, published_at=published_at, published_projection=published_projection, publication_canonical_projection=publication_canonical_projection, materializations=materializations or [], actor=actor, note=note, publication_evidence=publication_evidence)
+        return _publication.seal_published_season(
+            self,
+            season=season,
+            publication_id=publication_id,
+            canonical_revision=canonical_revision,
+            published_at=published_at,
+            published_projection=published_projection,
+            publication_canonical_projection=publication_canonical_projection,
+            materializations=materializations or [],
+            actor=actor,
+            note=note,
+            publication_evidence=publication_evidence,
+        )
 
     def reopen_planning(
         self,
@@ -632,7 +788,13 @@ class CanonicalSeasonService:
         confirm_break_published_baseline: bool = False,
         actor: str | None = None,
     ) -> dict[str, Any]:
-        return _lifecycle_status.reopen_planning(self, season=season, reason=reason, confirm_break_published_baseline=confirm_break_published_baseline, actor=actor)
+        return _lifecycle_status.reopen_planning(
+            self,
+            season=season,
+            reason=reason,
+            confirm_break_published_baseline=confirm_break_published_baseline,
+            actor=actor,
+        )
 
     def normalize_placements(
         self,
@@ -643,7 +805,9 @@ class CanonicalSeasonService:
         note: str = "",
         dry_run: bool = False,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
-        return _normalization.normalize_placements(self, season=season, problem=problem, actor=actor, note=note, dry_run=dry_run)
+        return _normalization.normalize_placements(
+            self, season=season, problem=problem, actor=actor, note=note, dry_run=dry_run
+        )
 
     def normalize_arena_identities(
         self,
@@ -666,7 +830,9 @@ class CanonicalSeasonService:
         max_per_tournament: int = 1,
         problem: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        return _guest_slots.guest_slot_candidates(self, season=season, age_groups=age_groups, max_per_tournament=max_per_tournament, problem=problem)
+        return _guest_slots.guest_slot_candidates(
+            self, season=season, age_groups=age_groups, max_per_tournament=max_per_tournament, problem=problem
+        )
 
     @staticmethod
     def _displaceable_team_options(tournament: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -684,7 +850,17 @@ class CanonicalSeasonService:
         note: str = "",
         dry_run: bool = False,
     ) -> dict[str, Any]:
-        return _guest_slots.reserve_guest_slot(self, season=season, tournament_id=tournament_id, count=count, displaced_teams=displaced_teams, problem=problem, actor=actor, note=note, dry_run=dry_run)
+        return _guest_slots.reserve_guest_slot(
+            self,
+            season=season,
+            tournament_id=tournament_id,
+            count=count,
+            displaced_teams=displaced_teams,
+            problem=problem,
+            actor=actor,
+            note=note,
+            dry_run=dry_run,
+        )
 
     def fill_guest_slot(
         self,
@@ -697,7 +873,16 @@ class CanonicalSeasonService:
         actor: str | None = None,
         note: str = "",
     ) -> dict[str, Any]:
-        return _guest_slots.fill_guest_slot(self, season=season, tournament_id=tournament_id, slot_id=slot_id, external_team=external_team, problem=problem, actor=actor, note=note)
+        return _guest_slots.fill_guest_slot(
+            self,
+            season=season,
+            tournament_id=tournament_id,
+            slot_id=slot_id,
+            external_team=external_team,
+            problem=problem,
+            actor=actor,
+            note=note,
+        )
 
     def release_guest_slot(
         self,
@@ -711,7 +896,17 @@ class CanonicalSeasonService:
         note: str = "",
         dry_run: bool = False,
     ) -> dict[str, Any]:
-        return _guest_slots.release_guest_slot(self, season=season, tournament_id=tournament_id, slot_id=slot_id, replacement_team=replacement_team, problem=problem, actor=actor, note=note, dry_run=dry_run)
+        return _guest_slots.release_guest_slot(
+            self,
+            season=season,
+            tournament_id=tournament_id,
+            slot_id=slot_id,
+            replacement_team=replacement_team,
+            problem=problem,
+            actor=actor,
+            note=note,
+            dry_run=dry_run,
+        )
 
     def change_protection_report(
         self,
@@ -730,7 +925,9 @@ class CanonicalSeasonService:
         actor: str | None = None,
         note: str = "",
     ) -> dict[str, Any]:
-        return _approvals.release_change_protections(self, season=season, protection_ids=protection_ids, request_id=request_id, actor=actor, note=note)
+        return _approvals.release_change_protections(
+            self, season=season, protection_ids=protection_ids, request_id=request_id, actor=actor, note=note
+        )
 
     def calendar_booking_candidates(
         self,
@@ -760,7 +957,9 @@ class CanonicalSeasonService:
     def calendar_booking_findings(self, *, season: str, problem: dict[str, Any] | None = None) -> dict[str, Any]:
         return _calendars.calendar_booking_findings(self, season=season, problem=problem)
 
-    def booking_status_report(self, *, season: str, problem: dict[str, Any] | None = None, host_club: str | None = None) -> dict[str, Any]:
+    def booking_status_report(
+        self, *, season: str, problem: dict[str, Any] | None = None, host_club: str | None = None
+    ) -> dict[str, Any]:
         return _calendars.booking_status_report(self, season=season, problem=problem, host_club=host_club)
 
     def reconcile_calendar_bookings(
@@ -773,7 +972,9 @@ class CanonicalSeasonService:
         problem: dict[str, Any] | None = None,
         dry_run: bool = False,
     ) -> dict[str, Any]:
-        return _calendars.reconcile_calendar_bookings(self, season=season, club=club, actor=actor, note=note, problem=problem, dry_run=dry_run)
+        return _calendars.reconcile_calendar_bookings(
+            self, season=season, club=club, actor=actor, note=note, problem=problem, dry_run=dry_run
+        )
 
     def confirm_calendar_booking(
         self,
@@ -784,9 +985,20 @@ class CanonicalSeasonService:
         actor: str | None = None,
         note: str = "",
         problem: dict[str, Any] | None = None,
-        dry_run: bool = False, supersede_manual_assertion_id: str | None = None,
+        dry_run: bool = False,
+        supersede_manual_assertion_id: str | None = None,
     ) -> dict[str, Any]:
-        return _calendars.confirm_calendar_booking(self, season=season, event_fingerprint=event_fingerprint, tournament_id=tournament_id, actor=actor, note=note, problem=problem, dry_run=dry_run, supersede_manual_assertion_id=supersede_manual_assertion_id)
+        return _calendars.confirm_calendar_booking(
+            self,
+            season=season,
+            event_fingerprint=event_fingerprint,
+            tournament_id=tournament_id,
+            actor=actor,
+            note=note,
+            problem=problem,
+            dry_run=dry_run,
+            supersede_manual_assertion_id=supersede_manual_assertion_id,
+        )
 
     def release_calendar_booking(
         self,
@@ -798,7 +1010,15 @@ class CanonicalSeasonService:
         note: str = "",
         dry_run: bool = False,
     ) -> dict[str, Any]:
-        return _calendars.release_calendar_booking(self, season=season, event_fingerprint=event_fingerprint, tournament_id=tournament_id, actor=actor, note=note, dry_run=dry_run)
+        return _calendars.release_calendar_booking(
+            self,
+            season=season,
+            event_fingerprint=event_fingerprint,
+            tournament_id=tournament_id,
+            actor=actor,
+            note=note,
+            dry_run=dry_run,
+        )
 
     def set_manual_booking_assertion(
         self,
@@ -817,7 +1037,9 @@ class CanonicalSeasonService:
         expected_revision: str | None = None,
         supersede: bool = False,
         problem: dict[str, Any] | None = None,
-        dry_run: bool = False, pin: bool = False, pin_reason: str | None = None,
+        dry_run: bool = False,
+        pin: bool = False,
+        pin_reason: str | None = None,
     ) -> dict[str, Any]:
         return _calendars.set_manual_booking_assertion(
             self,
@@ -835,7 +1057,9 @@ class CanonicalSeasonService:
             expected_revision=expected_revision,
             supersede=supersede,
             problem=problem,
-            dry_run=dry_run, pin=pin, pin_reason=pin_reason,
+            dry_run=dry_run,
+            pin=pin,
+            pin_reason=pin_reason,
         )
 
     def clear_manual_booking_assertion(
@@ -896,6 +1120,50 @@ class CanonicalSeasonService:
             season=season,
             club=club,
             problem=problem,
+        )
+
+    def club_booking_acceptance_preview(
+        self,
+        *,
+        season: str,
+        source_id: str,
+        actor: str | None = None,
+        note: str = "",
+        reference: str = "",
+        expected_revision: str | None = None,
+    ) -> dict[str, Any]:
+        return _calendars.club_booking_acceptance_preview(
+            self,
+            season=season,
+            source_id=source_id,
+            actor=actor,
+            note=note,
+            reference=reference,
+            expected_revision=expected_revision,
+        )
+
+    def club_booking_acceptance_apply(
+        self,
+        *,
+        season: str,
+        source_id: str,
+        actor: str | None = None,
+        note: str = "",
+        reference: str = "",
+        expected_revision: str | None = None,
+        reviewed_token: str | None = None,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        return _calendars.club_booking_acceptance_apply(
+            self,
+            season=season,
+            source_id=source_id,
+            actor=actor,
+            note=note,
+            reference=reference,
+            expected_revision=expected_revision,
+            reviewed_token=reviewed_token,
+            dry_run=dry_run,
         )
 
     def set_ice_time_minutes(
@@ -1023,7 +1291,16 @@ class CanonicalSeasonService:
         participants_locked: bool = False,
         problem: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        return _approvals.approve_tournament(self, season=season, tournament_id=tournament_id, actor=actor, note=note, placement_locked=placement_locked, participants_locked=participants_locked, problem=problem)
+        return _approvals.approve_tournament(
+            self,
+            season=season,
+            tournament_id=tournament_id,
+            actor=actor,
+            note=note,
+            placement_locked=placement_locked,
+            participants_locked=participants_locked,
+            problem=problem,
+        )
 
     def unapprove_tournament(
         self,
@@ -1052,7 +1329,19 @@ class CanonicalSeasonService:
         actor: str | None = None,
         note: str = "",
     ) -> dict[str, Any]:
-        return _approvals.record_participation_acceptance(self, season=season, club=club, label=label, age_group=age_group, scope=scope, direction=direction, actual=actual, target=target, actor=actor, note=note)
+        return _approvals.record_participation_acceptance(
+            self,
+            season=season,
+            club=club,
+            label=label,
+            age_group=age_group,
+            scope=scope,
+            direction=direction,
+            actual=actual,
+            target=target,
+            actor=actor,
+            note=note,
+        )
 
     def revoke_participation_acceptance(
         self,
@@ -1065,7 +1354,9 @@ class CanonicalSeasonService:
         actor: str | None = None,
         note: str = "",
     ) -> dict[str, Any]:
-        return _approvals.revoke_participation_acceptance(self, season=season, club=club, label=label, age_group=age_group, scope=scope, actor=actor, note=note)
+        return _approvals.revoke_participation_acceptance(
+            self, season=season, club=club, label=label, age_group=age_group, scope=scope, actor=actor, note=note
+        )
 
     def approval_report(self, season: str) -> dict[str, Any]:
         return _approvals.approval_report(self, season=season)

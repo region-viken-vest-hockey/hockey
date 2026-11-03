@@ -5,7 +5,7 @@ min_version = "2026.8.0"
 # requires node >= 22.19.0, so both are pinned here for reproducible
 # operator tooling. CI skips tool install (see .github/workflows).
 node = "26"
-"npm:@earendil-works/pi-coding-agent" = "1.0.4"
+"npm:@earendil-works/pi-coding-agent" = "1.5.0"
 
 [tasks.bootstrap]
 description = "Set up a new machine/checkout with Python 3.12"

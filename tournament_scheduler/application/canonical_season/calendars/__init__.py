@@ -14,6 +14,10 @@ from .associations import (
     confirm_calendar_booking,
     release_calendar_booking,
 )
+from .acceptance import (
+    club_booking_acceptance_apply,
+    club_booking_acceptance_preview,
+)
 from .club_sources import club_booking_sources, set_club_booking_source
 from .common import (
     _AUTO_REFRESH_RECONCILE_CLUBS,
@@ -78,6 +82,8 @@ __all__ = [
     "calendar_booking_candidates",
     "calendar_booking_findings",
     "clear_manual_booking_assertion",
+    "club_booking_acceptance_apply",
+    "club_booking_acceptance_preview",
     "club_booking_sources",
     "confirm_calendar_booking",
     "reconcile_calendar_bookings",

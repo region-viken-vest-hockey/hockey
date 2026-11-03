@@ -77,6 +77,8 @@ __all__ = [
     "change_request_ledger",
     "clear_ice_time_minutes",
     "clear_manual_booking_assertion",
+    "club_booking_acceptance_apply",
+    "club_booking_acceptance_preview",
     "club_booking_sources",
     "compact_history",
     "history_inventory",
@@ -206,7 +208,8 @@ def promote_from_stage3(
     return _service(root).promote(work_dir=work_dir, season=season, actor=actor, force=force)
 
 
-def move_tournament(*,
+def move_tournament(
+    *,
     season: str,
     tournament_id: str,
     root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
@@ -241,7 +244,8 @@ def move_tournament(*,
         allow_cross_half=allow_cross_half,
         run_id=run_id,
         request_id=request_id,
-        allow_manual_placement=allow_manual_placement, allow_host_confirmation=allow_host_confirmation,
+        allow_manual_placement=allow_manual_placement,
+        allow_host_confirmation=allow_host_confirmation,
         expected_revision=expected_revision,
     )
 
@@ -256,9 +260,7 @@ def compact_history(
 ) -> dict[str, Any]:
     """Migrate oversized inline move evidence into the durable archive."""
 
-    return _service(root).compact_history(
-        season=season, actor=actor, note=note, dry_run=dry_run
-    )
+    return _service(root).compact_history(season=season, actor=actor, note=note, dry_run=dry_run)
 
 
 def history_inventory(
@@ -270,9 +272,7 @@ def history_inventory(
 ) -> dict[str, Any]:
     """Return a read-only size/shape inventory of canonical state and artifacts."""
 
-    return _service(root).history_inventory(
-        season=season, export_root=export_root, pipeline_root=pipeline_root
-    )
+    return _service(root).history_inventory(season=season, export_root=export_root, pipeline_root=pipeline_root)
 
 
 def replace_participant(
@@ -458,9 +458,7 @@ def season_baseline_replace(
     actor: str | None = None,
     note: str = "",
 ) -> dict[str, Any]:
-    return _service(root).season_baseline_create(
-        season=season, actor=actor, note=note, replace=True
-    )
+    return _service(root).season_baseline_create(season=season, actor=actor, note=note, replace=True)
 
 
 def season_baseline_advance(
@@ -481,7 +479,8 @@ def refresh_calendars(
     work_dir: str | os.PathLike[str] | None = None,
     actor: str | None = None,
     note: str = "",
-    dry_run: bool = False, club: str | None = None,
+    dry_run: bool = False,
+    club: str | None = None,
     allow_missing_sources: bool = False,
     allow_source_policy_change: bool = False,
 ) -> dict[str, Any]:
@@ -492,7 +491,8 @@ def refresh_calendars(
         actor=actor,
         note=note,
         dry_run=dry_run,
-        club=club, allow_missing_sources=allow_missing_sources,
+        club=club,
+        allow_missing_sources=allow_missing_sources,
         allow_source_policy_change=allow_source_policy_change,
     )
 
@@ -604,7 +604,13 @@ def calendar_booking_findings(
     return _service(root).calendar_booking_findings(season=season, problem=problem)
 
 
-def booking_status_report(*, season: str, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT, problem: dict[str, Any] | None = None, host_club: str | None = None) -> dict[str, Any]:
+def booking_status_report(
+    *,
+    season: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    problem: dict[str, Any] | None = None,
+    host_club: str | None = None,
+) -> dict[str, Any]:
     return _service(root).booking_status_report(season=season, problem=problem, host_club=host_club)
 
 
@@ -652,9 +658,13 @@ def replacement_candidates(
     limit: int | None = None,
 ) -> dict[str, Any]:
     return _service(root).replacement_candidates(
-        season=season, tournament_id=tournament_id,
-        replace_team_label=replace_team_label, eligible_clubs=eligible_clubs,
-        eligible_team_labels=eligible_team_labels, legal_only=legal_only, limit=limit,
+        season=season,
+        tournament_id=tournament_id,
+        replace_team_label=replace_team_label,
+        eligible_clubs=eligible_clubs,
+        eligible_team_labels=eligible_team_labels,
+        legal_only=legal_only,
+        limit=limit,
     )
 
 
@@ -687,7 +697,8 @@ def confirm_calendar_booking(
     actor: str | None = None,
     note: str = "",
     problem: dict[str, Any] | None = None,
-    dry_run: bool = False, supersede_manual_assertion_id: str | None = None,
+    dry_run: bool = False,
+    supersede_manual_assertion_id: str | None = None,
 ) -> dict[str, Any]:
     return _service(root).confirm_calendar_booking(
         season=season,
@@ -696,7 +707,8 @@ def confirm_calendar_booking(
         actor=actor,
         note=note,
         problem=problem,
-        dry_run=dry_run, supersede_manual_assertion_id=supersede_manual_assertion_id,
+        dry_run=dry_run,
+        supersede_manual_assertion_id=supersede_manual_assertion_id,
     )
 
 
@@ -737,7 +749,9 @@ def set_manual_booking_assertion(
     expected_revision: str | None = None,
     supersede: bool = False,
     problem: dict[str, Any] | None = None,
-    dry_run: bool = False, pin: bool = False, pin_reason: str | None = None,
+    dry_run: bool = False,
+    pin: bool = False,
+    pin_reason: str | None = None,
 ) -> dict[str, Any]:
     return _service(root).set_manual_booking_assertion(
         season=season,
@@ -754,7 +768,9 @@ def set_manual_booking_assertion(
         expected_revision=expected_revision,
         supersede=supersede,
         problem=problem,
-        dry_run=dry_run, pin=pin, pin_reason=pin_reason,
+        dry_run=dry_run,
+        pin=pin,
+        pin_reason=pin_reason,
     )
 
 
@@ -812,6 +828,50 @@ def club_booking_sources(
     problem: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return _service(root).club_booking_sources(season=season, club=club, problem=problem)
+
+
+def club_booking_acceptance_preview(
+    *,
+    season: str,
+    source_id: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+    reference: str = "",
+    expected_revision: str | None = None,
+) -> dict[str, Any]:
+    return _service(root).club_booking_acceptance_preview(
+        season=season,
+        source_id=source_id,
+        actor=actor,
+        note=note,
+        reference=reference,
+        expected_revision=expected_revision,
+    )
+
+
+def club_booking_acceptance_apply(
+    *,
+    season: str,
+    source_id: str,
+    root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT,
+    actor: str | None = None,
+    note: str = "",
+    reference: str = "",
+    expected_revision: str | None = None,
+    reviewed_token: str | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    return _service(root).club_booking_acceptance_apply(
+        season=season,
+        source_id=source_id,
+        actor=actor,
+        note=note,
+        reference=reference,
+        expected_revision=expected_revision,
+        reviewed_token=reviewed_token,
+        dry_run=dry_run,
+    )
 
 
 def set_ice_time_minutes(
@@ -1182,9 +1242,7 @@ def unapprove_tournament(
 ) -> dict[str, Any]:
     """Explicitly revoke approval and all locks for one canonical tournament."""
 
-    return _service(root).unapprove_tournament(
-        season=season, tournament_id=tournament_id, actor=actor, note=note
-    )
+    return _service(root).unapprove_tournament(season=season, tournament_id=tournament_id, actor=actor, note=note)
 
 
 def apply_candidate(
@@ -1231,17 +1289,13 @@ def season_lifecycle_report(season: str, *, root: str | os.PathLike[str] = DEFAU
     return _service(root).season_lifecycle_report(season)
 
 
-def verify_sealed_reconciliation(
-    season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT
-) -> dict[str, Any]:
+def verify_sealed_reconciliation(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
     """Return the sealed-season reconciliation invariant report."""
 
     return _service(root).verify_sealed_reconciliation(season)
 
 
-def publication_evidence_report(
-    season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT
-) -> dict[str, Any]:
+def publication_evidence_report(season: str, *, root: str | os.PathLike[str] = DEFAULT_SEASON_ROOT) -> dict[str, Any]:
     """Return the read-only republish/publication evidence report."""
 
     return _service(root).publication_evidence_report(season)
@@ -1303,7 +1357,6 @@ def approval_report(
     """Read-only approval/lock status for every canonical tournament."""
 
     return _service(root).approval_report(season)
-
 
 
 def guest_slot_report(
