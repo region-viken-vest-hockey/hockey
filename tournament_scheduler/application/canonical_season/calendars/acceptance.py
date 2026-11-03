@@ -19,17 +19,34 @@ from ..shared import _append_decision_history, _now_iso, _operator_identity, _re
 _ACCEPTANCE_EVENT = "club_booking_acceptance"
 
 
-def _reviewed_token(preview: Mapping[str, Any]) -> str:
-    payload = {
-        "season": preview["season"],
-        "source_id": preview["source_id"],
-        "source_fingerprint": preview["source_fingerprint"],
-        "canonical_state_revision": preview["canonical_state_revision"],
-        "interpretations": preview["interpretations"],
-        "conflicts": preview["conflicts"],
-    }
+def _digest(payload: Mapping[str, Any]) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _content_digest(preview: Mapping[str, Any]) -> str:
+    """Digest of what was reviewed, independent of the canonical revision.
+
+    Every canonical write advances the revision (including the acceptance audit
+    entry itself), so recognising an already-accepted set needs a revision-free
+    identity of the reviewed content.
+    """
+
+    return _digest(
+        {
+            "season": preview["season"],
+            "source_id": preview["source_id"],
+            "source_fingerprint": preview["source_fingerprint"],
+            "interpretations": preview["interpretations"],
+            "conflicts": preview["conflicts"],
+        }
+    )
+
+
+def _reviewed_token(preview: Mapping[str, Any]) -> str:
+    return _digest(
+        {"content": _content_digest(preview), "canonical_state_revision": preview["canonical_state_revision"]}
+    )
 
 
 def _preview_from_snapshot(
@@ -129,6 +146,7 @@ def _preview_from_snapshot(
         "count": len(interpretations),
         "conflicts": conflicts,
     }
+    preview["content_digest"] = _content_digest(preview)
     preview["reviewed_token"] = _reviewed_token(preview)
     return preview
 
@@ -185,6 +203,9 @@ def club_booking_acceptance_apply(
     if not reviewed_token:
         raise SeasonStateError("A reviewed token from club-booking-acceptance-preview is required")
 
+    # A genuine repeat: this exact token was already accepted AND the reviewed
+    # content is still what was accepted (later unrelated writes only advance the
+    # revision). A token for content that has since changed is never honoured.
     history = snapshot.decisions.get("history") or []
     already_accepted = next(
         (
@@ -194,10 +215,11 @@ def club_booking_acceptance_apply(
             and entry.get("event") == _ACCEPTANCE_EVENT
             and (entry.get("details") or {}).get("source_assertion_id") == source_id
             and (entry.get("details") or {}).get("reviewed_token") == reviewed_token
+            and (entry.get("details") or {}).get("content_digest") == preview["content_digest"]
         ),
         None,
     )
-    if already_accepted is not None:
+    if already_accepted is not None and not preview["conflicts"]:
         return {
             **preview,
             "dry_run": bool(dry_run),
@@ -242,12 +264,16 @@ def club_booking_acceptance_apply(
             "source_version": preview["source_version"],
             "canonical_state_revision": preview["canonical_state_revision"],
             "reviewed_token": reviewed_token,
+            "content_digest": preview["content_digest"],
             "reference": reference,
             "tournament_ids": [item["tournament_id"] for item in preview["interpretations"]],
         },
     )
     updated["updated_at"] = now
-    committed = service._commit(snapshot.with_decisions(updated))
+    committed = service._commit(
+        snapshot.with_decisions(updated),
+        expected_revision=preview["canonical_state_revision"],
+    )
     return {
         **result,
         "dry_run": False,

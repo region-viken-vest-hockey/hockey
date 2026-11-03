@@ -207,6 +207,94 @@ def test_acceptance_rejects_stale_token_and_superseded_source(tmp_path):
         )
 
 
+def _accepted_once(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    source = _source_set(root)["source"]
+    _interpretation(root, source_id=source["id"], problem=problem)
+    preview = club_booking_acceptance_preview(season="2026-2027", root=root, source_id=source["id"])
+    club_booking_acceptance_apply(
+        season="2026-2027", root=root, source_id=source["id"], reviewed_token=preview["reviewed_token"]
+    )
+    return root, problem, source, preview
+
+
+def test_acceptance_repeat_survives_unrelated_later_writes(tmp_path):
+    root, _problem, source, preview = _accepted_once(tmp_path)
+    add_request_constraint(
+        season="2026-2027",
+        root=root,
+        type="team_unavailable",
+        request_id="unrelated-later-write",
+        teams=[{"club": "B", "label": "B1", "age_group": "U10"}],
+        date_from="2026-12-01",
+        actor="tester",
+    )
+    history_before = load_decisions("2026-2027", root=root)["history"]
+
+    repeated = club_booking_acceptance_apply(
+        season="2026-2027", root=root, source_id=source["id"], reviewed_token=preview["reviewed_token"]
+    )
+
+    assert repeated["idempotent"] is True and repeated["changed"] is False
+    assert load_decisions("2026-2027", root=root)["history"] == history_before
+
+
+def test_acceptance_old_token_is_refused_after_reviewed_content_changes(tmp_path):
+    root, problem, source, preview = _accepted_once(tmp_path)
+    _interpretation(
+        root,
+        source_id=source["id"],
+        problem=problem,
+        stated_date="2026-09-13",
+        stated_start="12:30",
+        stated_end="14:20",
+        supersede=True,
+        note="club corrected the slot",
+    )
+    history_before = load_decisions("2026-2027", root=root)["history"]
+
+    with pytest.raises(SeasonStateError, match="Reviewed token does not match"):
+        club_booking_acceptance_apply(
+            season="2026-2027", root=root, source_id=source["id"], reviewed_token=preview["reviewed_token"]
+        )
+    assert load_decisions("2026-2027", root=root)["history"] == history_before
+
+
+def test_acceptance_commit_is_compare_and_swap_against_concurrent_writes(tmp_path, monkeypatch):
+    from tournament_scheduler.application.canonical_season.calendars import acceptance
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    source = _source_set(root)["source"]
+    _interpretation(root, source_id=source["id"], problem=problem)
+    preview = club_booking_acceptance_preview(season="2026-2027", root=root, source_id=source["id"])
+    real_history = acceptance._append_decision_history
+
+    def competing_write_then_history(*args, **kwargs):
+        add_request_constraint(
+            season="2026-2027",
+            root=root,
+            type="team_unavailable",
+            request_id="competing-write",
+            teams=[{"club": "B", "label": "B1", "age_group": "U10"}],
+            date_from="2026-12-01",
+            actor="tester",
+        )
+        return real_history(*args, **kwargs)
+
+    monkeypatch.setattr(acceptance, "_append_decision_history", competing_write_then_history)
+
+    with pytest.raises(Exception, match="(?i)revision"):
+        club_booking_acceptance_apply(
+            season="2026-2027", root=root, source_id=source["id"], reviewed_token=preview["reviewed_token"]
+        )
+
+    decisions = load_decisions("2026-2027", root=root)
+    assert any(e.get("event") == "club_booking_acceptance" for e in decisions["history"]) is False
+    assert "competing-write" in json.dumps(decisions)
+
+
 def test_club_booking_source_report_groups_per_id_disposition(tmp_path):
     root = _promote(tmp_path, [_tournament("t1"), _tournament("t2", date_str="2026-09-13")])
     problem = _host_a_problem([])
