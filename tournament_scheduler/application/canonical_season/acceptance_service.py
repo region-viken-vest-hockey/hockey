@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import calendars as _calendars
+from .calendars import acceptance as _calendars
 
 
 class ClubBookingAcceptanceMixin:
