@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "audit_id": "d28097908b9a5828",
+  "generated_at": "2026-10-31T10:00:00+00:00",
+  "run_id": "legacy",
+  "export_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+  "audit_context_fingerprint": "3b6c5bff1c37e80ce4d3ba0102b7de7d4be5631b5bcf00352a6e7dc2f7e6b6d2",
+  "status": "REVIEW_REQUIRED",
+  "operator_assessment": {
+    "operator_summary": "Publication scope is ELIGIBLE: 42 changed tournaments, none added or removed, all booked with calendar-matching intervals, none held or blocking. Season-wide planning debt is unchanged from the published baseline.",
+    "key_tradeoffs": [
+      {
+        "title": "Calendar-adopted intervals",
+        "summary": "Frisk Asker, Jar and Kongsberg intervals follow the club calendar blocks; Frisk Asker 0179 is 80 minutes, below the JU8 minimum.",
+        "severity": "minor"
+      }
+    ],
+    "remaining_actions": [
+      {
+        "title": "Season-wide planning debt",
+        "summary": "Participation shortfalls, 9 unplaced placements, hosting imbalances and Frisk Asker 0179 feasibility remain canonical maintenance work.",
+        "category": "planning_debt"
+      }
+    ],
+    "limitations": [
+      "Semantic review used the bounded audit overview, the publication scope and the calendar audit, not every individual record."
+    ]
+  },
+  "checklist_findings": [
+    {
+      "item_id": 1,
+      "question": "Antall cuper pr lag?",
+      "finding": "137 participation shortfalls and 123 club-pool shortfalls remain season-wide. No tournament was added or removed versus the published baseline (183 = 183), so this is pre-existing planning debt, not introduced by this export.",
+      "severity": "major",
+      "confidence": "high",
+      "evidence_refs": [
+        "participation_shortfalls",
+        "participation_club_pools"
+      ]
+    },
+    {
+      "item_id": 2,
+      "question": "Antall hjemmeturneringer pr lag?",
+      "finding": "9 unplaced tournament placements, 16 hosting-balance imbalances and 5 same-age hosting repairs, all unchanged from the published baseline. Hosting responsibility did not change in the 42-tournament delta.",
+      "severity": "major",
+      "confidence": "high",
+      "evidence_refs": [
+        "unresolved_tournament_placements",
+        "same_age_hosting_repairs"
+      ]
+    },
+    {
+      "item_id": 3,
+      "question": "Lengde på turneringer?",
+      "finding": "Durations 80-180 minutes, none missing, 0 blocking byes. Delta durations changed on Frisk Asker (mostly longer, 0179 shortened 120 to 80 min to the calendar block, below the JU8 minimum and recorded as a feasibility finding), Jar (1 to 10 min), Kongsberg and Jutul 0092 (-1 min). Every changed interval is a booked tournament whose accepted calendar interval equals the exported interval.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence_refs": [
+        "tournament_duration",
+        "blocking_byes",
+        "input_constrained_shape"
+      ]
+    },
+    {
+      "item_id": 4,
+      "question": "Er det faktisk ledig tid på is?",
+      "finding": "All 37 interval-changed tournaments are booked with confirmed_matching calendar audit (calendar date/start/end equals export). Publication scope: 42 eligible, 0 proposed, 0 held, 0 blocking. 12 placements remain unverified for Frisk Asker and Sandefjord Penguins, unchanged pre-existing debt and outside the delta.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence_refs": [
+        "manual_external_conflict_placements",
+        "unverified_placements",
+        "calendar_sources"
+      ]
+    },
+    {
+      "item_id": 5,
+      "question": "Deltar vertsklubben i samme turnering?",
+      "finding": "No host-participation violations (0).",
+      "severity": "info",
+      "confidence": "high",
+      "evidence_refs": [
+        "host_participation"
+      ]
+    },
+    {
+      "item_id": 6,
+      "question": "Deltar hvert lag maksimalt én gang per dag?",
+      "finding": "No duplicate team-days (0), including the six tournaments with renamed JU8 teams.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence_refs": [
+        "duplicate_team_days"
+      ]
+    },
+    {
+      "item_id": 7,
+      "question": "Er det normalt maks 2 lag fra samme klubb, med 3 kun som synlig unntak?",
+      "finding": "14 tournaments with 3 teams from one club; none above the hard maximum of 3.",
+      "severity": "minor",
+      "confidence": "high",
+      "evidence_refs": [
+        "same_club_participants",
+        "same_club_participants_hard_max"
+      ]
+    },
+    {
+      "item_id": 8,
+      "question": "Er eksportformatene konsistente?",
+      "finding": "CSV 2331 rows, overview 183, team counts 142, iCal 183, XLSX 183 all match the plan. Artifact parity PASS; an independent XLSX vs HTML comparison on date, start, end, arena, host, age group and team set found 0 mismatches.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence_refs": [
+        "export_consistency"
+      ]
+    },
+    {
+      "item_id": 9,
+      "question": "Ser harnesset andre materielle problemer eller manglende regler vi ikke allerede har tenkt på?",
+      "finding": "Deterministic verification OK with 0 violations and 0 waivers. The delta is two JU8 team renames (Jar to Wildcats Turkis, Jutul Kittens to Wildcats Rosa on 6 tournaments) plus calendar-adopted interval changes and approval/booking labels moving to approved and confirmed_booked. No other material problem found.",
+      "severity": "info",
+      "confidence": "high",
+      "evidence_refs": [
+        "verify_violations",
+        "operator_waivers"
+      ]
+    }
+  ],
+  "potential_missing_rule": [],
+  "artifact_type": "semantic_audit",
+  "selected_candidate_fingerprint": "7e0e0de373d68e136a09695d128d2ea45b3af4069e5f3b1ed59f62f8b75961cd",
+  "publication_gate_status": "operator_review_required"
+}
