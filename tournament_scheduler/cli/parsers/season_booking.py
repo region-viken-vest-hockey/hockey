@@ -14,9 +14,7 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
         ),
     )
     season_booking_assessment.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
-    season_booking_assessment.add_argument(
-        "--root", default="season", help="Canonical season-state root (default: season)"
-    )
+    season_booking_assessment.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_booking_assessment.add_argument("--club", default=None, help="Optional host club filter")
     season_booking_assessment.add_argument(
         "--date-window-days",
@@ -31,9 +29,7 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
         help="Return deterministic tournament candidates for scraped calendar bookings",
     )
     season_booking_candidates.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
-    season_booking_candidates.add_argument(
-        "--root", default="season", help="Canonical season-state root (default: season)"
-    )
+    season_booking_candidates.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_booking_candidates.add_argument("--club", default=None, help="Optional host club filter")
     season_booking_candidates.add_argument("--json", action="store_true", help="Print structured JSON")
 
@@ -42,16 +38,12 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
         help="Bind one scraped calendar event to one canonical tournament and approve/lock the placement",
     )
     season_confirm_booking.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
-    season_confirm_booking.add_argument(
-        "--root", default="season", help="Canonical season-state root (default: season)"
-    )
+    season_confirm_booking.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_confirm_booking.add_argument("--event-fingerprint", required=True, help="Scraped calendar event fingerprint")
     season_confirm_booking.add_argument("--tournament-id", required=True, help="Canonical tournament id")
     season_confirm_booking.add_argument("--actor", default=None, help="Operator identity")
     season_confirm_booking.add_argument("--note", default="", help="Audited rationale for this semantic match")
-    season_confirm_booking.add_argument(
-        "--dry-run", action="store_true", help="Validate without writing canonical state"
-    )
+    season_confirm_booking.add_argument("--dry-run", action="store_true", help="Validate without writing canonical state")
     season_confirm_booking.add_argument(
         "--supersede-manual-assertion",
         default=None,
@@ -64,9 +56,7 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
         help="Report stale scraped-event booking associations",
     )
     season_booking_findings.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
-    season_booking_findings.add_argument(
-        "--root", default="season", help="Canonical season-state root (default: season)"
-    )
+    season_booking_findings.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_booking_findings.add_argument("--json", action="store_true", help="Print structured JSON")
 
     season_booking_status = season_sub.add_parser(
@@ -97,9 +87,7 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
         ),
     )
     season_participation_fairness.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
-    season_participation_fairness.add_argument(
-        "--root", default="season", help="Canonical season-state root (default: season)"
-    )
+    season_participation_fairness.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_participation_fairness.add_argument("--age-group", default=None, help="Optional age group filter, e.g. U11")
 
     season_booking_set = season_sub.add_parser(
@@ -166,12 +154,8 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
         action="store_true",
         help="Replace a different active assertion for this tournament (requires --note)",
     )
-    season_booking_set.add_argument(
-        "--pin", action="store_true", help="Deliberately outlive a differing calendar (rare; needs --pin-reason)"
-    )
-    season_booking_set.add_argument(
-        "--pin-reason", default=None, help="Why this assertion must outlive the calendar (requires --pin)"
-    )
+    season_booking_set.add_argument("--pin", action="store_true", help="Deliberately outlive a differing calendar (rare; needs --pin-reason)")
+    season_booking_set.add_argument("--pin-reason", default=None, help="Why this assertion must outlive the calendar (requires --pin)")
     season_booking_set.add_argument("--dry-run", action="store_true", help="Preview without writing canonical state")
     season_booking_set.add_argument("--json", action="store_true", help="Print structured JSON")
 
@@ -195,9 +179,7 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
         ),
     )
     season_booking_source_set.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
-    season_booking_source_set.add_argument(
-        "--root", default="season", help="Canonical season-state root (default: season)"
-    )
+    season_booking_source_set.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_booking_source_set.add_argument("--club", required=True, help="Host club the booking list belongs to")
     season_booking_source_set.add_argument(
         "--source-document",
@@ -216,17 +198,13 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
     )
     season_booking_source_set.add_argument("--actor", default=None, help="Operator identity")
     season_booking_source_set.add_argument("--note", default="", help="Audited rationale for accepting this source")
-    season_booking_source_set.add_argument(
-        "--reference", default="", help="Source reference, e.g. email id/date/sender"
-    )
+    season_booking_source_set.add_argument("--reference", default="", help="Source reference, e.g. email id/date/sender")
     season_booking_source_set.add_argument(
         "--expected-revision",
         default=None,
         help="Fail closed unless the canonical-state revision matches",
     )
-    season_booking_source_set.add_argument(
-        "--dry-run", action="store_true", help="Preview without writing canonical state"
-    )
+    season_booking_source_set.add_argument("--dry-run", action="store_true", help="Preview without writing canonical state")
     season_booking_source_set.add_argument("--json", action="store_true", help="Print structured JSON")
 
     season_booking_sources = season_sub.add_parser(
@@ -234,9 +212,7 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
         help="Read-only per-ID disposition for recorded club-wide booking sources",
     )
     season_booking_sources.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
-    season_booking_sources.add_argument(
-        "--root", default="season", help="Canonical season-state root (default: season)"
-    )
+    season_booking_sources.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_booking_sources.add_argument("--club", default=None, help="Optional host-club filter")
     season_booking_sources.add_argument("--json", action="store_true", help="Print the source disposition as JSON")
 
@@ -289,9 +265,7 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
         help="List active per-tournament ice-time overrides and the age-group default they replace",
     )
     season_ice_time_overrides.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
-    season_ice_time_overrides.add_argument(
-        "--root", default="season", help="Canonical season-state root (default: season)"
-    )
+    season_ice_time_overrides.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_ice_time_overrides.add_argument("--all", action="store_true", help="Include released overrides")
     season_ice_time_overrides.add_argument("--json", action="store_true", help="Print the override report as JSON")
 
@@ -300,15 +274,11 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
         help="Record host-calendar booking evidence for one club (overlap is candidate evidence, never a confirmed booking)",
     )
     season_reconcile_bookings.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
-    season_reconcile_bookings.add_argument(
-        "--root", default="season", help="Canonical season-state root (default: season)"
-    )
+    season_reconcile_bookings.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_reconcile_bookings.add_argument("--club", required=True, help="Host club whose calendar was reviewed")
     season_reconcile_bookings.add_argument("--actor", default=None, help="Operator identity")
     season_reconcile_bookings.add_argument("--note", default="", help="Audit note for the calendar review")
-    season_reconcile_bookings.add_argument(
-        "--dry-run", action="store_true", help="Classify without writing canonical state"
-    )
+    season_reconcile_bookings.add_argument("--dry-run", action="store_true", help="Classify without writing canonical state")
     season_reconcile_bookings.add_argument("--json", action="store_true", help="Print structured JSON")
 
     season_release_booking = season_sub.add_parser(
@@ -316,78 +286,10 @@ def add_season_booking_parsers(season_sub: argparse._SubParsersAction) -> None:
         help="Release an active scraped-event booking association before rebinding",
     )
     season_release_booking.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
-    season_release_booking.add_argument(
-        "--root", default="season", help="Canonical season-state root (default: season)"
-    )
+    season_release_booking.add_argument("--root", default="season", help="Canonical season-state root (default: season)")
     season_release_booking.add_argument("--event-fingerprint", required=True, help="Scraped calendar event fingerprint")
-    season_release_booking.add_argument(
-        "--tournament-id", default=None, help="Optional associated tournament id to release"
-    )
+    season_release_booking.add_argument("--tournament-id", default=None, help="Optional associated tournament id to release")
     season_release_booking.add_argument("--actor", default=None, help="Operator identity")
     season_release_booking.add_argument("--note", default="", help="Audited reason for releasing this association")
-    season_release_booking.add_argument(
-        "--dry-run", action="store_true", help="Validate without writing canonical state"
-    )
+    season_release_booking.add_argument("--dry-run", action="store_true", help="Validate without writing canonical state")
     season_release_booking.add_argument("--json", action="store_true", help="Print structured JSON")
-
-    season_club_booking_acceptance_preview = season_sub.add_parser(
-        "club-booking-acceptance-preview",
-        help=(
-            "Read-only preview of club-wide booking acceptance: shows proposed ID fan-out "
-            "and changed-slot corrections from a recorded club-wide booking source"
-        ),
-    )
-    season_club_booking_acceptance_preview.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
-    season_club_booking_acceptance_preview.add_argument(
-        "--root", default="season", help="Canonical season-state root (default: season)"
-    )
-    season_club_booking_acceptance_preview.add_argument(
-        "--source-id", required=True, help="Club booking source assertion id"
-    )
-    season_club_booking_acceptance_preview.add_argument("--actor", default=None, help="Operator identity")
-    season_club_booking_acceptance_preview.add_argument("--note", default="", help="Audited rationale for this preview")
-    season_club_booking_acceptance_preview.add_argument(
-        "--reference", default="", help="Source reference, e.g. email id/date/sender"
-    )
-    season_club_booking_acceptance_preview.add_argument(
-        "--expected-revision",
-        default=None,
-        help="Fail closed unless the canonical-state revision matches",
-    )
-    season_club_booking_acceptance_preview.add_argument("--json", action="store_true", help="Print structured JSON")
-
-    season_club_booking_acceptance_apply = season_sub.add_parser(
-        "club-booking-acceptance-apply",
-        help=(
-            "Atomically apply club-wide booking acceptance: creates/updates per-tournament "
-            "manual assertions linked to the source and confirms the bookings"
-        ),
-    )
-    season_club_booking_acceptance_apply.add_argument("--season", required=True, help="Season id, e.g. 2026-2027")
-    season_club_booking_acceptance_apply.add_argument(
-        "--root", default="season", help="Canonical season-state root (default: season)"
-    )
-    season_club_booking_acceptance_apply.add_argument(
-        "--source-id", required=True, help="Club booking source assertion id"
-    )
-    season_club_booking_acceptance_apply.add_argument("--actor", default=None, help="Operator identity")
-    season_club_booking_acceptance_apply.add_argument(
-        "--note", default="", help="Audited rationale for this acceptance"
-    )
-    season_club_booking_acceptance_apply.add_argument(
-        "--reference", default="", help="Source reference, e.g. email id/date/sender"
-    )
-    season_club_booking_acceptance_apply.add_argument(
-        "--expected-revision",
-        default=None,
-        help="Fail closed unless the canonical-state revision matches",
-    )
-    season_club_booking_acceptance_apply.add_argument(
-        "--reviewed-token",
-        default=None,
-        help="Token from preview to prove the operator reviewed the exact proposed changes",
-    )
-    season_club_booking_acceptance_apply.add_argument(
-        "--dry-run", action="store_true", help="Validate without writing canonical state"
-    )
-    season_club_booking_acceptance_apply.add_argument("--json", action="store_true", help="Print structured JSON")

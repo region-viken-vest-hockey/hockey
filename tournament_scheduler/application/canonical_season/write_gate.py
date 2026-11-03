@@ -30,7 +30,7 @@ GATED_WRITE_METHODS = frozenset(
         "normalize_arena_identities", "reserve_guest_slot", "fill_guest_slot", "release_guest_slot",
         "release_change_protections", "reconcile_calendar_bookings", "confirm_calendar_booking",
         "release_calendar_booking", "set_manual_booking_assertion", "clear_manual_booking_assertion",
-        "set_club_booking_source", "set_ice_time_minutes", "clear_ice_time_minutes",
+        "set_club_booking_source", "club_booking_acceptance_apply", "set_ice_time_minutes", "clear_ice_time_minutes",
         "record_placement_infeasibility_proofs", "release_placement_infeasibility_proofs",
         "approve_tournament", "unapprove_tournament", "record_participation_acceptance",
         "revoke_participation_acceptance",
@@ -61,7 +61,7 @@ def gate_canonical_writes(cls: type) -> type:
     The gate is a zero-argument callable that raises ``WriteBlockedError`` to refuse.
     Unlisted methods are untouched, so reads are never refused by this gate.
     """
-    missing = sorted(GATED_WRITE_METHODS - set(vars(cls)))
+    missing = sorted(name for name in GATED_WRITE_METHODS if not hasattr(cls, name))
     if missing:
         raise TypeError(f"{cls.__name__} has no gated write methods: {missing}")
 

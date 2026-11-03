@@ -1,5 +1,6 @@
 """Compatibility exports for canonical-season calendar use cases."""
 
+from .acceptance import club_booking_acceptance_apply, club_booking_acceptance_preview
 from .assessment import (
     _classify_club_calendar_bookings,
     booking_status_report,
@@ -13,10 +14,6 @@ from .associations import (
     _auto_associate_own_calendar_event,
     confirm_calendar_booking,
     release_calendar_booking,
-)
-from .acceptance import (
-    club_booking_acceptance_apply,
-    club_booking_acceptance_preview,
 )
 from .club_sources import club_booking_sources, set_club_booking_source
 from .common import (

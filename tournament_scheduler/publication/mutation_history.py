@@ -78,7 +78,7 @@ _DECISION_ONLY_EVENTS = {
     "season_baseline_create",
     "season_baseline_replace",
     "set_ice_time_minutes",
-    "set_club_booking_source",
+    "set_club_booking_source", "club_booking_acceptance",
     "unapprove",
     "unban_date",
 }

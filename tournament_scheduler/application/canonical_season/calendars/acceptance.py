@@ -1,114 +1,136 @@
-"""Club-wide booking acceptance preview and atomic acceptance use cases."""
+"""Review and accept an existing club-wide booking interpretation set."""
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any, Mapping
 
 from tournament_scheduler.booking.calendar_bookings import (
-    MANUAL_BOOKING_ASSERTIONS_KEY,
-    TOURNAMENT_BOOKING_EVIDENCE_KEY,
     active_manual_assertions,
-    club_booking_source_record_by_id,
-    new_manual_assertion_record,
+    club_booking_source_by_id,
+    manual_assertion_stale_reasons,
 )
-from tournament_scheduler.season.state import (
-    canonical_state_revision,
-)
+from tournament_scheduler.infrastructure.canonical_season_store import SeasonStateError
+from tournament_scheduler.season.state import canonical_state_revision
 
-from ..shared import (
-    _operator_identity,
-    _now_iso,
-    _append_decision_history,
-)
+from ..shared import _append_decision_history, _now_iso, _operator_identity, _resolve_plan_problem
+
+_ACCEPTANCE_EVENT = "club_booking_acceptance"
 
 
-def _assertions_from_source(
-    service,
+def _reviewed_token(preview: Mapping[str, Any]) -> str:
+    payload = {
+        "season": preview["season"],
+        "source_id": preview["source_id"],
+        "source_fingerprint": preview["source_fingerprint"],
+        "canonical_state_revision": preview["canonical_state_revision"],
+        "interpretations": preview["interpretations"],
+        "conflicts": preview["conflicts"],
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _preview_from_snapshot(
+    snapshot,
     *,
     season: str,
     source_id: str,
-    actor: str | None = None,
-    note: str = "",
-    reference: str = "",
-    expected_revision: str | None = None,
-    dry_run: bool = False,
+    expected_revision: str | None,
 ) -> dict[str, Any]:
-    """Generate per-tournament assertions from a club-wide booking source.
-
-    This is the core fan-out logic: it takes a club-wide booking source and
-    produces the per-tournament manual booking assertions that would be created
-    or updated, along with their proposed intervals.
-    """
-    snapshot = service.load(season)
     schedule, decisions = snapshot.schedule, snapshot.decisions
+    revision = canonical_state_revision(schedule, decisions)
+    if expected_revision and expected_revision != revision:
+        raise SeasonStateError(f"Stale canonical revision: expected {expected_revision}, current is {revision}")
+
+    source = club_booking_source_by_id(decisions, source_id)
+    if source is None:
+        raise SeasonStateError(
+            f"Unknown active club booking source assertion: {source_id}. Superseded sources cannot be accepted."
+        )
+
     plan = schedule.get("plan") or {}
-    current_revision = canonical_state_revision(schedule, decisions)
+    tournaments = {
+        str(tournament.get("id") or ""): tournament
+        for tournament in plan.get("tournaments") or []
+        if isinstance(tournament, Mapping)
+    }
+    problem = _resolve_plan_problem(schedule, None, decisions)
+    club = str(source.get("host_club") or "")
+    interpretations: list[dict[str, Any]] = []
+    conflicts: list[dict[str, Any]] = []
 
-    if expected_revision and expected_revision != current_revision:
-        raise ValueError(f"Stale canonical revision: expected {expected_revision}, current is {current_revision}")
+    linked = sorted(
+        (
+            assertion
+            for assertion in active_manual_assertions(decisions)
+            if str(assertion.get("source_assertion_id") or "") == source_id
+            and str(assertion.get("source_scope") or "") == "club_wide_interpretation"
+        ),
+        key=lambda assertion: str(assertion.get("tournament_id") or ""),
+    )
+    if not linked:
+        conflicts.append(
+            {
+                "kind": "no_linked_interpretations",
+                "message": "The source has no active per-tournament interpretations to accept.",
+            }
+        )
 
-    # Find the source record
-    source_record = club_booking_source_record_by_id(decisions, source_id)
-    if not source_record:
-        raise ValueError(f"Club booking source not found: {source_id}")
+    for assertion in linked:
+        tournament_id = str(assertion.get("tournament_id") or "")
+        tournament = tournaments.get(tournament_id)
+        stale_reasons = manual_assertion_stale_reasons(
+            assertion,
+            problem=problem,
+            tournament=tournament,
+        )
+        item_conflicts = list(stale_reasons)
+        if str(assertion.get("host_club") or "") != club:
+            item_conflicts.append("source_host_club_mismatch")
+        if tournament is not None and tournament.get("cancelled"):
+            item_conflicts.append("tournament_cancelled")
+        item_conflicts = sorted(set(item_conflicts))
+        if item_conflicts:
+            conflicts.append(
+                {
+                    "kind": "interpretation_not_current",
+                    "tournament_id": tournament_id,
+                    "reasons": item_conflicts,
+                    "message": f"Tournament {tournament_id} must be reviewed before source acceptance.",
+                }
+            )
 
-    club = str(source_record.get("host_club") or "")
-    if not club:
-        raise ValueError("Club booking source has no host club")
-    assert source_record is not None  # type hint for downstream
+        interpretations.append(
+            {
+                "tournament_id": tournament_id,
+                "assertion_id": str(assertion.get("id") or ""),
+                "booking_status": str(assertion.get("booking_status") or ""),
+                "before_interval": assertion.get("calendar_baseline"),
+                "accepted_interval": assertion.get("asserted_interval"),
+                "stated_interval": assertion.get("stated_interval"),
+                "source_revision": str(assertion.get("source_revision") or ""),
+                "conflicts": item_conflicts,
+            }
+        )
 
-    # Get the club's tournaments from the plan
-    tournaments = [
-        t for t in (plan.get("tournaments") or []) if str(t.get("host_club") or "") == club and not t.get("cancelled")
-    ]
-
-    now = _now_iso()
-    resolved_actor = _operator_identity(actor)
-
-    # Build proposed assertions for each tournament
-    proposed_assertions = []
-    for tournament in tournaments:
-        tid = str(tournament.get("id") or "")
-        # Check if there's already an active assertion linked to this source
-        existing_assertion = None
-        for assertion in active_manual_assertions(decisions):
-            if (
-                str(assertion.get("tournament_id") or "") == tid
-                and str(assertion.get("source_assertion_id") or "") == source_id
-            ):
-                existing_assertion = assertion
-                break
-
-        # The source doesn't store per-tournament intervals directly,
-        # so we use the canonical plan's interval as the proposed interval
-        # (the operator would have set these via booking-set previously)
-        # For the preview, we show what would be created/updated
-        proposed = {
-            "tournament_id": tid,
-            "age_group": str(tournament.get("age_group") or ""),
-            "date": str(tournament.get("date") or ""),
-            "existing_assertion_id": str(existing_assertion.get("id") or "") if existing_assertion else None,
-            "proposed_interval": {
-                "date": str(tournament.get("date") or ""),
-                "start_time": str(tournament.get("start_time") or ""),
-                "end_time": str(tournament.get("end_time") or ""),
-            },
-            "would_create": existing_assertion is None,
-            "would_update": existing_assertion is not None,
-        }
-        proposed_assertions.append(proposed)
-
-    return {
+    preview: dict[str, Any] = {
         "season": season,
         "source_id": source_id,
         "club": club,
-        "source_document": str(source_record.get("source_document") or ""),
-        "source_version": str(source_record.get("source_version") or ""),
-        "source_fingerprint": str(source_record.get("source_fingerprint") or ""),
-        "canonical_state_revision": current_revision,
-        "proposed_assertions": proposed_assertions,
-        "count": len(proposed_assertions),
+        "source_document": str(source.get("source_document") or ""),
+        "source_version": str(source.get("source_version") or ""),
+        "source_fingerprint": str(source.get("source_fingerprint") or ""),
+        "canonical_state_revision": revision,
+        "interpretations": interpretations,
+        # Compatibility for callers introduced by the original PR.
+        "proposed_assertions": interpretations,
+        "count": len(interpretations),
+        "conflicts": conflicts,
     }
+    preview["reviewed_token"] = _reviewed_token(preview)
+    return preview
 
 
 def club_booking_acceptance_preview(
@@ -121,25 +143,16 @@ def club_booking_acceptance_preview(
     reference: str = "",
     expected_revision: str | None = None,
 ) -> dict[str, Any]:
-    """Read-only preview of club-wide booking acceptance.
+    """Preview the exact active interpretations already linked to one source."""
 
-    Shows the proposed ID fan-out (which tournaments would get assertions)
-    and changed-slot corrections (what intervals would change) without
-    mutating canonical state. Bound to a specific canonical revision and
-    source fingerprint for stale-revision protection.
-    """
-    result = _assertions_from_source(
-        service,
+    del actor, note, reference
+    preview = _preview_from_snapshot(
+        service.load(season),
         season=season,
         source_id=source_id,
-        actor=actor,
-        note=note,
-        reference=reference,
         expected_revision=expected_revision,
-        dry_run=True,
     )
-    result["dry_run"] = True
-    return result
+    return {**preview, "dry_run": True}
 
 
 def club_booking_acceptance_apply(
@@ -154,164 +167,95 @@ def club_booking_acceptance_apply(
     reviewed_token: str | None = None,
     dry_run: bool = False,
 ) -> dict[str, Any]:
-    """Atomically apply club-wide booking acceptance.
+    """Atomically record review of an existing, conflict-free interpretation set.
 
-    Creates or updates per-tournament manual booking assertions linked to the
-    club-wide source with their proposed intervals, and confirms the bookings
-    in one atomic operation. Includes stale-revision protection and
-    zero-unrelated-mutations guarantee.
+    Per-tournament source facts and interval corrections remain owned by
+    ``set_manual_booking_assertion``. This operation never manufactures or
+    rewrites assertions or booking evidence; it only persists the reviewed
+    source/revision-bound acceptance artifact.
     """
-    # First, get the preview to know what we're applying
-    preview = _assertions_from_source(
-        service,
-        season=season,
-        source_id=source_id,
-        actor=actor,
-        note=note,
-        reference=reference,
-        expected_revision=expected_revision,
-        dry_run=True,
-    )
-
-    if dry_run:
-        return {
-            **preview,
-            "dry_run": True,
-            "would_apply": len(preview["proposed_assertions"]),
-        }
 
     snapshot = service.load(season)
-    schedule, decisions = snapshot.schedule, snapshot.decisions
-    plan = schedule.get("plan") or {}
-    current_revision = canonical_state_revision(schedule, decisions)
+    preview = _preview_from_snapshot(
+        snapshot,
+        season=season,
+        source_id=source_id,
+        expected_revision=expected_revision,
+    )
+    if not reviewed_token:
+        raise SeasonStateError("A reviewed token from club-booking-acceptance-preview is required")
 
-    if expected_revision and expected_revision != current_revision:
-        raise ValueError(f"Stale canonical revision: expected {expected_revision}, current is {current_revision}")
-
-    # Verify reviewed_token if provided
-    if reviewed_token:
-        # In a real implementation, this would verify the preview hash
-        # For now, we just note it
-        pass
-
-    now = _now_iso()
-    resolved_actor = _operator_identity(actor)
-    source_record = club_booking_source_record_by_id(decisions, source_id)
-    if not source_record:
-        raise ValueError(f"Club booking source not found: {source_id}")
-    club = str(source_record.get("host_club") or "")
-
-    updated = dict(decisions)
-    manual_assertions = [dict(a) for a in updated.get(MANUAL_BOOKING_ASSERTIONS_KEY) or [] if isinstance(a, Mapping)]
-
-    created_count = 0
-    updated_count = 0
-    booking_evidence = [dict(e) for e in updated.get(TOURNAMENT_BOOKING_EVIDENCE_KEY) or [] if isinstance(e, Mapping)]
-
-    for proposed in preview["proposed_assertions"]:
-        tid = proposed["tournament_id"]
-        tournament = next((t for t in (plan.get("tournaments") or []) if str(t.get("id") or "") == tid), None)
-        if not tournament:
-            continue
-
-        # Find or create the assertion
-        existing_idx = None
-        for idx, assertion in enumerate(manual_assertions):
-            if (
-                str(assertion.get("tournament_id") or "") == tid
-                and str(assertion.get("source_assertion_id") or "") == source_id
-            ):
-                existing_idx = idx
-                break
-
-        # Use the canonical tournament's interval as the stated interval
-        stated_interval = {
-            "date": str(tournament.get("date") or ""),
-            "start": str(tournament.get("start_time") or ""),
+    history = snapshot.decisions.get("history") or []
+    already_accepted = next(
+        (
+            entry
+            for entry in reversed(history)
+            if isinstance(entry, Mapping)
+            and entry.get("event") == _ACCEPTANCE_EVENT
+            and (entry.get("details") or {}).get("source_assertion_id") == source_id
+            and (entry.get("details") or {}).get("reviewed_token") == reviewed_token
+        ),
+        None,
+    )
+    if already_accepted is not None:
+        return {
+            **preview,
+            "dry_run": bool(dry_run),
+            "would_apply": preview["count"],
+            "changed": False,
+            "idempotent": True,
         }
-        end_time = str(tournament.get("end_time") or "")
-        if end_time:
-            stated_interval["end"] = end_time
-
-        supersedes = None
-        if existing_idx is not None:
-            old_assertion = manual_assertions[existing_idx]
-            supersedes = str(old_assertion.get("id") or "")
-
-        new_assertion = new_manual_assertion_record(
-            tournament=tournament,
-            booking_status="booked",
-            problem=None,
-            actor=resolved_actor,
-            note=note,
-            reference=reference,
-            source_scope="club_wide_interpretation",
-            stated_interval=stated_interval,
-            asserted_at=now,
-            source_revision=current_revision,
-            supersedes=supersedes,
-            source_assertion_id=source_id,
+    if reviewed_token != preview["reviewed_token"]:
+        raise SeasonStateError(
+            "Reviewed token does not match the active source, canonical revision, and interpretations; "
+            "run the preview again"
+        )
+    if preview["conflicts"]:
+        raise SeasonStateError(
+            "Club booking acceptance has unresolved conflicts: "
+            + ", ".join(str(conflict["kind"]) for conflict in preview["conflicts"])
         )
 
-        if existing_idx is not None:
-            # Update existing assertion
-            old_assertion = manual_assertions[existing_idx]
-            new_assertion["id"] = old_assertion["id"]
-            new_assertion["supersedes"] = str(old_assertion.get("id") or "")
-            manual_assertions[existing_idx] = new_assertion
-            updated_count += 1
-        else:
-            # Create new assertion
-            manual_assertions.append(new_assertion)
-            created_count += 1
+    result = {
+        **preview,
+        "dry_run": bool(dry_run),
+        "would_apply": preview["count"],
+        "changed": True,
+        "idempotent": False,
+    }
+    if dry_run:
+        return result
 
-        # Also create booking evidence for the confirmed booking
-        booking_evidence.append(
-            {
-                "tournament_id": tid,
-                "status": "accepted",
-                "accepted_interval": stated_interval,
-                "accepted_at": now,
-                "accepted_by": resolved_actor,
-                "source_assertion_id": source_id,
-                "source_authority": "club_wide_acceptance",
-            }
-        )
-
-    updated[MANUAL_BOOKING_ASSERTIONS_KEY] = manual_assertions
-    updated[TOURNAMENT_BOOKING_EVIDENCE_KEY] = booking_evidence
-    updated["updated_at"] = now
-
+    updated = dict(snapshot.decisions)
+    now = _now_iso()
     _append_decision_history(
         updated,
-        event="club_booking_acceptance",
+        event=_ACCEPTANCE_EVENT,
         tournament_id="",
-        actor=resolved_actor,
+        actor=_operator_identity(actor),
         now=now,
         note=note,
         details={
-            "club": club,
             "source_assertion_id": source_id,
-            "source_document": str(source_record.get("source_document", "") or ""),
-            "source_version": str(source_record.get("source_version", "") or ""),
-            "created": created_count,
-            "updated": updated_count,
-            "total": len(preview["proposed_assertions"]),
+            "source_fingerprint": preview["source_fingerprint"],
+            "source_document": preview["source_document"],
+            "source_version": preview["source_version"],
+            "canonical_state_revision": preview["canonical_state_revision"],
+            "reviewed_token": reviewed_token,
+            "reference": reference,
+            "tournament_ids": [item["tournament_id"] for item in preview["interpretations"]],
         },
     )
-
+    updated["updated_at"] = now
     committed = service._commit(snapshot.with_decisions(updated))
-    new_revision = canonical_state_revision(committed.schedule, committed.decisions)
-
     return {
-        "season": season,
+        **result,
         "dry_run": False,
         "changed": True,
-        "club": club,
-        "source_assertion_id": source_id,
-        "canonical_state_revision": new_revision,
-        "previous_revision": current_revision,
-        "created": created_count,
-        "updated": updated_count,
-        "total": len(preview["proposed_assertions"]),
+        "idempotent": False,
+        "canonical_state_revision": canonical_state_revision(
+            committed.schedule,
+            committed.decisions,
+        ),
+        "previous_revision": preview["canonical_state_revision"],
     }

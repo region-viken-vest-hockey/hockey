@@ -21,6 +21,7 @@ def _cmd_season(args) -> int:
         _cmd_season_unapprove,
         _cmd_season_banned_dates,
     )
+    from .season_acceptance_command import _cmd_season_club_booking_acceptance
     from .season_batch_command import (
         _cmd_season_batch,
     )
@@ -124,8 +125,6 @@ def _cmd_season(args) -> int:
         _cmd_season_calendar_booking_findings,
         _cmd_season_booking_assessment,
         _cmd_season_reconcile_calendars,
-        _cmd_season_club_booking_acceptance_preview,
-        _cmd_season_club_booking_acceptance_apply,
     )
 
     try:
@@ -221,7 +220,6 @@ def _cmd_season(args) -> int:
 
         if args.season_command == "swap-participants":
             from .season_swap_command import _cmd_season_swap_participants
-
             return _cmd_season_swap_participants(args)
 
         if args.season_command == "remove-participant":
@@ -323,20 +321,11 @@ def _cmd_season(args) -> int:
         if args.season_command == "banned-dates":
             return _cmd_season_banned_dates(args)
 
-        if args.season_command == "holiday-date-exceptions":
-            return _cmd_season_holiday_date_exceptions(args)
-
         if args.season_command == "booking-assessment":
             return _cmd_season_booking_assessment(args)
 
         if args.season_command == "reconcile-calendar-bookings":
             return _cmd_season_reconcile_calendars(args)
-
-        if args.season_command == "club-booking-acceptance-preview":
-            return _cmd_season_club_booking_acceptance_preview(args)
-
-        if args.season_command == "club-booking-acceptance-apply":
-            return _cmd_season_club_booking_acceptance_apply(args)
 
         if args.season_command == "normalize-placements":
             return _cmd_season_normalize_placements(args)
@@ -359,14 +348,11 @@ def _cmd_season(args) -> int:
         if args.season_command == "status":
             return _cmd_season_status(args)
 
-        if args.season_command == "approve":
-            return _cmd_season_approve(args)
-
-        if args.season_command == "unapprove":
-            return _cmd_season_unapprove(args)
-
         if args.season_command == "banned-dates":
             return _cmd_season_banned_dates(args)
+
+        if args.season_command.startswith("club-booking-acceptance"):
+            return _cmd_season_club_booking_acceptance(args)
 
         if args.season_command == "batch":
             return _cmd_season_batch(args)
