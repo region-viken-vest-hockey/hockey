@@ -40,6 +40,10 @@ from tournament_scheduler.application.canonical_season.store_facade import (
     set_ice_time_minutes,
     set_manual_booking_assertion,
 )
+from tournament_scheduler.application.canonical_season.acceptance_facade import (
+    club_booking_acceptance_apply,
+    club_booking_acceptance_preview,
+)
 from tests.test_approval_lifecycle import (
     _export_html_with_booking_report,
     _host_a_problem,
@@ -102,6 +106,274 @@ def test_source_provenance_and_interpretation_survive_refresh(tmp_path):
     assert row["status"] == "manually_booked"
     assert row["source_assertion_id"] == source["id"]
     assert row["source_document"] == "changes_and_confirmations/2026-27/club.xlsx"
+
+
+def test_acceptance_requires_existing_linked_interpretations(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    source = _source_set(root)["source"]
+
+    preview = club_booking_acceptance_preview(
+        season="2026-2027",
+        root=root,
+        source_id=source["id"],
+    )
+
+    assert preview["count"] == 0
+    assert preview["proposed_assertions"] == []
+    assert [item["kind"] for item in preview["conflicts"]] == ["no_linked_interpretations"]
+    with pytest.raises(SeasonStateError, match="unresolved conflicts"):
+        club_booking_acceptance_apply(
+            season="2026-2027",
+            root=root,
+            source_id=source["id"],
+            reviewed_token=preview["reviewed_token"],
+        )
+
+
+def test_acceptance_records_review_without_rewriting_booking_evidence(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    source = _source_set(root)["source"]
+    interpretation = _interpretation(root, source_id=source["id"], problem=problem)
+    before = load_decisions("2026-2027", root=root)
+
+    preview = club_booking_acceptance_preview(
+        season="2026-2027",
+        root=root,
+        source_id=source["id"],
+    )
+
+    assert preview["count"] == 1
+    assert preview["conflicts"] == []
+    assert preview["interpretations"][0]["assertion_id"] == interpretation["assertion"]["id"]
+    assert preview["interpretations"][0]["accepted_interval"] == interpretation["assertion"]["asserted_interval"]
+
+    result = club_booking_acceptance_apply(
+        season="2026-2027",
+        root=root,
+        source_id=source["id"],
+        reviewed_token=preview["reviewed_token"],
+        actor="reviewer",
+        note="reviewed the exact source interpretations",
+    )
+    after = load_decisions("2026-2027", root=root)
+
+    assert result["changed"] is True
+    assert after[MANUAL_BOOKING_ASSERTIONS_KEY] == before[MANUAL_BOOKING_ASSERTIONS_KEY]
+    assert after.get("tournament_booking_evidence") == before.get("tournament_booking_evidence")
+    acceptance = after["history"][-1]
+    assert acceptance["event"] == "club_booking_acceptance"
+    assert acceptance["details"]["reviewed_token"] == preview["reviewed_token"]
+    assert acceptance["details"]["tournament_ids"] == ["t1"]
+
+    repeated = club_booking_acceptance_apply(
+        season="2026-2027",
+        root=root,
+        source_id=source["id"],
+        reviewed_token=preview["reviewed_token"],
+    )
+    assert repeated["changed"] is False
+    assert repeated["idempotent"] is True
+    assert load_decisions("2026-2027", root=root)["history"] == after["history"]
+
+
+def test_acceptance_rejects_stale_token_and_superseded_source(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1"), _tournament("t2", date_str="2026-09-13")])
+    problem = _host_a_problem([])
+    source = _source_set(root)["source"]
+    _interpretation(root, source_id=source["id"], problem=problem)
+    preview = club_booking_acceptance_preview(
+        season="2026-2027",
+        root=root,
+        source_id=source["id"],
+    )
+
+    _interpretation(root, tournament_id="t2", source_id=source["id"], problem=problem)
+    with pytest.raises(SeasonStateError, match="Reviewed token does not match"):
+        club_booking_acceptance_apply(
+            season="2026-2027",
+            root=root,
+            source_id=source["id"],
+            reviewed_token=preview["reviewed_token"],
+        )
+
+    replacement = _source_set(root, source_version="2026-09-28")["source"]
+    assert replacement["id"] != source["id"]
+    with pytest.raises(SeasonStateError, match="Superseded sources cannot be accepted"):
+        club_booking_acceptance_preview(
+            season="2026-2027",
+            root=root,
+            source_id=source["id"],
+        )
+
+
+def _accepted_once(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    source = _source_set(root)["source"]
+    _interpretation(root, source_id=source["id"], problem=problem)
+    preview = club_booking_acceptance_preview(season="2026-2027", root=root, source_id=source["id"])
+    club_booking_acceptance_apply(
+        season="2026-2027", root=root, source_id=source["id"], reviewed_token=preview["reviewed_token"]
+    )
+    return root, problem, source, preview
+
+
+def test_acceptance_repeat_survives_unrelated_later_writes(tmp_path):
+    root, _problem, source, preview = _accepted_once(tmp_path)
+    add_request_constraint(
+        season="2026-2027",
+        root=root,
+        type="team_unavailable",
+        request_id="unrelated-later-write",
+        teams=[{"club": "B", "label": "B1", "age_group": "U10"}],
+        date_from="2026-12-01",
+        actor="tester",
+    )
+    history_before = load_decisions("2026-2027", root=root)["history"]
+
+    repeated = club_booking_acceptance_apply(
+        season="2026-2027", root=root, source_id=source["id"], reviewed_token=preview["reviewed_token"]
+    )
+
+    assert repeated["idempotent"] is True and repeated["changed"] is False
+    assert load_decisions("2026-2027", root=root)["history"] == history_before
+
+
+def test_acceptance_old_token_is_refused_after_reviewed_content_changes(tmp_path):
+    root, problem, source, preview = _accepted_once(tmp_path)
+    _interpretation(
+        root,
+        source_id=source["id"],
+        problem=problem,
+        stated_date="2026-09-13",
+        stated_start="12:30",
+        stated_end="14:20",
+        supersede=True,
+        note="club corrected the slot",
+    )
+    history_before = load_decisions("2026-2027", root=root)["history"]
+
+    with pytest.raises(SeasonStateError, match="Reviewed token does not match"):
+        club_booking_acceptance_apply(
+            season="2026-2027", root=root, source_id=source["id"], reviewed_token=preview["reviewed_token"]
+        )
+    assert load_decisions("2026-2027", root=root)["history"] == history_before
+
+
+def test_acceptance_commit_is_compare_and_swap_against_concurrent_writes(tmp_path, monkeypatch):
+    from tournament_scheduler.application.canonical_season.calendars import acceptance
+
+    root = _promote(tmp_path, [_tournament("t1")])
+    problem = _host_a_problem([])
+    source = _source_set(root)["source"]
+    _interpretation(root, source_id=source["id"], problem=problem)
+    preview = club_booking_acceptance_preview(season="2026-2027", root=root, source_id=source["id"])
+    real_history = acceptance._append_decision_history
+
+    def competing_write_then_history(*args, **kwargs):
+        add_request_constraint(
+            season="2026-2027",
+            root=root,
+            type="team_unavailable",
+            request_id="competing-write",
+            teams=[{"club": "B", "label": "B1", "age_group": "U10"}],
+            date_from="2026-12-01",
+            actor="tester",
+        )
+        return real_history(*args, **kwargs)
+
+    monkeypatch.setattr(acceptance, "_append_decision_history", competing_write_then_history)
+
+    with pytest.raises(Exception, match="(?i)revision"):
+        club_booking_acceptance_apply(
+            season="2026-2027", root=root, source_id=source["id"], reviewed_token=preview["reviewed_token"]
+        )
+
+    decisions = load_decisions("2026-2027", root=root)
+    assert any(e.get("event") == "club_booking_acceptance" for e in decisions["history"]) is False
+    assert "competing-write" in json.dumps(decisions)
+
+
+def _edit_state(root, *, schedule=None, decisions=None):
+    """Write canonical files directly, as the existing fixtures do, to stage owner-shaped state."""
+
+    base = root / "2026-2027"
+    for name, edit in (("schedule.json", schedule), ("decisions.json", decisions)):
+        if edit is not None:
+            path = base / name
+            data = json.loads(path.read_text(encoding="utf-8"))
+            edit(data)
+            path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def _two_linked_interpretations(tmp_path):
+    root = _promote(tmp_path, [_tournament("t1", date_str="2026-09-12"), _tournament("t2", date_str="2026-09-19")])
+    problem = _host_a_problem([])
+    source = _source_set(root)["source"]
+    _interpretation(root, tournament_id="t1", source_id=source["id"], problem=problem)
+    _interpretation(root, tournament_id="t2", source_id=source["id"], problem=problem)
+    return root, source
+
+
+def test_acceptance_blocks_on_overlapping_club_stated_windows(tmp_path):
+    root, source = _two_linked_interpretations(tmp_path)
+
+    # Canonical placements are on different days, but the club's own list states
+    # overlapping windows for both IDs on the same day.
+    def stated(data):
+        windows = {"t1": ("10:00", "12:00"), "t2": ("11:00", "13:00")}
+        for record in data[MANUAL_BOOKING_ASSERTIONS_KEY]:
+            start, end = windows[record["tournament_id"]]
+            record["stated_interval"] = {"date": "2026-10-03", "start": start, "end": end}
+
+    _edit_state(root, decisions=stated)
+
+    preview = club_booking_acceptance_preview(season="2026-2027", root=root, source_id=source["id"])
+
+    assert [c["kind"] for c in preview["conflicts"]] == ["overlapping_source_intervals"]
+    assert preview["conflicts"][0]["tournament_pairs"] == [["t1", "t2"]]
+    with pytest.raises(SeasonStateError, match="overlapping_source_intervals"):
+        club_booking_acceptance_apply(
+            season="2026-2027", root=root, source_id=source["id"], reviewed_token=preview["reviewed_token"]
+        )
+
+
+def test_acceptance_blocks_when_a_linked_tournament_was_cancelled(tmp_path):
+    from tournament_scheduler.booking.calendar_bookings import release_booking_authority_for_new_cancellations
+
+    root, source = _two_linked_interpretations(tmp_path)
+    before_plan = load_schedule("2026-2027", root=root)["plan"]
+
+    def cancel(data):
+        for tournament in data["plan"]["tournaments"]:
+            if tournament["id"] == "t2":
+                tournament["cancelled"] = True
+
+    _edit_state(root, schedule=cancel)
+    after_plan = load_schedule("2026-2027", root=root)["plan"]
+
+    def release(data):
+        # The cancellation owner supersedes the linked interpretation, so it
+        # leaves the active rows -- the very case the preview must still see.
+        data.update(
+            release_booking_authority_for_new_cancellations(
+                data, before_plan=before_plan, after_plan=after_plan, now="2026-10-01T00:00:00+00:00", operation="cancel"
+            )
+        )
+
+    _edit_state(root, decisions=release)
+
+    preview = club_booking_acceptance_preview(season="2026-2027", root=root, source_id=source["id"])
+
+    assert preview["count"] == 1
+    assert [(c["kind"], c.get("tournament_id")) for c in preview["conflicts"]] == [
+        ("interpretation_tournament_cancelled", "t2")
+    ]
+    with pytest.raises(SeasonStateError, match="interpretation_tournament_cancelled"):
+        club_booking_acceptance_apply(
+            season="2026-2027", root=root, source_id=source["id"], reviewed_token=preview["reviewed_token"]
+        )
 
 
 def test_club_booking_source_report_groups_per_id_disposition(tmp_path):
@@ -876,6 +1148,14 @@ def test_source_assertion_is_decision_only_in_sealed_replay():
             },
         }
     ]
+    projection, applied = replay_recorded_mutations(baseline, history)
+    assert projection["t1"]["date"] == "2026-09-12"
+    assert applied == []
+
+
+def test_acceptance_artifact_is_decision_only_in_sealed_replay():
+    baseline = {"t1": {"id": "t1", "age_group": "U10", "date": "2026-09-12", "start_time": "10:00", "placement": {"date": "2026-09-12"}}}
+    history = [{"event": "club_booking_acceptance", "tournament_id": "", "details": {"source_assertion_id": "club_booking_source:A:x"}}]
     projection, applied = replay_recorded_mutations(baseline, history)
     assert projection["t1"]["date"] == "2026-09-12"
     assert applied == []

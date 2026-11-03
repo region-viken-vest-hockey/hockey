@@ -34,7 +34,6 @@ method here delegates to exactly one implementation; callers never need to
 know which internal module implements a command.
 """
 
-
 from __future__ import annotations
 
 import os
@@ -72,6 +71,7 @@ from .canonical_season import (
     retirement as _retirement,
     withdrawal as _withdrawal,
 )
+from .canonical_season.acceptance_service import ClubBookingAcceptanceMixin
 from .canonical_season.shared import APPROVED_STATUS, PENDING_REVIEW_STATUS, STALE_APPROVAL_STATUS
 from .canonical_season.write_gate import WriteGate, gate_canonical_writes, production_write_gate
 
@@ -85,7 +85,7 @@ __all__ = [
 
 
 @gate_canonical_writes
-class CanonicalSeasonService:
+class CanonicalSeasonService(ClubBookingAcceptanceMixin):
     """Application-layer mutation service over a canonical-season store."""
 
     def __init__(

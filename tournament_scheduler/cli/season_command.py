@@ -21,6 +21,7 @@ def _cmd_season(args) -> int:
         _cmd_season_unapprove,
         _cmd_season_banned_dates,
     )
+    from .season_acceptance_command import _cmd_season_club_booking_acceptance
     from .season_batch_command import (
         _cmd_season_batch,
     )
@@ -320,9 +321,6 @@ def _cmd_season(args) -> int:
         if args.season_command == "banned-dates":
             return _cmd_season_banned_dates(args)
 
-        if args.season_command == "holiday-date-exceptions":
-            return _cmd_season_holiday_date_exceptions(args)
-
         if args.season_command == "booking-assessment":
             return _cmd_season_booking_assessment(args)
 
@@ -350,14 +348,11 @@ def _cmd_season(args) -> int:
         if args.season_command == "status":
             return _cmd_season_status(args)
 
-        if args.season_command == "approve":
-            return _cmd_season_approve(args)
-
-        if args.season_command == "unapprove":
-            return _cmd_season_unapprove(args)
-
         if args.season_command == "banned-dates":
             return _cmd_season_banned_dates(args)
+
+        if args.season_command.startswith("club-booking-acceptance"):
+            return _cmd_season_club_booking_acceptance(args)
 
         if args.season_command == "batch":
             return _cmd_season_batch(args)

@@ -28,6 +28,7 @@ from tournament_scheduler.distribution_update import WriteBlockedError
 from tournament_scheduler.infrastructure.canonical_season_store import CanonicalSeasonStore
 
 SERVICE_SOURCE = Path("tournament_scheduler/application/canonical_season_service.py")
+MIXIN_SOURCE = Path("tournament_scheduler/application/canonical_season/acceptance_service.py")
 SEASON = "2026-2027"
 
 GATED_WRITES = frozenset(
@@ -41,7 +42,7 @@ GATED_WRITES = frozenset(
         "normalize_arena_identities", "reserve_guest_slot", "fill_guest_slot", "release_guest_slot",
         "release_change_protections", "reconcile_calendar_bookings", "confirm_calendar_booking",
         "release_calendar_booking", "set_manual_booking_assertion", "clear_manual_booking_assertion",
-        "set_club_booking_source", "set_ice_time_minutes", "clear_ice_time_minutes",
+        "set_club_booking_source", "club_booking_acceptance_apply", "set_ice_time_minutes", "clear_ice_time_minutes",
         "record_placement_infeasibility_proofs", "release_placement_infeasibility_proofs",
         "approve_tournament", "unapprove_tournament", "record_participation_acceptance",
         "revoke_participation_acceptance",
@@ -58,7 +59,7 @@ READ_ONLY = frozenset(
         "season_lifecycle_report", "verify_sealed_reconciliation", "publication_evidence_report",
         "guest_slot_report", "guest_slot_candidates", "change_protection_report", "calendar_booking_candidates",
         "calendar_booking_assessment", "calendar_booking_findings", "booking_status_report",
-        "club_booking_sources", "ice_time_override_report", "placement_infeasibility_report",
+        "club_booking_sources", "club_booking_acceptance_preview", "ice_time_override_report", "placement_infeasibility_report",
         "load_participation_acceptances", "approval_report",
     }
 )
@@ -110,9 +111,14 @@ def test_gated_set_is_the_enumerated_write_use_cases() -> None:
     for name in READ_ONLY:
         assert not hasattr(getattr(CanonicalSeasonService, name), "__wrapped__"), f"{name} must stay ungated"
 
-    tree = ast.parse(SERVICE_SOURCE.read_text(encoding="utf-8"))
-    service = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "CanonicalSeasonService")
-    public = {item.name for item in service.body if isinstance(item, ast.FunctionDef) and not item.name.startswith("_")}
+    public: set[str] = set()
+    for source, class_name in (
+        (SERVICE_SOURCE, "CanonicalSeasonService"),
+        (MIXIN_SOURCE, "ClubBookingAcceptanceMixin"),
+    ):
+        tree = ast.parse(source.read_text(encoding="utf-8"))
+        owner = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == class_name)
+        public |= {i.name for i in owner.body if isinstance(i, ast.FunctionDef) and not i.name.startswith("_")}
     assert public == GATED_WRITES | READ_ONLY, "new public service methods must be classified as gated or read-only"
 
 

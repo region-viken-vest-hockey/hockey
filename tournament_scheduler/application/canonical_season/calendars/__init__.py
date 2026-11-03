@@ -1,5 +1,6 @@
 """Compatibility exports for canonical-season calendar use cases."""
 
+from .acceptance import club_booking_acceptance_apply, club_booking_acceptance_preview
 from .assessment import (
     _classify_club_calendar_bookings,
     booking_status_report,
@@ -78,6 +79,8 @@ __all__ = [
     "calendar_booking_candidates",
     "calendar_booking_findings",
     "clear_manual_booking_assertion",
+    "club_booking_acceptance_apply",
+    "club_booking_acceptance_preview",
     "club_booking_sources",
     "confirm_calendar_booking",
     "reconcile_calendar_bookings",
