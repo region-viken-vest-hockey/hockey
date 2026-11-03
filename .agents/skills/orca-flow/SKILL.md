@@ -337,14 +337,14 @@ Delete only the ChatGPT chats this flow created (review and consult chats), and 
   still a flow chat and must be deleted.
 - The sidebar can list one chat twice (in the project list and under Recents). Delete it once,
   then re-read the sidebar and confirm no entry with that first message remains.
-- Delete with `npm run orca -- review-delete --page <pageId> --message-file <file>`, where the file
-  holds the exact first message you sent. It refuses (`NOT_A_FLOW_CHAT`) unless the chat's first
-  message matches, deletes through the sidebar entry, confirms no entry with that title remains
-  and closes the tab. A chat that has no title yet (`TITLE_UNKNOWN`) needs its reply first.
+- Delete with `npm run orca -- review-delete --page <pageId>`. It requires a conversation inside the campsty
+  project, deletes through the sidebar entry, confirms no entry with that title remains and closes
+  the tab. It does not compare the first message, so pass only a page this flow created. A chat that
+  has no title yet (`TITLE_UNKNOWN`) needs its reply first.
 
 - Keep scratch files in the scratchpad directory, never in the repo.
 - `review-delete` verifies the deletion itself; trust its `ok`, not a click result.
-- Never delete a chat whose first message the flow did not send, even if its title looks similar.
+- Never delete a chat the flow did not create, even if its title looks similar.
 
 ## When stuck: consult ChatGPT
 

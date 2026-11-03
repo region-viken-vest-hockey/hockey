@@ -174,7 +174,7 @@ For each validated finding:
 
 ## 10. Cleanup Review Chats
 
-Delete only flow-created ChatGPT chats (review + consult) using `npm run orca -- review-delete --page <pageId> --message-file <file>`. Verify deletion.
+Delete only flow-created ChatGPT chats (review + consult) using `npm run orca -- review-delete --page <pageId>`. Verify deletion.
 
 ## 11. Final Report
 
