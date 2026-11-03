@@ -1,4 +1,4 @@
-// Transactional local run/lease state for the autonomous controller (#962, M1).
+// Transactional local run/lease state for the autonomous controller.
 // GitHub stays authoritative for issue and PR state; this store only records
 // which local run owns an issue, its state-machine position and its attempts.
 import { existsSync, mkdirSync } from "node:fs";
@@ -87,7 +87,7 @@ export function openState(dbPath) {
     repairs INTEGER NOT NULL,
     PRIMARY KEY (issue, run_id, key)
   )`);
-  // The in-session skills' ledger (#962, S5): one row per repair started from a
+  // The in-session skills' ledger: one row per repair started from a
   // reviewed head, keyed by issue and pull request rather than by run, so it
   // survives a context reset, a hand-off to another session and a lease change.
   db.exec(`CREATE TABLE IF NOT EXISTS finding_ledger (
@@ -101,7 +101,7 @@ export function openState(dbPath) {
     PRIMARY KEY (issue, pr, key, head_sha)
   )`);
   // Why an issue was parked for the founder, kept with the evidence that
-  // triggered it (#962, S6). Rows are only ever added.
+  // triggered it. Rows are only ever added.
   db.exec(`CREATE TABLE IF NOT EXISTS authority_blocks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     issue INTEGER NOT NULL,

@@ -1,10 +1,10 @@
-// GitHub issue reads for the in-session delivery skills (#962, #991). The
+// GitHub issue reads for the in-session delivery skills. The
 // product-authority gate and the repair ledger re-read an issue from GitHub
 // rather than trusting a cached copy, and fail closed when GitHub does not
 // answer with a complete issue.
 import { spawnSync } from "node:child_process";
 
-export const REPO = "niclas-lindgren/camping-booking";
+export const REPO = "region-viken-vest-hockey/hockey";
 
 // One issue with its comments, read fresh from GitHub.
 export function fetchIssue(number, repo = REPO) {

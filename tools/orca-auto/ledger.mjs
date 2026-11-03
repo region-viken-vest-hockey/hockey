@@ -1,8 +1,8 @@
-// The in-session skills' repair ledger (#962, S5). A repair is counted per
+// The in-session skills' repair ledger. A repair is counted per
 // finding and per reviewed head: a retry on the same head is the same attempt,
 // and a head with no new commit has no new review, so it cannot be promoted.
 // These counts are separate from the headless controller's (state.mjs
-// repair_findings), which the default skill path does not use. `campsty-auto` and
+// repair_findings), which the default skill path does not use. `orca-auto` and
 // `orca-flow` run in a Claude or Pi conversation that can be reset or handed
 // over, so "two repairs per finding" cannot live in that conversation. Before
 // each repair the session records the findings it is about to fix against the

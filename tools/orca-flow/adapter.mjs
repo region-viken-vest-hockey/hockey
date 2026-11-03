@@ -1,14 +1,14 @@
-// Campsty Orca coordinator adapter (#1059).
+// Orca coordinator adapter.
 //
 // One Orca runtime owns dispatch and worker completion. This module builds the
 // Orca orchestration calls and the self-contained Task spec for one issue, and
 // starts no loop, schedule or controller. The issue lease and worktree stay with
-// `npm run auto` (#991) as the compatibility guard; review, merge and issue
+// `npm run auto` as the compatibility guard; review, merge and issue
 // closure stay with the coordinating session running `orca-flow`.
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { branchFor, worktreePathFor } from "../campsty-auto/worktrees.mjs";
+import { branchFor, worktreePathFor } from "../orca-auto/worktrees.mjs";
 
 const TERMINAL_STATES = ["COMPLETE", "PARKED", "FAILED"];
 const PERMITTED_AUTHORITY = ["CLEAR", "FOUNDER_APPROVED"];
@@ -16,11 +16,11 @@ const PERMITTED_AUTHORITY = ["CLEAR", "FOUNDER_APPROVED"];
 export function buildTaskSpec({ issue, title, branch, worktree }) {
   return [
     `Target: issue #${issue} "${title}", in the existing worktree ${worktree} on branch ${branch}.`,
-    `Change: implement the acceptance criteria of issue #${issue} (read them with \`gh issue view ${issue} --comments\`), following docs/agents/workflow.md, repository.md and testing.md.`,
-    "Constraints: edit only inside this worktree, never the repository root. Do not run `npm run auto -- claim`, `renew`, `release` or `founder-resume`; the coordinator alone manages the lease. Do not push, open a pull request, merge or close the issue. Do not add a model or vendor Co-Authored-By trailer. Stage files by explicit path. Leave unrelated files alone, including an uncommitted root mise.toml. The worktree boundary is an instruction, not a filesystem guard: do not write outside it.",
+    `Change: implement the acceptance criteria of issue #${issue} (read them with \`gh issue view ${issue} --comments\`), following AGENTS.md and .agents/commands/implement-issue.md (read both first).`,
+    "Constraints: edit only inside this worktree, never the repository root. Do not run `npm run auto -- claim`, `renew`, `release` or `founder-resume`; the coordinator alone manages the lease. Do not push, open a pull request, merge or close the issue. Do not add a model or vendor Co-Authored-By trailer. Stage files by explicit path. Never mutate the live season, publish, or run planner search to make a maintenance change pass; do not hand-edit canonical JSON or generated exports. Leave unrelated files alone. The worktree boundary is an instruction, not a filesystem guard: do not write outside it.",
     "Ownership: you alone edit this worktree while the task runs.",
-    "Before adding domain methods, search for existing equivalent implementations and reuse where contracts match; repair new complexity or duplication violations rather than weakening the quality gate.",
-    `Observable acceptance: \`mise run check\` (including \`npm run quality:check\`) exits 0 in this worktree; the work is committed on ${branch} with a conventional prefix; \`git status --short\` is empty. Then send worker_done with --outcome succeeded and --files-modified listing the changed paths. If you cannot reach that state, send worker_done with --outcome failed and the failing command with its output summary.`,
+    "Before adding domain methods, search for existing equivalent implementations and reuse where contracts match; fix file-length, lint or test failures rather than raising baselines or suppressing them.",
+    `Observable acceptance: \`scripts/check lint quick\` plus the focused tests for what you changed exits 0 in this worktree; the work is committed on ${branch} with a conventional prefix; \`git status --short\` is empty. Then send worker_done with --outcome succeeded and --files-modified listing the changed paths. If you cannot reach that state, send worker_done with --outcome failed and the failing command with its output summary.`,
   ].join("\n");
 }
 
@@ -28,7 +28,7 @@ export function buildDispatchPlan({ issue, title, owner, runId, repoRoot, stateD
   const worktree = worktreePathFor(repoRoot, issue);
   const branch = branchFor(issue);
   const spec = buildTaskSpec({ issue, title, branch, worktree });
-  const auto = ["node", join(repoRoot, "tools", "campsty-auto", "cli.mjs")];
+  const auto = ["node", join(repoRoot, "tools", "orca-auto", "cli.mjs")];
   return {
     issue,
     owner,
@@ -124,7 +124,7 @@ function claimRecord(plan) {
 }
 
 // Positive contract for Orca's JSON envelope: ok must be true. worker-start must
-// also report state "ready". A live pilot (#1047) returned state "ready" with stage
+// also report state "ready". A live pilot returned state "ready" with stage
 // "input_accepted" at exit 0, so the stage is not the success signal.
 function isConfirmedReceipt(parsed, { state } = {}) {
   if (!parsed.ok || parsed.value?.ok !== true) return false;

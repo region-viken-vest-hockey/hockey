@@ -1,4 +1,4 @@
-// Single-shot Orca dispatcher (#1073).
+// Single-shot Orca dispatcher.
 //
 // `tick` wakes once, reconciles what Orca, the dispatch records and the lease
 // store already say, and starts at most the free worker capacity from live GitHub
@@ -13,7 +13,7 @@ import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, linkSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { isPaused } from "../campsty-auto/state.mjs";
+import { isPaused } from "../orca-auto/state.mjs";
 import { buildDispatchPlan, dispatch, leaseHeldBy } from "./adapter.mjs";
 
 export const DEFAULT_CONFIG = Object.freeze({
@@ -214,7 +214,7 @@ function workerStatus(workers, worktree) {
  * and nothing new may be dispatched on that tick.
  */
 export function reconcile({ repoRoot, stateDir, exec, now }) {
-  const auto = ["node", join(repoRoot, "tools", "campsty-auto", "cli.mjs")];
+  const auto = ["node", join(repoRoot, "tools", "orca-auto", "cli.mjs")];
   const lease = execJson(exec, auto[0], [auto[1], "status"], repoRoot);
   const workersRead = execJson(exec, "orca", ["orchestration", "worker-list", "--include-remote", "--json"], repoRoot);
   const reliable = lease.ok && workersRead.ok;
@@ -256,7 +256,11 @@ export function reconcile({ repoRoot, stateDir, exec, now }) {
 }
 
 const PRIORITY = /priority:\s*P(\d)/i;
-export function priorityOf(labels) {
+// Hockey issues carry the priority in the title ("P1: ...", "P2 Operations: ...") rather than a label.
+const TITLE_PRIORITY = /^\s*P(\d)\b/;
+export function priorityOf(labels, title = "") {
+  const fromTitle = TITLE_PRIORITY.exec(String(title));
+  if (fromTitle) return Number(fromTitle[1]);
   for (const label of labels) {
     const match = PRIORITY.exec(label);
     if (match) return Number(match[1]);
@@ -303,7 +307,7 @@ export function selectCandidates({ exec, repoRoot, config, claimedIssues }) {
       skipped.push({ issue: issue.number, reason: prs.ok ? "delivery PR exists" : "delivery state unreadable" });
       continue;
     }
-    candidates.push({ issue: issue.number, title: issue.title, priority: priorityOf(labels) });
+    candidates.push({ issue: issue.number, title: issue.title, priority: priorityOf(labels, issue.title) });
   }
   // Priority orders the work; a P0 sorts first. Ties go to the older issue.
   candidates.sort((a, b) => a.priority - b.priority || a.issue - b.issue);
@@ -349,7 +353,7 @@ export function tick({ repoRoot, stateDir, exec = defaultExec, now = Date.now, n
   try {
     const recon = reconcile({ repoRoot, stateDir, exec, now: at });
     const errors = [...recon.errors];
-    const auto = ["node", join(repoRoot, "tools", "campsty-auto", "cli.mjs")];
+    const auto = ["node", join(repoRoot, "tools", "orca-auto", "cli.mjs")];
 
     // Renewing keeps a live worker's lease from expiring under it. An orphan claim
     // (no dispatch record) never reached a start, so an expired one is safe to free.

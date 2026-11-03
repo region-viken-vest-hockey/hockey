@@ -1,4 +1,4 @@
-// Coordination entry points for the in-session delivery skills (#962, #991):
+// Coordination entry points for the in-session delivery skills:
 // claim, renew, release, recover, pause, resume, auth-check, founder-resume,
 // repair-record, repair-status, status.
 // `orca-flow` (run from Claude Code via /goal or Pi via /skill:orca-flow) owns
@@ -36,14 +36,14 @@ export function lease(flags) {
   return { issue, owner: flags.owner, runId: flags.run };
 }
 
-// A dispatch record (tools/campsty-orca) in one of these states means an Orca worker may be writing in
+// A dispatch record (tools/orca-flow) in one of these states means an Orca worker may be writing in
 // the issue worktree. `not-started` is a dispatch that never reached the worker.
 // Only `not-started` (a dispatch that never reached the worker) is inactive; an unknown or malformed
 // record is treated as a live worker, because the guard must fail closed.
 const INACTIVE_DISPATCH_STATES = new Set(["not-started"]);
 
 /**
- * The live-worker record that stops another session from taking an issue (#1109). The lease alone
+ * The live-worker record that stops another session from taking an issue. The lease alone
  * is not enough: it expires after its TTL while a worker keeps running, and a session that then
  * claims the issue receives the very worktree the worker is writing in. The run that dispatched
  * the worker may reclaim its own lease. Everyone else waits for the operator to confirm the worker

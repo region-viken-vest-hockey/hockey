@@ -1,4 +1,4 @@
-// `auth-check`: the in-session skills' product-authority gate (#962, S6). See
+// `auth-check`: the in-session skills' product-authority gate. See
 // authority.mjs for what is detected and why approval is never inferred.
 import { classify } from "./authority.mjs";
 import { invalidIssue } from "./selector.mjs";

@@ -2,7 +2,7 @@
 // pull the floor from another live session.
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readlinkSync, realpathSync } from "node:fs";
-import { branchFor, worktreePathFor } from "../campsty-auto/worktrees.mjs";
+import { branchFor, worktreePathFor } from "../orca-auto/worktrees.mjs";
 
 /** @type {(command: string, args: string[], cwd: string) => {status: number | null, stdout: string, stderr: string}} */
 const defaultExec = (command, args, cwd) => spawnSync(command, args, { cwd, encoding: "utf8" });

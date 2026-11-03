@@ -1,4 +1,4 @@
-// Stable identities for what a repair is asked to fix (#962, M4 task 4: two
+// Stable identities for what a repair is asked to fix (, M4 task 4: two
 // attempts per finding). A key must survive a rewrite of the surrounding code,
 // so it ignores line numbers and the case, spacing and digits of the wording,
 // and it never depends on the model's own severity beyond which findings block.

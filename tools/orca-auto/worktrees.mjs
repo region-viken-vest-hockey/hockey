@@ -1,4 +1,4 @@
-// Issue-owned branch and worktree guard for the autonomous controller (#962, M1).
+// Issue-owned branch and worktree guard for the autonomous controller.
 // A worktree is created or reused only after the lease claim succeeded, and an
 // existing worktree is reused only when it is on the issue's own branch.
 import { spawnSync } from "node:child_process";

@@ -1,17 +1,17 @@
-// Entry point for the Campsty Orca coordinator adapter (#1059).
+// Entry point for the Orca coordinator adapter.
 //   npm run orca -- plan     --issue <n> --owner <name> --run <uuid> [--agent claude]
 //   npm run orca -- dispatch --issue <n> --owner <name> --run <uuid> [--agent claude]
 //   npm run orca -- verify-head --issue <n> --pr <pr> --owner <name> --run <uuid>
 // `plan` prints the Orca calls and starts nothing. `dispatch` requires the issue
 // lease to be held by --owner/--run (`npm run auto -- claim` first), then starts
 // one supervised worker in the issue worktree. It prints one JSON document.
-//   npm run orca -- tick     one single-shot dispatcher wake (disabled until .local/auto/dispatcher.json enables it, #1073)
+//   npm run orca -- tick     one single-shot dispatcher wake (disabled until .local/auto/dispatcher.json enables it)
 //   npm run orca -- status   last dispatcher report, enabled and paused state
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { defaultStateDir } from "../campsty-auto/state.mjs";
+import { defaultStateDir } from "../orca-auto/state.mjs";
 import { buildDispatchPlan, dispatch } from "./adapter.mjs";
 import { readStatus, tick } from "./dispatcher.mjs";
 import { verifyHead } from "./verify-head.mjs";

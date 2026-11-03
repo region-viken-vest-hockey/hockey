@@ -2,11 +2,12 @@
 // focus/URL/draft/Send-ref dance by hand. Advisory plumbing; it never decides a verdict.
 import { spawnSync } from "node:child_process";
 
-export const CAMPSTY_CHATGPT_PROJECT_URL =
-  "https://chatgpt.com/g/g-p-6a3f627992648191a41d0b2097584655-campsty/project";
-export const CAMPSTY_CHATGPT_PROJECT_SEGMENT = "-campsty/";
+// Every review/consult chat must live in the user's ChatGPT project "Hockey". The slug after the id is
+// optional in ChatGPT URLs, so the project is matched by its id.
+export const REVIEW_CHATGPT_PROJECT_ID = "g-p-6a6859a57a0881919c2f9a9266cec28c";
+export const REVIEW_CHATGPT_PROJECT_URL = `https://chatgpt.com/g/${REVIEW_CHATGPT_PROJECT_ID}/project`;
 // The project composer has been labelled both ways by ChatGPT.
-const COMPOSER_NAMES = ["Ask ChatGPT", "New chat in Campsty", "Reply to ChatGPT"];
+const COMPOSER_NAMES = ["Ask ChatGPT", "New chat in Hockey", "Reply to ChatGPT"];
 const DISCLAIMER = "ChatGPT can make mistakes";
 
 /** @typedef {{status: number | null, stdout: string, stderr: string}} ExecResult */
@@ -43,10 +44,10 @@ function orca(exec, cwd, args) {
   }
 }
 
-export function isCampstyUrl(url, { conversation = false } = {}) {
+export function isReviewProjectUrl(url, { conversation = false } = {}) {
   try {
     const u = new URL(url);
-    if (u.origin !== "https://chatgpt.com" || !u.pathname.includes(CAMPSTY_CHATGPT_PROJECT_SEGMENT)) return false;
+    if (u.origin !== "https://chatgpt.com" || !u.pathname.split("/").some((part) => part === REVIEW_CHATGPT_PROJECT_ID || part.startsWith(`${REVIEW_CHATGPT_PROJECT_ID}-`))) return false;
     return conversation ? /\/c\/[\w.%:-]+$/.test(u.pathname) : true;
   } catch {
     return false;
@@ -61,14 +62,14 @@ function activeTab(exec, cwd, pageId) {
   return { ok: true, tab };
 }
 
-/** Focus the page, then prove it is the active tab and still inside the campsty project. */
+/** Focus the page, then prove it is the active tab and still inside the Hockey project. */
 function focus(exec, cwd, pageId) {
   const switched = orca(exec, cwd, ["tab", "switch", "--page", pageId, "--focus"]);
   if (switched.error) return refuse("FOCUS_FAILED", switched.error);
   const found = activeTab(exec, cwd, pageId);
   if (!found.ok) return found;
   if (found.tab.active !== true) return refuse("PAGE_NOT_ACTIVE", pageId);
-  if (!isCampstyUrl(found.tab.url)) return refuse("WRONG_PROJECT", found.tab.url);
+  if (!isReviewProjectUrl(found.tab.url)) return refuse("WRONG_PROJECT", found.tab.url);
   return { ok: true, url: found.tab.url };
 }
 
@@ -104,10 +105,10 @@ const DRAFT_JS = `(() => { const e = document.querySelector('#prompt-textarea, t
 const REPLY_JS =
   "(() => { const m = document.querySelector('main')?.innerText || ''; const i = m.lastIndexOf('ChatGPT said:'); return JSON.stringify({ reply: i < 0 ? '' : m.slice(i), blocked: /cloudflare_challenge|verify you are human/i.test(m) }); })()";
 
-/** Open the campsty project page and prove it is ready: right project, logged in, composer present. */
+/** Open the Hockey project page and prove it is ready: right project, logged in, composer present. */
 export function reviewOpen({ repoRoot, exec = defaultExec, sleep = defaultSleep, attempts = 8, intervalMs = 4000 }) {
   repoRoot = mainCheckout(exec, repoRoot);
-  const created = orca(exec, repoRoot, ["tab", "create", "--url", CAMPSTY_CHATGPT_PROJECT_URL]);
+  const created = orca(exec, repoRoot, ["tab", "create", "--url", REVIEW_CHATGPT_PROJECT_URL]);
   if (created.error) return refuse("BROWSER_UNAVAILABLE", created.error);
   const pageId = created.value.browserPageId;
   const focused = focus(exec, repoRoot, pageId);
@@ -151,7 +152,7 @@ export function reviewSend({ repoRoot, exec = defaultExec, pageId, message }) {
   if (clicked.error) return refuse("CLICK_FAILED", clicked.error);
   const sent = activeTab(exec, repoRoot, pageId);
   if (!sent.ok) return sent;
-  if (!isCampstyUrl(sent.tab.url, { conversation: true })) return refuse("NOT_A_PROJECT_CHAT", sent.tab.url);
+  if (!isReviewProjectUrl(sent.tab.url, { conversation: true })) return refuse("NOT_A_PROJECT_CHAT", sent.tab.url);
   return { ok: true, pageId, url: sent.tab.url };
 }
 
@@ -160,7 +161,7 @@ export function reviewRead({ repoRoot, exec = defaultExec, pageId }) {
   repoRoot = mainCheckout(exec, repoRoot);
   const found = activeTab(exec, repoRoot, pageId);
   if (!found.ok) return found;
-  if (!isCampstyUrl(found.tab.url)) return refuse("WRONG_PROJECT", found.tab.url);
+  if (!isReviewProjectUrl(found.tab.url)) return refuse("WRONG_PROJECT", found.tab.url);
   const reply = evaluate(exec, repoRoot, pageId, REPLY_JS);
   if (!reply.ok) return reply;
   let parsed;
@@ -202,14 +203,14 @@ function chatActionsRef(snapshotText, title) {
 const refByName = (refs, role, name) => refs.find((r) => r.role === role && r.name === name)?.ref;
 
 /**
- * Delete the chat open in `pageId`. It must be a conversation inside the campsty project; the
+ * Delete the chat open in `pageId`. It must be a conversation inside the Hockey project; the
  * first message is not compared, so the caller is responsible for passing a page it created.
  */
 export function reviewDelete({ repoRoot, exec = defaultExec, pageId }) {
   repoRoot = mainCheckout(exec, repoRoot);
   const focused = focus(exec, repoRoot, pageId);
   if (!focused.ok) return focused;
-  if (!isCampstyUrl(focused.url, { conversation: true })) return refuse("NOT_A_PROJECT_CHAT", focused.url);
+  if (!isReviewProjectUrl(focused.url, { conversation: true })) return refuse("NOT_A_PROJECT_CHAT", focused.url);
   const titled = evaluate(exec, repoRoot, pageId, "document.title");
   if (!titled.ok) return titled;
   const title = titled.text.replace(/\s*[|\-–]\s*ChatGPT$/, "").trim();
