@@ -25,6 +25,11 @@ from tournament_scheduler.planning.contract import CANDIDATE_SCHEMA_VERSION
 from tournament_scheduler.stage3.cpsat_club_cap import build_club_excess_terms
 from tournament_scheduler.stage3.cpsat_participation import PARTICIPATION_OVERSHOOT_PENALTY, add_participation_terms
 from tournament_scheduler.stage3.cpsat_diagnostics import raise_host_not_represented
+from tournament_scheduler.stage3.cpsat_errors import (
+    CpSatNoCandidate as CpSatNoCandidate,
+    CpSatUnavailable as CpSatUnavailable,
+)
+from tournament_scheduler.stage3.cpsat_lexicographic import solve_lexicographic
 from tournament_scheduler.stage3.cpsat_slots import (
     TeamIdentity as TeamIdentity,
     _TournamentSlot as _TournamentSlot,
@@ -42,35 +47,6 @@ from tournament_scheduler.stage3.cpsat_slots import (
 ENGINE_VERSION = 1
 
 
-class CpSatUnavailable(RuntimeError):
-    """Raised when OR-Tools is not installed in the current environment."""
-
-
-class CpSatNoCandidate(RuntimeError):
-    """Raised when CP-SAT cannot return a feasible candidate within its budget."""
-
-    def __init__(
-        self,
-        status: str,
-        runtime_seconds: float,
-        *,
-        baseline_candidate_fingerprint: Optional[str] = None,
-        problem_fingerprint: Optional[str] = None,
-        diagnostics: Optional[Dict[str, Any]] = None,
-    ) -> None:
-        self.status = status
-        self.runtime_seconds = runtime_seconds
-        self.baseline_candidate_fingerprint = baseline_candidate_fingerprint
-        self.problem_fingerprint = problem_fingerprint
-        # issue #298: solver-size/model diagnostics (team/slot/variable/
-        # constraint counts, half, budget) so a no-candidate result is
-        # explainable evidence rather than an opaque timeout -- the caller
-        # can tell a genuinely oversized/complex model apart from a solver
-        # fluke without re-instrumenting anything.
-        self.diagnostics = dict(diagnostics or {})
-        super().__init__(f"CP-SAT returned no candidate ({status})")
-
-
 def _solve_slot_group(
     slots: "list[_TournamentSlot]",
     candidate: Dict[str, Any],
@@ -85,6 +61,7 @@ def _solve_slot_group(
     half_label: str,
     baseline_fingerprint: Optional[str],
     problem_fingerprint: Optional[str],
+    lexicographic: bool = False,
 ) -> "tuple[dict[int, dict[str, Any]], dict[str, Any]]":
     """Build and solve one participant-assignment CP-SAT model over *slots*.
 
@@ -300,6 +277,10 @@ def _solve_slot_group(
     # solver prioritizes meeting the target over tie-breaking on variety.
     objective_terms.extend(5000 * term for term in participation_deficit_terms)
     objective_terms.extend(PARTICIPATION_OVERSHOOT_PENALTY * term for term in participation_overshoot_terms)
+    # Priority tiers (highest first). The default solve minimizes their
+    # weighted sum; ``lexicographic`` solves them in order so a lower tier can
+    # never trade away a higher tier's optimum (maintenance default).
+    objective_tiers: "list[tuple[str, list[Any]]]" = [("participation", list(objective_terms))]
     baseline_same_club = _baseline_same_club_pairings(slots)
 
     if feasibility_only:
@@ -389,12 +370,16 @@ def _solve_slot_group(
         # every repeat-opponent term) so it stays legal only when forced by
         # the hard constraints above -- only the participation-deficit terms
         # (weight 5000, closing a configured participation gap) outrank it.
-        objective_terms.extend(1000 * term for term in repeat_excess_terms)
-        objective_terms.extend(2000 * term for term in third_plus_excess_terms)
-        objective_terms.extend(3000 * term for term in club_excess_terms)
-        objective_terms.extend(25 * term for term in same_club_terms)
-        objective_terms.extend(10 * term for term in gap_under_7_terms)
-        objective_terms.extend(2 * term for term in gap_under_14_terms)
+        club_cap_tier = [3000 * term for term in club_excess_terms]
+        opponent_tier = [1000 * t for t in repeat_excess_terms] + [2000 * t for t in third_plus_excess_terms]
+        secondary_tier = [25 * t for t in same_club_terms] + [10 * t for t in gap_under_7_terms]
+        secondary_tier += [2 * t for t in gap_under_14_terms]
+        objective_tiers += [
+            ("club_concentration", club_cap_tier),
+            ("opponent_variety", opponent_tier),
+            ("sibling_and_spacing", secondary_tier),
+        ]
+        objective_terms += opponent_tier + club_cap_tier + secondary_tier
         if objective_terms:
             model.Minimize(sum(objective_terms))
 
@@ -426,7 +411,12 @@ def _solve_slot_group(
         # Stop the instant any feasible solution (the hinted baseline, in
         # practice) is found -- feasibility proof, not quality search.
         solver.parameters.stop_after_first_solution = True
-    status_code = solver.Solve(model)
+    tier_values: "dict[str, float]" = {}
+    staged = lexicographic and not feasibility_only and sum(1 for _n, t in objective_tiers if t) > 1
+    if staged:
+        status_code = solve_lexicographic(model, solver, x, objective_tiers, tier_values, float(solve_budget_seconds))
+    else:
+        status_code = solver.Solve(model)
     runtime_seconds = perf_counter() - started
     status_name = solver.StatusName(status_code)
 
@@ -449,6 +439,9 @@ def _solve_slot_group(
         "best_objective_bound": float(solver.BestObjectiveBound()) if has_solution and objective_terms else 0.0,
         "protected_same_club_pairings_baseline": baseline_same_club,
     }
+    if staged:
+        diagnostics["lexicographic"] = True
+        diagnostics["tier_values"] = dict(tier_values)
 
     if status_code not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         raise CpSatNoCandidate(
@@ -502,6 +495,7 @@ def optimize_candidate_cp_sat(
     seed: int = 0,
     feasibility_only: bool = False,
     decompose_by_half: bool = False,
+    lexicographic: bool = False,
 ) -> Dict[str, Any]:
     """Optimize participant assignment while preserving the baseline skeleton.
 
@@ -541,6 +535,9 @@ def optimize_candidate_cp_sat(
     instead of one monolithic model, using ``problem["christmas_split_date"]``
     as the shared boundary. Each half is optimized toward its own configured
     per-half target as a goal, so a half with no slots is simply skipped.
+
+    *lexicographic* solves the objective tiers in priority order (see
+    :mod:`cpsat_lexicographic`); the default keeps the weighted-sum solve.
 
     *solve_budget_seconds* is a **total** wall-clock budget across every
     group actually solved (issue #310), not a per-group budget: it is
@@ -633,6 +630,7 @@ def optimize_candidate_cp_sat(
             half_label=half_label,
             baseline_fingerprint=baseline_fingerprint,
             problem_fingerprint=problem_fingerprint,
+            lexicographic=lexicographic,
         )
         all_patches.update(patches)
         half_diagnostics.append(diagnostics)
@@ -667,6 +665,7 @@ def optimize_candidate_cp_sat(
         "baseline_hints": True,
         "mode": "feasibility_only" if feasibility_only else "quality",
         "decompose_by_half": bool(decompose_by_half),
+        "lexicographic": bool(lexicographic and not feasibility_only),
         "half_diagnostics": half_diagnostics,
         "protected_same_club_pairings_baseline": baseline_same_club_total,
         "base_source": candidate.get("source"),

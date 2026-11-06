@@ -5,10 +5,16 @@ strong-goal model: a per-team/scope target is a goal with bounded, evidenced
 relaxation, and every material deviation carries an ``avoidability``
 classification (``avoidable``, ``proven_infeasible``, ``bounded_search_exhausted``,
 ``operator_accepted``). This provider turns one selected deviation into a
-bounded, verified search over its age group -- participant swaps plus any
-requested host/date/slot dimensions, with every unrelated tournament frozen --
-and exposes only candidates that keep full verification valid *and* reduce the
-selected deviation.
+bounded, verified participant search over its age group and exposes only
+candidates that keep full verification valid *and* reduce the selected
+deviation.
+
+The combinatorial search is not implemented here: it is served by the generic
+CP-SAT maintenance path (``stage3.maintenance_problem`` /
+``stage3.cpsat_maintenance``, ADR 0008). This module only (1) projects the
+selected deviation into a participants-only ``MaintenanceProblem``, (2)
+independently re-verifies the returned patch, and (3) classifies the outcome.
+Placement (host/date/arena/start time) is never moved by this family.
 
 It deliberately preserves the classification semantics: a
 ``bounded_search_exhausted`` result is reported as a bounded-search outcome, not
@@ -20,16 +26,21 @@ never decides on its own.
 from __future__ import annotations
 
 from tournament_scheduler.repair.capability import COVERAGE_BOUNDED_EXHAUSTED, COVERAGE_PROVEN_INFEASIBLE
-from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Tuple
 
 from tournament_scheduler.repair.host_team_missing import RepairOption, candidate_fingerprint, search_dimension_tag
 from tournament_scheduler.planning.contract import verify_candidate
-from tournament_scheduler.stage3.optimizer import optimize_candidate
+from tournament_scheduler.stage3.cpsat_maintenance import solve_maintenance_problem
+from tournament_scheduler.stage3.maintenance_problem import (
+    DEFAULT_SEARCH_BUDGET_SECONDS,
+    DIMENSION_PARTICIPANTS,
+    MaintenanceSolveResult,
+    build_participant_maintenance_problem,
+)
 
 PARTICIPATION_FINDING_PREFIX = "participation_deviation"
-_DEFAULT_ITERATIONS = 800
-_DEFAULT_SEEDS: Tuple[int, ...] = (0, 1)
-_MAX_OPTIONS = 3
+# This family only ever re-staffs rosters, whatever dimensions a caller asks for.
+_SEARCH_DIMENSIONS: Tuple[str, ...] = (DIMENSION_PARTICIPANTS,)
 
 
 def participation_finding_id(club: str, team: str, age_group: str, scope: str) -> str:
@@ -62,10 +73,17 @@ def enumerate_participation_deviation_repairs(
     run_id: str = "",
     allow_search: bool = False,
     scope: Mapping[str, Any] | None = None,
-    iterations: int = _DEFAULT_ITERATIONS,
-    seeds: Sequence[int] = _DEFAULT_SEEDS,
+    search_budget_seconds: float = DEFAULT_SEARCH_BUDGET_SECONDS,
+    seed: int = 0,
     dimensions: Iterable[str] = ("participants",),
 ) -> Dict[str, Any]:
+    """Enumerate verified participant-only repairs for the selected deviations.
+
+    *dimensions* is accepted for caller compatibility and recorded, but this
+    family only ever searches ``participants``: a request for host/date/slot
+    movement is reported on each option as ``unserved_dimensions`` instead of
+    silently widening a promoted season's placement.
+    """
     verification = verify_candidate(dict(candidate), dict(problem))
     fingerprint = candidate_fingerprint(candidate)
     deviations = list(verification.get("participation_deviations") or [])
@@ -74,133 +92,106 @@ def enumerate_participation_deviation_repairs(
     options: List[RepairOption] = []
     rejected: List[Dict[str, Any]] = []
     results: Dict[str, Any] = {}
-    applicable_findings = [
-        participation_finding_id(
-            str(deviation.get("club") or ""),
-            str(deviation.get("team") or ""),
-            str(deviation.get("age_group") or ""),
-            str(deviation.get("scope") or ""),
-        )
-        for deviation in targets
-    ]
+    applicable_findings = [_finding_id(deviation) for deviation in targets]
     if not targets:
         return _result(run_id, fingerprint, verification, options, rejected, results, applicable_findings, applicable=False)
     if not allow_search:
         for deviation in targets:
             rejected.append(
-                {
-                    "finding_id": participation_finding_id(
-                        str(deviation.get("club") or ""),
-                        str(deviation.get("team") or ""),
-                        str(deviation.get("age_group") or ""),
-                        str(deviation.get("scope") or ""),
-                    ),
-                    "reason": "targeted_search_not_requested",
-                    **_classification(deviation),
-                }
+                {"finding_id": _finding_id(deviation), "reason": "targeted_search_not_requested", **_classification(deviation)}
             )
         return _result(run_id, fingerprint, verification, options, rejected, results, applicable_findings, applicable=True)
 
-    dims = {str(dim) for dim in dimensions}
-    age_groups = sorted({str(deviation.get("age_group") or "") for deviation in targets if deviation.get("age_group")})
-    frozen = [
-        str(tournament.get("id"))
-        for tournament in candidate.get("tournaments", []) or []
-        if str(tournament.get("age_group") or "") not in age_groups
-    ]
+    requested = {str(dim) for dim in dimensions}
+    unserved = sorted(requested - set(_SEARCH_DIMENSIONS))
     before_index = _deviation_index(verification)
+    solves: Dict[str, MaintenanceSolveResult] = {}
     for deviation in targets:
-        finding_id = participation_finding_id(
-            str(deviation.get("club") or ""),
-            str(deviation.get("team") or ""),
-            str(deviation.get("age_group") or ""),
-            str(deviation.get("scope") or ""),
-        )
+        finding_id = _finding_id(deviation)
+        age_group = str(deviation.get("age_group") or "")
         key = _deviation_key(deviation)
-        seen: set[str] = set()
-        for seed in seeds:
-            outcome = optimize_candidate(
-                dict(candidate),
-                dict(problem),
-                iterations=max(1, int(iterations)),
-                seed=int(seed),
-                move_hosts="host" in dims,
-                move_dates="date" in dims,
-                move_slots="slot" in dims,
-                frozen_tournament_ids=frozen,
+        if age_group not in solves:
+            maintenance = build_participant_maintenance_problem(
+                candidate,
+                problem,
+                age_groups=[age_group],
+                search_budget_seconds=search_budget_seconds,
+                seed=seed,
             )
-            outcome_verification = verify_candidate(dict(outcome), dict(problem))
-            if not outcome_verification.get("ok"):
-                rejected.append(
-                    {
-                        "finding_id": finding_id,
-                        "reason": "search_candidate_not_hard_valid",
-                        "seed": int(seed),
-                        "violation_codes": sorted(
-                            {str(v.get("code")) for v in outcome_verification.get("violations", [])}
-                        ),
-                    }
-                )
-                continue
-            after_index = _deviation_index(outcome_verification)
-            if not _improves(before_index.get(key), after_index.get(key)):
-                rejected.append(
-                    {
-                        "finding_id": finding_id,
-                        "reason": "no_deviation_improvement",
-                        "seed": int(seed),
-                        **_classification(deviation),
-                    }
-                )
-                continue
-            after_fp = candidate_fingerprint(outcome)
-            if after_fp in seen:
-                rejected.append({"finding_id": finding_id, "reason": "duplicate_candidate", "seed": int(seed)})
-                continue
-            seen.add(after_fp)
-            changed = _changed_ids(candidate, outcome)
-            # Identity is the deterministic request (seed + scope), not the
-            # produced candidate: an optimizer result carries wall-clock
-            # ``source.timings`` and would otherwise get a new id on every
-            # enumeration, making the option unapplyable.
-            option_id = (
-                f"{fingerprint[:12]}:{PARTICIPATION_FINDING_PREFIX}:"
-                f"{deviation.get('club')}:{deviation.get('team')}:{deviation.get('age_group')}:{deviation.get('scope')}:"
-                f"search:{int(seed)}:{search_dimension_tag(dims)}"
-            )
-            options.append(
-                RepairOption(
-                    option_id=option_id,
-                    finding_id=finding_id,
-                    action="search",
-                    tournament_id="",
-                    arguments={
-                        "seed": int(seed),
-                        "iterations": max(1, int(iterations)),
-                        "dimensions": sorted(dims),
-                        "frozen_tournament_ids": frozen,
-                    },
-                    hard_feasible=True,
-                    effects=_effects(before_index.get(key), after_index.get(key), changed, deviation),
-                    evidence={
-                        "verification_ok": True,
-                        "avoidability": deviation.get("avoidability"),
-                        "result_fingerprint": after_fp,
-                    },
-                )
-            )
-            results[option_id] = outcome
-            if len(options) >= _MAX_OPTIONS:
-                break
-        if not any(option.finding_id == finding_id for option in options):
+            solves[age_group] = solve_maintenance_problem(maintenance, candidate, problem)
+        solved = solves[age_group]
+        if not solved.has_candidate or solved.candidate is None:
             rejected.append(
                 {
                     "finding_id": finding_id,
-                    "reason": "bounded_search_found_no_improvement",
+                    "reason": f"maintenance_search_{solved.status}",
+                    "maintenance_status": solved.status,
+                    "solver_status": solved.diagnostics.get("solver_status"),
                     **_classification(deviation),
                 }
             )
+            continue
+        outcome = solved.candidate
+        outcome_verification = verify_candidate(dict(outcome), dict(problem))
+        if not outcome_verification.get("ok"):
+            rejected.append(
+                {
+                    "finding_id": finding_id,
+                    "reason": "search_candidate_not_hard_valid",
+                    "violation_codes": sorted(
+                        {str(v.get("code")) for v in outcome_verification.get("violations", [])}
+                    ),
+                }
+            )
+            continue
+        after_index = _deviation_index(outcome_verification)
+        if not _improves(before_index.get(key), after_index.get(key)):
+            rejected.append({"finding_id": finding_id, "reason": "no_deviation_improvement", **_classification(deviation)})
+            continue
+        changed = _changed_ids(candidate, outcome)
+        # Identity is the deterministic request (scope + seed + dimensions),
+        # not the produced candidate, so re-enumerating on apply reproduces it.
+        option_id = (
+            f"{fingerprint[:12]}:{PARTICIPATION_FINDING_PREFIX}:"
+            f"{deviation.get('club')}:{deviation.get('team')}:{deviation.get('age_group')}:{deviation.get('scope')}:"
+            f"search:{int(seed)}:{search_dimension_tag(_SEARCH_DIMENSIONS)}"
+        )
+        options.append(
+            RepairOption(
+                option_id=option_id,
+                finding_id=finding_id,
+                action="search",
+                tournament_id="",
+                arguments={
+                    "engine": "cp_sat",
+                    "seed": int(seed),
+                    "dimensions": list(_SEARCH_DIMENSIONS),
+                    "unserved_dimensions": unserved,
+                    "maintenance_problem_fingerprint": solved.problem_fingerprint,
+                    "baseline_fingerprint": solved.baseline_fingerprint,
+                    "patched_tournament_ids": [str(patch["tournament_id"]) for patch in solved.patches],
+                },
+                hard_feasible=True,
+                effects=_effects(before_index.get(key), after_index.get(key), changed, deviation),
+                evidence={
+                    "verification_ok": True,
+                    "avoidability": deviation.get("avoidability"),
+                    "result_fingerprint": solved.candidate_fingerprint,
+                    "solver_status": solved.diagnostics.get("solver_status"),
+                },
+            )
+        )
+        results[option_id] = outcome
     return _result(run_id, fingerprint, verification, options, rejected, results, applicable_findings, applicable=True)
+
+
+def _finding_id(deviation: Mapping[str, Any]) -> str:
+    return participation_finding_id(
+        str(deviation.get("club") or ""),
+        str(deviation.get("team") or ""),
+        str(deviation.get("age_group") or ""),
+        str(deviation.get("scope") or ""),
+    )
 
 
 def apply_participation_deviation_repair_option(
@@ -284,8 +275,11 @@ def _deviation_index(verification: Mapping[str, Any]) -> Dict[Tuple[str, str, st
 
 
 def _improves(before: Mapping[str, Any] | None, after: Mapping[str, Any] | None) -> bool:
-    if before is None or after is None:
+    if before is None:
         return False
+    if after is None:
+        # The verifier no longer reports the deviation: it was resolved.
+        return True
     return abs(int(after.get("deviation", 0))) < abs(int(before.get("deviation", 0)))
 
 
