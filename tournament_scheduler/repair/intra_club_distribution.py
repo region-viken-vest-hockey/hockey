@@ -68,6 +68,7 @@ from tournament_scheduler.planning.contract import (
     score_candidate,
     verify_candidate,
 )
+from tournament_scheduler.repair.sibling_search import search_rejection, solve_sibling_swaps
 from tournament_scheduler.scoring.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
 from tournament_scheduler.participation.team_schedule_quality import compare_changed_team_schedule_consequence
 
@@ -76,8 +77,6 @@ INTRA_CLUB_DISTRIBUTION_FINDING_PREFIX = "intra_club_participation_distribution"
 # Bounds so the family stays a localized rebalance, not a whole-season search.
 DEFAULT_MAX_OPTIONS_PER_FINDING = 4
 DEFAULT_MAX_DIRECT_EVALUATED = 32
-DEFAULT_MAX_COUPLED_UNITS = 16
-DEFAULT_MAX_COUPLED_EVALUATED = 64
 
 # Material consequences this family refuses to accept. Unlike the narrower
 # home-representation swap policy, an intra-club distribution repair is
@@ -362,17 +361,11 @@ def _pool_options(
             rejected.append(reason)
 
     if allow_search:
-        coupled, coupled_rejections = _coupled_options(
-            candidate,
-            problem,
-            pool,
-            finding_id,
-            fingerprint,
-            units,
-            before_verification,
+        searched, search_rejections = _cpsat_options(
+            candidate, problem, pool, finding_id, fingerprint, before_verification
         )
-        options.extend(coupled)
-        rejected.extend(coupled_rejections)
+        options.extend(searched)
+        rejected.extend(search_rejections)
 
     if not options:
         rejected.append(
@@ -498,61 +491,45 @@ def _evaluate_move(
     )
 
 
-def _coupled_options(
+def _cpsat_options(
     candidate: Mapping[str, Any],
     problem: Mapping[str, Any],
     pool: Mapping[str, Any],
     finding_id: str,
     fingerprint: str,
-    units: Sequence[Mapping[str, Any]],
     before_verification: Mapping[str, Any],
 ) -> Tuple[List[RepairOption], List[Dict[str, Any]]]:
-    """Bounded pair search over sibling-only substitutions.
+    """Sibling-only substitution plan from the bounded CP-SAT maintenance path.
 
-    A single substitution can be blocked by a duplicate-day or a schedule
-    consequence. Pairing two substitutions (possibly including the blocked
-    move) can still produce a legal, aggregate-preserving candidate. The
-    neighborhood is bounded and only participates when the cheap direct pass
-    is insufficient; no date/host/arena/slot field is ever moved.
+    Used when the cheap direct pass is not enough (a single substitution can be
+    blocked by a duplicate day or a schedule consequence). Only the club's own
+    siblings may change, only inside the pool scope, and no date/host/arena/slot
+    is ever moved. The plan is replayed as ordinary ``swap`` units and goes
+    through the same ``_evaluate_move`` gate as a direct substitution.
     """
-    options: List[RepairOption] = []
-    rejected: List[Dict[str, Any]] = []
-    eligible = [unit for unit in units if unit.get("swap")][:DEFAULT_MAX_COUPLED_UNITS]
-    if len(eligible) < 2:
-        return options, rejected
-    evaluated = 0
-    for first_index in range(len(eligible)):
-        for second_index in range(first_index + 1, len(eligible)):
-            if evaluated >= DEFAULT_MAX_COUPLED_EVALUATED:
-                break
-            first = eligible[first_index]
-            second = eligible[second_index]
-            if first.get("blocked_reason") and second.get("blocked_reason"):
-                # Two moves that are both individually blocked are not a
-                # plausible coupling; keep the budget for one-blocked pairs.
-                continue
-            evaluated += 1
-            swaps = [first["swap"], second["swap"]]
-            trial = _apply_swaps(candidate, problem, swaps)
-            if trial is None:
-                continue
-            option, reason = _evaluate_move(
-                candidate,
-                trial,
-                problem,
-                pool,
-                finding_id,
-                fingerprint,
-                swaps,
-                before_verification,
-            )
-            if option is not None:
-                options.append(option)
-            elif reason is not None:
-                rejected.append({**reason, "coupled": True})
-        if evaluated >= DEFAULT_MAX_COUPLED_EVALUATED:
-            break
-    return options, rejected
+    club = str(pool.get("club") or "")
+    age_group = str(pool.get("age_group") or "")
+    pool_scope = str(pool.get("scope") or "")
+    scope_ids = [
+        str(t.get("id") or "") for t in _scope_tournaments(candidate, problem, club, age_group, pool_scope)
+    ]
+    found = solve_sibling_swaps(
+        candidate, problem, club=club, age_group=age_group, tournament_ids=scope_ids
+    )
+    base = {"finding_id": finding_id, "club": club, "age_group": age_group, "scope": pool_scope, "coupled": True}
+    refusal = search_rejection(base, found)
+    if refusal is not None:
+        return [], [refusal]
+    swaps = list(found.swaps)
+    trial = _apply_swaps(candidate, problem, swaps)
+    if trial is None:
+        return [], [{**base, "reason": "invalid_or_stale_swap", "cpsat": True}]
+    option, reason = _evaluate_move(
+        candidate, trial, problem, pool, finding_id, fingerprint, swaps, before_verification
+    )
+    if option is not None:
+        return [option], []
+    return [], [{**reason, "coupled": True, "cpsat": True}] if reason is not None else []
 
 
 def _move_units(

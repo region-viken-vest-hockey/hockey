@@ -32,7 +32,6 @@ from tournament_scheduler.application.decisions import DecisionContext
 from tournament_scheduler.repair.host_team_missing import (
     RepairOption,
     _codes,
-    _identity,
     candidate_fingerprint,
 )
 from tournament_scheduler.hosting.responsibility import (
@@ -40,6 +39,8 @@ from tournament_scheduler.hosting.responsibility import (
     unexplained_responsibility_transfers,
 )
 from tournament_scheduler.planning.verification import verify_canonical_candidate
+from tournament_scheduler.repair.neighborhood_diff import changed_tournaments
+from tournament_scheduler.repair.search_neighborhood_cpsat import cpsat_neighborhood_options, participant_fixable
 from tournament_scheduler.stage3.optimizer import optimize_candidate
 
 SEARCH_ENGINE = "local_search"
@@ -153,6 +154,29 @@ def enumerate_search_neighborhood_repairs(
     seen_after: set[str] = set()
     resolved_dimensions = {str(dimension) for dimension in dimensions}
     needs_new_date = bool(codes & DATE_MOVE_VIOLATION_CODES) or "date" in resolved_dimensions
+    placement_dimensions = bool(resolved_dimensions - {"participants"})
+    if "participants" in resolved_dimensions and participant_fixable(codes):
+        # Participant re-staffing is served by the bounded CP-SAT maintenance
+        # path (ADR 0008). The local search below only runs to widen into
+        # placement (host/date/slot) when that was requested and CP-SAT found
+        # nothing, or when a finding genuinely needs placement.
+        cpsat_options, cpsat_rejected, cpsat_results = cpsat_neighborhood_options(
+            candidate,
+            problem,
+            verification,
+            age_groups=neighborhood.age_groups,
+            neighborhood_ids=neighborhood.tournament_ids,
+            fingerprint=fingerprint,
+            tag=_neighborhood_tag(neighborhood.tournament_ids),
+            effects_for=lambda result, after: _effects(candidate, result, verification, after, neighborhood),
+        )
+        options.extend(cpsat_options)
+        rejected.extend(cpsat_rejected)
+        result_candidates.update(cpsat_results)
+        if cpsat_options or not placement_dimensions:
+            return _result(
+                run_id, fingerprint, verification, neighborhood, options, rejected, result_candidates, iterations, seeds
+            )
     for seed in seeds:
         search_result = optimize_candidate(
             dict(candidate),
@@ -511,7 +535,7 @@ def _effects(
         delta = after_codes.get(code, 0) - before_codes.get(code, 0)
         if delta:
             deltas[code] = delta
-    changed = _changed_tournaments(
+    changed = changed_tournaments(
         before_candidate, after_candidate, set(neighborhood.tournament_ids)
     )
     source = after_candidate.get("source") or {}
@@ -528,36 +552,3 @@ def _effects(
         effects["weighted_objective_after"] = float(objective_after)
         effects["weighted_objective_delta"] = float(objective_after) - float(objective_before)
     return effects
-
-
-def _changed_tournaments(
-    before_candidate: Mapping[str, Any],
-    after_candidate: Mapping[str, Any],
-    scope_ids: Iterable[str],
-) -> List[str]:
-    scope = {str(item) for item in scope_ids}
-    before_by_id = {
-        str(t.get("id")): t for t in before_candidate.get("tournaments", [])
-    }
-    after_by_id = {str(t.get("id")): t for t in after_candidate.get("tournaments", [])}
-    changed: List[str] = []
-    for tournament_id in sorted(scope):
-        before = before_by_id.get(tournament_id)
-        after = after_by_id.get(tournament_id)
-        if before is None or after is None:
-            changed.append(tournament_id)
-            continue
-        if _tournament_signature(before) != _tournament_signature(after):
-            changed.append(tournament_id)
-    return changed
-
-
-def _tournament_signature(tournament: Mapping[str, Any]) -> Tuple[Any, ...]:
-    teams = tuple(sorted(_identity(team) for team in tournament.get("teams", []) or []))
-    return (
-        tournament.get("date"),
-        tournament.get("host_club"),
-        tournament.get("arena"),
-        tournament.get("start_time"),
-        teams,
-    )

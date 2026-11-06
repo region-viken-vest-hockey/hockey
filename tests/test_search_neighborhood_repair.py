@@ -113,11 +113,23 @@ def test_bounded_search_exposes_only_a_verified_participant_swap():
     assert option["hard_feasible"] is True
     assert option["effects"]["hard_violation_delta_by_code"] == {"host_team_missing": -1}
     assert option["effects"]["changed_tournament_count"] == 2
-    assert "weighted_objective_delta" in option["effects"]
+    # A participant-fixable finding is served by the bounded CP-SAT path.
+    assert option["arguments"]["engine"] == "cp_sat"
     # The neighborhood is exactly the affected age group, so nothing outside
     # it could have moved.
     assert repair_set["repair_neighborhood"]["age_groups"] == ["U10"]
     assert repair_set["repair_neighborhood"]["tournament_ids"] == ["t1", "t2"]
+
+
+def test_local_search_widening_still_reports_its_weighted_objective(monkeypatch):
+    """The placement-widening local search is unchanged when it is the engine."""
+    import tournament_scheduler.repair.search_neighborhood as snr
+
+    monkeypatch.setattr(snr, "participant_fixable", lambda _codes: False)
+    repair_set = enumerate_search_neighborhood_repairs(_candidate(), _problem(), run_id="r1")
+    option = repair_set["options"][0]
+    assert option["arguments"]["engine"] == snr.SEARCH_ENGINE
+    assert "weighted_objective_delta" in option["effects"]
 
 
 def test_bounded_search_ignores_unrelated_accepted_short_booking():
@@ -381,6 +393,8 @@ def test_bounded_search_rejects_a_host_move_that_transfers_responsibility(monkey
 
     monkeypatch.setattr(snr, "optimize_candidate", _transferring_search_result)
     monkeypatch.setattr(snr, "verify_candidate", _verify)
+    # Force the local-search widening, the engine this guard test is about.
+    monkeypatch.setattr(snr, "participant_fixable", lambda _codes: False)
 
     repair_set = enumerate_search_neighborhood_repairs(candidate, problem, run_id="r1")
 
