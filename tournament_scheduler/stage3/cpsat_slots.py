@@ -80,6 +80,34 @@ def _active_slots(candidate: Dict[str, Any], problem: Optional[Dict[str, Any]]) 
     return slots
 
 
+def _baseline_duplicate_date_conflicts(
+    slots: "list[_TournamentSlot]", slots_by_age_date: "dict[tuple[str, date], list[int]]"
+) -> "list[Dict[str, Any]]":
+    """Baseline teams already playing two same-age-group tournaments on one date.
+
+    Unlike the other structural constraints this one is *not* automatically
+    satisfied by a baseline built from its own slots, so a conflicting
+    baseline is reported as exactly which invariant conflicts (issue #298)
+    rather than as an opaque INFEASIBLE.
+    """
+    found: "dict[tuple[str, str, str], Dict[str, Any]]" = {}
+    for slot in slots:
+        indexes = slots_by_age_date.get((slot.age_group, slot.on_date), [])
+        for identity in slot.baseline_team_ids:
+            same_date = sorted(
+                {o.tournament_id for o in slots if o.index in indexes and identity in o.baseline_team_ids}
+            )
+            if len(same_date) > 1:
+                key = (":".join(identity), slot.age_group, slot.on_date.isoformat())
+                found[key] = {
+                    "team": key[0],
+                    "age_group": key[1],
+                    "date": key[2],
+                    "tournament_ids": same_date,
+                }
+    return list(found.values())
+
+
 def _baseline_same_club_pairings(slots: Iterable[_TournamentSlot]) -> int:
     """Count same-club round-robin games implied by baseline rosters."""
     total = 0

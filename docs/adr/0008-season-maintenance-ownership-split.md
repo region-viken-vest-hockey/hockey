@@ -71,11 +71,26 @@ Every rule below stays authoritative in `verify_candidate` or the maintenance ga
 
 A rule that is not encoded for pruning can only make a returned candidate fail verification; it can never be silently weakened.
 
+## Family-by-family status
+| Family | Search | Status |
+|---|---|---|
+| `participation_deviation` | participants | CP-SAT (`participation/deviation_repair.py`) |
+| `intra_club_distribution` coupled widening | sibling substitution | CP-SAT, sibling-scoped (`repair/sibling_search.py`); direct single substitutions stay deterministic |
+| `home_representation` tier 2 (coupled pairs, 3+ sibling cycles) | sibling substitution | CP-SAT, sibling-scoped with a home-balance tier that holds each sibling's appearance count; tier-1 rotations and the greedy plan stay deterministic |
+| `search_neighborhood`, participant-fixable findings (`host_team_missing`, `club_hard_max_exceeded`, `duplicate_participation_same_date`) | participants | CP-SAT first (`repair/search_neighborhood_cpsat.py`), repairing a baseline that already breaks the rule; the local search runs only to widen into host/date/slot when that was requested and CP-SAT found nothing, or when a finding needs placement |
+| `host_team_missing`, `underfilled_roster`, `host_placement` | direct local mutation | stays deterministic by design |
+| `hosting_balance`, `coupled_placement`, `movable_capacity`, `unplaced_placement`, `date_policy_relocation`, the local-search widening of `search_neighborhood` | host, date, arena, start time | **not migrated**: the CP-SAT model assigns teams to a fixed skeleton and cannot represent these moves. Migrating them needs a separate placement model, not a wider participant model, and is out of scope here |
+
+Every migrated family keeps its own acceptance gate: the CP-SAT plan is turned back into the family's replayable `swap` units (or checked as a whole candidate) and goes through the same `verify_candidate`, consequence and responsibility checks as a deterministic move. The solver can therefore not widen what a family accepts.
+
+Reproducibility is a requirement, not a nicety: a repair is previewed in one process and re-enumerated when applied in another, so the model must not depend on per-process hashing. Variables and constraints are created in sorted order, and `tests/test_cpsat_maintenance.py` solves the same fixture under different `PYTHONHASHSEED` values and requires identical output. A final `minimal_change` tier prefers the smallest roster difference from the baseline, so equally good plans resolve to the smallest patch.
+
 ## Consequences
 - New search logic goes behind the bounded CP-SAT boundary, not into a new bespoke loop.
-- The participation-deviation repair family is the first family served end to end by this path. It re-staffs participants only; a request for host, date or slot movement is reported as `unserved_dimensions` rather than widening the search. Its former participant local-search loop is retired.
-- Other families (host placement, coupled placement, intra-club distribution, home representation, the generic neighborhood search) are not migrated. Where their search is purely participant re-staffing they are the next candidates, each only after differential coverage shows an equal-or-better verified outcome.
-- CP-SAT depends on the optional `cpsat` extra (OR-Tools). Without it the participation-deviation family reports `maintenance_search_unavailable` instead of falling back to a second implementation.
+- The remaining local-search users (`hosting/balance_repair.py` and the placement widening in `repair/search_neighborhood.py`) are an enforced list in `tests/test_sibling_and_neighborhood_cpsat.py`; a new one fails the test.
+- Where a family's search is purely participant re-staffing it belongs on this path. Where it moves placement it does not, and must say so rather than widening the participant model.
+- CP-SAT depends on the optional `cpsat` extra (OR-Tools). Without it a migrated family reports `maintenance_search_unavailable` instead of falling back to a second implementation.
+- CP-SAT yield differs from the old enumerations: it finds a plan the objective prefers, which a family's gate can then reject (for example a schedule regression). A rejection is reported with `cpsat: true` so it is visible, and the old pair enumeration is not kept as a second chance.
 
 ## Rejected alternatives
 - A harness-local scheduler or verifier that decides legality outside `verify_candidate`.

@@ -30,6 +30,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Tuple
 
 from tournament_scheduler.repair.host_team_missing import RepairOption, candidate_fingerprint, search_dimension_tag
 from tournament_scheduler.planning.contract import verify_candidate
+from tournament_scheduler.repair.neighborhood_diff import changed_tournaments
 from tournament_scheduler.stage3.cpsat_maintenance import solve_maintenance_problem
 from tournament_scheduler.stage3.maintenance_problem import (
     DEFAULT_SEARCH_BUDGET_SECONDS,
@@ -51,9 +52,7 @@ def legacy_participation_finding_id(club: str, team: str, scope: str) -> str:
     return f"{PARTICIPATION_FINDING_PREFIX}:{club}:{team}:{scope}"
 
 
-def participation_deviations(
-    candidate: Mapping[str, Any], problem: Mapping[str, Any]
-) -> List[Dict[str, Any]]:
+def participation_deviations(candidate: Mapping[str, Any], problem: Mapping[str, Any]) -> List[Dict[str, Any]]:
     verification = verify_candidate(dict(candidate), dict(problem))
     return list(verification.get("participation_deviations") or [])
 
@@ -94,13 +93,21 @@ def enumerate_participation_deviation_repairs(
     results: Dict[str, Any] = {}
     applicable_findings = [_finding_id(deviation) for deviation in targets]
     if not targets:
-        return _result(run_id, fingerprint, verification, options, rejected, results, applicable_findings, applicable=False)
+        return _result(
+            run_id, fingerprint, verification, options, rejected, results, applicable_findings, applicable=False
+        )
     if not allow_search:
         for deviation in targets:
             rejected.append(
-                {"finding_id": _finding_id(deviation), "reason": "targeted_search_not_requested", **_classification(deviation)}
+                {
+                    "finding_id": _finding_id(deviation),
+                    "reason": "targeted_search_not_requested",
+                    **_classification(deviation),
+                }
             )
-        return _result(run_id, fingerprint, verification, options, rejected, results, applicable_findings, applicable=True)
+        return _result(
+            run_id, fingerprint, verification, options, rejected, results, applicable_findings, applicable=True
+        )
 
     requested = {str(dim) for dim in dimensions}
     unserved = sorted(requested - set(_SEARCH_DIMENSIONS))
@@ -138,17 +145,19 @@ def enumerate_participation_deviation_repairs(
                 {
                     "finding_id": finding_id,
                     "reason": "search_candidate_not_hard_valid",
-                    "violation_codes": sorted(
-                        {str(v.get("code")) for v in outcome_verification.get("violations", [])}
-                    ),
+                    "violation_codes": sorted({str(v.get("code")) for v in outcome_verification.get("violations", [])}),
                 }
             )
             continue
         after_index = _deviation_index(outcome_verification)
         if not _improves(before_index.get(key), after_index.get(key)):
-            rejected.append({"finding_id": finding_id, "reason": "no_deviation_improvement", **_classification(deviation)})
+            rejected.append(
+                {"finding_id": finding_id, "reason": "no_deviation_improvement", **_classification(deviation)}
+            )
             continue
-        changed = _changed_ids(candidate, outcome)
+        changed = changed_tournaments(
+            candidate, outcome, [str(t.get("id")) for t in candidate.get("tournaments", []) or []]
+        )
         # Identity is the deterministic request (scope + seed + dimensions),
         # not the produced candidate, so re-enumerating on apply reproduces it.
         option_id = (
@@ -268,10 +277,7 @@ def _deviation_key(deviation: Mapping[str, Any]) -> Tuple[str, str, str]:
 
 
 def _deviation_index(verification: Mapping[str, Any]) -> Dict[Tuple[str, str, str], Mapping[str, Any]]:
-    return {
-        _deviation_key(deviation): deviation
-        for deviation in verification.get("participation_deviations") or []
-    }
+    return {_deviation_key(deviation): deviation for deviation in verification.get("participation_deviations") or []}
 
 
 def _improves(before: Mapping[str, Any] | None, after: Mapping[str, Any] | None) -> bool:
@@ -281,26 +287,6 @@ def _improves(before: Mapping[str, Any] | None, after: Mapping[str, Any] | None)
         # The verifier no longer reports the deviation: it was resolved.
         return True
     return abs(int(after.get("deviation", 0))) < abs(int(before.get("deviation", 0)))
-
-
-def _changed_ids(before: Mapping[str, Any], after: Mapping[str, Any]) -> List[str]:
-    before_by_id = {str(t.get("id")): _signature(t) for t in before.get("tournaments", [])}
-    after_by_id = {str(t.get("id")): _signature(t) for t in after.get("tournaments", [])}
-    return [
-        tournament_id
-        for tournament_id in sorted(set(before_by_id) | set(after_by_id))
-        if before_by_id.get(tournament_id) != after_by_id.get(tournament_id)
-    ]
-
-
-def _signature(tournament: Mapping[str, Any]) -> Any:
-    teams = tuple(
-        sorted(
-            (str(team.get("club") or ""), str(team.get("label") or ""), str(team.get("age_group") or ""))
-            for team in tournament.get("teams", []) or []
-        )
-    )
-    return (tournament.get("date"), tournament.get("host_club"), tournament.get("arena"), tournament.get("start_time"), teams)
 
 
 def _effects(

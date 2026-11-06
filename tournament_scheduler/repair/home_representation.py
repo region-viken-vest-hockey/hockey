@@ -66,6 +66,7 @@ from tournament_scheduler.participation.targets import (
     evaluate_participation,
 )
 from tournament_scheduler.planning.contract import _parse_date, score_candidate, verify_candidate
+from tournament_scheduler.repair.sibling_search import search_rejection, solve_sibling_swaps
 from tournament_scheduler.scoring.quality_objectives import compare_quality_scores, with_unresolved_obligations_count
 from tournament_scheduler.participation.team_schedule_quality import compare_changed_team_schedule_consequence
 
@@ -81,17 +82,6 @@ DEFAULT_MAX_GREEDY_STEPS = 8
 # cuts the long tail of equivalent low-value swaps rather than the promising
 # repairs.
 DEFAULT_MAX_MOVES_EVALUATED = 24
-
-# Tier-2 bounded search: only runs when the tier-1 simple rotations, coupled
-# home+away pairs and greedy plan produced no *acceptable* option. It reuses
-# the same move-unit generator to build two-substitution coupled plans and
-# bounded 3+ sibling cycles, so multi-tournament sibling rotations stay
-# available when a direct pairwise move is insufficient -- without turning the
-# family into a whole-season search.
-DEFAULT_MAX_TIER2_UNITS = 16
-DEFAULT_MAX_UNITS_PER_LABEL_PAIR = 2
-DEFAULT_MAX_TIER2_PAIR_EVALUATED = 40
-DEFAULT_MAX_TIER2_CYCLE_EVALUATED = 24
 
 # Material consequences this family refuses to accept. A sibling swap is
 # deliberately *narrower* than a placement/roster repair: it must not create a
@@ -491,37 +481,6 @@ def _greedy_option(
     )
 
 
-def _diverse_units(
-    plan: Mapping[str, Any],
-    problem: Mapping[str, Any],
-    row: Mapping[str, Any],
-    limit: int,
-    *,
-    per_label_pair: int = DEFAULT_MAX_UNITS_PER_LABEL_PAIR,
-) -> List[List[Dict[str, Any]]]:
-    """Bound ``_candidate_moves`` to a *diverse* sample across (over, under) pairs.
-
-    ``_candidate_moves`` is ordered most-skewed-pair-first and can enumerate
-    many home/away combinations for a single (over, under) label pair before
-    ever reaching the next one. A pool that needs two *independent* label
-    pairs rebalanced in the same candidate (for example four sibling teams at
-    3/1/1/3, which needs both a 3->1 move and the other 3->1 move to reach an
-    even split) would otherwise never see the second pair inside a truncated
-    prefix. Capping per label pair instead keeps the tier-2 pairwise search
-    bounded while still covering every distinct over/under pair.
-    """
-    grouped: Dict[Tuple[str, str], List[List[Dict[str, Any]]]] = {}
-    for swaps in _candidate_moves(plan, problem, row):
-        key = (str(swaps[0]["remove"]["label"]), str(swaps[0]["add"]["label"]))
-        bucket = grouped.setdefault(key, [])
-        if len(bucket) < per_label_pair:
-            bucket.append(swaps)
-    units: List[List[Dict[str, Any]]] = []
-    for key in sorted(grouped):
-        units.extend(grouped[key])
-    return units[:limit]
-
-
 def _tier2_options(
     candidate: Mapping[str, Any],
     problem: Mapping[str, Any],
@@ -530,68 +489,39 @@ def _tier2_options(
     fingerprint: str,
     before_verification: Mapping[str, Any],
 ) -> Tuple[List[RepairOption], List[Dict[str, Any]]]:
-    """Bounded coupled-pair and 3+ sibling cycle search for one skewed pool.
+    """Coupled / multi-sibling rotation from the bounded CP-SAT maintenance path.
 
-    Reuses the same swap-unit generator and evaluation as tier 1; only the
-    combination strategy differs, so acceptance stays governed by the single
-    ``_evaluate_move`` gate (strict material-spread improvement, hard
-    verification, and the family's consequence policy).
+    Used only when the cheap tier-1 moves produced no acceptable option. Only
+    the club's own siblings may change, participation counts are the first
+    objective tier (so each sibling keeps its own total unless a target says
+    otherwise) and the home split is the second. The plan is replayed as
+    ordinary ``swap`` units and goes through the same ``_evaluate_move`` gate
+    as every tier-1 move (strict material-spread improvement, hard
+    verification, the family's consequence policy).
     """
-    options: List[RepairOption] = []
-    rejected: List[Dict[str, Any]] = []
-    units = _diverse_units(candidate, problem, row, DEFAULT_MAX_TIER2_UNITS)
-
-    evaluated = 0
-    for first_index in range(len(units)):
-        for second_index in range(first_index + 1, len(units)):
-            if evaluated >= DEFAULT_MAX_TIER2_PAIR_EVALUATED:
-                break
-            evaluated += 1
-            combined = list(units[first_index]) + list(units[second_index])
-            trial = _apply_swaps(candidate, problem, combined)
-            if trial is None:
-                continue
-            option, reason = _evaluate_move(
-                candidate,
-                trial,
-                problem,
-                row,
-                finding_id,
-                fingerprint,
-                combined,
-                before_verification,
-            )
-            if option is not None:
-                options.append(option)
-            elif reason is not None:
-                rejected.append({**reason, "coupled_pair": True})
-        if evaluated >= DEFAULT_MAX_TIER2_PAIR_EVALUATED:
-            break
-
-    evaluated = 0
-    for swaps in _cycle_moves(candidate, problem, row):
-        if evaluated >= DEFAULT_MAX_TIER2_CYCLE_EVALUATED:
-            break
-        evaluated += 1
-        trial = _apply_swaps(candidate, problem, swaps)
-        if trial is None:
-            continue
-        option, reason = _evaluate_move(
-            candidate,
-            trial,
-            problem,
-            row,
-            finding_id,
-            fingerprint,
-            swaps,
-            before_verification,
-        )
-        if option is not None:
-            options.append(option)
-        elif reason is not None:
-            rejected.append({**reason, "sibling_cycle": True})
-
-    return options, rejected
+    club, age_group = str(row["club"]), str(row["age_group"])
+    scope_ids = [
+        str(t.get("id") or "")
+        for t in candidate.get("tournaments", []) or []
+        if not t.get("cancelled") and str(t.get("age_group") or "") == age_group
+    ]
+    found = solve_sibling_swaps(
+        candidate, problem, club=club, age_group=age_group, tournament_ids=scope_ids, balance_home=True
+    )
+    base = {"finding_id": finding_id, "club": club, "age_group": age_group, "coupled_plan": True}
+    refusal = search_rejection(base, found)
+    if refusal is not None:
+        return [], [refusal]
+    swaps = list(found.swaps)
+    trial = _apply_swaps(candidate, problem, swaps)
+    if trial is None:
+        return [], [{**base, "reason": "invalid_or_stale_swap", "cpsat": True}]
+    option, reason = _evaluate_move(
+        candidate, trial, problem, row, finding_id, fingerprint, swaps, before_verification
+    )
+    if option is not None:
+        return [option], []
+    return [], [{**reason, "coupled_plan": True, "cpsat": True}] if reason is not None else []
 
 
 # ---------------------------------------------------------------------------
@@ -654,76 +584,6 @@ def _candidate_moves(
                     coupled += 1
                     yield [home_swap, _swap(away, under, over, club, age_group)]
                 yield [home_swap]
-
-
-def _cycle_moves(
-    plan: Mapping[str, Any],
-    problem: Mapping[str, Any],
-    row: Mapping[str, Any],
-) -> Iterable[List[Dict[str, Any]]]:
-    """Yield bounded 3-sibling participation-preserving home-representation cycles.
-
-    ``home: A -> B``, ``away: B -> C``, ``away: C -> A`` -- every sibling's own
-    participation count is unchanged (A trades one home appearance for one away
-    appearance, B and C's own totals are each net zero), only the home split
-    moves. Used when no direct pairwise move between the two most-skewed
-    siblings exists but a third sibling can act as the compensating buffer.
-    """
-    club = str(row["club"])
-    age_group = str(row["age_group"])
-    appearances = dict(row.get("home_appearances") or {})
-    labels = list(appearances)
-    if len(labels) < 3:
-        return
-    home_tournaments = _home_tournaments(plan, club, age_group)
-    away_tournaments = _away_tournaments(plan, club, age_group)
-
-    over_labels = sorted(
-        (label for label in appearances if appearances[label] > row.get("min_appearances", 0)),
-        key=lambda label: (-appearances[label], label),
-    )
-    under_labels = sorted(
-        (label for label in appearances if appearances[label] < row.get("max_appearances", 0)),
-        key=lambda label: (appearances[label], label),
-    )
-    for over in over_labels:
-        for under in under_labels:
-            if over == under:
-                continue
-            homes = [
-                tournament
-                for tournament in home_tournaments
-                if _participates(tournament, club, age_group, over)
-                and not _participates(tournament, club, age_group, under)
-                and not _plays_on_date(plan, club, age_group, under, tournament)
-            ][:DEFAULT_MAX_HOME_TOURNAMENTS]
-            for home in homes:
-                home_swap = _swap(home, over, under, club, age_group)
-                for buffer_label in labels:
-                    if buffer_label in (over, under):
-                        continue
-                    seconds = [
-                        tournament
-                        for tournament in away_tournaments
-                        if _participates(tournament, club, age_group, under)
-                        and not _participates(tournament, club, age_group, buffer_label)
-                        and not _plays_on_date(plan, club, age_group, buffer_label, tournament)
-                        and _same_half(problem, home, tournament)
-                    ]
-                    for second in seconds:
-                        second_swap = _swap(second, under, buffer_label, club, age_group)
-                        thirds = [
-                            tournament
-                            for tournament in away_tournaments
-                            if str(tournament.get("id") or "") != str(second.get("id") or "")
-                            and _participates(tournament, club, age_group, buffer_label)
-                            and not _participates(tournament, club, age_group, over)
-                            and not _plays_on_date(plan, club, age_group, over, tournament)
-                            and _same_half(problem, home, tournament)
-                        ]
-                        for third in thirds:
-                            third_swap = _swap(third, buffer_label, over, club, age_group)
-                            yield [home_swap, second_swap, third_swap]
 
 
 def _home_tournaments(

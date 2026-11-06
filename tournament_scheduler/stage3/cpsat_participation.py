@@ -8,7 +8,7 @@ in decomposed per-half solves, an overshoot term for excess.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Sequence, Any, Dict, Optional, Tuple
 
 from tournament_scheduler.participation.targets import resolve_hard_max
 from tournament_scheduler.stage3.cpsat_slots import TeamIdentity, _resolve_participation_target
@@ -23,7 +23,7 @@ PARTICIPATION_OVERSHOOT_PENALTY = 1000
 def add_participation_terms(
     model: Any,
     *,
-    eligible_identities: "set[TeamIdentity]",
+    eligible_identities: "Sequence[TeamIdentity]",
     slot_indexes_by_age_group: "dict[str, list[int]]",
     x: Dict[Tuple[int, TeamIdentity], Any],
     baseline_participations: Dict[TeamIdentity, int],

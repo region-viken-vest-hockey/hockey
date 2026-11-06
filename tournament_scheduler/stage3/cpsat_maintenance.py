@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Mapping, Optional
 
 from tournament_scheduler.planning.contract import candidate_content_fingerprint
 from tournament_scheduler.stage3.cpsat import CpSatNoCandidate, CpSatUnavailable, optimize_candidate_cp_sat
+from tournament_scheduler.stage3.cpsat_scope import scope_payload
 from tournament_scheduler.stage3.maintenance_problem import (
     MaintenanceProblem,
     MaintenanceSolveResult,
@@ -73,6 +74,9 @@ def _scoped_inputs(
     # into pins, but a placement-only lock must not freeze participants.
     adjustments["pinned_tournament_ids"] = pinned
     sub_problem["manual_adjustments"] = adjustments
+    sub_problem["maintenance_scope"] = scope_payload(
+        maintenance.movable_teams, maintenance.home_balance, maintenance.repair_baseline_conflicts
+    )
     return sub_candidate, sub_problem
 
 

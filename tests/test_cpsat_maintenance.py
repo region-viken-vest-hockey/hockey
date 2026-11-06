@@ -192,7 +192,7 @@ def test_solve_returns_a_verified_revision_bound_patch_that_resolves_the_deviati
     # Lexicographic: the participation tier was solved first and reached zero.
     tiers = solved.diagnostics["half_diagnostics"][0]["tier_values"]
     assert tiers["participation"] == 0.0
-    assert list(tiers) == ["participation", "opponent_variety", "sibling_and_spacing"]
+    assert list(tiers) == ["participation", "opponent_variety", "sibling_and_spacing", "minimal_change"]
 
 
 def test_solve_does_not_mutate_inputs_and_patches_only_changed_mutable_rosters():
@@ -474,3 +474,36 @@ def test_maintenance_modules_stay_solver_neutral_where_required():
     assert not any(name.endswith("verify_candidate") for name in _imports(_REPO / "stage3" / "cpsat_maintenance.py")), (
         "the solver bridge must not decide legality; verification stays with callers"
     )
+
+
+# ---------------------------------------------------------------------------
+# Reproducibility: a previewed repair must be the one that is applied
+# ---------------------------------------------------------------------------
+
+
+def test_solve_is_identical_across_processes_with_different_hash_seeds():
+    """Equally optimal solutions must not depend on per-process string hashing:
+    apply re-enumerates in a new process and has to reproduce the preview."""
+    import json
+    import os
+    import subprocess
+    import sys
+
+    code = (
+        "import json\n"
+        "from tests.test_cpsat_maintenance import _scenario, U11\n"
+        "from tournament_scheduler.stage3.maintenance_problem import build_participant_maintenance_problem\n"
+        "from tournament_scheduler.stage3.cpsat_maintenance import solve_maintenance_problem\n"
+        "c, p = _scenario()\n"
+        "r = solve_maintenance_problem(build_participant_maintenance_problem(c, p, age_groups=[U11]), c, p)\n"
+        "print(json.dumps([r.status, r.candidate_fingerprint]))\n"
+    )
+    root = Path(__file__).resolve().parents[1]
+    outputs = set()
+    for hash_seed in ("1", "2", "3", "4"):
+        env = {**os.environ, "PYTHONHASHSEED": hash_seed, "PYTHONPATH": str(root)}
+        done = subprocess.run(
+            [sys.executable, "-c", code], capture_output=True, text=True, cwd=root, env=env, check=True
+        )
+        outputs.add(json.dumps(json.loads(done.stdout.strip().splitlines()[-1])))
+    assert len(outputs) == 1, outputs
