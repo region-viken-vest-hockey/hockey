@@ -266,6 +266,27 @@ def test_already_optimal_baseline_is_unchanged():
     assert result.status == "unchanged" and result.candidate is None and result.patches == ()
 
 
+def test_unproven_unchanged_incumbent_is_budget_exhausted(monkeypatch):
+    candidate, problem = _scenario()
+    built = build_participant_maintenance_problem(candidate, problem, age_groups=[U11])
+
+    def feasible_incumbent(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        incumbent = copy.deepcopy(candidate)
+        incumbent["source"] = {
+            "status": "FEASIBLE",
+            "half_diagnostics": [{"status": "FEASIBLE", "lexicographic": True}],
+            "lexicographic": True,
+        }
+        return incumbent
+
+    monkeypatch.setattr(cpsat_maintenance, "optimize_candidate_cp_sat", feasible_incumbent)
+    result = solve_maintenance_problem(built, candidate, problem)
+
+    assert result.status == "budget_exhausted"
+    assert result.candidate is None and result.patches == ()
+    assert result.diagnostics["solver_status"] == "FEASIBLE"
+
+
 @pytest.mark.parametrize(
     ("solver_status", "expected"),
     [
@@ -313,6 +334,34 @@ def test_lexicographic_never_trades_a_higher_tier_for_a_lower_one():
     assert _deviation_total(staged, problem) <= _deviation_total(weighted, problem)
 
 
+def test_season_hard_max_uses_one_model_across_both_halves():
+    teams = [_team(club) for club in [*CLUBS, "F"]]
+    dates = ["2025-09-06", "2025-11-01", "2026-01-10", "2026-03-07"]
+    tournaments = [_tournament(f"t{i}", on_date, teams[:4]) for i, on_date in enumerate(dates)]
+    for tournament, host_club in zip(tournaments, CLUBS[:4]):
+        tournament["host_club"] = host_club
+    candidate = {"tournaments": tournaments}
+    problem = _problem(
+        teams,
+        christmas_split_date="2025-12-24",
+        participation_hard_max=3,
+        participation_targets_by_age_group={U11: {"before_christmas": 2, "after_christmas": 2}},
+    )
+    built = build_participant_maintenance_problem(candidate, problem, age_groups=[U11])
+
+    solved = solve_maintenance_problem(built, candidate, problem)
+    result = _cand(solved)
+    counts = {
+        club: sum(club in _roster(result, tournament["id"]) for tournament in tournaments)
+        for club in [*CLUBS, "F"]
+    }
+
+    assert solved.status == "solved"
+    assert solved.diagnostics["half_diagnostics"][0]["half"] == "combined"
+    assert max(counts.values()) <= 3
+    assert verify_candidate(result, problem)["ok"] is True
+
+
 # ---------------------------------------------------------------------------
 # Participation-deviation family served by the generic path (#717)
 # ---------------------------------------------------------------------------
@@ -344,6 +393,62 @@ def test_family_offers_a_cpsat_option_for_a_starved_team_and_applies_it():
     assert applied["ok"] is True
     assert applied["after_fingerprint"] == option["evidence"]["result_fingerprint"]
     assert verify_candidate(applied["candidate"], problem)["ok"] is True
+
+
+def test_apply_replays_the_previewed_custom_search_budget():
+    candidate, problem = _scenario()
+    repair = enumerate_participation_deviation_repairs(
+        candidate,
+        problem,
+        allow_search=True,
+        scope=_starved_scope(),
+        search_budget_seconds=2.5,
+    )
+    option = repair["options"][0]
+
+    assert option["arguments"]["search_budget_seconds"] == 2.5
+    applied = apply_participation_deviation_repair_option(
+        candidate,
+        problem,
+        option_id=option["option_id"],
+        expected_fingerprint=repair["candidate_fingerprint"],
+        scope=_starved_scope(),
+        search_budget_seconds=option["arguments"]["search_budget_seconds"],
+    )
+
+    assert applied["ok"] is True
+    assert applied["after_fingerprint"] == option["evidence"]["result_fingerprint"]
+
+
+def test_apply_refuses_when_bounded_replay_returns_a_different_candidate(monkeypatch):
+    """An apply-time incumbent may differ even with the same seed and model."""
+    from dataclasses import replace
+
+    import tournament_scheduler.participation.deviation_repair as family
+
+    candidate, problem = _scenario()
+    repair = enumerate_participation_deviation_repairs(candidate, problem, allow_search=True, scope=_starved_scope())
+    option = repair["options"][0]
+    real_solve = family.solve_maintenance_problem
+
+    def different_incumbent(maintenance: Any, cand: Any, prob: Any) -> Any:
+        solved = real_solve(maintenance, cand, prob)
+        assert solved.candidate is not None
+        changed = copy.deepcopy(solved.candidate)
+        changed["tournaments"][0]["replay_marker"] = "different-incumbent"
+        return replace(solved, candidate=changed, candidate_fingerprint=candidate_content_fingerprint(changed))
+
+    monkeypatch.setattr(family, "solve_maintenance_problem", different_incumbent)
+    applied = apply_participation_deviation_repair_option(
+        candidate,
+        problem,
+        option_id=option["option_id"],
+        expected_fingerprint=repair["candidate_fingerprint"],
+        scope=_starved_scope(),
+    )
+
+    assert applied["ok"] is False
+    assert applied["reason"] == "unknown_or_stale_option"
 
 
 def test_apply_refuses_a_stale_fingerprint():

@@ -556,6 +556,7 @@ def _apply_option(
             expected_fingerprint=fingerprint,
             scope=scope,
             dimensions=option_dimensions,
+            search_budget_seconds=arguments.get("search_budget_seconds"),
         )
     if family == "search_neighborhood":
         from tournament_scheduler.repair.search_neighborhood import apply_search_neighborhood_repair_option

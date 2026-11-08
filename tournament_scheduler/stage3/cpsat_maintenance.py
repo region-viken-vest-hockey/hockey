@@ -166,6 +166,12 @@ def solve_maintenance_problem(
         "lexicographic": source.get("lexicographic"),
     }
     if not patches:
+        # FEASIBLE means at least one lexicographic tier exhausted its bounded
+        # budget without proving optimality. A matching baseline is therefore
+        # only the incumbent, not proof that no better maintenance patch
+        # exists inside the scope.
+        if source.get("status") == "FEASIBLE":
+            return result("budget_exhausted", diagnostics=diagnostics)
         return result("unchanged", diagnostics=diagnostics)
     patched = apply_patches(candidate, patches)
     return result(

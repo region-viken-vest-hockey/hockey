@@ -19,6 +19,7 @@ from typing import Any, Dict, Optional
 
 from tournament_scheduler.hosting.representation import clubs_represent_same_club as _clubs_represent_same_club
 from tournament_scheduler.models import Team
+from tournament_scheduler.participation.targets import resolve_hard_max
 from tournament_scheduler.shape.effective_shape import compute_effective_tournament_shape, shape_violation
 from tournament_scheduler.planning.participant_roster_sizing import fixed_cohort_shape_for
 from tournament_scheduler.planning.contract import CANDIDATE_SCHEMA_VERSION
@@ -85,7 +86,10 @@ def _solve_slot_group(
     from ortools.sat.python import cp_model
 
     started = perf_counter()
-    model = cp_model.CpModel()
+    # OR-Tools keeps CamelCase compatibility methods at runtime, but current
+    # type stubs expose only the snake_case spellings. This module deliberately
+    # supports the compatibility API across the repository's version range.
+    model: Any = cp_model.CpModel()
     x: "dict[tuple[int, TeamIdentity], Any]" = {}
     movable = movable_team_keys(problem)
 
@@ -190,7 +194,11 @@ def _solve_slot_group(
     # per-process string hashing, or equally optimal solves differ run to run
     # and a previewed repair cannot be reproduced when it is applied.
     eligible_identities = sorted(
-        {identity for age_group in {slot.age_group for slot in slots} for identity in teams_by_age_group.get(age_group, [])}
+        {
+            identity
+            for age_group in {slot.age_group for slot in slots}
+            for identity in teams_by_age_group.get(age_group, [])
+        }
     )
 
     participation_deficit_terms, participation_overshoot_terms = add_participation_terms(
@@ -296,7 +304,7 @@ def _solve_slot_group(
                 model.Add(meet <= x[(slot.index, left)])
                 model.Add(meet <= x[(slot.index, right)])
                 model.Add(meet >= x[(slot.index, left)] + x[(slot.index, right)] - 1)
-                pair = tuple(sorted((left, right)))
+                pair = (left, right) if left <= right else (right, left)
                 meet_by_pair[pair].append(meet)
                 if left[0] == right[0]:
                     same_club_terms.append(meet)
@@ -399,9 +407,18 @@ def _solve_slot_group(
         # practice) is found -- feasibility proof, not quality search.
         solver.parameters.stop_after_first_solution = True
     tier_values: "dict[str, float]" = {}
+    tier_diagnostics: "list[dict[str, Any]]" = []
     staged = lexicographic and not feasibility_only and sum(1 for _n, t in objective_tiers if t) > 1
     if staged:
-        status_code = solve_lexicographic(model, solver, x, objective_tiers, tier_values, float(solve_budget_seconds))
+        status_code = solve_lexicographic(
+            model,
+            solver,
+            x,
+            objective_tiers,
+            tier_values,
+            tier_diagnostics,
+            float(solve_budget_seconds),
+        )
     else:
         status_code = solver.Solve(model)
     runtime_seconds = perf_counter() - started
@@ -429,6 +446,7 @@ def _solve_slot_group(
     if staged:
         diagnostics["lexicographic"] = True
         diagnostics["tier_values"] = dict(tier_values)
+        diagnostics["tier_diagnostics"] = list(tier_diagnostics)
 
     if status_code not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         raise CpSatNoCandidate(
@@ -591,7 +609,10 @@ def optimize_candidate_cp_sat(
                 team_index[identity] = next_team_index
                 next_team_index += 1
 
-    if decompose_by_half:
+    # Season-wide hard caps need one model so both halves share the same allowance.
+    has_season_hard_max = any(resolve_hard_max(key, problem, team=team_map[key]) is not None for key in team_map)
+    effective_decompose_by_half = bool(decompose_by_half and not has_season_hard_max)
+    if effective_decompose_by_half:
         split_date = _resolve_split_date(problem, slots)
         groups = _group_slots_by_half(slots, split_date)
     else:
@@ -647,7 +668,9 @@ def optimize_candidate_cp_sat(
         "seed": int(seed),
         "baseline_hints": True,
         "mode": "feasibility_only" if feasibility_only else "quality",
-        "decompose_by_half": bool(decompose_by_half),
+        "decompose_by_half": effective_decompose_by_half,
+        "requested_decompose_by_half": bool(decompose_by_half),
+        "combined_for_season_hard_max": bool(decompose_by_half and has_season_hard_max),
         "lexicographic": bool(lexicographic and not feasibility_only),
         "half_diagnostics": half_diagnostics,
         "protected_same_club_pairings_baseline": baseline_same_club_total,

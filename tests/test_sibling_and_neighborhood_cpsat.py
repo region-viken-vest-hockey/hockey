@@ -151,6 +151,36 @@ def test_neighborhood_participant_finding_is_served_by_cpsat_and_applies():
     assert applied["ok"] is True
 
 
+def test_neighborhood_apply_refuses_a_different_bounded_replay_result(monkeypatch):
+    from dataclasses import replace
+
+    import tournament_scheduler.repair.search_neighborhood_cpsat as bridge
+
+    broken, problem = _host_missing_scenario()
+    repair = enumerate_search_neighborhood_repairs(broken, problem, dimensions=("participants",))
+    option = repair["options"][0]
+    real_solve = bridge.solve_maintenance_problem
+
+    def different_incumbent(maintenance: Any, cand: Any, prob: Any) -> Any:
+        solved = real_solve(maintenance, cand, prob)
+        assert solved.candidate is not None
+        changed = copy.deepcopy(solved.candidate)
+        changed["tournaments"][0]["replay_marker"] = "different-incumbent"
+        return replace(solved, candidate=changed)
+
+    monkeypatch.setattr(bridge, "solve_maintenance_problem", different_incumbent)
+    applied = apply_search_neighborhood_repair_option(
+        broken,
+        problem,
+        option_id=option["option_id"],
+        expected_fingerprint=repair["candidate_fingerprint"],
+        dimensions=("participants",),
+    )
+
+    assert applied["ok"] is False
+    assert applied["reason"] == "unknown_or_stale_option"
+
+
 def test_participants_only_request_never_falls_back_to_local_search(monkeypatch):
     broken, problem = _host_missing_scenario()
     import tournament_scheduler.repair.search_neighborhood as module

@@ -101,7 +101,12 @@ def cpsat_neighborhood_options(
         )
     if sum(after_codes.values()) >= before_total:
         return [], [{**base, "reason": "no_hard_improvement", "hard_violations_before": before_total}], {}
-    option_id = f"{fingerprint[:12]}:search_neighborhood:{int(seed)}:{tag}"
+    result_fingerprint = candidate_fingerprint(result)
+    # Result and request fingerprints make replay fail closed when a bounded
+    # apply-time solve returns a different incumbent than the previewed solve.
+    option_id = (
+        f"{fingerprint[:12]}:search_neighborhood:{int(seed)}:{tag}:{solved.problem_fingerprint}:{result_fingerprint}"
+    )
     option = RepairOption(
         option_id=option_id,
         finding_id="search_neighborhood",
@@ -113,12 +118,13 @@ def cpsat_neighborhood_options(
             "dimensions": [DIMENSION_PARTICIPANTS],
             "neighborhood_tournament_ids": list(neighborhood_ids),
             "patched_tournament_ids": [str(p["tournament_id"]) for p in solved.patches],
+            "maintenance_problem_fingerprint": solved.problem_fingerprint,
         },
         hard_feasible=True,
         effects=effects_for(result, after),
         evidence={
             "verification_ok": True,
-            "result_fingerprint": candidate_fingerprint(result),
+            "result_fingerprint": result_fingerprint,
             "engine": CPSAT_ENGINE,
             "seed": int(seed),
             "solver_status": solved.diagnostics.get("solver_status"),

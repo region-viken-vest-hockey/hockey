@@ -158,12 +158,16 @@ def enumerate_participation_deviation_repairs(
         changed = changed_tournaments(
             candidate, outcome, [str(t.get("id")) for t in candidate.get("tournaments", []) or []]
         )
-        # Identity is the deterministic request (scope + seed + dimensions),
-        # not the produced candidate, so re-enumerating on apply reproduces it.
+        # Bind both the exact maintenance request and its produced candidate.
+        # Apply re-runs the bounded solve, but a wall-clock-bound solver is not
+        # guaranteed to reproduce the same incumbent: a different result must
+        # therefore get a different id and be rejected as stale.
+        result_fingerprint = str(solved.candidate_fingerprint)
         option_id = (
             f"{fingerprint[:12]}:{PARTICIPATION_FINDING_PREFIX}:"
             f"{deviation.get('club')}:{deviation.get('team')}:{deviation.get('age_group')}:{deviation.get('scope')}:"
-            f"search:{int(seed)}:{search_dimension_tag(_SEARCH_DIMENSIONS)}"
+            f"search:{int(seed)}:{search_dimension_tag(_SEARCH_DIMENSIONS)}:"
+            f"{solved.problem_fingerprint}:{result_fingerprint}"
         )
         options.append(
             RepairOption(
@@ -174,6 +178,7 @@ def enumerate_participation_deviation_repairs(
                 arguments={
                     "engine": "cp_sat",
                     "seed": int(seed),
+                    "search_budget_seconds": float(search_budget_seconds),
                     "dimensions": list(_SEARCH_DIMENSIONS),
                     "unserved_dimensions": unserved,
                     "maintenance_problem_fingerprint": solved.problem_fingerprint,
@@ -185,7 +190,7 @@ def enumerate_participation_deviation_repairs(
                 evidence={
                     "verification_ok": True,
                     "avoidability": deviation.get("avoidability"),
-                    "result_fingerprint": solved.candidate_fingerprint,
+                    "result_fingerprint": result_fingerprint,
                     "solver_status": solved.diagnostics.get("solver_status"),
                 },
             )
@@ -212,6 +217,7 @@ def apply_participation_deviation_repair_option(
     run_id: str = "",
     scope: Mapping[str, Any] | None = None,
     dimensions: Iterable[str] = ("participants",),
+    search_budget_seconds: float | None = None,
 ) -> Dict[str, Any]:
     before = candidate_fingerprint(candidate)
     if before != expected_fingerprint:
@@ -221,8 +227,15 @@ def apply_participation_deviation_repair_option(
             "before_fingerprint": before,
             "expected_fingerprint": expected_fingerprint,
         }
+    replay_budget = DEFAULT_SEARCH_BUDGET_SECONDS if search_budget_seconds is None else float(search_budget_seconds)
     repair_set = enumerate_participation_deviation_repairs(
-        candidate, problem, run_id=run_id, allow_search=True, scope=scope, dimensions=dimensions
+        candidate,
+        problem,
+        run_id=run_id,
+        allow_search=True,
+        scope=scope,
+        dimensions=dimensions,
+        search_budget_seconds=replay_budget,
     )
     option = next((entry for entry in repair_set["options"] if entry["option_id"] == option_id), None)
     if option is None:
