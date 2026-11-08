@@ -32,9 +32,7 @@ from tournament_scheduler.stage3.maintenance_problem import (
 _BUDGET_STATUSES = frozenset({"UNKNOWN"})
 # Statuses that are a proof (or a deterministic structural finding) that the
 # bounded scope has no valid assignment.
-_INFEASIBLE_STATUSES = frozenset(
-    {"INFEASIBLE", "INFEASIBLE_NO_BYE_ROSTER_SIZE", "BASELINE_CONSTRAINT_CONFLICT", "MODEL_INVALID"}
-)
+_INFEASIBLE_STATUSES = frozenset({"INFEASIBLE", "INFEASIBLE_NO_BYE_ROSTER_SIZE", "BASELINE_CONSTRAINT_CONFLICT"})
 
 
 def _roster_signature(tournament: Mapping[str, Any]) -> tuple:
@@ -134,9 +132,12 @@ def solve_maintenance_problem(
     except CpSatUnavailable as exc:
         return result("unavailable", diagnostics={"reason": str(exc)})
     except CpSatNoCandidate as exc:
-        status = "budget_exhausted" if exc.status in _BUDGET_STATUSES else "infeasible"
-        if exc.status not in _BUDGET_STATUSES and exc.status not in _INFEASIBLE_STATUSES:
+        if exc.status in _INFEASIBLE_STATUSES:
+            status = "infeasible"
+        elif exc.status in _BUDGET_STATUSES:
             status = "budget_exhausted"
+        else:
+            status = "solver_error"
         return result(
             status,
             diagnostics={"solver_status": exc.status, "solver_diagnostics": dict(exc.diagnostics)},

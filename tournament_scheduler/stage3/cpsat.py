@@ -180,7 +180,6 @@ def _solve_slot_group(
     slot_indexes_by_age_group: "dict[str, list[int]]" = defaultdict(list)
     for slot in slots:
         slot_indexes_by_age_group[slot.age_group].append(slot.index)
-
     # The participation/no-duplicate-date constraints below must cover every
     # registered/eligible team for the age groups actually represented in
     # *slots* -- not just identities already present in `baseline_participations`.
@@ -204,7 +203,7 @@ def _solve_slot_group(
     participation_deficit_terms, participation_overshoot_terms = add_participation_terms(
         model,
         eligible_identities=eligible_identities,
-        slot_indexes_by_age_group=slot_indexes_by_age_group,
+        slots=slots,
         x=x,
         baseline_participations=baseline_participations,
         team_map=team_map,
@@ -213,7 +212,6 @@ def _solve_slot_group(
         half_label=half_label,
         feasibility_only=feasibility_only,
     )
-
     # No duplicate participation on one date.
     slots_by_age_date: "dict[tuple[str, date], list[int]]" = defaultdict(list)
     for slot in slots:

@@ -152,6 +152,7 @@ class MaintenanceSolveResult:
     * ``infeasible`` -- the solver proved no assignment satisfies the scope;
     * ``budget_exhausted`` -- the budget ran out before any answer: this is
       **not** proof of infeasibility;
+    * ``solver_error`` -- the model or solver failed, also not proof of infeasibility;
     * ``no_mutable_scope`` -- locks/pins/cancellations leave nothing to change;
     * ``unavailable`` -- the solver backend is not installed.
     """

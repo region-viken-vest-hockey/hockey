@@ -294,6 +294,7 @@ def test_unproven_unchanged_incumbent_is_budget_exhausted(monkeypatch):
         ("INFEASIBLE", "infeasible"),
         ("INFEASIBLE_NO_BYE_ROSTER_SIZE", "infeasible"),
         ("BASELINE_CONSTRAINT_CONFLICT", "infeasible"),
+        ("MODEL_INVALID", "solver_error"),
     ],
 )
 def test_budget_exhaustion_is_distinct_from_proven_infeasibility(monkeypatch, solver_status, expected):
@@ -334,31 +335,42 @@ def test_lexicographic_never_trades_a_higher_tier_for_a_lower_one():
     assert _deviation_total(staged, problem) <= _deviation_total(weighted, problem)
 
 
-def test_season_hard_max_uses_one_model_across_both_halves():
-    teams = [_team(club) for club in [*CLUBS, "F"]]
+def test_season_hard_max_uses_one_model_without_losing_half_targets():
+    clubs = [*CLUBS, "F"]
+    teams = [_team(club) for club in clubs]
+    by_club = {team["club"]: team for team in teams}
     dates = ["2025-09-06", "2025-11-01", "2026-01-10", "2026-03-07"]
-    tournaments = [_tournament(f"t{i}", on_date, teams[:4]) for i, on_date in enumerate(dates)]
-    for tournament, host_club in zip(tournaments, CLUBS[:4]):
-        tournament["host_club"] = host_club
+    baseline_rosters = [
+        ("A", "B", "E", "F"),
+        ("B", "A", "E", "F"),
+        ("C", "A", "B", "D"),
+        ("D", "A", "B", "C"),
+    ]
+    tournaments = [
+        _tournament(f"t{i}", on_date, [by_club[club] for club in roster])
+        for i, (on_date, roster) in enumerate(zip(dates, baseline_rosters))
+    ]
     candidate = {"tournaments": tournaments}
     problem = _problem(
         teams,
         christmas_split_date="2025-12-24",
-        participation_hard_max=3,
-        participation_targets_by_age_group={U11: {"before_christmas": 2, "after_christmas": 2}},
+        participation_hard_max=4,
+        participation_targets_by_age_group={U11: {"before_christmas": 1, "after_christmas": 1}},
     )
+    problem["teams"] = [dict(team, target_tournament_count=4 if team["club"] in {"A", "B"} else 2) for team in teams]
     built = build_participant_maintenance_problem(candidate, problem, age_groups=[U11])
 
     solved = solve_maintenance_problem(built, candidate, problem)
     result = _cand(solved)
-    counts = {
-        club: sum(club in _roster(result, tournament["id"]) for tournament in tournaments)
-        for club in [*CLUBS, "F"]
-    }
+    before = [tournament["id"] for tournament in tournaments[:2]]
+    after = [tournament["id"] for tournament in tournaments[2:]]
 
     assert solved.status == "solved"
     assert solved.diagnostics["half_diagnostics"][0]["half"] == "combined"
-    assert max(counts.values()) <= 3
+    for club in clubs:
+        half_target = 2 if club in {"A", "B"} else 1
+        assert sum(club in _roster(result, tournament_id) for tournament_id in before) == half_target
+        assert sum(club in _roster(result, tournament_id) for tournament_id in after) == half_target
     assert verify_candidate(result, problem)["ok"] is True
 
 
