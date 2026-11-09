@@ -125,9 +125,6 @@ export const FIRST_MESSAGE_JS =
   "(() => { const user = document.querySelector('main [data-message-author-role=\"user\"], main [data-user-message-bubble=\"true\"]'); const message = user?.querySelector('.whitespace-pre-wrap') || user; if (message) return JSON.stringify({ text: message.innerText || '', fallback: false }); const m = document.querySelector('main')?.innerText || ''; const i = m.indexOf('You said:'); if (i < 0) return JSON.stringify({ text: '', fallback: true }); const j = m.indexOf('ChatGPT said:', i); return JSON.stringify({ text: m.slice(i + 9, j < 0 ? undefined : j), fallback: true }); })()";
 
 const normMessage = (t) => String(t ?? "").replace(/\s+/g, " ").trim();
-const withoutReasoningDuration = (text) =>
-  text.replace(/\n+Worked for (?:(?:\d+h )?(?:\d+m )?\d+s|(?:\d+h )?\d+m)\s*$/, "");
-
 function firstMessageResult(value) {
   try {
     const parsed = JSON.parse(value);
@@ -307,7 +304,9 @@ export function reviewDelete({
   const first = evaluate(exec, repoRoot, pageId, FIRST_MESSAGE_JS);
   if (!first.ok) return first;
   const parsed = firstMessageResult(first.text);
-  const actual = normMessage(parsed?.fallback ? withoutReasoningDuration(parsed.text) : parsed?.text);
+  // The page-text fallback cannot tell UI-added lines (such as a reasoning-duration footer) from user
+  // text, so it must match exactly; a chat it cannot match is left in place, never deleted.
+  const actual = normMessage(parsed?.text);
   if (!actual || actual !== normMessage(firstMessage)) {
     return refuse("NOT_A_FLOW_CHAT", "First message differs from the one this flow sent; refusing to delete");
   }
@@ -320,6 +319,8 @@ export function reviewDelete({
     if (!ref) return refuse("DELETE_STEP_MISSING", names.join(" / "));
     const f = focus(exec, repoRoot, pageId, projectId);
     if (!f.ok) return f;
+    // Every destructive click stays bound to the conversation whose first message was verified.
+    if (conversationId(f.url) !== deletedConversationId) return refuse("CONVERSATION_CHANGED", f.url);
     const clicked = orca(exec, repoRoot, ["click", "--element", ref]);
     return clicked.error ? refuse("CLICK_FAILED", clicked.error) : { ok: true };
   };

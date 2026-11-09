@@ -98,9 +98,76 @@ test("review-delete proceeds past the guard when the first message matches", () 
   assert.ok(!chat.calls.some((c) => c.startsWith("click")));
 });
 
-test("review-delete ignores a trailing reasoning-duration line only in the fallback reading", () => {
+test("review-delete does not forgive extra text in the fallback reading", () => {
   const fallback = fakeChat("ping\nWorked for 1m 2s", { fallback: true });
-  assert.equal(reviewDelete({ repoRoot: "/r", exec: fallback.exec, pageId: "p1", firstMessage: "ping" }).code, "SNAPSHOT_FAILED");
-  const genuine = fakeChat("ping\nWorked for 1m 2s");
-  assert.equal(reviewDelete({ repoRoot: "/r", exec: genuine.exec, pageId: "p1", firstMessage: "ping" }).code, "NOT_A_FLOW_CHAT");
+  assert.equal(reviewDelete({ repoRoot: "/r", exec: fallback.exec, pageId: "p1", firstMessage: "ping" }).code, "NOT_A_FLOW_CHAT");
+  assert.ok(!fallback.calls.some((c) => c.startsWith("click")));
+});
+
+const SNAPSHOT = [
+  "- main",
+  "  - sectionheader",
+  '    - button "More" [expanded=false, ref=e1]',
+  '- dialog "Delete chat?"',
+  '  - button "Delete chat" [ref=e3]',
+].join("\n");
+
+// A scripted Orca CLI that supports the whole delete sequence. `onClick(n, state)` can navigate the tab.
+function fakeDeleteFlow({ first = "ping", onClick = () => {} } = {}) {
+  const state = { url: HOCKEY_CHAT, clicks: [], opened: [], closed: [] };
+  const exec = (command, args) => {
+    const ok = (result = {}) => ({ status: 0, stdout: JSON.stringify({ ok: true, result }), stderr: "" });
+    if (command === "git") return { status: 0, stdout: "/r/.git\n", stderr: "" };
+    const [a, b] = args;
+    if (a === "tab" && b === "switch") return ok();
+    if (a === "tab" && b === "list") {
+      return ok({
+        tabs: [
+          { browserPageId: "p1", active: true, url: state.url },
+          { browserPageId: "v1", active: true, url: `https://chatgpt.com/g/${REVIEW_CHATGPT_PROJECT_ID}-hockey/project` },
+        ],
+      });
+    }
+    if (a === "eval") return ok({ result: JSON.stringify({ text: first, fallback: false }) });
+    if (a === "snapshot") {
+      return ok({
+        snapshot: SNAPSHOT,
+        refs: { e1: { role: "button", name: "More" }, e2: { role: "menuitem", name: "Delete" }, e3: { role: "button", name: "Delete chat" } },
+      });
+    }
+    if (a === "click") {
+      state.clicks.push(args[2]);
+      onClick(state.clicks.length, state);
+      return ok();
+    }
+    if (a === "tab" && b === "create") {
+      state.opened.push(args[3]);
+      return ok({ browserPageId: "v1" });
+    }
+    if (a === "tab" && b === "close") {
+      state.closed.push(args[3]);
+      return ok();
+    }
+    return { status: 1, stdout: "", stderr: "unexpected " + args.join(" ") };
+  };
+  return { exec, state };
+}
+
+test("review-delete runs the whole delete sequence for a matching chat and confirms it is gone", () => {
+  const flow = fakeDeleteFlow();
+  const receipt = reviewDelete({ repoRoot: "/r", exec: flow.exec, pageId: "p1", firstMessage: "ping" });
+  assert.equal(receipt.ok, true, JSON.stringify(receipt));
+  assert.equal(receipt.deletedConversationId, "hockey-chat");
+  assert.deepEqual(flow.state.clicks, ["e1", "e2", "e3"]);
+  assert.deepEqual(flow.state.opened, [HOCKEY_CHAT]);
+  assert.deepEqual(flow.state.closed.sort(), ["p1", "v1"]);
+});
+
+test("review-delete aborts before any further click when the tab moves to another conversation", () => {
+  const other = `https://chatgpt.com/g/${REVIEW_CHATGPT_PROJECT_ID}-hockey/c/someone-elses-chat`;
+  const flow = fakeDeleteFlow({ onClick: (n, state) => { if (n === 1) state.url = other; } });
+  const receipt = reviewDelete({ repoRoot: "/r", exec: flow.exec, pageId: "p1", firstMessage: "ping" });
+  assert.equal(receipt.code, "CONVERSATION_CHANGED");
+  assert.deepEqual(flow.state.clicks, ["e1"]);
+  assert.deepEqual(flow.state.opened, []);
 });
