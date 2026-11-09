@@ -31,6 +31,7 @@ from tournament_scheduler.stage3.cpsat_errors import (
     CpSatUnavailable as CpSatUnavailable,
 )
 from tournament_scheduler.stage3.cpsat_lexicographic import solve_lexicographic
+from tournament_scheduler.stage3.cpsat_parity import with_participation_verification
 from tournament_scheduler.stage3.cpsat_scope import (
     change_cost_terms,
     fix_immovable_teams,
@@ -582,7 +583,7 @@ def optimize_candidate_cp_sat(
             "problem_fingerprint": problem_fingerprint,
             "candidate_fingerprint": stable_payload_sha256(result.get("tournaments", [])),
         }
-        return result
+        return with_participation_verification(candidate, result, problem)
 
     team_map = _registered_team_map(candidate, problem)
     teams_by_age_group: "dict[str, list[TeamIdentity]]" = defaultdict(list)
@@ -684,4 +685,4 @@ def optimize_candidate_cp_sat(
             "turnaround": "soft_pairwise_hint_only" if not feasibility_only else "not_modeled",
         },
     }
-    return result
+    return with_participation_verification(candidate, result, problem)
