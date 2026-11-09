@@ -27,7 +27,7 @@ Command names alone do not make a repo conformant. Before claiming any issue, ru
 
 1. `npm run orca -- plan --issue <n> --owner <owner> --run <uuid>` (prints the Orca calls and the worker task; starts nothing). The worker task must name **this repo's** instructions and canonical gate, not another project's.
 2. `npm run orca -- review-open` returns `ok: true` for **this repo's** ChatGPT project.
-3. `verify-head` runs this repo's canonical gate against its default branch (read `tools/orca-flow/verify-head.mjs` or the repo's equivalent once per session).
+3. `verify-head` runs this repo's canonical gate (`gate` in `orca.config.json`) against its default branch. The shipped implementation is `src/orca/verify-head.mjs` in the orca-orchestrator package (under `node_modules/orca-orchestrator/` when installed); read it once per session if the repo uses its own variant.
 4. `review-delete` enforces the first-message match (read its source/usage). If it does not, say so to the user up front: the fleet still runs, chat deletion is **disabled for the whole run**, and every review chat is listed in the final report (step 5).
 
 If a subcommand is missing or behaves differently from what `orca-flow` describes, stop and report the gap instead of improvising a substitute. Run the fleet only where checks 1-3 hold; check 4 never blocks the run, it only turns chat deletion off. `<owner>` below is the harness running the coordinator (`claude`, `pi`, …), the same name `orca-flow` uses; use one owner name for the whole fleet and a distinct run id per issue.

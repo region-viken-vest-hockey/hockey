@@ -9,6 +9,6 @@
     "check:skills": "orca-orchestrator check-skills"
   },
   "devDependencies": {
-    "orca-orchestrator": "github:niclas-lindgren/orca-orchestrator#v0.1.2"
+    "orca-orchestrator": "https://github.com/niclas-lindgren/orca-orchestrator/archive/13c838a9805e801ac533253b96a4f5c1f0aee6a5.tar.gz"
   }
 }
