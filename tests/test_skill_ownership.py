@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from tournament_scheduler.pipeline.audit_context import AUDIT_CHECKLIST
@@ -22,9 +23,9 @@ ADAPTER_DIRS = (
 )
 OPERATOR_ENTRYPOINT = "operate.md"
 # Every harness adapter file -> the single shared procedure it must delegate to.
-ADAPTERS = tuple(
-    (adapter_dir / OPERATOR_ENTRYPOINT, SHARED_OPERATE) for adapter_dir in ADAPTER_DIRS
-) + ((PI_OPERATE_PROMPT, SHARED_OPERATE),)
+ADAPTERS = tuple((adapter_dir / OPERATOR_ENTRYPOINT, SHARED_OPERATE) for adapter_dir in ADAPTER_DIRS) + (
+    (PI_OPERATE_PROMPT, SHARED_OPERATE),
+)
 
 
 def _adapter_files():
@@ -61,9 +62,7 @@ def test_harnesses_expose_only_the_single_operator_entrypoint():
     for adapter_dir in ADAPTER_DIRS:
         if not adapter_dir.exists():
             continue
-        assert [path.name for path in sorted(adapter_dir.glob("*.md"))] == [
-            OPERATOR_ENTRYPOINT
-        ]
+        assert [path.name for path in sorted(adapter_dir.glob("*.md"))] == [OPERATOR_ENTRYPOINT]
 
 
 def test_no_adapter_file_duplicates_the_checklist_or_defines_its_own_policy():
@@ -102,6 +101,21 @@ def test_pi_project_instructions_are_not_duplicated() -> None:
     for name in ("SYSTEM.md", "APPEND_SYSTEM.md", "AGENTS.md", "CLAUDE.md"):
         candidate = REPO_ROOT / ".pi" / name
         assert not candidate.exists(), f"{candidate} would duplicate shared project instructions"
+
+
+def test_shared_skill_names_are_not_duplicated_by_harness_adapters() -> None:
+    """Duplicate names collide in clients that discover both Agent Skills locations."""
+
+    skill_paths = sorted((REPO_ROOT / ".agents" / "skills").glob("**/SKILL.md"))
+    skill_paths.extend(sorted((REPO_ROOT / ".claude" / "skills").glob("**/SKILL.md")))
+    owners: dict[str, list[str]] = {}
+    for path in skill_paths:
+        match = re.search(r"(?m)^name: ([a-z0-9-]+)$", path.read_text(encoding="utf-8"))
+        assert match, f"{path}: missing portable skill name"
+        owners.setdefault(match.group(1), []).append(str(path.relative_to(REPO_ROOT)))
+
+    duplicates = {name: paths for name, paths in owners.items() if len(paths) > 1}
+    assert duplicates == {}
 
 
 def test_pi_exposes_only_one_rvv_operational_prompt() -> None:
