@@ -4,6 +4,10 @@ import { buildTaskSpec } from "./adapter.mjs";
 import { GATE } from "./gate.mjs";
 import { verifyHead } from "./verify-head.mjs";
 
+test("the gate label is the command and arguments", () => {
+  assert.equal(GATE.label, [GATE.command, ...GATE.args].join(" "));
+});
+
 test("the worker task names the canonical gate and no other", () => {
   const spec = buildTaskSpec({ issue: 7, title: "t", branch: "agent/issue-7", worktree: "/w" });
   assert.ok(spec.includes(`\`${GATE.label}\``));
