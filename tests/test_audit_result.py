@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from tournament_scheduler.pipeline.audit_result import (
     audit_is_fresh,
     build_audit_id,
@@ -216,6 +219,13 @@ class TestStructuralSchemaBoundary:
         assert write_audit_result(tmp_path, payload) == []
         assert read_audit_result(tmp_path)["future_field"] == {"x": 1}
 
+    def test_known_good_version_1_json_remains_round_trip_compatible(self, tmp_path):
+        fixture = Path(__file__).with_name("fixtures") / "audit_result_v1_known_good.json"
+        payload = json.loads(fixture.read_text(encoding="utf-8"))
+        assert validate_audit_result(payload) == []
+        assert write_audit_result(tmp_path, payload) == []
+        assert read_audit_result(tmp_path) == payload
+
     def test_empty_run_id_is_valid_but_absent_run_id_is_not(self):
         assert self._errors(lambda p: p.update(run_id="")) == []
         assert "missing required field: run_id" in self._errors(lambda p: p.pop("run_id"))
@@ -277,16 +287,19 @@ class TestStructuralSchemaBoundary:
         )
 
     def test_operator_assessment_shape(self):
-        assert self._errors(
-            lambda p: p.update(
-                operator_assessment={
-                    "operator_summary": "ok",
-                    "key_tradeoffs": [{"title": "t", "summary": "s", "severity": "major"}],
-                    "remaining_actions": [{"title": "t", "summary": "s", "category": "c"}],
-                    "limitations": ["l"],
-                }
+        assert (
+            self._errors(
+                lambda p: p.update(
+                    operator_assessment={
+                        "operator_summary": "ok",
+                        "key_tradeoffs": [{"title": "t", "summary": "s", "severity": "major"}],
+                        "remaining_actions": [{"title": "t", "summary": "s", "category": "c"}],
+                        "limitations": ["l"],
+                    }
+                )
             )
-        ) == []
+            == []
+        )
         errors = self._errors(
             lambda p: p.update(
                 operator_assessment={

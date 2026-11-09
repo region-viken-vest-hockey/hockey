@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "status": "REVIEW_REQUIRED",
+  "checklist_findings": [
+    {"item_id": 1, "question": "q1", "finding": "ok", "severity": "major", "confidence": "high", "evidence_refs": ["participation_shortfalls"]},
+    {"item_id": 2, "question": "q2", "finding": "ok", "severity": "major", "confidence": "high", "evidence_refs": ["hosting_balance"]},
+    {"item_id": 3, "question": "q3", "finding": "ok", "severity": "minor", "confidence": "high", "evidence_refs": []},
+    {"item_id": 4, "question": "q4", "finding": "ok", "severity": "minor", "confidence": "high", "evidence_refs": ["calendar_evidence"]},
+    {"item_id": 5, "question": "q5", "finding": "ok", "severity": "info", "confidence": "high", "evidence_refs": []},
+    {"item_id": 6, "question": "q6", "finding": "ok", "severity": "info", "confidence": "high", "evidence_refs": []},
+    {"item_id": 7, "question": "q7", "finding": "ok", "severity": "info", "confidence": "medium", "evidence_refs": []},
+    {"item_id": 8, "question": "q8", "finding": "ok", "severity": "info", "confidence": "high", "evidence_refs": ["export_consistency"]},
+    {"item_id": 9, "question": "q9", "finding": "ok", "severity": "minor", "confidence": "medium", "evidence_refs": ["publication_scope"]}
+  ],
+  "operator_assessment": {
+    "operator_summary": "Known-good version 1 audit projection.",
+    "key_tradeoffs": [{"title": "Tradeoff", "summary": "Documented", "severity": "minor"}],
+    "remaining_actions": [{"title": "Follow up", "summary": "Confirm", "category": "follow_up"}],
+    "limitations": ["Bounded semantic review"]
+  },
+  "potential_missing_rule": [],
+  "export_fingerprint": "known-good-export-fingerprint",
+  "run_id": "legacy",
+  "generated_at": "2026-11-01T09:50:18Z",
+  "audit_context_fingerprint": "known-good-context-fingerprint",
+  "audit_id": "known-good-audit-id"
+}
