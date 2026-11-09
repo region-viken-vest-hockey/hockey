@@ -152,8 +152,7 @@
     },
     {
       "age_groups": [
-        "U15",
-        "JU16"
+        "U15"
       ],
       "category": "annet",
       "category_code": "AN",
@@ -162,7 +161,7 @@
       "description": null,
       "location": null,
       "raw_category": null,
-      "title": "F.cup U15/JU16",
+      "title": "F.cup U15",
       "type": "annet",
       "url": null
     },
@@ -592,7 +591,7 @@
       "label": "Ukjent aktivitetstype"
     }
   ],
-  "generated_at": "2026-11-09T10:19:16Z",
+  "generated_at": "2026-11-09T10:20:46Z",
   "schema_version": 2,
   "validation_warnings": [],
   "year": 2026
