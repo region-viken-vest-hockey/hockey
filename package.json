@@ -1,0 +1,11 @@
+{
+  "name": "rvv-miniputt-agent-tools",
+  "private": true,
+  "type": "module",
+  "description": "Orca delivery-flow helpers only; the product itself is Python (see pyproject.toml).",
+  "scripts": {
+    "auto": "node tools/orca-auto/cli.mjs",
+    "orca": "node tools/orca-flow/cli.mjs",
+    "test:tools": "node --test tools/orca-flow/"
+  }
+}
