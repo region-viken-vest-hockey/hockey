@@ -58,3 +58,20 @@ def verified_participation_deltas(
             for metric in PARITY_METRICS
         },
     }
+
+
+def with_participation_verification(
+    baseline: Mapping[str, Any],
+    result: Dict[str, Any],
+    problem: Optional[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    """Attach ``source.participation_verification`` to *result* and return it.
+
+    Every CP-SAT return path (a normal solve and the empty-skeleton early
+    return) uses this one function, so the diagnostics shape is the same for
+    all of them.
+    """
+    result.setdefault("source", {})["participation_verification"] = verified_participation_deltas(
+        baseline, result, problem
+    )
+    return result

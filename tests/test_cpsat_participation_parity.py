@@ -134,6 +134,17 @@ class TestVerifiedParticipationDeltas:
             report["baseline"]["half_total_absolute_deviation"]
         )
 
+    def test_empty_skeleton_records_the_same_diagnostics_shape(self):
+        candidate = {"schema_version": 1, "tournaments": []}
+
+        optimized = optimize_candidate_cp_sat(candidate, None, solve_budget_seconds=5.0, seed=1)
+
+        assert optimized["source"]["status"] == "EMPTY"
+        report = optimized["source"]["participation_verification"]
+        assert set(report) == {"evaluator", "verified", "baseline", "optimized", "delta"}
+        assert set(report["delta"]) == set(PARITY_METRICS)
+        assert report["verified"] is True
+
     def test_helper_reports_a_hard_invalid_candidate_as_unverified(self):
         baseline = _under_target_baseline()
         problem = _under_target_problem()
