@@ -9,6 +9,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { branchFor, worktreePathFor } from "../orca-auto/worktrees.mjs";
+import { GATE } from "./gate.mjs";
 
 const TERMINAL_STATES = ["COMPLETE", "PARKED", "FAILED"];
 const PERMITTED_AUTHORITY = ["CLEAR", "FOUNDER_APPROVED"];
@@ -20,7 +21,7 @@ export function buildTaskSpec({ issue, title, branch, worktree }) {
     "Constraints: edit only inside this worktree, never the repository root. Do not run `npm run auto -- claim`, `renew`, `release` or `founder-resume`; the coordinator alone manages the lease. Do not push, open a pull request, merge or close the issue. Do not add a model or vendor Co-Authored-By trailer. Stage files by explicit path. Leave unrelated files alone. The worktree boundary is an instruction, not a filesystem guard: do not write outside it.",
     "Ownership: you alone edit this worktree while the task runs.",
     "Before adding domain methods, search for existing equivalent implementations and reuse where contracts match; repair new complexity or duplication violations rather than weakening the quality gate.",
-    `Observable acceptance: \`mise run check\` (including \`npm run quality:check\`) exits 0 in this worktree; the work is committed on ${branch} with a conventional prefix; \`git status --short\` is empty. Then send worker_done with --outcome succeeded and --files-modified listing the changed paths. If you cannot reach that state, send worker_done with --outcome failed and the failing command with its output summary.`,
+    `Observable acceptance: \`${GATE.label}\` exits 0 in this worktree; the work is committed on ${branch} with a conventional prefix; \`git status --short\` is empty. Then send worker_done with --outcome succeeded and --files-modified listing the changed paths. If you cannot reach that state, send worker_done with --outcome failed and the failing command with its output summary.`,
   ].join("\n");
 }
 

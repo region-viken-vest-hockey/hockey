@@ -23,14 +23,14 @@ The skill is portable because it speaks only through two command interfaces that
 - `npm run auto -- claim | renew | release | auth-check | repair-record | status`
 - `npm run orca -- dispatch | verify-head | cleanup | review-open | review-send | review-wait | review-read | review-delete`
 
-Command names alone do not make a repo conformant. Before claiming any issue, run this **conformance preflight** and stop, claiming nothing, if any check fails:
+Command names alone do not make a repo conformant. Before claiming any issue, run this **conformance preflight**. Checks 1-3 are mandatory: if any fails, stop and claim nothing. Check 4 only decides whether chats are cleaned up:
 
 1. `npm run orca -- plan --issue <n> --owner <owner> --run <uuid>` (prints the Orca calls and the worker task; starts nothing). The worker task must name **this repo's** instructions and canonical gate, not another project's.
 2. `npm run orca -- review-open` returns `ok: true` for **this repo's** ChatGPT project.
 3. `verify-head` runs this repo's canonical gate against its default branch (read `tools/orca-flow/verify-head.mjs` or the repo's equivalent once per session).
-4. `review-delete` enforces the first-message match (read its source/usage). If it does not, the fleet still runs but **never deletes chats** (see step 5).
+4. `review-delete` enforces the first-message match (read its source/usage). If it does not, say so to the user up front: the fleet still runs, chat deletion is **disabled for the whole run**, and every review chat is listed in the final report (step 5).
 
-If a subcommand is missing or behaves differently from what `orca-flow` describes, stop and report the gap instead of improvising a substitute. Only run the fleet in repos where all four hold. `<owner>` below is the harness running the coordinator (`claude`, `pi`, …), the same name `orca-flow` uses; use one owner name for the whole fleet and a distinct run id per issue.
+If a subcommand is missing or behaves differently from what `orca-flow` describes, stop and report the gap instead of improvising a substitute. Run the fleet only where checks 1-3 hold; check 4 never blocks the run, it only turns chat deletion off. `<owner>` below is the harness running the coordinator (`claude`, `pi`, …), the same name `orca-flow` uses; use one owner name for the whole fleet and a distinct run id per issue.
 
 ## Roles and lineage
 
@@ -74,7 +74,7 @@ Set the parent **after** `dispatch`: Orca must already track the new git worktre
 
 ## Lease heartbeat for the whole lifecycle
 
-Every claimed issue keeps its lease until it is released, not only while its worker runs. The lease TTL is short (30 minutes) and serialized review, CI and merge queues easily outlast it. Rule: the coordinator never blocks on a single command for longer than about 10 minutes. Run every potentially long operation (the repo's gate, `verify-head`, a rebase plus gate, `review-wait`, `gh pr checks --watch`) **in the background writing to a log file**, then poll it at most every 5 minutes; at **every poll** renew **every** claimed issue, not just the one in progress, and never let more than 15 minutes pass between renewals of any live lease. Short foreground steps (a push with its hook, a merge) need no polling. If the renewal deadline cannot be kept, start no new work and hand off the affected issues instead of continuing. A renew that fails with `LEASE_LOST` or `LEASE_CONFLICT` ends that issue immediately with the `HANDOFF` notice from `orca-flow` step 2; the rest of the fleet continues.
+Every claimed issue keeps its lease until it is released, not only while its worker runs. The lease TTL is short (30 minutes) and serialized review, CI and merge queues easily outlast it. Rule: the coordinator never blocks on a single command for longer than about 10 minutes. Run every potentially long operation (the repo's gate, `verify-head`, a rebase plus gate, `review-wait`, `gh pr checks --watch`) **in the background writing to a log file**, then poll it at most every 5 minutes; at **every poll** renew **every** claimed issue, not just the one in progress, and never let more than 15 minutes pass between renewals of any live lease. No command may run unbounded in the foreground: anything that could outlast the renewal budget, including a `git push` with its pre-push hook or a stalled network call, is wrapped in `timeout 300` or run in the background and polled. Record the process id (or process group) of every issue-scoped background job next to that issue's lease. On `LEASE_LOST`, a failed renewal or a failed pipeline step, **terminate that issue's background processes and confirm they exited before printing `HANDOFF`**; if termination cannot be confirmed, say the process may still be active and do no further work on that issue. If the renewal deadline cannot be kept, start no new work and hand off the affected issues instead of continuing. A renew that fails with `LEASE_LOST` or `LEASE_CONFLICT` ends that issue immediately with the `HANDOFF` notice from `orca-flow` step 2; the rest of the fleet continues.
 
 ## 3. Supervise (one loop for the whole fleet)
 
