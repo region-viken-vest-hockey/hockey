@@ -17,17 +17,17 @@
     },
     {
       "age_groups": [
-        "U15"
+        "U13"
       ],
-      "category": "regionslagssamling",
-      "category_code": "RS",
-      "category_label": "Regionslagssamling",
-      "date": "2026-01-26",
+      "category": "spillerutviklingssamling",
+      "category_code": "SU",
+      "category_label": "Spillerutviklingssamling",
+      "date": "2026-01-23",
       "description": null,
-      "location": null,
+      "location": "Sandefjord",
       "raw_category": null,
-      "title": "RS U15",
-      "type": "regionslagssamling",
+      "title": "S.UTvikling U13",
+      "type": "spillerutviklingssamling",
       "url": null
     },
     {
@@ -592,7 +592,7 @@
       "label": "Ukjent aktivitetstype"
     }
   ],
-  "generated_at": "2026-10-26T10:00:04Z",
+  "generated_at": "2026-11-09T10:19:16Z",
   "schema_version": 2,
   "validation_warnings": [],
   "year": 2026
