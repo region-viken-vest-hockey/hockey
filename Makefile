@@ -18,6 +18,7 @@ OPERATE_PREFLIGHT ?= $(ROOT_DIR)/scripts/operate-preflight.py
 INSTALL ?= $(ROOT_DIR)/scripts/install.sh
 PYTHON ?= $(ROOT_DIR)/venv/bin/python3
 SECRET_SCAN ?= $(ROOT_DIR)/scripts/secret-scan.sh
+DEPENDENCY_AUDIT ?= $(ROOT_DIR)/scripts/dependency-audit.py
 RULES_REPORT ?= $(ROOT_DIR)/scripts/rules-report.sh
 KAMPVEILEDER_CONVERT ?= $(ROOT_DIR)/scripts/convert-kampveileder.sh
 SEASON_REPUBLISH ?= $(ROOT_DIR)/scripts/season-republish.py
@@ -25,7 +26,7 @@ SEASON ?= 2026-2027
 
 export ID ANSWER SCOPE SCOPE_KEY RUN_ID TAG CONFIRM_PUBLIC CONFIRM_CLEANUP CSV ARGS BACKEND RESULT_FILE RESUME_AFTER_AUDIT
 
-PUBLIC_TARGETS := help bootstrap handover operate-preflight install sync check test dependency-lock secret-scan rules-report rule-catalog kampveileder-markdown \
+PUBLIC_TARGETS := help bootstrap handover operate-preflight install sync check test dependency-lock dependency-audit secret-scan rules-report rule-catalog kampveileder-markdown \
 	operator-run operator-run-force run status logs calendars calendars-refresh sources-status season-export season-presentation-export season-republish season-changes season-changes-markdown \
 	waiver \
 	aktivitetskalender aktivitetskalender-publish registered-teams registered-teams-publish \
@@ -51,6 +52,7 @@ help:
 	@echo "  make check [ARGS='...']            Run canonical verification via scripts/check"
 	@echo "  make test [ARGS='...']             Run pytest directly for local iteration"
 	@echo "  make dependency-lock               Verify requirements.lock is fresh"
+	@echo "  make dependency-audit              Advisory pip-audit of requirements.lock (needs network; not in check)"
 	@echo "  make secret-scan                   Run repository secret scan"
 	@echo "  make rules-report                  Regenerate/check scheduler rules report"
 	@echo "  make rule-catalog                  Regenerate/check canonical scheduling rule catalog"
@@ -147,6 +149,9 @@ test:
 
 dependency-lock:
 	@cd "$(ROOT_DIR)" && "$(CHECK)" dependency-lock
+
+dependency-audit:
+	@cd "$(ROOT_DIR)" && python3 "$(DEPENDENCY_AUDIT)" $(ARGS)
 
 secret-scan:
 	@cd "$(ROOT_DIR)" && sh "$(SECRET_SCAN)" $(ARGS)

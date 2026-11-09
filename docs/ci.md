@@ -37,6 +37,33 @@ Python jobs install from the committed hash-checked `requirements.lock` with `pi
 
 `pyproject.toml` remains the canonical direct dependency declaration. Refresh the lock intentionally with `scripts/refresh-python-lock.sh` (or `make dependency-lock` to verify freshness after refresh). The refresh script uses pip-tools and generates the lock with all optional dependency groups, so test dependencies are pinned alongside runtime dependencies. Platform/browser assets that are not Python packages, such as Playwright Chromium binaries, remain managed by their existing installers.
 
+## Dependency vulnerability audit (advisory)
+
+`make dependency-audit` (or `python3 scripts/dependency-audit.py`) runs PyPA
+[`pip-audit`](https://github.com/pypa/pip-audit) against `requirements.lock`
+exactly as pinned (`--require-hashes`, no resolution or install), so runtime and
+every optional extra are covered with their transitive pins. Install it with
+`pip install pip-audit`; it needs network access to the PyPI advisory feed.
+It is **not** part of `make check` or any PR check; the scheduled/manual
+`Dependency vulnerability audit` workflow runs it weekly. It never touches
+season state, publication or the lock.
+
+| Exit | Meaning |
+|---|---|
+| 0 | Scan completed, no unwaived findings. |
+| 1 | Scan completed with unwaived findings. Each line shows package, pinned version, advisory (plus aliases) and fixed version. |
+| 2 | **Unknown**: pip-audit missing, feed/network failure, unparseable output or skipped dependencies. Never treat as green. |
+| 3 | Waiver file invalid (fail closed). |
+
+Remediation is a separate, reviewed change: bump the pin with
+`scripts/refresh-python-lock.sh`, never inside a security-setup change. A finding
+that cannot be fixed yet gets a waiver in `docs/dependency-audit-waivers.json`:
+`{"package", "advisory" (id or alias), "reason", "expires" (ISO date, at most 180
+days out)}`. Waivers are scoped to one package and advisory, lapse automatically
+on expiry and are reviewed in the PR that adds them. Output is limited to the
+fields above, and URL credentials in pip-audit errors are redacted. Findings in
+the initial baseline are evaluated before any gating; the lane stays advisory.
+
 Failure artifacts: the quick-suite job uploads its `htmlcov/` coverage
 report; the reproducibility and CLI-smoke jobs upload their `--basetemp`
 directory (generated run manifests, checkpoints, logs) on failure so a
