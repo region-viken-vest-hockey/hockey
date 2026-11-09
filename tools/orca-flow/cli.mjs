@@ -36,7 +36,7 @@ export function parseArgs(argv) {
   }
   if (["review-send", "review-read", "review-wait", "review-delete"].includes(command)) {
     if (!flags.page) return { error: `${command} requires --page` };
-    if (command === "review-send" && !flags["message-file"]) return { error: `${command} requires --message-file` };
+    if (["review-send", "review-delete"].includes(command) && !flags["message-file"]) return { error: `${command} requires --message-file` };
     if (flags["project-id"] && command !== "review-delete") {
       return { error: "--project-id is only supported by review-delete" };
     }
@@ -73,9 +73,17 @@ export function main(argv, { repoRoot, exec = run, now = () => Date.now() }) {
   }
   if (command.startsWith("review-")) {
     const base = { repoRoot, exec };
+    let messageText;
+    if (parsed.messageFile) {
+      try {
+        messageText = readFileSync(parsed.messageFile, "utf8");
+      } catch (error) {
+        return { code: 1, result: { ok: false, code: "MESSAGE_FILE_UNREADABLE", detail: String(error.message ?? error).slice(0, 300) } };
+      }
+    }
     const receipt = command === "review-open" ? reviewOpen(base)
-      : command === "review-send" ? reviewSend({ ...base, pageId: parsed.pageId, message: readFileSync(parsed.messageFile, "utf8").trim() })
-      : command === "review-delete" ? reviewDelete({ ...base, pageId: parsed.pageId, projectId: parsed.projectId })
+      : command === "review-send" ? reviewSend({ ...base, pageId: parsed.pageId, message: messageText.trim() })
+      : command === "review-delete" ? reviewDelete({ ...base, pageId: parsed.pageId, firstMessage: messageText, projectId: parsed.projectId })
       : command === "review-read" ? reviewRead({ ...base, pageId: parsed.pageId })
       : reviewWait({ ...base, pageId: parsed.pageId });
     return { code: receipt.ok ? 0 : 1, result: receipt };

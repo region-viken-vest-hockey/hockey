@@ -121,6 +121,19 @@ export function composerDraftText(element) {
 }
 
 const DRAFT_JS = `(() => { const e = document.querySelector('#prompt-textarea, textarea, [contenteditable=true]'); return (${composerDraftText.toString()})(e); })()`;
+export const FIRST_MESSAGE_JS =
+  "(() => { const user = document.querySelector('main [data-message-author-role=\"user\"], main [data-user-message-bubble=\"true\"]'); const message = user?.querySelector('.whitespace-pre-wrap') || user; if (message) return JSON.stringify({ text: message.innerText || '', fallback: false }); const m = document.querySelector('main')?.innerText || ''; const i = m.indexOf('You said:'); if (i < 0) return JSON.stringify({ text: '', fallback: true }); const j = m.indexOf('ChatGPT said:', i); return JSON.stringify({ text: m.slice(i + 9, j < 0 ? undefined : j), fallback: true }); })()";
+
+const normMessage = (t) => String(t ?? "").replace(/\s+/g, " ").trim();
+function firstMessageResult(value) {
+  try {
+    const parsed = JSON.parse(value);
+    return typeof parsed?.text === "string" && typeof parsed?.fallback === "boolean" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 const REPLY_JS =
   "(() => { const m = document.querySelector('main')?.innerText || ''; const i = m.lastIndexOf('ChatGPT said:'); return JSON.stringify({ reply: i < 0 ? '' : m.slice(i), blocked: /cloudflare_challenge|verify you are human/i.test(m) }); })()";
 
@@ -264,16 +277,21 @@ function verifyConversationGone(exec, cwd, url, deletedConversationId) {
 }
 
 /**
- * Delete the chat open in `pageId`. It must be a conversation inside the expected project; the
- * first message is not compared, so the caller is responsible for passing a page it created.
- * `projectId` is an explicit cleanup override; ordinary review commands remain Hockey-only.
+ * Delete the chat open in `pageId`. It must be a conversation inside the expected project, and its
+ * first user message must equal `firstMessage` (the text this flow sent) before anything is
+ * clicked; otherwise it refuses with NOT_A_FLOW_CHAT. `projectId` is an explicit cleanup
+ * override; ordinary review commands remain Hockey-only.
  */
 export function reviewDelete({
   repoRoot,
   exec = defaultExec,
   pageId,
+  firstMessage,
   projectId = REVIEW_CHATGPT_PROJECT_ID,
 }) {
+  if (!normMessage(firstMessage)) {
+    return refuse("FIRST_MESSAGE_REQUIRED", "Pass the exact first message this flow sent to the chat");
+  }
   repoRoot = mainCheckout(exec, repoRoot);
   const focused = focus(exec, repoRoot, pageId, projectId);
   if (!focused.ok) return focused;
@@ -283,6 +301,16 @@ export function reviewDelete({
   const deletedConversationId = conversationId(focused.url);
   if (!deletedConversationId) return refuse("NOT_A_PROJECT_CHAT", focused.url);
 
+  const first = evaluate(exec, repoRoot, pageId, FIRST_MESSAGE_JS);
+  if (!first.ok) return first;
+  const parsed = firstMessageResult(first.text);
+  // The page-text fallback cannot tell UI-added lines (such as a reasoning-duration footer) from user
+  // text, so it must match exactly; a chat it cannot match is left in place, never deleted.
+  const actual = normMessage(parsed?.text);
+  if (!actual || actual !== normMessage(firstMessage)) {
+    return refuse("NOT_A_FLOW_CHAT", "First message differs from the one this flow sent; refusing to delete");
+  }
+
   const step = (needRole, needNames, resolve) => {
     const page = snapshot(exec, repoRoot, pageId);
     if (!page.ok) return page;
@@ -291,6 +319,8 @@ export function reviewDelete({
     if (!ref) return refuse("DELETE_STEP_MISSING", names.join(" / "));
     const f = focus(exec, repoRoot, pageId, projectId);
     if (!f.ok) return f;
+    // Every destructive click stays bound to the conversation whose first message was verified.
+    if (conversationId(f.url) !== deletedConversationId) return refuse("CONVERSATION_CHANGED", f.url);
     const clicked = orca(exec, repoRoot, ["click", "--element", ref]);
     return clicked.error ? refuse("CLICK_FAILED", clicked.error) : { ok: true };
   };
