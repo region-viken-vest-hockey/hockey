@@ -16,6 +16,15 @@ Fan out N independent issues from one coordinating session. The coordinator **la
 
 The repo's own instructions (`AGENTS.md`/`CLAUDE.md`) define its gate, conventions and protected domains; this skill never restates them. Read `orca-flow` first; this file only adds what changes when several issues run at once. If a step here conflicts with `orca-flow` on a safety rule (lease, authority, review, verify-head, merge gate), `orca-flow` wins.
 
+## Portability contract
+
+The skill is portable because it speaks only through two command interfaces that every repo using it provides; the repo-specific parts (gate command, default branch, ChatGPT project, worker task text) live inside those tools, not here. A repo must expose:
+
+- `npm run auto -- claim | renew | release | auth-check | repair-record | status`
+- `npm run orca -- dispatch | verify-head | cleanup | review-open | review-send | review-wait | review-read | review-delete`
+
+If a subcommand is missing or behaves differently from what `orca-flow` describes, stop and report the gap instead of improvising a substitute. `<owner>` below is the harness running the coordinator (`claude`, `pi`, …), the same name `orca-flow` uses; use one owner name for the whole fleet and a distinct run id per issue.
+
 ## Roles and lineage
 
 - **Coordinator** = the session that starts the fleet. It never edits an issue worktree and never implements. Its worktree is the **parent** of every issue worktree in the fleet.
@@ -43,9 +52,9 @@ Resolve the Orca CLI once (see the `orchestration` skill: `ORCA_CLI_COMMAND`, el
 For each chosen issue, in order, with a fresh `RUN=$(python3 -c 'import uuid;print(uuid.uuid4())')` per issue (keep issue → run-id in a scratch file; a lease is per issue):
 
 ```bash
-npm run auto -- claim --issue <n> --owner claude --run $RUN        # creates .worktrees/issue-<n>
-npm run auto -- auth-check --issue <n> --phase plan --owner claude --run $RUN
-npm run orca -- dispatch --issue <n> --owner claude --run $RUN     # waits for Orca to resolve the worktree, then run-create + worker-start
+npm run auto -- claim --issue <n> --owner <owner> --run $RUN        # creates .worktrees/issue-<n>
+npm run auto -- auth-check --issue <n> --phase plan --owner <owner> --run $RUN
+npm run orca -- dispatch --issue <n> --owner <owner> --run $RUN     # waits for Orca to resolve the worktree, then run-create + worker-start
 orca worktree set --worktree path:<repo>/.worktrees/issue-<n> --parent-worktree identity:$PARENT --issue <n> --json
 ```
 
@@ -56,16 +65,20 @@ Set the parent **after** `dispatch`: Orca must already track the new git worktre
 - Verify lineage once all are launched: `orca worktree ps --json` must show each child's `parentWorktreeId` equal to the coordinator's worktree id (`id:<repo-id>::<path>`). If `set --parent-worktree` is rejected, report the exact error and continue without lineage rather than blocking the fleet.
 - Any `dispatch` failure follows the recovery table in `orca-deliver` §3; if recovery is not conclusively safe, stop that issue and report.
 
+## Lease heartbeat for the whole lifecycle
+
+Every claimed issue keeps its lease until it is released, not only while its worker runs. The lease TTL is short (30 minutes) and serialized review, CI and merge queues easily outlast it. Rule: before **any operation that can take more than a few minutes** (a worker wait, a gate run, `review-wait`, `gh pr checks --watch`, a rebase, `verify-head`), renew **every** issue still claimed, not just the one being worked on; never let more than 15 minutes pass between renewals of any live lease. Use `timeout 600` around long waits (as `orca-flow` step 8 does) so control returns for renewal. A renew that fails with `LEASE_LOST` or `LEASE_CONFLICT` ends that issue immediately with the `HANDOFF` notice from `orca-flow` step 2; the rest of the fleet continues.
+
 ## 3. Supervise (one loop for the whole fleet)
 
 ```bash
 # renew EVERY live issue's lease before each wait; 15 min wait vs a 30 min TTL
-for each live issue: npm run auto -- renew --issue <n> --owner claude --run <run-id>
+for each live issue: npm run auto -- renew --issue <n> --owner <owner> --run <run-id>
 orca orchestration check --wait --types "worker_done,escalation,question" --timeout-ms 600000 --json
 ```
 
 - Answer a `question` with `orca orchestration reply`. An `escalation` for one issue stops only that issue.
-- On `worker_done`: match the IDs to that issue's dispatch, `worker-release --dispatch <id>`, ack. Only `outcome: succeeded` continues; otherwise report the worker's failure summary and take that issue out of the fleet (no automatic re-dispatch beyond the single recovery step above).
+- On `worker_done`: match the IDs to that issue's dispatch, `worker-release --dispatch <id>`, ack. Only `outcome: succeeded` continues. On a failed or abandoned worker: confirm it is stopped (`worker-show` / `worker-stop` verdict), leave the worktree and any commits untouched as evidence, reconcile the dispatch record only through the recovery table in `orca-deliver` §3 (never delete it blindly), then either `release` the lease or keep it deliberately and print the `HANDOFF` notice. Say which in the final report; an issue must never be left claimed by accident. No re-dispatch beyond the single recovery step above.
 - A lease problem on any issue (`LEASE_LOST`, `LEASE_CONFLICT`, `DIRTY_WORKTREE`) ends **that** issue with the `HANDOFF` notice from `orca-flow` step 2. Do not touch its worktree. Other issues continue.
 
 ## 4. Per-issue pipeline: parallel to build, serial to ship
@@ -76,7 +89,7 @@ As each worker finishes, move that issue through `orca-flow` steps 4-9, with the
 - **ChatGPT review is serialized**: there is one Orca browser tab, so run one `review-open` / `review-send` / `review-wait` at a time. Each review and repair round is still a fresh chat, and every chat's first-message file is recorded for deletion (keep issue, page id and message file together in scratch).
 - **Merge is serialized, one PR at a time**:
   1. take the next issue whose final fresh-reviewer pass found no blocking issues and whose CI is green;
-  2. if `main` moved since its head was verified, rebase the branch onto `origin/main` in its worktree (never merge `main` in: many repos forbid merge commits, so rebase everywhere), rerun the repo's gate, push, and treat the new head as needing `verify-head` again; a rebase that changes behavior or conflicts in a non-trivial way sends that issue back through review;
+  2. if `main` moved since its head was verified, rebase the branch onto `origin/main` in its worktree (never merge `main` in: many repos forbid merge commits, so rebase everywhere), rerun the repo's gate and push. **Any rebase produces a new head and invalidates every earlier review, even a mechanically clean one**: the issue goes back through a new fresh-chat final reviewer pass on the exact rebased head, then CI, `verify-head`, merge `auth-check` and the SHA-bound merge, as in `orca-flow` steps 7-8. Only a head that was reviewed, verified and merged without moving may skip this;
   3. `verify-head`, merge `auth-check`, `gh pr merge <pr> --squash --delete-branch --match-head-commit <sha>`;
   4. `git pull --ff-only` in the coordinator checkout (only that command; see precondition on `state.db`), `release` the lease, then merge the next.
 - After each merge, re-check the remaining fleet for newly overlapping files; if two open PRs now touch the same file, serialize them and rebase the later one.
@@ -84,7 +97,7 @@ As each worker finishes, move that issue through `orca-flow` steps 4-9, with the
 
 ## 5. Finish
 
-- For every merged issue run `npm run orca -- cleanup --issue <n>` and delete its flow-created ChatGPT chats with `review-delete` (step 10 of `orca-flow`). `LIVE_SESSION` from cleanup usually means editor or language-server processes hold the worktree as their cwd: report it, do not force removal. Remove stale children so no orphan lineage remains in `orca worktree ps`.
+- For every merged issue run `npm run orca -- cleanup --issue <n>` and delete its flow-created ChatGPT chats with `review-delete` (step 10 of `orca-flow`), passing the exact first-message file recorded for that page. Keep issue, page id, chat URL and message file bound together in the scratch ledger and delete only pages in it. If this repo's `review-delete` does not enforce the first-message match (check `npm run orca -- review-delete` usage and source), first confirm with `review-read --page <id>` that the chat's first message equals the recorded file, and report the tool gap. `LIVE_SESSION` from cleanup usually means editor or language-server processes hold the worktree as their cwd: report it, do not force removal. Remove stale children so no orphan lineage remains in `orca worktree ps`.
 - Update or close each issue per `orca-flow` step 9; partial slices stay open with a comment naming what remains.
 - Final report, one table: issue → PR → merge commit → verdict/findings fixed → chats deleted → issue action, followed by the fleet-level facts: which issues were serialized and why, anything dropped or handed off (with the exact code), lease or ledger anomalies, chats that could not be deleted, and anything skipped.
 
