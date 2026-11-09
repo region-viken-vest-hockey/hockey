@@ -1,0 +1,1217 @@
+<!doctype html>
+<html lang="nb">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aktivitetskalender for Region Viken Vest</title>
+  <style>
+    :root {
+      --bg: #f7fafc;
+      --surface: #ffffff;
+      --surface-soft: #edf3f8;
+      --surface-strong: #dbe7f1;
+      --border: #cfdce8;
+      --text: #102033;
+      --muted: #5b6f84;
+      --accent: #0b66c3;
+      --accent-dark: #07477f;
+      --today: #d82148;
+      --next: #b45309;
+      --shadow: 0 12px 30px rgba(15, 23, 42, .08);
+      --radius: 14px;
+      --lane-height: 96px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 0;
+      overflow-x: hidden;
+    }
+
+    body {
+      margin: 0;
+      min-width: 0;
+      overflow-x: hidden;
+      background: radial-gradient(circle at top left, #dceffd, transparent 28rem), var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.5;
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    .wrap {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: clamp(16px, 3vw, 32px);
+    }
+
+    header {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .eyebrow {
+      color: var(--accent-dark);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 48px);
+      letter-spacing: -.04em;
+      line-height: 1.04;
+    }
+
+    .lead {
+      max-width: 800px;
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(15px, 2vw, 18px);
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: auto minmax(180px, 1fr) minmax(180px, 1fr) auto;
+      align-items: end;
+      gap: 10px;
+      padding: 12px;
+      margin: 18px 0;
+      background: rgba(255, 255, 255, .9);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .segmented {
+      display: inline-flex;
+      align-self: end;
+      padding: 4px;
+      background: var(--surface-soft);
+      border-radius: 10px;
+    }
+
+    .segmented button,
+    .filter {
+      min-height: 40px;
+      border-radius: 8px;
+    }
+
+    .segmented button {
+      border: 0;
+      padding: 0 16px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .segmented button[aria-pressed="true"] {
+      background: var(--surface);
+      color: var(--accent-dark);
+      box-shadow: 0 3px 10px rgba(15, 23, 42, .10);
+    }
+
+    .segmented button:focus-visible,
+    .filter:focus-visible,
+    .activity-card:focus-visible,
+    .timeline-marker:focus-visible,
+    .details-close:focus-visible {
+      outline: 3px solid rgba(11, 102, 195, .45);
+      outline-offset: 3px;
+    }
+
+    label {
+      display: grid;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .filter {
+      width: 100%;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      min-width: 0;
+    }
+
+    .status {
+      align-self: center;
+      color: var(--muted);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, .94);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: clamp(10px, 2vw, 18px);
+    }
+
+    .overview-view,
+    .list-view {
+      display: none;
+      min-width: 0;
+    }
+
+    .view-overview .overview-view,
+    .view-list .list-view {
+      display: block;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    .type-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 26px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .type-cue {
+      width: 13px;
+      height: 13px;
+      display: inline-block;
+      flex: none;
+      background: var(--cue-color);
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, .22);
+    }
+
+    .shape-circle {
+      border-radius: 999px;
+    }
+
+    .shape-square {
+      border-radius: 3px;
+    }
+
+    .shape-diamond {
+      transform: rotate(45deg);
+      border-radius: 2px;
+    }
+
+    .shape-ring {
+      border-radius: 999px;
+      background: transparent;
+      border-color: var(--cue-color);
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, .20);
+    }
+
+    .shape-pill {
+      width: 18px;
+      border-radius: 999px;
+    }
+
+    .timeline-shell {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 4px);
+      background: linear-gradient(180deg, #fff, #f6f9fd);
+    }
+
+    .timeline-head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px 22px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .timeline-head>div {
+      min-width: min(100%, 420px);
+    }
+
+    .timeline-head h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .timeline-help,
+    .next-summary {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .next-summary {
+      max-width: 340px;
+    }
+
+    .timeline-track {
+      position: relative;
+      min-width: 0;
+      overflow-x: auto;
+      overflow-y: visible;
+      scrollbar-gutter: stable;
+      padding-bottom: 6px;
+    }
+
+    .timeline-grid {
+      display: grid;
+      grid-template-columns: minmax(92px, 132px) minmax(0, 1fr);
+      min-width: 680px;
+    }
+
+    .corner-cell,
+    .axis-cell {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      min-height: 46px;
+      background: rgba(246, 249, 253, .96);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .corner-cell {
+      left: 0;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      border-right: 1px solid var(--border);
+    }
+
+    .axis-cell {
+      position: relative;
+    }
+
+    .month-tick {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      border-left: 1px solid rgba(91, 111, 132, .22);
+    }
+
+    .month-tick span {
+      position: absolute;
+      top: 11px;
+      left: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      text-transform: uppercase;
+    }
+
+    .timeline-lane-label {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      min-height: var(--lane-height);
+      padding: 0 12px;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, .96);
+      font-weight: 900;
+    }
+
+    .timeline-lane {
+      position: relative;
+      min-height: var(--lane-height);
+      border-bottom: 1px solid var(--border);
+      background-image: linear-gradient(90deg, rgba(207, 220, 232, .42) 1px, transparent 1px);
+      background-size: calc(100% / 12) 100%;
+    }
+
+    .timeline-today {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 0;
+      border-left: 2px solid var(--today);
+      z-index: 1;
+    }
+
+    .timeline-today span {
+      position: absolute;
+      top: 3px;
+      left: 5px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: var(--today);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .timeline-marker {
+      position: absolute;
+      left: var(--x);
+      top: calc(12px + (var(--stack) * 25px));
+      width: 40px;
+      min-width: 40px;
+      height: 40px;
+      transform: translateX(-50%);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #fff;
+      background: var(--cue-color);
+      color: #fff;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, .25), 0 6px 12px rgba(15, 23, 42, .16);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 950;
+      line-height: 1;
+      letter-spacing: -.01em;
+      z-index: 2;
+    }
+
+    .timeline-marker.shape-circle,
+    .timeline-marker.shape-ring {
+      border-radius: 999px;
+    }
+
+    .timeline-marker.shape-square {
+      border-radius: 8px;
+    }
+
+    .timeline-marker.shape-diamond {
+      border-radius: 6px;
+      transform: translateX(-50%) rotate(45deg);
+    }
+
+    .timeline-marker.shape-diamond .marker-code {
+      transform: rotate(-45deg);
+    }
+
+    .timeline-marker.shape-pill {
+      width: 48px;
+      border-radius: 999px;
+    }
+
+    .timeline-marker.shape-ring {
+      color: var(--cue-color);
+      background: #fff;
+      border-color: var(--cue-color);
+    }
+
+    .timeline-marker.next {
+      box-shadow: 0 0 0 4px rgba(180, 83, 9, .25), 0 6px 12px rgba(15, 23, 42, .16);
+      border-color: var(--next);
+    }
+
+    .timeline-marker .marker-date {
+      position: absolute;
+      top: 43px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .timeline-empty,
+    .empty {
+      padding: 40px 18px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .month-group {
+      margin-bottom: 18px;
+    }
+
+    .month-group h2 {
+      margin: 0 0 9px;
+      font-size: 18px;
+    }
+
+    .activity-list {
+      display: grid;
+      gap: 9px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .activity-card {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      padding: 14px;
+      cursor: pointer;
+      font: inherit;
+      color: var(--text);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+    }
+
+    .activity-card:hover {
+      border-color: #aebfd0;
+      box-shadow: 0 5px 14px rgba(15, 23, 42, .08);
+    }
+
+    .activity-card.next {
+      border-color: var(--next);
+      box-shadow: 0 0 0 3px rgba(180, 83, 9, .16);
+    }
+
+    .activity-card time {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .activity-card strong {
+      display: block;
+      margin-top: 2px;
+    }
+
+    .activity-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 24px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 850;
+      color: #fff;
+      background: var(--cue-color);
+    }
+
+    .details-dialog {
+      width: min(560px, calc(100vw - 28px));
+      border: 0;
+      border-radius: 20px;
+      padding: 0;
+      color: var(--text);
+      box-shadow: 0 30px 80px rgba(15, 23, 42, .32);
+    }
+
+    .details-dialog::backdrop {
+      background: rgba(15, 23, 42, .42);
+    }
+
+    .details-panel {
+      padding: 22px;
+      background: var(--surface);
+    }
+
+    .details-top {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .details-top h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      line-height: 1.16;
+    }
+
+    .details-close {
+      flex: none;
+      border: 1px solid var(--border);
+      background: var(--surface-soft);
+      border-radius: 999px;
+      min-width: 40px;
+      min-height: 40px;
+      cursor: pointer;
+      color: var(--text);
+      font-weight: 900;
+    }
+
+    .details-dialog dl {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px 12px;
+      margin: 16px 0 0;
+    }
+
+    .details-dialog dt {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .details-dialog dd {
+      margin: 0;
+    }
+
+    .details-dialog a {
+      color: var(--accent-dark);
+      font-weight: 800;
+    }
+
+    body.is-embed {
+      background: transparent;
+    }
+
+    .is-embed .wrap {
+      width: 100%;
+      max-width: none;
+      padding: 0;
+    }
+
+    .is-embed header {
+      display: none;
+    }
+
+    .is-embed .toolbar {
+      margin: 0 0 12px;
+      box-shadow: none;
+      background: #f5f7f9;
+    }
+
+    .is-embed .panel {
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+    }
+
+    @media (max-width: 900px) {
+      .toolbar {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .segmented,
+      .status {
+        grid-column: 1 / -1;
+      }
+
+      .status {
+        justify-self: start;
+      }
+
+      .timeline-grid {
+        min-width: 640px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .wrap {
+        padding: 12px;
+      }
+
+      .is-embed .wrap {
+        padding: 0;
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr;
+        padding: 10px;
+      }
+
+      .segmented {
+        display: none;
+      }
+
+      .status {
+        grid-column: auto;
+        white-space: normal;
+      }
+
+      .panel {
+        padding: 8px;
+      }
+
+      .mobile-default .overview-view {
+        display: none;
+      }
+
+      .mobile-default .list-view {
+        display: block;
+      }
+
+      .month-group {
+        margin-bottom: 16px;
+      }
+
+      .activity-card {
+        padding: 12px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="view-overview">
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">RVV Hockey</div>
+      <h1>Aktivitetskalender</h1>
+      <p class="lead">Sesongoversikt og aktivitetsliste for Region Viken Vest.</p>
+    </header>
+
+    <div class="toolbar" aria-label="Visningsvalg og filtre">
+      <div class="segmented" role="group" aria-label="Velg visning">
+        <button type="button" id="overviewView" aria-pressed="true">Sesongoversikt</button>
+        <button type="button" id="listView" aria-pressed="false">Liste</button>
+      </div>
+      <label for="ageFilter">Aldersgruppe
+        <select id="ageFilter" class="filter">
+          <option value="">Alle aldersgrupper</option>
+        </select>
+      </label>
+      <label for="typeFilter">Aktivitetstype
+        <select id="typeFilter" class="filter">
+          <option value="">Alle typer</option>
+        </select>
+      </label>
+      <div id="activityStatus" class="status" aria-live="polite">Laster aktiviteter…</div>
+    </div>
+
+    <main id="app" class="panel" aria-busy="true">
+      <section id="timelineContainer" class="overview-view" aria-labelledby="timelineHeading"></section>
+      <section id="listContainer" class="list-view" aria-label="Kronologisk aktivitetsliste"></section>
+    </main>
+  </div>
+  <dialog id="detailsDialog" class="details-dialog" aria-labelledby="detailsTitle">
+    <div class="details-panel">
+      <div class="details-top">
+        <div id="detailsContent">
+          <h2 id="detailsTitle">Velg en aktivitet</h2>
+          <p>Trykk på en markør eller listeoppføring for detaljer.</p>
+        </div>
+        <button type="button" id="detailsClose" class="details-close" aria-label="Lukk detaljer">×</button>
+      </div>
+    </div>
+  </dialog>
+  <script>
+    (function () {
+      const DATA_URL = '../activities.json';
+      const HEIGHT_MESSAGE_NAMESPACE = 'rvv.activities';
+      const HEIGHT_MESSAGE_TYPE = 'rvv-activities-height';
+      const HEIGHT_MESSAGE_SCHEMA_VERSION = 1;
+      const DEFAULT_IFRAME_ID = 'rvv-activities-frame';
+      const ALLOWED_PARENT_ORIGINS = ['https://www.rvvhockey.no', 'https://rvvhockey.no'];
+      const MIN_EMBED_HEIGHT = 320;
+      const MAX_EMBED_HEIGHT = 6000;
+      const MOBILE_BREAKPOINT = '(max-width: 760px)';
+      const MONTHS = ['januar', 'februar', 'mars', 'april', 'mai', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'desember'];
+      const MONTH_SHORT = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'];
+      const COLORS = ['#0b66c3', '#7c3aed', '#047857', '#d82148', '#c2410c', '#0e7490'];
+      const SHAPES = ['circle','square','diamond','ring','pill'];
+      const EVERYONE_GROUP = 'ALL';
+      const EVERYONE_LABEL = 'Alle aldersgrupper';
+      const fallbackVocabulary = [
+        { id: 'spillerutviklingssamling', code: 'SU', label: 'Spillerutviklingssamling' },
+        { id: 'regionslagssamling', code: 'RS', label: 'Regionslagssamling' },
+        { id: 'regionsmesterskap', code: 'RM', label: 'Regionsmesterskap' },
+        { id: 'regionsturnering', code: 'RT', label: 'Regionsturnering' },
+        { id: 'annet', code: 'AN', label: 'Annen aktivitet' },
+        { id: 'unknown', code: '?', label: 'Ukjent aktivitetstype' }
+      ];
+      const colorByType = new Map();
+      const shapeByType = new Map();
+      let categoryById = new Map(fallbackVocabulary.map(item => [item.id, item]));
+      let allActivities = [];
+      let filteredActivities = [];
+      let nextActivityId = null;
+      let timelineYear = new Date().getFullYear();
+      let lastActivator = null;
+      let heightRaf = 0;
+      let heightFallbackTimer = 0;
+      let lastPostedHeight = 0;
+
+      const body = document.body;
+      const app = document.getElementById('app');
+      const detailsDialog = document.getElementById('detailsDialog');
+      const detailsContent = document.getElementById('detailsContent');
+      const detailsClose = document.getElementById('detailsClose');
+      const timelineContainer = document.getElementById('timelineContainer');
+      const listContainer = document.getElementById('listContainer');
+      const ageFilter = document.getElementById('ageFilter');
+      const typeFilter = document.getElementById('typeFilter');
+      const status = document.getElementById('activityStatus');
+      const overviewBtn = document.getElementById('overviewView');
+      const listBtn = document.getElementById('listView');
+      const mobileMedia = window.matchMedia('(max-width: 760px)');
+
+      if (window.parent !== window) body.classList.add('is-embed');
+
+      function syncResponsiveMode() {
+        if (mobileMedia.matches) {
+          body.classList.add('mobile-default', 'view-list');
+          body.classList.remove('view-overview');
+          overviewBtn.setAttribute('aria-pressed', 'false');
+          listBtn.setAttribute('aria-pressed', 'true');
+        } else {
+          body.classList.remove('mobile-default');
+          if (!body.classList.contains('view-overview') && !body.classList.contains('view-list')) {
+            body.classList.add('view-overview');
+            overviewBtn.setAttribute('aria-pressed', 'true');
+            listBtn.setAttribute('aria-pressed', 'false');
+          }
+        }
+        announceHeight('responsive-mode');
+      }
+
+      syncResponsiveMode();
+
+      function iframeId() {
+        return new URLSearchParams(window.location.search).get('frame') || DEFAULT_IFRAME_ID;
+      }
+
+      function parentTargetOrigin() {
+        try {
+          const referrerOrigin = document.referrer ? new URL(document.referrer).origin : '';
+          if (ALLOWED_PARENT_ORIGINS.includes(referrerOrigin)) return referrerOrigin;
+        } catch (error) { }
+        try {
+          const ancestorOrigins = Array.from(window.location.ancestorOrigins || []);
+          const allowedAncestor = ancestorOrigins.find(origin => ALLOWED_PARENT_ORIGINS.includes(origin));
+          if (allowedAncestor) return allowedAncestor;
+        } catch (error) { }
+        return window.location.origin;
+      }
+
+      function escapeHtml(value) {
+        return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+      }
+
+      function formatDate(iso) {
+        return new Intl.DateTimeFormat('nb-NO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(iso + 'T00:00:00'));
+      }
+
+      function shortDate(iso) {
+        return new Intl.DateTimeFormat('nb-NO', { day: 'numeric', month: 'short' }).format(new Date(iso + 'T00:00:00'));
+      }
+
+      function dayOfYear(date) {
+        const start = new Date(date.getFullYear(), 0, 1);
+        return Math.floor((date - start) / 86400000) + 1;
+      }
+
+      function daysInYear(year) {
+        return ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0) ? 366 : 365;
+      }
+
+      function dateToPercent(iso, year) {
+        const date = new Date(iso + 'T00:00:00');
+        const targetYear = year || date.getFullYear();
+        return ((dayOfYear(date) - 1) / Math.max(1, daysInYear(targetYear) - 1)) * 100;
+      }
+
+      function categoryId(activity) {
+        return String(activity.category || activity.type || 'unknown').trim() || 'unknown';
+      }
+
+      function categoryMeta(activityOrId) {
+        const id = typeof activityOrId === 'string' ? activityOrId : categoryId(activityOrId);
+        return categoryById.get(id) || { id, code: '?', label: id };
+      }
+
+      function categoryLabel(activity) { return activity.category_label || categoryMeta(activity).label; }
+      function categoryCode(activity) { return activity.category_code || categoryMeta(activity).code; }
+
+      function colorFor(type) {
+        const key = String(type || 'unknown');
+        if (!colorByType.has(key)) colorByType.set(key, COLORS[colorByType.size % COLORS.length]);
+        return colorByType.get(key);
+      }
+
+      function shapeFor(type) {
+        const key = String(type || 'unknown');
+        if (!shapeByType.has(key)) shapeByType.set(key, SHAPES[shapeByType.size % SHAPES.length]);
+        return shapeByType.get(key);
+      }
+
+      function cueHtml(activityOrId) {
+        const key = typeof activityOrId === 'string' ? activityOrId : categoryId(activityOrId);
+        return `<span class="type-cue shape-${shapeFor(key)}" style="--cue-color:${colorFor(key)}" aria-hidden="true"></span>`;
+      }
+
+      function withIds(activities) {
+        return activities.map((activity, index) => ({ ...activity, id: `activity-${index}` }));
+      }
+
+      function activityGroups(activity) {
+        return (activity.age_groups || []).filter(Boolean);
+      }
+
+      function laneLabel(group) {
+        return group === EVERYONE_GROUP ? EVERYONE_LABEL : group;
+      }
+
+      function uniqueAgeGroups(activities) {
+        const explicitGroups = activities.flatMap(activityGroups).filter(group => group !== EVERYONE_GROUP);
+        return Array.from(new Set(explicitGroups)).sort((a, b) => a.localeCompare(b, 'nb', { numeric: true }));
+      }
+
+      function uniqueTypes(activities) {
+        return Array.from(new Set(activities.map(categoryId))).sort((a, b) => categoryMeta(a).label.localeCompare(categoryMeta(b).label, 'nb', { numeric: true }));
+      }
+
+      function setView(view) {
+        if (mobileMedia.matches) return;
+        body.classList.toggle('view-overview', view === 'overview');
+        body.classList.toggle('view-list', view === 'list');
+        overviewBtn.setAttribute('aria-pressed', String(view === 'overview'));
+        listBtn.setAttribute('aria-pressed', String(view === 'list'));
+        announceHeight('view-change');
+      }
+
+      function populateFilters(activities) {
+        const groups = uniqueAgeGroups(activities);
+        const types = uniqueTypes(activities);
+        ageFilter.innerHTML = '<option value="">Alle aldersgrupper</option>' + groups.map(group => `<option value="${escapeHtml(group)}">${escapeHtml(group)}</option>`).join('');
+        typeFilter.innerHTML = '<option value="">Alle typer</option>' + types.map(type => `<option value="${escapeHtml(type)}">${escapeHtml(categoryMeta(type).label)}</option>`).join('');
+      }
+
+      function applyFilter() {
+        const selectedAge = ageFilter.value;
+        const selectedType = typeFilter.value;
+        filteredActivities = allActivities.filter(activity => {
+          const groups = activityGroups(activity);
+          const ageMatch = selectedAge ? (groups.includes(selectedAge) || groups.includes(EVERYONE_GROUP)) : true;
+          const typeMatch = selectedType ? categoryId(activity) === selectedType : true;
+          return ageMatch && typeMatch;
+        });
+        render();
+      }
+
+      function findNextActivity(activities) {
+        const todayIso = new Date().toISOString().slice(0, 10);
+        const upcoming = activities.filter(a => a.date >= todayIso).sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title, 'nb'));
+        return upcoming.length ? upcoming[0].id : null;
+      }
+
+      function currentYearFrom(data) {
+        if (data && data.year) return Number(data.year);
+        const first = data && data.activities && data.activities[0];
+        if (first && first.date) return Number(first.date.slice(0, 4));
+        return new Date().getFullYear();
+      }
+
+      function render() {
+        nextActivityId = findNextActivity(allActivities);
+        status.textContent = filteredActivities.length === 1 ? 'Viser 1 aktivitet' : `Viser ${filteredActivities.length} aktiviteter`;
+        renderTimeline();
+        renderList();
+        app.setAttribute('aria-busy', 'false');
+        announceHeight('render');
+      }
+
+      function renderLegend(types) {
+        if (!types.length) return '';
+        return `<div class="legend" aria-label="Forklaring av aktivitetstyper">${types.map(type => {
+          const meta = categoryMeta(type);
+          return `<span class="type-pill">${cueHtml(type)}<strong>${escapeHtml(meta.code)}</strong><span>${escapeHtml(meta.label)}</span></span>`;
+        }).join('')}</div>`;
+      }
+
+      function nextSummary() {
+        const next = allActivities.find(a => a.id === nextActivityId);
+        if (!next) return '<p class="next-summary">Neste aktivitet: ingen kommende aktivitet i datasettet.</p>';
+        return `<p class="next-summary"><strong>Neste aktivitet:</strong> ${escapeHtml(shortDate(next.date))} · ${escapeHtml(next.title)}</p>`;
+      }
+
+      function markerCollisionSpanPercent() {
+        const track = timelineContainer.querySelector('.timeline-lane');
+        const width = track && track.getBoundingClientRect ? track.getBoundingClientRect().width : 0;
+        return width ? Math.max(2.4, (50 / width) * 100) : 4.8;
+      }
+
+      function buildLaneEntries(activities, lanes) {
+        const entries = [];
+        activities.forEach(activity => {
+          const groups = activityGroups(activity);
+          const targetGroups = groups.includes(EVERYONE_GROUP) ? lanes : groups;
+          targetGroups.forEach(group => {
+            if (!lanes.includes(group)) return;
+            entries.push({ activity, group, x: dateToPercent(activity.date, timelineYear), stack: 0 });
+          });
+        });
+        const collisionSpan = markerCollisionSpanPercent();
+        lanes.forEach(group => {
+          const laneEntries = entries.filter(entry => entry.group === group).sort((a, b) => a.activity.date.localeCompare(b.activity.date) || a.activity.title.localeCompare(b.activity.title, 'nb'));
+          laneEntries.forEach((entry, index) => {
+            const occupiedStacks = new Set();
+            for (let i = index - 1; i >= 0; i--) {
+              const previous = laneEntries[i];
+              if (Math.abs(entry.x - previous.x) > collisionSpan) break;
+              occupiedStacks.add(previous.stack);
+            }
+            let stack = 0;
+            while (occupiedStacks.has(stack)) stack += 1;
+            entry.stack = stack;
+          });
+        });
+        return entries;
+      }
+
+      function accessibleName(activity, group) {
+        const location = activity.location ? `, ${activity.location}` : '';
+        return `${formatDate(activity.date)}: ${activity.title}. ${laneLabel(group)}. ${categoryCode(activity)} ${categoryLabel(activity)}${location}`;
+      }
+
+      function renderTimeline() {
+        const selectedAge = ageFilter.value;
+        const lanes = selectedAge ? [selectedAge] : uniqueAgeGroups(allActivities);
+        const activeTypes = uniqueTypes(filteredActivities.length ? filteredActivities : allActivities);
+        if (!allActivities.length) {
+          timelineContainer.innerHTML = '<div class="timeline-empty">Ingen aktiviteter er publisert ennå.</div>';
+          return;
+        }
+        if (!lanes.length) {
+          timelineContainer.innerHTML = '<div class="timeline-empty">Ingen aktiviteter har en konkret aldersgruppe å vise i sesongoversikten. Bruk listen for aktiviteter som gjelder alle eller mangler aldersgruppe.</div>';
+          return;
+        }
+        const entries = buildLaneEntries(filteredActivities, lanes);
+        const monthTicks = MONTH_SHORT.map((month, index) => {
+          const left = dateToPercent(`${timelineYear}-${String(index + 1).padStart(2, '0')}-01`, timelineYear);
+          return `<div class="month-tick" style="left:${left.toFixed(4)}%"><span>${month}</span></div>`;
+        }).join('');
+        const today = new Date();
+        const todayPosition = today.getFullYear() === timelineYear
+          ? dateToPercent(today.toISOString().slice(0, 10), timelineYear).toFixed(4)
+          : null;
+        const todayLine = todayPosition === null ? '' : `<div class="timeline-today" aria-hidden="true" style="left:${todayPosition}%"></div>`;
+        const todayAxis = todayPosition === null ? '' : `<div class="timeline-today" style="left:${todayPosition}%"><span>I dag</span></div>`;
+        const todayHelp = todayPosition === null ? '' : ' Den røde linjen viser dagens dato.';
+        const laneRows = lanes.map(group => {
+          const laneItems = entries.filter(entry => entry.group === group).map(entry => {
+            const activity = entry.activity;
+            const type = categoryId(activity);
+            const shape = shapeFor(type);
+            return `<button type="button" class="timeline-marker shape-${shape}${activity.id === nextActivityId ? ' next' : ''}" data-id="${activity.id}" style="--x:${entry.x.toFixed(4)}%;--stack:${entry.stack};--cue-color:${colorFor(type)}" aria-label="${escapeHtml(accessibleName(activity, group))}" title="${escapeHtml(accessibleName(activity, group))}"><span class="marker-code">${escapeHtml(categoryCode(activity))}</span><span class="marker-date" aria-hidden="true">${escapeHtml(shortDate(activity.date))}</span></button>`;
+          }).join('');
+          return `<div class="timeline-lane-label">${escapeHtml(laneLabel(group))}</div><div class="timeline-lane">${todayLine}${laneItems || '<div class="timeline-empty">Ingen aktiviteter i valgt filter.</div>'}</div>`;
+        }).join('');
+
+        timelineContainer.innerHTML = `
+      <div class="timeline-shell">
+        <div class="timeline-head">
+          <div><h2 id="timelineHeading">Aktivitetsoversikt ${timelineYear}</h2><p class="timeline-help">Markører viser punktdatoer.${todayHelp} Trykk på en aktivitet for å se detaljer.</p>${renderLegend(activeTypes)}</div>
+          ${nextSummary()}
+        </div>
+        <div class="timeline-track" role="region" aria-label="Aktivitetsoversikt med aldersgrupper som rader og dato gjennom året som vannrett akse" tabindex="0">
+          <div class="timeline-grid">
+            <div class="corner-cell">Aldersgruppe</div>
+            <div class="axis-cell">${monthTicks}${todayAxis}</div>
+            ${laneRows}
+          </div>
+        </div>
+      </div>`;
+        timelineContainer.querySelectorAll('.timeline-marker').forEach(item => {
+          item.addEventListener('click', () => showDetails(allActivities.find(a => a.id === item.dataset.id), item));
+        });
+      }
+
+      function renderList() {
+        if (!filteredActivities.length) { listContainer.innerHTML = '<div class="empty">Ingen aktiviteter for valgt filter.</div>'; return; }
+        const groups = new Map();
+        filteredActivities.forEach(activity => {
+          const date = new Date(activity.date + 'T00:00:00');
+          const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(activity);
+        });
+        listContainer.innerHTML = Array.from(groups.entries()).map(([key, activities]) => {
+          const monthIndex = Number(key.slice(5, 7)) - 1;
+          const year = key.slice(0, 4);
+          const cards = activities.map(activity => {
+            return `<li><button type="button" class="activity-card${activity.id === nextActivityId ? ' next' : ''}" data-id="${activity.id}" aria-label="${escapeHtml(accessibleName(activity, activityGroups(activity).join(', ') || ''))}">
+          <time datetime="${escapeHtml(activity.date)}">${escapeHtml(formatDate(activity.date))}</time>
+          <strong>${escapeHtml(activity.title)}</strong>
+          <span>${escapeHtml(activity.location || 'Sted ikke oppgitt')}</span>
+          <span class="activity-meta">${cueHtml(activity)}<span>${escapeHtml(categoryCode(activity))} ${escapeHtml(categoryLabel(activity))}</span><span>${escapeHtml(activityGroups(activity).map(laneLabel).join(', ') || 'Aldersgruppe ikke oppgitt')}</span></span>
+        </button></li>`;
+          }).join('');
+          return `<section class="month-group"><h2>${MONTHS[monthIndex]} ${year}</h2><ul class="activity-list">${cards}</ul></section>`;
+        }).join('');
+        listContainer.querySelectorAll('.activity-card').forEach(card => {
+          card.addEventListener('click', () => showDetails(allActivities.find(a => a.id === card.dataset.id), card));
+        });
+      }
+
+      function showDetails(activity, activator) {
+        if (!activity) return;
+        lastActivator = activator || document.activeElement;
+        const badges = activityGroups(activity).map(group => `<span class="badge" style="--cue-color:${colorFor(categoryId(activity))}">${escapeHtml(laneLabel(group))}</span>`).join('');
+        detailsContent.innerHTML = `
+      <h2 id="detailsTitle">${escapeHtml(activity.title)}</h2>
+      <p>${activity.description ? escapeHtml(activity.description) : 'Ingen ekstra beskrivelse er oppgitt.'}</p>
+      <div class="badge-row">${badges}</div>
+      <dl>
+        <dt>Dato</dt><dd><time datetime="${escapeHtml(activity.date)}">${escapeHtml(formatDate(activity.date))}</time></dd>
+        <dt>Type</dt><dd>${cueHtml(activity)} ${escapeHtml(categoryCode(activity))} ${escapeHtml(categoryLabel(activity))}</dd>
+        <dt>Aldersgruppe</dt><dd>${escapeHtml(activityGroups(activity).map(laneLabel).join(', ') || 'Ikke oppgitt')}</dd>
+        <dt>Sted</dt><dd>${escapeHtml(activity.location || 'Ikke oppgitt')}</dd>
+        ${activity.url ? `<dt>Lenke</dt><dd><a href="${escapeHtml(activity.url)}" target="_blank" rel="noopener">Mer informasjon</a></dd>` : ''}
+      </dl>`;
+        if (typeof detailsDialog.showModal === 'function' && !detailsDialog.open) {
+          detailsDialog.showModal();
+        } else {
+          detailsDialog.setAttribute('open', '');
+        }
+        detailsClose.focus({ preventScroll: true });
+        announceHeight('details-open');
+      }
+
+      function closeDetails() {
+        if (detailsDialog.open && typeof detailsDialog.close === 'function') {
+          detailsDialog.close();
+        } else {
+          detailsDialog.removeAttribute('open');
+          restoreFocus();
+        }
+      }
+
+      function restoreFocus() {
+        if (lastActivator && typeof lastActivator.focus === 'function' && document.contains(lastActivator)) {
+          lastActivator.focus({ preventScroll: true });
+        }
+        announceHeight('details-close');
+      }
+
+      function measuredDocumentHeight() {
+        const heights = [
+          document.documentElement.scrollHeight,
+          document.body ? document.body.scrollHeight : 0,
+          document.documentElement.offsetHeight,
+          document.body ? document.body.offsetHeight : 0
+        ].filter(value => Number.isFinite(value) && value > 0);
+        const measured = Math.ceil(Math.max(...heights, MIN_EMBED_HEIGHT));
+        return Math.max(MIN_EMBED_HEIGHT, Math.min(MAX_EMBED_HEIGHT, measured));
+      }
+
+      function postHeight(reason) {
+        heightRaf = 0;
+        if (heightFallbackTimer) {
+          clearTimeout(heightFallbackTimer);
+          heightFallbackTimer = 0;
+        }
+        const height = measuredDocumentHeight();
+        if (height === lastPostedHeight) return;
+        lastPostedHeight = height;
+        window.parent.postMessage({
+          type: HEIGHT_MESSAGE_TYPE,
+          namespace: HEIGHT_MESSAGE_NAMESPACE,
+          schema_version: HEIGHT_MESSAGE_SCHEMA_VERSION,
+          iframe_id: iframeId(),
+          height,
+          reason: reason || 'layout',
+          source_path: window.location.pathname
+        }, parentTargetOrigin());
+      }
+
+      function announceHeight(reason) {
+        if (window.parent === window) return;
+        if (heightRaf) cancelAnimationFrame(heightRaf);
+        if (heightFallbackTimer) clearTimeout(heightFallbackTimer);
+        heightRaf = requestAnimationFrame(() => postHeight(reason));
+        heightFallbackTimer = setTimeout(() => postHeight(reason || 'layout-fallback'), 180);
+      }
+
+      function installHeightObserver() {
+        if ('ResizeObserver' in window) {
+          const resizeObserver = new ResizeObserver(() => announceHeight('resize-observer'));
+          resizeObserver.observe(document.documentElement);
+          if (document.body) resizeObserver.observe(document.body);
+        } else {
+          setInterval(() => announceHeight('resize-fallback'), 500);
+        }
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(() => announceHeight('fonts-ready')).catch(() => announceHeight('fonts-ready-fallback'));
+        }
+      }
+
+      overviewBtn.addEventListener('click', () => setView('overview'));
+      listBtn.addEventListener('click', () => setView('list'));
+      ageFilter.addEventListener('change', applyFilter);
+      typeFilter.addEventListener('change', applyFilter);
+      detailsClose.addEventListener('click', closeDetails);
+      detailsDialog.addEventListener('close', restoreFocus);
+      mobileMedia.addEventListener('change', syncResponsiveMode);
+      window.addEventListener('resize', () => { renderTimeline(); announceHeight('window-resize'); });
+      window.addEventListener('orientationchange', syncResponsiveMode);
+      installHeightObserver();
+
+      fetch(DATA_URL, { cache: 'no-store' })
+        .then(response => { if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); })
+        .then(data => {
+          timelineYear = currentYearFrom(data);
+          categoryById = new Map((data.category_vocabulary || fallbackVocabulary).map(item => [item.id, item]));
+          allActivities = withIds((data.activities || []).slice().sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title, 'nb')));
+          populateFilters(allActivities);
+          applyFilter();
+        })
+        .catch(error => {
+          app.setAttribute('aria-busy', 'false');
+          status.textContent = 'Kunne ikke laste aktiviteter';
+          listContainer.innerHTML = `<div class="empty">Kunne ikke laste activities.json: ${escapeHtml(error.message)}</div>`;
+          announceHeight('load-error');
+        });
+    })();
+  </script>
+  <noscript>
+    <p class="wrap">Aktivitetskalenderen krever JavaScript for filtrering og sesongoversiktsvisning. Åpne
+      activities.json for rådata.</p>
+  </noscript>
+</body>
+
+</html>
