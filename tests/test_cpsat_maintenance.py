@@ -432,6 +432,31 @@ def test_apply_replays_the_previewed_custom_search_budget():
     assert applied["after_fingerprint"] == option["evidence"]["result_fingerprint"]
 
 
+def test_apply_replays_the_previewed_custom_seed():
+    candidate, problem = _scenario()
+    repair = enumerate_participation_deviation_repairs(
+        candidate,
+        problem,
+        allow_search=True,
+        scope=_starved_scope(),
+        seed=17,
+    )
+    option = repair["options"][0]
+
+    assert option["arguments"]["seed"] == 17
+    applied = apply_participation_deviation_repair_option(
+        candidate,
+        problem,
+        option_id=option["option_id"],
+        expected_fingerprint=repair["candidate_fingerprint"],
+        scope=_starved_scope(),
+        seed=option["arguments"]["seed"],
+    )
+
+    assert applied["ok"] is True
+    assert applied["after_fingerprint"] == option["evidence"]["result_fingerprint"]
+
+
 def test_apply_refuses_when_bounded_replay_returns_a_different_candidate(monkeypatch):
     """An apply-time incumbent may differ even with the same seed and model."""
     from dataclasses import replace

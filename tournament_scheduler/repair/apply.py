@@ -548,7 +548,6 @@ def _apply_option(
         )
     if family == "participation_deviation":
         from tournament_scheduler.participation.deviation_repair import apply_participation_deviation_repair_option
-
         return apply_participation_deviation_repair_option(
             plan,
             problem,
@@ -557,6 +556,7 @@ def _apply_option(
             scope=scope,
             dimensions=option_dimensions,
             search_budget_seconds=arguments.get("search_budget_seconds"),
+            seed=arguments.get("seed"),
         )
     if family == "search_neighborhood":
         from tournament_scheduler.repair.search_neighborhood import apply_search_neighborhood_repair_option

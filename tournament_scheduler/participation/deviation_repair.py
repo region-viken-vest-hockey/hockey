@@ -218,6 +218,7 @@ def apply_participation_deviation_repair_option(
     scope: Mapping[str, Any] | None = None,
     dimensions: Iterable[str] = ("participants",),
     search_budget_seconds: float | None = None,
+    seed: int | None = None,
 ) -> Dict[str, Any]:
     before = candidate_fingerprint(candidate)
     if before != expected_fingerprint:
@@ -228,6 +229,7 @@ def apply_participation_deviation_repair_option(
             "expected_fingerprint": expected_fingerprint,
         }
     replay_budget = DEFAULT_SEARCH_BUDGET_SECONDS if search_budget_seconds is None else float(search_budget_seconds)
+    replay_seed = 0 if seed is None else int(seed)
     repair_set = enumerate_participation_deviation_repairs(
         candidate,
         problem,
@@ -236,6 +238,7 @@ def apply_participation_deviation_repair_option(
         scope=scope,
         dimensions=dimensions,
         search_budget_seconds=replay_budget,
+        seed=replay_seed,
     )
     option = next((entry for entry in repair_set["options"] if entry["option_id"] == option_id), None)
     if option is None:
