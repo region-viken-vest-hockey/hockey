@@ -23,7 +23,14 @@ The skill is portable because it speaks only through two command interfaces that
 - `npm run auto -- claim | renew | release | auth-check | repair-record | status`
 - `npm run orca -- dispatch | verify-head | cleanup | review-open | review-send | review-wait | review-read | review-delete`
 
-If a subcommand is missing or behaves differently from what `orca-flow` describes, stop and report the gap instead of improvising a substitute. `<owner>` below is the harness running the coordinator (`claude`, `pi`, …), the same name `orca-flow` uses; use one owner name for the whole fleet and a distinct run id per issue.
+Command names alone do not make a repo conformant. Before claiming any issue, run this **conformance preflight** and stop, claiming nothing, if any check fails:
+
+1. `npm run orca -- plan --issue <n> --owner <owner> --run <uuid>` (prints the Orca calls and the worker task; starts nothing). The worker task must name **this repo's** instructions and canonical gate, not another project's.
+2. `npm run orca -- review-open` returns `ok: true` for **this repo's** ChatGPT project.
+3. `verify-head` runs this repo's canonical gate against its default branch (read `tools/orca-flow/verify-head.mjs` or the repo's equivalent once per session).
+4. `review-delete` enforces the first-message match (read its source/usage). If it does not, the fleet still runs but **never deletes chats** (see step 5).
+
+If a subcommand is missing or behaves differently from what `orca-flow` describes, stop and report the gap instead of improvising a substitute. Only run the fleet in repos where all four hold. `<owner>` below is the harness running the coordinator (`claude`, `pi`, …), the same name `orca-flow` uses; use one owner name for the whole fleet and a distinct run id per issue.
 
 ## Roles and lineage
 
@@ -67,7 +74,7 @@ Set the parent **after** `dispatch`: Orca must already track the new git worktre
 
 ## Lease heartbeat for the whole lifecycle
 
-Every claimed issue keeps its lease until it is released, not only while its worker runs. The lease TTL is short (30 minutes) and serialized review, CI and merge queues easily outlast it. Rule: before **any operation that can take more than a few minutes** (a worker wait, a gate run, `review-wait`, `gh pr checks --watch`, a rebase, `verify-head`), renew **every** issue still claimed, not just the one being worked on; never let more than 15 minutes pass between renewals of any live lease. Use `timeout 600` around long waits (as `orca-flow` step 8 does) so control returns for renewal. A renew that fails with `LEASE_LOST` or `LEASE_CONFLICT` ends that issue immediately with the `HANDOFF` notice from `orca-flow` step 2; the rest of the fleet continues.
+Every claimed issue keeps its lease until it is released, not only while its worker runs. The lease TTL is short (30 minutes) and serialized review, CI and merge queues easily outlast it. Rule: the coordinator never blocks on a single command for longer than about 10 minutes. Run every potentially long operation (the repo's gate, `verify-head`, a rebase plus gate, `review-wait`, `gh pr checks --watch`) **in the background writing to a log file**, then poll it at most every 5 minutes; at **every poll** renew **every** claimed issue, not just the one in progress, and never let more than 15 minutes pass between renewals of any live lease. Short foreground steps (a push with its hook, a merge) need no polling. If the renewal deadline cannot be kept, start no new work and hand off the affected issues instead of continuing. A renew that fails with `LEASE_LOST` or `LEASE_CONFLICT` ends that issue immediately with the `HANDOFF` notice from `orca-flow` step 2; the rest of the fleet continues.
 
 ## 3. Supervise (one loop for the whole fleet)
 
@@ -97,7 +104,7 @@ As each worker finishes, move that issue through `orca-flow` steps 4-9, with the
 
 ## 5. Finish
 
-- For every merged issue run `npm run orca -- cleanup --issue <n>` and delete its flow-created ChatGPT chats with `review-delete` (step 10 of `orca-flow`), passing the exact first-message file recorded for that page. Keep issue, page id, chat URL and message file bound together in the scratch ledger and delete only pages in it. If this repo's `review-delete` does not enforce the first-message match (check `npm run orca -- review-delete` usage and source), first confirm with `review-read --page <id>` that the chat's first message equals the recorded file, and report the tool gap. `LIVE_SESSION` from cleanup usually means editor or language-server processes hold the worktree as their cwd: report it, do not force removal. Remove stale children so no orphan lineage remains in `orca worktree ps`.
+- For every merged issue run `npm run orca -- cleanup --issue <n>` and delete its flow-created ChatGPT chats with `review-delete` (step 10 of `orca-flow`), passing the exact first-message file recorded for that page. Keep issue, page id, chat URL and message file bound together in the scratch ledger and delete only pages in it. **Fail closed:** if this repo's `review-delete` does not itself enforce the first-message match (preflight check 4), do not delete anything; list every chat (issue, URL, first-message file) in the final report for the user to remove, and name the tooling gap. Never substitute a manual `review-read` comparison for the enforced check. `LIVE_SESSION` from cleanup usually means editor or language-server processes hold the worktree as their cwd: report it, do not force removal. Remove stale children so no orphan lineage remains in `orca worktree ps`.
 - Update or close each issue per `orca-flow` step 9; partial slices stay open with a comment naming what remains.
 - Final report, one table: issue → PR → merge commit → verdict/findings fixed → chats deleted → issue action, followed by the fleet-level facts: which issues were serialized and why, anything dropped or handed off (with the exact code), lease or ledger anomalies, chats that could not be deleted, and anything skipped.
 
