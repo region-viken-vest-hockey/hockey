@@ -26,7 +26,7 @@
       "description": null,
       "location": "Sandefjord",
       "raw_category": null,
-      "title": "S.UTvikling U13",
+      "title": "S.Utvikling U13",
       "type": "spillerutviklingssamling",
       "url": null
     },
@@ -206,28 +206,12 @@
       "description": null,
       "location": "Jar",
       "raw_category": null,
-      "title": "R.Mesterskap U14",
+      "title": "Region.MS U14",
       "type": "annet",
       "url": null
     },
     {
       "age_groups": [
-        "U13"
-      ],
-      "category": "spillerutviklingssamling",
-      "category_code": "SU",
-      "category_label": "Spillerutviklingssamling",
-      "date": "2026-04-10",
-      "description": null,
-      "location": null,
-      "raw_category": null,
-      "title": "S.Utvikling U13",
-      "type": "spillerutviklingssamling",
-      "url": null
-    },
-    {
-      "age_groups": [
-        "U15",
         "JU16"
       ],
       "category": "annet",
@@ -235,9 +219,24 @@
       "category_label": "Annen aktivitet",
       "date": "2026-04-16",
       "description": null,
-      "location": null,
+      "location": "Hamar",
       "raw_category": null,
-      "title": "R.Turnering U15/JU16",
+      "title": "R.Turnering JU16",
+      "type": "annet",
+      "url": null
+    },
+    {
+      "age_groups": [
+        "U15"
+      ],
+      "category": "annet",
+      "category_code": "AN",
+      "category_label": "Annen aktivitet",
+      "date": "2026-04-16",
+      "description": null,
+      "location": "Trondheim",
+      "raw_category": null,
+      "title": "R.Turnering U15",
       "type": "annet",
       "url": null
     },
@@ -576,7 +575,7 @@
       "label": "Ukjent aktivitetstype"
     }
   ],
-  "generated_at": "2026-11-09T10:22:37Z",
+  "generated_at": "2026-11-09T10:26:05Z",
   "schema_version": 2,
   "validation_warnings": [],
   "year": 2026
