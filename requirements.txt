@@ -8,6 +8,7 @@ playwright>=1.40.0
 icalendar>=6.0.0
 recurring-ical-events>=3.0.0
 rich>=14.0.0
+pydantic>=2.7
 
 # Optional: enables loading YAML config files (parallel-games config and
 # roster config) via ParallelGamesConfig/RosterLoader in
