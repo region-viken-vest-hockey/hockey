@@ -225,6 +225,19 @@ class TestStructuralSchemaBoundary:
         assert any("unsupported schema_version" in e for e in errors)
         assert any("schema_version" in e for e in self._errors(lambda p: p.update(schema_version="1")))
 
+    def test_legacy_presence_only_scalar_coercions_are_rejected(self):
+        def mutate(p):
+            p["audit_id"] = 123
+            p["run_id"] = 456
+            p["checklist_findings"][0]["question"] = 7
+            p["checklist_findings"][1]["finding"] = {"text": "ok"}
+
+        errors = self._errors(mutate)
+        assert any(error.startswith("audit_id:") for error in errors)
+        assert any(error.startswith("run_id:") for error in errors)
+        assert any("field question has an invalid value" in error for error in errors)
+        assert any("field finding has an invalid value" in error for error in errors)
+
     def test_checklist_must_be_a_list(self):
         assert "checklist_findings must be a list" in self._errors(lambda p: p.pop("checklist_findings"))
         assert "checklist_findings must be a list" in self._errors(lambda p: p.update(checklist_findings="nope"))

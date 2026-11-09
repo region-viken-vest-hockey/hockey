@@ -5,7 +5,9 @@ result: field presence, types, and the severity/confidence/status
 vocabularies. It is DTO-first (Python models, no parallel hand-written JSON
 Schema) and used for *validation only*: the stored artifact is still the
 caller's original dict so unknown/forward fields round-trip unchanged
-(``extra="allow"``).
+(``extra="allow"``). Scalar types are intentionally strict: payloads that the
+legacy presence-only checks happened to accept with non-string text or IDs are
+invalid rather than being silently coerced.
 
 Deliberately out of scope here, and still owned by
 :mod:`.audit_result` and its consumers: required checklist coverage
