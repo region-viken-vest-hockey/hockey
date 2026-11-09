@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Two-axis code review: correctness (does it work?) and design (is it maintainable?). Use for PR reviews, pre-merge checks, or reviewing agent-produced code. Produces structured findings with file:line references.
+description: "Two-axis code review: correctness (does it work?) and design (is it maintainable?). Use for PR reviews, pre-merge checks, or reviewing agent-produced code. Produces structured findings with file:line references."
 ---
 
 # Code Review: Two-Axis Review
