@@ -17,6 +17,7 @@ STAGE3_MODULES = {
     "cpsat_lexicographic",
     "cpsat_maintenance",
     "cpsat_participation",
+    "cpsat_parity",
     "cpsat_scope",
     "cpsat_slots",
     "decision",
