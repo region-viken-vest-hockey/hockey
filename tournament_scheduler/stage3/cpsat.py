@@ -19,16 +19,30 @@ from typing import Any, Dict, Optional
 
 from tournament_scheduler.hosting.representation import clubs_represent_same_club as _clubs_represent_same_club
 from tournament_scheduler.models import Team
+from tournament_scheduler.participation.targets import resolve_hard_max
 from tournament_scheduler.shape.effective_shape import compute_effective_tournament_shape, shape_violation
 from tournament_scheduler.planning.participant_roster_sizing import fixed_cohort_shape_for
 from tournament_scheduler.planning.contract import CANDIDATE_SCHEMA_VERSION
 from tournament_scheduler.stage3.cpsat_club_cap import build_club_excess_terms
 from tournament_scheduler.stage3.cpsat_participation import PARTICIPATION_OVERSHOOT_PENALTY, add_participation_terms
 from tournament_scheduler.stage3.cpsat_diagnostics import raise_host_not_represented
+from tournament_scheduler.stage3.cpsat_errors import (
+    CpSatNoCandidate as CpSatNoCandidate,
+    CpSatUnavailable as CpSatUnavailable,
+)
+from tournament_scheduler.stage3.cpsat_lexicographic import solve_lexicographic
+from tournament_scheduler.stage3.cpsat_scope import (
+    change_cost_terms,
+    fix_immovable_teams,
+    home_balance_terms,
+    movable_team_keys,
+    repairs_baseline_conflicts,
+)
 from tournament_scheduler.stage3.cpsat_slots import (
     TeamIdentity as TeamIdentity,
     _TournamentSlot as _TournamentSlot,
     _active_slots as _active_slots,
+    _baseline_duplicate_date_conflicts as _baseline_duplicate_date_conflicts,
     _baseline_same_club_pairings as _baseline_same_club_pairings,
     _games_to_dicts as _games_to_dicts,
     _group_slots_by_half as _group_slots_by_half,
@@ -40,35 +54,6 @@ from tournament_scheduler.stage3.cpsat_slots import (
 )
 
 ENGINE_VERSION = 1
-
-
-class CpSatUnavailable(RuntimeError):
-    """Raised when OR-Tools is not installed in the current environment."""
-
-
-class CpSatNoCandidate(RuntimeError):
-    """Raised when CP-SAT cannot return a feasible candidate within its budget."""
-
-    def __init__(
-        self,
-        status: str,
-        runtime_seconds: float,
-        *,
-        baseline_candidate_fingerprint: Optional[str] = None,
-        problem_fingerprint: Optional[str] = None,
-        diagnostics: Optional[Dict[str, Any]] = None,
-    ) -> None:
-        self.status = status
-        self.runtime_seconds = runtime_seconds
-        self.baseline_candidate_fingerprint = baseline_candidate_fingerprint
-        self.problem_fingerprint = problem_fingerprint
-        # issue #298: solver-size/model diagnostics (team/slot/variable/
-        # constraint counts, half, budget) so a no-candidate result is
-        # explainable evidence rather than an opaque timeout -- the caller
-        # can tell a genuinely oversized/complex model apart from a solver
-        # fluke without re-instrumenting anything.
-        self.diagnostics = dict(diagnostics or {})
-        super().__init__(f"CP-SAT returned no candidate ({status})")
 
 
 def _solve_slot_group(
@@ -85,6 +70,7 @@ def _solve_slot_group(
     half_label: str,
     baseline_fingerprint: Optional[str],
     problem_fingerprint: Optional[str],
+    lexicographic: bool = False,
 ) -> "tuple[dict[int, dict[str, Any]], dict[str, Any]]":
     """Build and solve one participant-assignment CP-SAT model over *slots*.
 
@@ -100,8 +86,12 @@ def _solve_slot_group(
     from ortools.sat.python import cp_model
 
     started = perf_counter()
-    model = cp_model.CpModel()
+    # OR-Tools keeps CamelCase compatibility methods at runtime, but current
+    # type stubs expose only the snake_case spellings. This module deliberately
+    # supports the compatibility API across the repository's version range.
+    model: Any = cp_model.CpModel()
     x: "dict[tuple[int, TeamIdentity], Any]" = {}
+    movable = movable_team_keys(problem)
 
     for slot in slots:
         # Effective-shape rule: judge the fixed skeleton's roster size against the
@@ -135,9 +125,7 @@ def _solve_slot_group(
             )
         eligible = teams_by_age_group.get(slot.age_group, [])
         for identity in eligible:
-            x[(slot.index, identity)] = model.NewBoolVar(
-                f"x_t{slot.index}_team{team_index[identity]}"
-            )
+            x[(slot.index, identity)] = model.NewBoolVar(f"x_t{slot.index}_team{team_index[identity]}")
         model.Add(sum(x[(slot.index, identity)] for identity in eligible) == slot.roster_size)
 
         fixed_cohort_shape = None
@@ -159,6 +147,8 @@ def _solve_slot_group(
             baseline_set = set(slot.baseline_team_ids)
             for identity in eligible:
                 model.Add(x[(slot.index, identity)] == int(identity in baseline_set))
+        elif movable is not None:
+            fix_immovable_teams(model, x, slot, eligible, movable)
 
         if slot.host_club:
             host_vars = [x[(slot.index, i)] for i in eligible if _clubs_represent_same_club(i[0], slot.host_club)]
@@ -190,7 +180,6 @@ def _solve_slot_group(
     slot_indexes_by_age_group: "dict[str, list[int]]" = defaultdict(list)
     for slot in slots:
         slot_indexes_by_age_group[slot.age_group].append(slot.index)
-
     # The participation/no-duplicate-date constraints below must cover every
     # registered/eligible team for the age groups actually represented in
     # *slots* -- not just identities already present in `baseline_participations`.
@@ -200,14 +189,21 @@ def _solve_slot_group(
     # exclusivity constraint, making it invisible to the target-authoritative
     # model precisely in the case (an under-target team the baseline
     # dropped entirely) that matters most.
-    eligible_identities: "set[TeamIdentity]" = set()
-    for age_group in {slot.age_group for slot in slots}:
-        eligible_identities.update(teams_by_age_group.get(age_group, []))
+    # Sorted, not a set: variable/constraint creation order must not depend on
+    # per-process string hashing, or equally optimal solves differ run to run
+    # and a previewed repair cannot be reproduced when it is applied.
+    eligible_identities = sorted(
+        {
+            identity
+            for age_group in {slot.age_group for slot in slots}
+            for identity in teams_by_age_group.get(age_group, [])
+        }
+    )
 
     participation_deficit_terms, participation_overshoot_terms = add_participation_terms(
         model,
         eligible_identities=eligible_identities,
-        slot_indexes_by_age_group=slot_indexes_by_age_group,
+        slots=slots,
         x=x,
         baseline_participations=baseline_participations,
         team_map=team_map,
@@ -216,7 +212,6 @@ def _solve_slot_group(
         half_label=half_label,
         feasibility_only=feasibility_only,
     )
-
     # No duplicate participation on one date.
     slots_by_age_date: "dict[tuple[str, date], list[int]]" = defaultdict(list)
     for slot in slots:
@@ -231,36 +226,8 @@ def _solve_slot_group(
     # before adding it as a hard constraint, so a genuinely conflicting
     # baseline is reported as "here is exactly which invariant conflicts"
     # rather than handed to the solver to discover as an opaque INFEASIBLE.
-    baseline_duplicate_date_conflicts: "list[Dict[str, Any]]" = []
-    for slot in slots:
-        for identity in slot.baseline_team_ids:
-            slot_indexes = slots_by_age_date.get((slot.age_group, slot.on_date), [])
-            same_date_slots = sorted(
-                {
-                    other.tournament_id
-                    for other in slots
-                    if other.index in slot_indexes and identity in other.baseline_team_ids
-                }
-            )
-            if len(same_date_slots) > 1:
-                baseline_duplicate_date_conflicts.append(
-                    {
-                        "team": ":".join(identity),
-                        "age_group": slot.age_group,
-                        "date": slot.on_date.isoformat(),
-                        "tournament_ids": same_date_slots,
-                    }
-                )
-    # Each conflicting (team, age_group, date) triple is discovered once per
-    # slot it touches; de-duplicate before reporting.
-    baseline_duplicate_date_conflicts = [
-        dict(conflict)
-        for conflict in {
-            (conflict["team"], conflict["age_group"], conflict["date"]): conflict
-            for conflict in baseline_duplicate_date_conflicts
-        }.values()
-    ]
-    if baseline_duplicate_date_conflicts:
+    baseline_duplicate_date_conflicts = _baseline_duplicate_date_conflicts(slots, slots_by_age_date)
+    if baseline_duplicate_date_conflicts and not repairs_baseline_conflicts(problem):
         diagnostics = {
             "half": half_label,
             "mode": "feasibility_only" if feasibility_only else "quality",
@@ -300,6 +267,14 @@ def _solve_slot_group(
     # solver prioritizes meeting the target over tie-breaking on variety.
     objective_terms.extend(5000 * term for term in participation_deficit_terms)
     objective_terms.extend(PARTICIPATION_OVERSHOOT_PENALTY * term for term in participation_overshoot_terms)
+    # Priority tiers (highest first). The default solve minimizes their
+    # weighted sum; ``lexicographic`` solves them in order so a lower tier can
+    # never trade away a higher tier's optimum (maintenance default).
+    objective_tiers: "list[tuple[str, list[Any]]]" = [("participation", list(objective_terms))]
+    if not feasibility_only:
+        home_tier = home_balance_terms(model, x, slots, teams_by_age_group, problem)
+        if home_tier:
+            objective_tiers.append(("home_representation", home_tier))
     baseline_same_club = _baseline_same_club_pairings(slots)
 
     if feasibility_only:
@@ -327,7 +302,7 @@ def _solve_slot_group(
                 model.Add(meet <= x[(slot.index, left)])
                 model.Add(meet <= x[(slot.index, right)])
                 model.Add(meet >= x[(slot.index, left)] + x[(slot.index, right)] - 1)
-                pair = tuple(sorted((left, right)))
+                pair = (left, right) if left <= right else (right, left)
                 meet_by_pair[pair].append(meet)
                 if left[0] == right[0]:
                     same_club_terms.append(meet)
@@ -371,9 +346,7 @@ def _solve_slot_group(
                 gap = abs((slot_by_index[right_index].on_date - slot_by_index[left_index].on_date).days)
                 if gap >= 14:
                     continue
-                both = model.NewBoolVar(
-                    f"shortgap_team{team_index[identity]}_{left_index}_{right_index}"
-                )
+                both = model.NewBoolVar(f"shortgap_team{team_index[identity]}_{left_index}_{right_index}")
                 model.Add(both <= x[(left_index, identity)])
                 model.Add(both <= x[(right_index, identity)])
                 model.Add(both >= x[(left_index, identity)] + x[(right_index, identity)] - 1)
@@ -389,12 +362,17 @@ def _solve_slot_group(
         # every repeat-opponent term) so it stays legal only when forced by
         # the hard constraints above -- only the participation-deficit terms
         # (weight 5000, closing a configured participation gap) outrank it.
-        objective_terms.extend(1000 * term for term in repeat_excess_terms)
-        objective_terms.extend(2000 * term for term in third_plus_excess_terms)
-        objective_terms.extend(3000 * term for term in club_excess_terms)
-        objective_terms.extend(25 * term for term in same_club_terms)
-        objective_terms.extend(10 * term for term in gap_under_7_terms)
-        objective_terms.extend(2 * term for term in gap_under_14_terms)
+        club_cap_tier = [3000 * term for term in club_excess_terms]
+        opponent_tier = [1000 * t for t in repeat_excess_terms] + [2000 * t for t in third_plus_excess_terms]
+        secondary_tier = [25 * t for t in same_club_terms] + [10 * t for t in gap_under_7_terms]
+        secondary_tier += [2 * t for t in gap_under_14_terms]
+        objective_tiers += [
+            ("club_concentration", club_cap_tier),
+            ("opponent_variety", opponent_tier),
+            ("sibling_and_spacing", secondary_tier),
+        ]
+        objective_terms += opponent_tier + club_cap_tier + secondary_tier
+        objective_tiers.append(("minimal_change", change_cost_terms(x, slots, teams_by_age_group)))
         if objective_terms:
             model.Minimize(sum(objective_terms))
 
@@ -426,7 +404,21 @@ def _solve_slot_group(
         # Stop the instant any feasible solution (the hinted baseline, in
         # practice) is found -- feasibility proof, not quality search.
         solver.parameters.stop_after_first_solution = True
-    status_code = solver.Solve(model)
+    tier_values: "dict[str, float]" = {}
+    tier_diagnostics: "list[dict[str, Any]]" = []
+    staged = lexicographic and not feasibility_only and sum(1 for _n, t in objective_tiers if t) > 1
+    if staged:
+        status_code = solve_lexicographic(
+            model,
+            solver,
+            x,
+            objective_tiers,
+            tier_values,
+            tier_diagnostics,
+            float(solve_budget_seconds),
+        )
+    else:
+        status_code = solver.Solve(model)
     runtime_seconds = perf_counter() - started
     status_name = solver.StatusName(status_code)
 
@@ -449,6 +441,10 @@ def _solve_slot_group(
         "best_objective_bound": float(solver.BestObjectiveBound()) if has_solution and objective_terms else 0.0,
         "protected_same_club_pairings_baseline": baseline_same_club,
     }
+    if staged:
+        diagnostics["lexicographic"] = True
+        diagnostics["tier_values"] = dict(tier_values)
+        diagnostics["tier_diagnostics"] = list(tier_diagnostics)
 
     if status_code not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         raise CpSatNoCandidate(
@@ -502,6 +498,7 @@ def optimize_candidate_cp_sat(
     seed: int = 0,
     feasibility_only: bool = False,
     decompose_by_half: bool = False,
+    lexicographic: bool = False,
 ) -> Dict[str, Any]:
     """Optimize participant assignment while preserving the baseline skeleton.
 
@@ -542,6 +539,9 @@ def optimize_candidate_cp_sat(
     as the shared boundary. Each half is optimized toward its own configured
     per-half target as a goal, so a half with no slots is simply skipped.
 
+    *lexicographic* solves the objective tiers in priority order (see
+    :mod:`cpsat_lexicographic`); the default keeps the weighted-sum solve.
+
     *solve_budget_seconds* is a **total** wall-clock budget across every
     group actually solved (issue #310), not a per-group budget: it is
     divided evenly by the number of groups (1 when not decomposed, or the
@@ -555,9 +555,7 @@ def optimize_candidate_cp_sat(
     try:
         from ortools.sat.python import cp_model  # noqa: F401 -- availability probe
     except ImportError as exc:  # pragma: no cover - environment-dependent
-        raise CpSatUnavailable(
-            "OR-Tools is required for engine='cp-sat' (install the cpsat extra)"
-        ) from exc
+        raise CpSatUnavailable("OR-Tools is required for engine='cp-sat' (install the cpsat extra)") from exc
 
     from tournament_scheduler.pipeline.fingerprints import stable_payload_sha256
 
@@ -609,7 +607,10 @@ def optimize_candidate_cp_sat(
                 team_index[identity] = next_team_index
                 next_team_index += 1
 
-    if decompose_by_half:
+    # Season-wide hard caps need one model so both halves share the same allowance.
+    has_season_hard_max = any(resolve_hard_max(key, problem, team=team_map[key]) is not None for key in team_map)
+    effective_decompose_by_half = bool(decompose_by_half and not has_season_hard_max)
+    if effective_decompose_by_half:
         split_date = _resolve_split_date(problem, slots)
         groups = _group_slots_by_half(slots, split_date)
     else:
@@ -633,6 +634,7 @@ def optimize_candidate_cp_sat(
             half_label=half_label,
             baseline_fingerprint=baseline_fingerprint,
             problem_fingerprint=problem_fingerprint,
+            lexicographic=lexicographic,
         )
         all_patches.update(patches)
         half_diagnostics.append(diagnostics)
@@ -650,9 +652,7 @@ def optimize_candidate_cp_sat(
     overall_status = "OPTIMAL" if statuses == {"OPTIMAL"} else "FEASIBLE"
     total_objective = sum(d["objective_value"] for d in half_diagnostics)
     total_bound = sum(d["best_objective_bound"] for d in half_diagnostics)
-    baseline_same_club_total = sum(
-        d.get("protected_same_club_pairings_baseline", 0) for d in half_diagnostics
-    )
+    baseline_same_club_total = sum(d.get("protected_same_club_pairings_baseline", 0) for d in half_diagnostics)
 
     result["source"] = {
         "planner": "cp_sat",
@@ -666,7 +666,10 @@ def optimize_candidate_cp_sat(
         "seed": int(seed),
         "baseline_hints": True,
         "mode": "feasibility_only" if feasibility_only else "quality",
-        "decompose_by_half": bool(decompose_by_half),
+        "decompose_by_half": effective_decompose_by_half,
+        "requested_decompose_by_half": bool(decompose_by_half),
+        "combined_for_season_hard_max": bool(decompose_by_half and has_season_hard_max),
+        "lexicographic": bool(lexicographic and not feasibility_only),
         "half_diagnostics": half_diagnostics,
         "protected_same_club_pairings_baseline": baseline_same_club_total,
         "base_source": candidate.get("source"),

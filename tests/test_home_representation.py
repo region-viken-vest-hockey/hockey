@@ -505,8 +505,11 @@ def test_hard_maximum_still_blocks_a_swap_despite_aggregate_preservation() -> No
 # ---------------------------------------------------------------------------
 
 
-def test_cycle_moves_yields_a_participation_preserving_three_swap_plan() -> None:
+def test_cpsat_sibling_plan_rebalances_home_split_and_preserves_participation_counts() -> None:
+    """Tier 2 is served by the bounded CP-SAT path: a sibling-only plan that
+    moves the home split while every sibling keeps its own season count."""
     import tournament_scheduler.repair.home_representation as module
+    from tournament_scheduler.repair.sibling_search import solve_sibling_swaps
 
     teams = _teams("Ringerike", "Ringerike ", "U10", 3) + _other_teams()
     all_teams = teams
@@ -525,11 +528,19 @@ def test_cycle_moves_yields_a_participation_preserving_three_swap_plan() -> None
     row = next(row for row in rows if row["club"] == "Ringerike" and row["age_group"] == "U10")
     assert row["home_appearances"] == {"Ringerike 1": 2, "Ringerike 2": 0, "Ringerike 3": 0}
 
-    cycles = list(module._cycle_moves(plan, problem, row))
-    assert cycles, "expected at least one bounded 3-sibling cycle"
-
-    swaps = cycles[0]
-    assert len(swaps) == 3
+    found = solve_sibling_swaps(
+        plan,
+        problem,
+        club="Ringerike",
+        age_group="U10",
+        tournament_ids=[t["id"] for t in plan["tournaments"]],
+        balance_home=True,
+    )
+    assert found.status == "solved", found.diagnostics
+    swaps = list(found.swaps)
+    assert swaps and all(
+        s["remove"]["club"] == s["add"]["club"] == "Ringerike" for s in swaps
+    ), "only the club's own siblings may be substituted"
     trial = module._apply_swaps(plan, problem, swaps)
     assert trial is not None
 
@@ -541,9 +552,21 @@ def test_cycle_moves_yields_a_participation_preserving_three_swap_plan() -> None
                     out[team["label"]] = out.get(team["label"], 0) + 1
         return out
 
-    # Every sibling's own season participation count is unchanged: the cycle
-    # only moves *which* sibling represents the club at each tournament.
     assert counts(trial) == counts(plan)
+    after = next(
+        r for r in home_representation_rows(teams, trial["tournaments"]) if r["club"] == "Ringerike"
+    )
+    assert after["spread"] < row["spread"]
+    for before_t, after_t in zip(plan["tournaments"], trial["tournaments"]):
+        for key in ("date", "arena", "host_club", "start_time"):
+            assert before_t[key] == after_t[key]
+
+
+def test_tier2_search_is_served_by_the_maintenance_path_not_a_local_enumeration() -> None:
+    import tournament_scheduler.repair.home_representation as module
+
+    assert not hasattr(module, "_cycle_moves")
+    assert not hasattr(module, "_diverse_units")
 
 
 def test_home_representation_is_projected_into_audit_evidence() -> None:

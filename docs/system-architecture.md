@@ -153,7 +153,7 @@ moved one domain slice at a time.
 | `booking/` | calendar availability and bookings, arena conflict detection and the arena-conflict decision record, candidate weekends, fixed club ice allocations (Sandefjord) | moved |
 | `clubs/` + `club_profiles/` | RVV club reference data: the club registry (home arenas, calendar sources), validated evidence-backed venue/resource and availability profiles, and approximate driving distances | moved |
 | `intake/` | season input intake: SharePoint registration import and roster configuration loading | moved |
-| `stage3/` | Stage 3 search: local optimizer, CP-SAT engine and its slot/club-cap/diagnostic helpers, engine dispatch, A/B and shadow comparison, decision context | moved |
+| `stage3/` | Stage 3 search: local optimizer, CP-SAT engine and its slot/club-cap/diagnostic helpers, the solver-neutral maintenance problem (`maintenance_problem`) and its bounded CP-SAT search (`cpsat_maintenance`, [ADR 0008](adr/0008-season-maintenance-ownership-split.md)), engine dispatch, A/B and shadow comparison, decision context | moved |
 | `season/` | canonical season state and lifecycle records, promoted-season maintenance with its accepted baseline and context, maintenance findings and their resolution, operational acceptability, approvals, requests, protections and waivers | moved |
 | `repair/` | repair providers (bounded, verified options per finding family) and the dispatch, evaluation, adoption and capability boundary that applies them | moved |
 | `rules/` | the canonical rule catalog (`catalog`), the rules model, operational obligations and the rules report | moved |

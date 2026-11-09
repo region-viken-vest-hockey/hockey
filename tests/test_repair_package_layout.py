@@ -28,7 +28,10 @@ REPAIR_MODULES = {
     "participant_roster",
     "placement_preserving_roster",
     "responsibility_preserving",
+    "neighborhood_diff",
     "search_neighborhood",
+    "search_neighborhood_cpsat",
+    "sibling_search",
     "underfilled_roster",
     "unplaced_placement",
 }
