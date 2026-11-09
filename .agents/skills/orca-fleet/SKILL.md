@@ -1,6 +1,6 @@
 ---
 name: orca-fleet
-description: Launch and coordinate delivery of several independent GitHub issues in parallel for the hockey repo. The session that starts the fleet stays the coordinator; every issue gets its own claimed worktree registered in Orca as a child of the coordinator's worktree, one supervised worker, and then a serialized review, verify and merge pipeline. Use when the user asks to run a fleet, work several issues at once, or fan work out across worktrees. Use orca-flow for a single issue this session implements itself.
+description: Launch and coordinate delivery of several independent GitHub issues in parallel in any Orca-managed repo. The session that starts the fleet stays the coordinator; every issue gets its own claimed worktree registered in Orca as a child of the coordinator's worktree, one supervised worker, and then a serialized review, verify and merge pipeline. Use when the user asks to run a fleet, work several issues at once, or fan work out across worktrees. Use orca-flow for a single issue this session implements itself.
 ---
 
 # orca-fleet
@@ -9,12 +9,12 @@ Fan out N independent issues from one coordinating session. The coordinator **la
 
 | Concern | Owner (do not re-implement) |
 |---|---|
-| Per-issue lease, worktree, authority gate, repair ledger | `npm run auto -- …` (`tools/orca-auto`) |
-| Worker dispatch, final-head verification, cleanup, ChatGPT browser | `npm run orca -- …` (`tools/orca-flow`) |
+| Per-issue lease, worktree, authority gate, repair ledger | `npm run auto -- …` |
+| Worker dispatch, final-head verification, cleanup, ChatGPT browser | `npm run orca -- …` |
 | Single-issue steps (implement, gate, PR, review, repair, merge, chat cleanup) | [`orca-flow`](../orca-flow/SKILL.md) steps 3-10 |
 | Orca runtime, worker messaging, `worker_done` waits | `orchestration` skill (`orca skills get orchestration`) |
 
-Read `orca-flow` first; this file only adds what changes when several issues run at once. If a step here conflicts with `orca-flow` on a safety rule (lease, authority, review, verify-head, merge gate), `orca-flow` wins.
+The repo's own instructions (`AGENTS.md`/`CLAUDE.md`) define its gate, conventions and protected domains; this skill never restates them. Read `orca-flow` first; this file only adds what changes when several issues run at once. If a step here conflicts with `orca-flow` on a safety rule (lease, authority, review, verify-head, merge gate), `orca-flow` wins.
 
 ## Roles and lineage
 
@@ -27,15 +27,15 @@ Resolve the Orca CLI once (see the `orchestration` skill: `ORCA_CLI_COMMAND`, el
 ## Preconditions (stop and tell the user if any fails)
 
 - `orca status` shows `runtimeReachable: true`; `npm run orca -- review-open` returns `ok: true`; `gh auth status` is logged in.
-- The project virtualenv is on `PATH` for every shell that runs `make check` or `git push` (the hook and gate need `ruff`/`pytest`): `export PATH="$HOME/src/hockey/venv/bin:$PATH"`. OR-Tools tests skip without it.
+- Every shell that runs the repo's gate or `git push` has the toolchain the repo expects on `PATH` (virtualenv, node version manager, hooks' linters). A gate or pre-push hook that fails with a missing tool is an environment problem: fix `PATH`, never bypass the hook, and note that tests which skip when an optional dependency is absent prove nothing.
 - The coordinator's checkout is clean on `main` and up to date (`git pull --ff-only`). Record its identity: `orca worktree current --json` → keep `result.worktree.identity.key` as `PARENT`.
-- Never run `git checkout`, `git stash` or `git restore` with a path or `.` in the coordinator checkout: `.local/auto/state.db` (the lease store) is tracked there, and reverting it erases every lease and repair record.
+- Never run `git checkout`, `git stash` or `git restore` with a path or `.` in the coordinator checkout. The lease store (`.local/auto/`) may be tracked there, and reverting it erases every lease and repair record. Check with `git ls-files .local/auto`.
 
 ## 1. Choose the fleet
 
-1. List every open issue (`gh issue list --state open --limit 200 --json number,title,labels`) and read bodies of candidates. Order by the `P<n>` prefix/label. Skip issues that are blocked, delivered (`git log --all --grep "#<n>"`, merged PRs), "next season" unless the user asked, or need a decision from the user.
-2. Cap concurrency. Default **3 workers**, never more than the user asked for. Each `make check` costs about 4 minutes and ~13 CPU-minutes, so more than 3 mostly adds queueing, not throughput.
-3. **Independence check** before launching a set. Two issues may run together only if their expected edit sets do not overlap: compare the modules/tests each issue names and run `module_report`/`rg` on the owners. Overlap on a shared file (for example `stage3/cpsat.py`, `docs/system-architecture.md`, `scripts/file-length-baseline.txt`, the rule catalog) means **serialize them**, do not parallelize. When unsure, serialize.
+1. List every open issue (`gh issue list --state open --limit 200 --json number,title,labels`) and read bodies of candidates. Order by the `P<n>` prefix/label. Skip issues that are blocked, already delivered (`git log --all --grep "#<n>"`, merged PRs), explicitly deferred or scheduled for later, or in need of a decision from the user.
+2. Cap concurrency. Default **3 workers**, never more than the user asked for. The repo's full gate is CPU-heavy, so more than 3 mostly adds queueing, not throughput; lower the cap further if one gate run is slow on this machine.
+3. **Independence check** before launching a set. Two issues may run together only if their expected edit sets do not overlap: compare the modules/tests each issue names and search the owners (`rg`, call graph). Overlap on a shared file (a hot module, a docs index, a baseline/snapshot/lockfile, a generated catalog) means **serialize them**, do not parallelize. When unsure, serialize.
 4. Print the plan to the user before launching: issue, title, priority, expected files, who depends on whom, and which are serialized. Proceed without further confirmation only when the user's request already named the issues or said to run the fleet.
 
 ## 2. Launch each worker
@@ -72,11 +72,11 @@ orca orchestration check --wait --types "worker_done,escalation,question" --time
 
 As each worker finishes, move that issue through `orca-flow` steps 4-9, with these fleet rules:
 
-- **Local gate and PR** (step 4-5) may run for several issues at the same time, but not more than 2 concurrent `make check` runs on the machine; queue the rest.
+- **Local gate and PR** (step 4-5) may run for several issues at the same time, but not more than 2 concurrent runs of the repo's gate on the machine; queue the rest.
 - **ChatGPT review is serialized**: there is one Orca browser tab, so run one `review-open` / `review-send` / `review-wait` at a time. Each review and repair round is still a fresh chat, and every chat's first-message file is recorded for deletion (keep issue, page id and message file together in scratch).
 - **Merge is serialized, one PR at a time**:
   1. take the next issue whose final fresh-reviewer pass found no blocking issues and whose CI is green;
-  2. if `main` moved since its head was verified, rebase the branch onto `origin/main` in its worktree (never merge `main` in: the repository forbids merge commits), rerun `make check`, push, and treat the new head as needing `verify-head` again; a rebase that changes behavior or conflicts in a non-trivial way sends that issue back through review;
+  2. if `main` moved since its head was verified, rebase the branch onto `origin/main` in its worktree (never merge `main` in: many repos forbid merge commits, so rebase everywhere), rerun the repo's gate, push, and treat the new head as needing `verify-head` again; a rebase that changes behavior or conflicts in a non-trivial way sends that issue back through review;
   3. `verify-head`, merge `auth-check`, `gh pr merge <pr> --squash --delete-branch --match-head-commit <sha>`;
   4. `git pull --ff-only` in the coordinator checkout (only that command; see precondition on `state.db`), `release` the lease, then merge the next.
 - After each merge, re-check the remaining fleet for newly overlapping files; if two open PRs now touch the same file, serialize them and rebase the later one.
@@ -84,7 +84,7 @@ As each worker finishes, move that issue through `orca-flow` steps 4-9, with the
 
 ## 5. Finish
 
-- For every merged issue run `npm run orca -- cleanup --issue <n>` and delete its flow-created ChatGPT chats with `review-delete` (step 10 of `orca-flow`). `LIVE_SESSION` from cleanup usually means editor language servers hold the worktree as their cwd: report it, do not force removal. Remove stale children so no orphan lineage remains in `orca worktree ps`.
+- For every merged issue run `npm run orca -- cleanup --issue <n>` and delete its flow-created ChatGPT chats with `review-delete` (step 10 of `orca-flow`). `LIVE_SESSION` from cleanup usually means editor or language-server processes hold the worktree as their cwd: report it, do not force removal. Remove stale children so no orphan lineage remains in `orca worktree ps`.
 - Update or close each issue per `orca-flow` step 9; partial slices stay open with a comment naming what remains.
 - Final report, one table: issue → PR → merge commit → verdict/findings fixed → chats deleted → issue action, followed by the fleet-level facts: which issues were serialized and why, anything dropped or handed off (with the exact code), lease or ledger anomalies, chats that could not be deleted, and anything skipped.
 
@@ -92,6 +92,5 @@ As each worker finishes, move that issue through `orca-flow` steps 4-9, with the
 
 - The coordinator does not implement. If it must change code (for example resolving a rebase), it does so inside that issue's worktree under the issue's own lease and records it in the report.
 - No second scheduler, timer, daemon or extra Orca server. This skill is a procedure the coordinating session executes; `npm run orca -- tick` (the optional dispatcher) is a separate, operator-enabled mechanism and is not part of this flow.
-- Never publish, roll back, promote or reopen a season, or touch `season/` from a fleet. Issues in those domains are not fleet work; `auth-check` parks them and they go to the user.
-- Never run live season refresh, export or publication as a test.
+- Issues in a protected domain (anything `auth-check` reports as `REQUIRES_FOUNDER`, such as payments, pricing, publication, irreversible data or live production state) are not fleet work: they are parked and go to the user. Never use live or production systems as a test.
 - A run ends with merged PRs and a written per-issue blocker for everything else. Do not leave an issue claimed without saying so in the report.
