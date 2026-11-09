@@ -27,7 +27,7 @@ Command names alone do not make a repo conformant. Before claiming any issue, ru
 
 1. `npm run orca -- plan --issue <n> --owner <owner> --run <uuid>` (prints the Orca calls and the worker task; starts nothing). The worker task must name **this repo's** instructions and canonical gate, not another project's.
 2. `npm run orca -- review-open` returns `ok: true` for **this repo's** ChatGPT project.
-3. `verify-head` runs this repo's canonical gate against its default branch (read `tools/orca-flow/verify-head.mjs` or the repo's equivalent once per session).
+3. `verify-head` runs this repo's canonical gate (`gate` in `orca.config.json`) against its default branch. The shipped implementation is `src/orca/verify-head.mjs` in the orca-orchestrator package (under `node_modules/orca-orchestrator/` when installed); read it once per session if the repo uses its own variant.
 4. `review-delete` enforces the first-message match (read its source/usage). If it does not, say so to the user up front: the fleet still runs, chat deletion is **disabled for the whole run**, and every review chat is listed in the final report (step 5).
 
 If a subcommand is missing or behaves differently from what `orca-flow` describes, stop and report the gap instead of improvising a substitute. Run the fleet only where checks 1-3 hold; check 4 never blocks the run, it only turns chat deletion off. `<owner>` below is the harness running the coordinator (`claude`, `pi`, …), the same name `orca-flow` uses; use one owner name for the whole fleet and a distinct run id per issue.
@@ -70,7 +70,17 @@ Set the parent **after** `dispatch`: Orca must already track the new git worktre
 - `LEASE_CONFLICT` on a chosen issue: drop it from the fleet and pick the next candidate; never retry in a loop.
 - `REQUIRES_FOUNDER` from `auth-check`: that issue leaves the fleet (the command parks it and releases the lease). Ask the user in chat; the rest of the fleet continues.
 - Verify lineage once all are launched: `orca worktree ps --json` must show each child's `parentWorktreeId` equal to the coordinator's worktree id (`id:<repo-id>::<path>`). If `set --parent-worktree` is rejected, report the exact error and continue without lineage rather than blocking the fleet.
-- Any `dispatch` failure follows the recovery table in `orca-deliver` §3; if recovery is not conclusively safe, stop that issue and report.
+- Any `dispatch` failure follows the recovery rules below; if recovery is not conclusively safe, stop that issue and report.
+
+**Dispatch recovery (one bounded attempt, fail closed).** The dispatch record (`.local/auto/orca-dispatch/issue-<n>.json`, under the configured `stateDir`) is the ownership fence that stops a second dispatch for the same issue. Never delete it because `worker-list` shows no worker: a worker can be unreachable yet still running. A record in state `unconfirmed`, `starting` or `started` is treated as a live worker.
+
+| Failure | Conclusive evidence required | Single recovery action |
+|---|---|---|
+| `DISPATCH_RECORD_EXISTS` | The record reads `not-started` (it never reached a worker) | Delete the record, retry dispatch once |
+| `RUNCREATE_FAILED` / `RUNCREATE_UNVERIFIED` | None: a Run may exist even though the receipt is incomplete | Stop and report; do not delete the record |
+| `WORKTREE_UNRESOLVED` / `WORKTREE_SELECTOR_NOT_FOUND` | No record and no Run exist, or the record is `not-started` with the preserved `selector_not_found` evidence | Confirm `orca worktree show --worktree path:<worktree> --json` succeeds, then retry once |
+| `WORKER_START_FAILED` / `WORKER_START_UNVERIFIED` | `worker-show --dispatch <id>` (or `worker-stop`) confirms the worker never started or has exited | Only then delete the record and retry once |
+| `LEASE_LOST_BEFORE_START`, `LEASE_CONFLICT`, `LEASE_LOST`, `DIRTY_WORKTREE` | n/a | No recovery: do not re-claim, retry, reset or clean. Print the `HANDOFF` notice from `orca-flow` step 2 |
 
 ## Lease heartbeat for the whole lifecycle
 
@@ -93,7 +103,7 @@ orca orchestration check --wait --types "worker_done,escalation,question" --time
 ```
 
 - Answer a `question` with `orca orchestration reply`. An `escalation` for one issue stops only that issue.
-- On `worker_done`: match the IDs to that issue's dispatch, `worker-release --dispatch <id>`, ack. Only `outcome: succeeded` continues. On a failed or abandoned worker: confirm it is stopped (`worker-show` / `worker-stop` verdict), leave the worktree and any commits untouched as evidence, reconcile the dispatch record only through the recovery table in `orca-deliver` §3 (never delete it blindly), then either `release` the lease or keep it deliberately and print the `HANDOFF` notice. Say which in the final report; an issue must never be left claimed by accident. No re-dispatch beyond the single recovery step above.
+- On `worker_done`: match the IDs to that issue's dispatch, `worker-release --dispatch <id>`, ack. Only `outcome: succeeded` continues. On a failed or abandoned worker: confirm it is stopped (`worker-show` / `worker-stop` verdict), leave the worktree and any commits untouched as evidence, reconcile the dispatch record only through the dispatch recovery table above (never delete it blindly), then either `release` the lease or keep it deliberately and print the `HANDOFF` notice. Say which in the final report; an issue must never be left claimed by accident. No re-dispatch beyond the single recovery step above.
 - A lease problem on any issue (`LEASE_LOST`, `LEASE_CONFLICT`, `DIRTY_WORKTREE`) ends **that** issue with the `HANDOFF` notice from `orca-flow` step 2. Do not touch its worktree. Other issues continue.
 
 ## 4. Per-issue pipeline: parallel to build, serial to ship

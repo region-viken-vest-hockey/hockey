@@ -1,0 +1,77 @@
+{
+  "defaultBranch": "main",
+  "gate": {
+    "command": "make",
+    "args": [
+      "check"
+    ]
+  },
+  "review": {
+    "projectId": "g-p-6a6859a57a0881919c2f9a9266cec28c",
+    "projectName": "Hockey"
+  },
+  "workerInstructions": [
+    "Follow AGENTS.md and the shared RVV skills and docs it routes to; load only what the task needs.",
+    "Do not refactor SeasonPlanner, Stage 3 or initial-planning algorithms while solving a maintenance task, and never invoke planner search or replanning to make a maintenance mutation pass."
+  ],
+  "protectedDomains": [
+    {
+      "id": "publication",
+      "labels": [
+        "publication"
+      ],
+      "words": [
+        "publish(?:ing)?",
+        "republish",
+        "rollback",
+        "roll back",
+        "gh-pages",
+        "github pages",
+        "publiser",
+        "publisering",
+        "rull tilbake"
+      ],
+      "paths": [
+        "^\\.github/workflows/season-(?:publish|rollback)\\.yml$",
+        "^tournament_scheduler/pipeline/pages_publish",
+        "^tournament_scheduler/publication/"
+      ]
+    },
+    {
+      "id": "canonical-season",
+      "labels": [
+        "canonical-season"
+      ],
+      "words": [
+        "promot(?:e|ion) (?:the )?season",
+        "reopen",
+        "replan (?:the )?(?:published|sealed)",
+        "seal(?:ed)? season",
+        "published[- ]sealed"
+      ],
+      "paths": [
+        "^season/"
+      ]
+    },
+    {
+      "id": "credentials-privacy",
+      "labels": [
+        "security",
+        "privacy"
+      ],
+      "words": [
+        "credentials?",
+        "secrets?",
+        "tokens?",
+        "mfa",
+        "gdpr",
+        "personal data",
+        "personvern"
+      ],
+      "paths": [
+        "^\\.gitleaks\\.toml$",
+        "^docs/security\\.md$"
+      ]
+    }
+  ]
+}

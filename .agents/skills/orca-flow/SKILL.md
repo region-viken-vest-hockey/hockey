@@ -1,6 +1,6 @@
 ---
 name: orca-flow
-description: End-to-end issue delivery for the hockey repo (region-viken-vest-hockey/hockey). Checks out main and pulls, picks the next (or a named) GitHub issue, implements it on an agent/issue-N branch in a worktree, runs the local gate (`make check`), opens a PR, requests a review from ChatGPT through the Orca browser tab using its GitHub connector, fixes the findings, squash-merges with `gh pr merge` once ChatGPT and CI are satisfied, then updates or closes the issue and deletes the ChatGPT chats it created. Use when the user asks to run the orca flow, deliver an issue end to end, or take an issue through review to merge.
+description: End-to-end issue delivery in an Orca-managed repository configured with orca.config.json. Checks out the default branch and pulls, picks the next (or a named) GitHub issue, implements it on an agent/issue-N branch in a worktree, runs the repository gate, opens a PR, requests a review from ChatGPT through the Orca browser tab using its GitHub connector, fixes the findings, squash-merges with `gh pr merge` once ChatGPT and CI are satisfied, then updates or closes the issue and deletes the ChatGPT chats it created. Use when the user asks to run the orca flow, deliver an issue end to end, or take an issue through review to merge.
 ---
 
 # orca-flow
@@ -10,26 +10,26 @@ This canonical skill works in an existing authenticated **Claude Code or Pi.dev 
 session, `/goal` (Claude Code) or a repeated `/skill:orca-flow` (Pi) applies this
 single-issue procedure once per issue (#991). Do not launch a nested `claude -p` or `pi -p` to
 perform this flow.
-The review runs in the user's own ChatGPT account, in the **Hockey** project, through the
+The review runs in the user's own ChatGPT account, in the repository's configured ChatGPT project (`review.projectName`), through the
 Orca browser tab. It never pastes the diff: ChatGPT reads the PR through its GitHub connector.
 
 Running this flow is the user's explicit request for a branch and pull request, which
-`AGENTS.md` otherwise limits to authorized direct-main work.
+the repository's own agent instructions may otherwise restrict to authorized direct-main work.
 
 ## Which Orca skill?
 
 | Skill                       | Use when                                                                                 |
 | --------------------------- | ---------------------------------------------------------------------------------------- |
 | `orca-flow` (this)          | This session implements one issue itself, end to end. Default choice.                    |
-| `orca-deliver`              | A coordinator dispatches supervised workers (pilot); it reuses step 6 for review.        |
+| `orca-fleet`                | Several independent issues in parallel under one coordinator; it reuses steps 3-10.      |
 | `orca-cli`, `orchestration` | Low-level Orca operations or worker protocol; invoked by the two above, rarely directly. |
 
 ## Preconditions
 
 - Orca is running (`orca status` shows `runtimeReachable: true`).
-- The user is logged in to chatgpt.com in Orca, the **Hockey** project exists there, and the
+- The user is logged in to chatgpt.com in Orca, the configured ChatGPT project exists there, and the
   GitHub connector is enabled.
-- `gh` is authenticated for `region-viken-vest-hockey/hockey`.
+- `gh` is authenticated for this repository, and `orca.config.json` exists at its root and defines `gate`, `review` and any `protectedDomains` (see the orca-orchestrator configuration docs). `npm run auto` and `npm run orca` run `orca-orchestrator auto` / `orca`.
 - `npm run orca -- review-open` returns `ok: true` (right project, logged in, composer present).
   Run it **before claiming an issue**, so a login or Cloudflare check is handled up front rather
   than after the PR is ready. Keep its `pageId` for step 6 (run `review-open` again if it is lost).
@@ -44,8 +44,8 @@ ChatGPT first (see _When stuck_). This applies inside the flow and to work outsi
 
 The user is asked only when:
 
-- the decision is one only the user can make: a publication, rollback, season-promotion or credentials decision, or a
-  tooling or git-guard policy (`AGENTS.md`, `docs/ci.md`);
+- the decision is one only the user can make: a decision in one of the repository's protected domains (`protectedDomains` in `orca.config.json`: for example pricing, payments, publication, or irreversible data), or a
+  tooling or git-guard policy (the repository's agent instructions);
 - the consult failed (no complete answer, login prompt, page not ready); or
 - the consult's answer is contradicted by the code.
 
@@ -63,7 +63,7 @@ git checkout main
 git pull --ff-only
 ```
 
-Untracked files this flow does not touch (for example `.claude/worktrees/`) do not stop the
+Untracked files this flow does not touch (for example a local `.claude/worktrees/`) do not stop the
 flow. Name them in the final report. Stage files by explicit path, never `git add -A`.
 
 ## 2. Pick the issue
@@ -72,9 +72,8 @@ flow. Name them in the final report. Stage files by explicit path, never `git ad
 - Otherwise list **every** open issue, unlabeled ones included:
   `gh issue list --state open --limit 200 --json number,title,labels`. Read each title before
   filtering. Do not stop after the priority-labelled subset.
-- Order the candidates by the `P<n>` prefix in the issue title or label (P1 first). Priority orders the
-  work and never excludes an issue: a P2 or unprioritized issue is a valid pick. Issues marked
-  "next season" are valid only when the user asks for them. Skip issues with
+- Order the candidates by the repository's priority convention (a `P<n>` title prefix or label, P1 first, unless its instructions say otherwise). Priority orders the
+  work and never excludes an issue: a lower-priority or unprioritized issue is a valid pick. Issues deferred to a later period are valid only when the user asks for them. Skip issues with
   an open blocking dependency or whose body says they wait for an external decision.
 - Before claiming a candidate, check whether its work already landed:
   `git log --all -i --grep "#<n>"` and `gh pr list --state all --search "<n> in:title,body"`.
@@ -130,13 +129,12 @@ the user asks for, not an automatic retry.
 ## 3. Implement
 
 - Before editing, write down the issue's acceptance criteria, the documented decisions that bear
-  on the change (issue comments, `AGENTS.md`, `docs/`, existing tests), and the real data shape the
+  on the change (issue comments, the repository's agent instructions and docs, existing tests), and the real data shape the
   change touches (schema, fixtures, the code that reads it). Implement against those, not against
   memory. If the criteria contradict a documented decision, consult ChatGPT before coding.
 - **Authority check before implementing.** Run
   `npm run auto -- auth-check --issue <n> --phase plan --owner <agent-name> --run <run-id>`.
-  `REQUIRES_FOUNDER` means the issue is in a protected domain (public publication or rollback,
-  canonical-season promotion or reopening, credentials or privacy). The command parks
+  `REQUIRES_FOUNDER` means the issue is in a protected domain (whatever the repository lists in `protectedDomains`). The command parks
   the issue and releases the lease. Show the user the decision request in this chat: name the
   protected domain, the choice you would make, its consequences, and the evidence the command
   printed. Explicit approval from the user in this active session counts. After approval, run
@@ -149,16 +147,16 @@ the user asks for, not an automatic retry.
   direct response to the user's approval in this chat; never edit the state store yourself.
 - Work only inside the returned `worktree` (`.worktrees/issue-<n>`), never in the repo root.
 - Branch: `agent/issue-<n>`, the name the ruleset and the claim/gate tooling expect.
-- Read the canonical docs for the task before editing: `AGENTS.md` routes you to the RVV skill, `docs/engineering-principles.md`, `docs/system-architecture.md` and `docs/README.md`. Load focused ADRs only when relevant. Do not refactor `SeasonPlanner` or Stage 3 while solving a maintenance task.
+- Read the repository's own agent instructions (for example `AGENTS.md` or `CLAUDE.md`) and the canonical docs they route to before editing. Follow `workerInstructions` from `orca.config.json` for anything repo-specific.
 - Before adding a helper, method, or domain operation, search for equivalent domain implementations; reuse or consolidate only where contracts agree. Do not duplicate business logic across classes.
 - Add focused tests at the owner boundary (`tests/`). Keep documentation changes inside the
-  rules in `docs/README.md` (one current home per fact).
+  the repository's documentation rules.
 - Commit with a conventional prefix (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
   Do not invent a model identity or add a hard-coded vendor/model Co-Authored-By trailer.
 
 ## 4. Local gate
 
-Run `make check` in the foreground. It is the canonical quick PR tier (dependency lock, lint, file length, tracked paths, quick tests, rules report, CLI contracts, secret scan) and takes several minutes. It must exit 0 before you push. A push also runs the global pre-push lint, so push in the foreground and follow `docs/ci.md#local-pre-push-gate-and-sandboxed-harnesses`. For changes touching slow planner paths also run `scripts/check full`.
+Run the repository gate (`gate` in `orca.config.json`) in the foreground. It must exit 0 before you push. Run any extra checks the repository's instructions require for the kind of change (security, migrations, slow lanes). A push may also run a pre-push hook: push in the foreground, give the shell the toolchain the hook needs, and never bypass it.
 
 Lint and quality findings are fixed, not suppressed. Do not raise thresholds, exclusions or baselines to get a green gate.
 
@@ -175,7 +173,7 @@ the PR fully delivers the issue, in which case use `Closes #<n>`.
 
 ## Where ChatGPT chats must live (required)
 
-Every review and consult chat this flow creates must be a chat inside the **Hockey** project
+Every review and consult chat this flow creates must be a chat inside the configured ChatGPT project
 (`https://chatgpt.com/g/g-p-6a6859a57a0881919c2f9a9266cec28c/c/<id>`). A chat at
 `https://chatgpt.com/c/<id>` has no project segment and is not valid, even if it was started from
 the sidebar. Never type into, send to, or delete a chat the flow did not start.
@@ -191,7 +189,7 @@ If a `review-*` command fails, stop and report its `code`; do not work around it
 
 ```bash
 npm run orca -- review-open                                   # {ok, pageId}: right project, logged in, composer present
-printf '%s' "Use your GitHub connector to review pull request #<pr> in region-viken-vest-hockey/hockey at head <sha>. Focus on correctness bugs, scheduling-rule ownership (one canonical owner, no duplicated rule logic), sealed-season and canonical-mutation safety, determinism/reproducibility, publication and privacy boundaries, and weak tests. Report blocking findings first, ranked by severity, with file and line, the failure scenario and your confidence. If there are no blocking findings, say so plainly." > <scratchpad>/review.txt
+printf '%s' "Use your GitHub connector to review pull request #<pr> in <owner>/<repo> at head <sha>. Focus on correctness bugs, ownership and duplicated logic, data and permission boundaries, migrations, determinism, and weak tests. Add repository-specific focus areas from its instructions. Report blocking findings first, ranked by severity, with file and line, the failure scenario and your confidence. If there are no blocking findings, say so plainly." > <scratchpad>/review.txt
 npm run orca -- review-send --page <pageId> --message-file <scratchpad>/review.txt   # {ok, url} only for a project chat
 npm run orca -- review-wait --page <pageId>                   # polls until two identical complete reads; prints {text}
 ```
@@ -208,11 +206,11 @@ reply yet; run `review-wait` once more, not a loop of retries.
 
 - Treat every P1/P2/P3 finding as a comment to address. Verify each one against the code
   before changing it. If a finding is wrong, say why in the PR, not by silently ignoring it.
-- Fix on the same branch, run `make check`, commit, push.
+- Fix on the same branch, run the repository gate, commit, push.
 - Renew the lease after every repair push (see step 2).
 - **Fresh context per review round.** Do not continue the previous review chat. Anchoring on an
   earlier verdict made five same-chat rounds converge on "approved" while one fresh review found
-  a real correctness bug. Each round runs `review-open` for a new chat in the Hockey project and
+  a real correctness bug. Each round runs `review-open` for a new chat in the configured ChatGPT project and
   sends a self-contained request naming the PR, the new head commit and the review focus. Do not
   paste the earlier findings or verdict into it; verify the earlier fixes yourself against the
   code. Record every chat as a flow chat for step 10. Repeat until a round reports no blocking issues.
@@ -241,7 +239,7 @@ reply yet; run `review-wait` once more, not a loop of retries.
   and `GITHUB_UNAVAILABLE` also mean do not repair. `npm run auto -- repair-status --issue <n>`
   shows the ledger.
 
-- **Tooling-only changes** (only `tools/`, `.agents/`, `docs/` and their
+- **Tooling-only changes** (only tooling, agent instructions and docs, and their
   tests, no product code) get one repair round. After it, remaining P2/P3 findings become a
   follow-up issue, and only a P1 correctness or safety finding blocks the merge. Name this in the
   PR and the final report. Do not keep repairing infrastructure to satisfy every review remark.
@@ -259,7 +257,7 @@ Promote only when **both** hold:
   and repeat, and stop with a `HANDOFF` if a renew fails. Do not parse its output with `--json` or any other flag the installed
   `gh` does not list in `gh pr checks --help`; an unsupported flag can make a check look passed.
   If `gh pr checks` reports no checks at all, record that in the report and rely on the
-  local gate (`make check` on the PR head). Do not treat "no checks" as a failure.
+  local gate (the repository gate on the PR head). Do not treat "no checks" as a failure.
 
 Before merge, the coordinating session must independently verify the exact latest PR head in addition to the review and CI conditions. A worker-reported green gate is not independent confirmation. Do not add unrelated finalize steps or authority fingerprints.
 
@@ -269,12 +267,12 @@ After the last review/repair/push, run from the coordinator checkout:
 npm run orca -- verify-head --issue <n> --pr <pr> --owner <agent-name> --run <run-id>
 ```
 
-Require exit 0 and JSON `ok: true`, `verified: "make check"`. Record the returned `head` SHA. This fetches the current base, ensures the PR and clean worktree match, independently reruns the full canonical gate (`make check`) and checks both SHAs afterward. Any failure, changed PR or missing verification blocks merge. Do not commit or push after verification without rerunning it.
+Require exit 0 and JSON `ok: true`, `verified` set to the gate label. Record the returned `head` SHA. This fetches the current base, ensures the PR and clean worktree match, independently reruns the full canonical gate (the repository gate) and checks both SHAs afterward. Any failure, changed PR or missing verification blocks merge. Do not commit or push after verification without rerunning it.
 
 Also run, on the pushed head with a clean worktree:
 `npm run auto -- auth-check --issue <n> --phase merge --pr <pr> --owner <agent-name> --run <run-id>`.
 Merge only on `CLEAR` or `FOUNDER_APPROVED`. `REQUIRES_FOUNDER` (a newly detected protected domain
-in the diff, for example under `season/`, `tournament_scheduler/publication/` or the publish/rollback workflows) parks the
+in the diff, for example under a path matching a `protectedDomains` entry) parks the
 issue and releases the lease. Ask for approval in this chat with the same decision-request format
 as the plan check. On explicit approval, run `founder-resume`, rerun the merge `auth-check`, and
 merge only when it returns `FOUNDER_APPROVED`; otherwise the PR stays unmerged. This check is a
@@ -314,7 +312,7 @@ code instead of forcing removal.
 
 ## 9. Update or close the issue
 
-- Before closing, apply the documentation rules in `docs/README.md`:
+- Before closing, apply the repository's documentation rules:
   update any canonical source the work made stale, and remove temporary WIP notes.
 - Squash merge closes the issue only when the PR body says `Closes #<n>`. Check the issue
   state with `gh issue view <n> --json state`.
@@ -390,7 +388,7 @@ Procedure:
    _Ask ChatGPT before you ask the user_.
 
 Tooling and git-guard questions (hooks, CI policy) are repo decisions. Ask the user in the
-terminal rather than ChatGPT, as `AGENTS.md` specifies.
+terminal rather than ChatGPT, as the repository's instructions specify.
 
 Also consult when a fix changes the meaning of data other code reads. Examples: a tournament
 identity, revision or fingerprint used by export/audit, or a finding code consumed by the rule catalog. Check
@@ -404,10 +402,10 @@ not ready), stop and tell the user. Do not retry in a loop.
 
 The same rules apply to any ChatGPT consult the assistant starts, including product, UX and
 accessibility questions that do not belong to an issue step. Such a consult must use the
-Hockey project chat and the `review-*` commands (step 6). Verify its factual claims against the code (step 4), and delete the chat
+configured-project chat and the `review-*` commands (step 6). Verify its factual claims against the code (step 4), and delete the chat
 afterwards (step 10). A product decision is asked in this chat first. Only the decisions in
-_Ask ChatGPT before you ask the user_ go to the user, as `AGENTS.md`
-requires.
+_Ask ChatGPT before you ask the user_ go to the user, as the repository's instructions
+require.
 
 ## Report back
 
