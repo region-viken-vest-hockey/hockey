@@ -2,6 +2,7 @@
 // This is a cooperative Orca procedure, not GitHub branch protection.
 import { spawnSync } from "node:child_process";
 import { worktreePathFor, branchFor } from "../orca-auto/worktrees.mjs";
+import { GATE } from "./gate.mjs";
 
 /**
  * @typedef {{status: number | null, stdout: string, stderr: string}} ExecResult
@@ -57,15 +58,15 @@ export function verifyHead({ repoRoot, issue, pr, exec = defaultExec }) {
   if (fetched.status !== 0) return refuse("BASE_FETCH_FAILED", fetched.stderr?.trim());
   if (git(exec, worktree, ["rev-parse", "refs/remotes/origin/main"]) !== before.base)
     return refuse("STALE_BASE", "The local main tracking ref does not match the current PR base");
-  const result = exec("make", ["check"], worktree);
+  const result = exec(GATE.command, [...GATE.args], worktree);
   if (result.status !== 0) {
     const output = (result.stdout ?? "") + "\n" + (result.stderr ?? "");
     return refuse("VERIFICATION_FAILED",
-      "make check failed (" + (result.status ?? "unknown exit") + "): " + output.slice(-3000));
+      GATE.label + " failed (" + (result.status ?? "unknown exit") + "): " + output.slice(-3000));
   }
   const after = snapshot(exec, repoRoot, worktree, issue, pr);
   if (!after.ok) return after;
   if (before.head !== after.head || before.base !== after.base)
     return refuse("PR_CHANGED_DURING_VERIFICATION", "Head or base changed; rerun the gate");
-  return { ok: true, issue, pr, head: after.head, base: after.base, verified: "make check" };
+  return { ok: true, issue, pr, head: after.head, base: after.base, verified: GATE.label };
 }
