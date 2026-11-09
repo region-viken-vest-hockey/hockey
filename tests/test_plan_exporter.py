@@ -426,3 +426,38 @@ class TestDuplicateLabelDisambiguation:
         # total must reflect only its own team, not both merged together.
         assert club_stats["Kongsberg"]["travel_km"] == team_travel["A-lag (Kongsberg, U10)"]
         assert club_stats["Ringerike"]["travel_km"] == team_travel["A-lag (Ringerike, U10)"]
+
+
+class TestSeasonPlanExporterUsability:
+    """Static, public-safe usability styling (issue #918)."""
+
+    def test_overview_is_frozen_filtered_and_print_ready(self, sample_plan, tmp_path):
+        output_path = tmp_path / "season_plan.xlsx"
+        SeasonPlanExporter().export(sample_plan, str(output_path))
+
+        sheet = openpyxl.load_workbook(str(output_path))["Sesongoversikt"]
+        assert sheet.freeze_panes == "A2"
+        assert sheet.auto_filter.ref == f"A1:P{sheet.max_row}"
+        assert sheet.page_setup.orientation == "landscape"
+        assert sheet.page_setup.fitToWidth == 1
+        assert sheet.page_setup.fitToHeight == 0
+        assert sheet.sheet_properties.pageSetUpPr.fitToPage is True
+        assert sheet["A1"].font.bold is True
+
+    def test_every_sheet_freezes_below_its_header_row(self, sample_plan, tmp_path):
+        output_path = tmp_path / "season_plan.xlsx"
+        SeasonPlanExporter().export(sample_plan, str(output_path))
+
+        workbook = openpyxl.load_workbook(str(output_path))
+        for sheet in workbook.worksheets:
+            assert sheet.freeze_panes is not None, sheet.title
+            header_row = int(sheet.freeze_panes[1:]) - 1
+            assert sheet.cell(row=header_row, column=1).font.bold is True, sheet.title
+
+    def test_styled_workbook_passes_public_xlsx_sanitizer(self, sample_plan, tmp_path):
+        from tournament_scheduler.pipeline.pages_bundle import _inspect_xlsx_safety
+
+        output_path = tmp_path / "season_plan.xlsx"
+        SeasonPlanExporter().export(sample_plan, str(output_path))
+
+        assert _inspect_xlsx_safety(output_path, "season_plan.xlsx", frozenset()) == []

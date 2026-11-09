@@ -22,6 +22,7 @@ import openpyxl
 from openpyxl.styles import PatternFill
 from openpyxl.worksheet.worksheet import Worksheet
 
+from tournament_scheduler.excel.sheet_style import ATTENTION_FILL, finalize_sheet, style_header_row
 from tournament_scheduler.planning import half as planning_half
 from tournament_scheduler.clubs.distances import furthest_traveling_team
 from tournament_scheduler.participation.fairness_model import SeasonFairnessModel
@@ -162,8 +163,7 @@ class SeasonPlanExporter:
         booking_by_id: Optional[Dict[str, Mapping[str, Any]]] = None,
     ) -> None:
         sheet.append(_OVERVIEW_HEADERS)
-        self._style_header_row(sheet)
-
+        style_header_row(sheet)
         ice_time_for_age_group = ice_time_for_age_group or {}
         approval_by_id = approval_by_id or {}
         booking_by_id = booking_by_id or {}
@@ -198,8 +198,11 @@ class SeasonPlanExporter:
             if tournament.cancelled:
                 for cell in sheet[sheet.max_row]:
                     cell.fill = _cancelled_fill
+            elif booking.get("needs_attention"):
+                sheet.cell(row=sheet.max_row, column=len(_OVERVIEW_HEADERS)).fill = ATTENTION_FILL
 
         self._autosize_columns(sheet)
+        finalize_sheet(sheet, 1, filterable=True)
 
     @staticmethod
     def _decision_index(
@@ -223,7 +226,7 @@ class SeasonPlanExporter:
     def _write_metadata_sheet(self, sheet: Worksheet, metadata: Mapping[str, Any]) -> None:
         """Write export provenance so parity freshness is checkable from bytes."""
         sheet.append(_METADATA_HEADERS)
-        self._style_header_row(sheet)
+        style_header_row(sheet)
         labels = (
             ("Sesong", "season"),
             ("Kanonisk revisjon", "canonical_revision"),
@@ -235,6 +238,7 @@ class SeasonPlanExporter:
             if value:
                 sheet.append([label, str(value)])
         self._autosize_columns(sheet)
+        finalize_sheet(sheet, 1)
 
     # ------------------------------------------------------------------
     # Season-half distribution sheet (issue #293)
@@ -250,7 +254,7 @@ class SeasonPlanExporter:
         actually used.
         """
         sheet.append(_HALF_DISTRIBUTION_HEADERS)
-        self._style_header_row(sheet)
+        style_header_row(sheet)
 
         split_date = None
         if plan.start_date and plan.end_date:
@@ -270,6 +274,7 @@ class SeasonPlanExporter:
             sheet.append([planning_half.half_label(half), count, share])
 
         self._autosize_columns(sheet)
+        finalize_sheet(sheet, 1)
 
     # ------------------------------------------------------------------
     # Rules-and-decisions sheet
@@ -281,7 +286,7 @@ class SeasonPlanExporter:
         Expected keys per rule dict: ``regel``, ``forklaring``, ``kategori``.
         """
         sheet.append(_RULES_HEADERS)
-        self._style_header_row(sheet)
+        style_header_row(sheet)
 
         for rule in rules_report:
             sheet.append([
@@ -291,6 +296,7 @@ class SeasonPlanExporter:
             ])
 
         self._autosize_columns(sheet)
+        finalize_sheet(sheet, 1)
 
     # ------------------------------------------------------------------
     # Fairness gate sheet
@@ -301,8 +307,7 @@ class SeasonPlanExporter:
         sheet.append([])
         sheet.append(_FAIRNESS_HEADERS)
         header_row_index = sheet.max_row
-        for cell in sheet[header_row_index]:
-            cell.font = cell.font.copy(bold=True)
+        style_header_row(sheet, header_row_index)
 
         _status_fills = {
             "pass": PatternFill(start_color="D9F99D", end_color="D9F99D", fill_type="solid"),
@@ -334,6 +339,7 @@ class SeasonPlanExporter:
                     cell.fill = fill
 
         self._autosize_columns(sheet)
+        finalize_sheet(sheet, header_row_index)
 
     def _write_fairness_adjustments_sheet(self, sheet: Worksheet, plan: SeasonPlan) -> None:
         model = SeasonFairnessModel()
@@ -344,8 +350,7 @@ class SeasonPlanExporter:
         sheet.append([])
         sheet.append(_FAIRNESS_ADJUSTMENT_HEADERS)
         header_row_index = sheet.max_row
-        for cell in sheet[header_row_index]:
-            cell.font = cell.font.copy(bold=True)
+        style_header_row(sheet, header_row_index)
 
         fills = {
             "under": PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid"),
@@ -374,6 +379,7 @@ class SeasonPlanExporter:
                     cell.fill = fill
 
         self._autosize_columns(sheet)
+        finalize_sheet(sheet, header_row_index)
 
     # ------------------------------------------------------------------
     # Per-tournament game-schedule sheets
@@ -404,8 +410,7 @@ class SeasonPlanExporter:
 
         sheet.append(_GAMES_HEADERS)
         header_row_index = sheet.max_row
-        for cell in sheet[header_row_index]:
-            cell.font = cell.font.copy(bold=True)
+        style_header_row(sheet, header_row_index)
 
         for game in tournament.games:
             sheet.append([
@@ -423,6 +428,7 @@ class SeasonPlanExporter:
                     sheet.append([round_num, "(Pause)", team_label, ""])
 
         self._autosize_columns(sheet)
+        finalize_sheet(sheet, header_row_index)
 
     # ------------------------------------------------------------------
     # Per-club summary sheets
@@ -440,8 +446,7 @@ class SeasonPlanExporter:
         sheet.append([])
         sheet.append(_CLUB_SUMMARY_HEADERS)
         header_row_index = sheet.max_row
-        for cell in sheet[header_row_index]:
-            cell.font = cell.font.copy(bold=True)
+        style_header_row(sheet, header_row_index)
 
         for tournament in plan.tournaments:
             club_teams = [team for team in tournament.teams if team.club == club]
@@ -464,6 +469,7 @@ class SeasonPlanExporter:
                 ])
 
         self._autosize_columns(sheet)
+        finalize_sheet(sheet, header_row_index)
 
     @staticmethod
     def _clubs_in_plan(plan: SeasonPlan) -> List[str]:
@@ -512,11 +518,6 @@ class SeasonPlanExporter:
     @staticmethod
     def _weekday_name(value: date) -> str:
         return _NORWEGIAN_WEEKDAYS[value.weekday()]
-
-    @staticmethod
-    def _style_header_row(sheet: Worksheet) -> None:
-        for cell in sheet[1]:
-            cell.font = cell.font.copy(bold=True)
 
     @staticmethod
     def _autosize_columns(sheet: Worksheet, max_width: int = 60) -> None:
