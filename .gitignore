@@ -214,3 +214,6 @@ repro-tmp/
 *.bak[0-9]
 *.swp
 *.backup
+
+# Local orchestrator state (leases, dispatch records); never tracked
+.local/
