@@ -141,6 +141,14 @@ def report_problem(report: dict, expected: dict[str, str]) -> str:
             if name in expected and dep["version"] != expected[name]:
                 return f"pip-audit audited {dep['name']}=={dep['version']} but the lock pins {expected[name]}"
         seen[name] = dep.get("version", "")
+        for vuln in dep.get("vulns", []) if isinstance(dep.get("vulns"), list) else []:
+            if not isinstance(vuln, dict) or not isinstance(vuln.get("id"), str):
+                return f"pip-audit report has a malformed vulnerability entry for {dep['name']}"
+            if not isinstance(vuln.get("aliases", []), list) or not isinstance(vuln.get("fix_versions") or [], list):
+                return f"pip-audit report has a malformed vulnerability entry for {dep['name']}"
+    unexpected = sorted(set(seen) - set(expected))
+    if unexpected:
+        return f"pip-audit report lists dependencies not in the lock: {', '.join(unexpected[:10])}"
     missing = sorted(set(expected) - set(seen))
     if missing:
         return f"pip-audit report does not cover locked dependencies: {', '.join(missing[:10])}"
@@ -170,6 +178,9 @@ def run_pip_audit(lock: Path, timeout: int) -> tuple[dict | None, str]:
     problem = report_problem(report, locked_pins(lock))
     if problem:
         return None, problem
+    has_vulns = any(dep.get("vulns") for dep in report["dependencies"])
+    if (proc.returncode == 1) != has_vulns:
+        return None, f"pip-audit exit status {proc.returncode} contradicts its report ({'with' if has_vulns else 'without'} vulnerabilities)"
     return report, ""
 
 

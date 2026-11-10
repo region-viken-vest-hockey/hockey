@@ -133,3 +133,26 @@ def test_missing_waiver_file_is_a_policy_error(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(audit.subprocess, "run", lambda *a, **k: _Proc(CLEAN, "", 0))
     code = audit.main(["--lock", str(_lock(tmp_path, "foo")), "--waivers", str(tmp_path / "typo.json")])
     assert code == 3 and "OK" not in capsys.readouterr().out
+
+
+def test_exit_status_must_agree_with_reported_vulnerabilities(monkeypatch, tmp_path, capsys):
+    vulnerable = json.dumps({"dependencies": [{"name": "foo", "version": "1.0", "vulns": [VULN]}]})
+    code, output = _run_main(monkeypatch, tmp_path, capsys, _Proc(CLEAN, "", 1))
+    assert code == 2 and "OK" not in output
+    code, output = _run_main(monkeypatch, tmp_path, capsys, _Proc(vulnerable, "", 0))
+    assert code == 2 and "OK" not in output
+    code, _ = _run_main(monkeypatch, tmp_path, capsys, _Proc(vulnerable, "", 1))
+    assert code == 1
+
+
+@pytest.mark.parametrize(
+    "stdout",
+    [
+        json.dumps({"dependencies": [{"name": "foo", "version": "1.0", "vulns": []}, {"name": "extra", "version": "1", "vulns": []}]}),
+        json.dumps({"dependencies": [{"name": "foo", "version": "1.0", "vulns": ["bad"]}]}),
+        json.dumps({"dependencies": [{"name": "foo", "version": "1.0", "vulns": [{"aliases": []}]}]}),
+    ],
+)
+def test_unexpected_dependencies_and_malformed_vulns_are_unknown(monkeypatch, tmp_path, capsys, stdout):
+    code, output = _run_main(monkeypatch, tmp_path, capsys, _Proc(stdout, "", 1))
+    assert code == 2 and "OK" not in output
