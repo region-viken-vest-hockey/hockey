@@ -119,6 +119,8 @@ def test_failed_scanner_with_clean_json_is_unknown(monkeypatch, tmp_path, capsys
         json.dumps({"dependencies": [{"name": "foo", "version": "1.0"}]}),
         json.dumps({"dependencies": ["foo"]}),
         json.dumps({"dependencies": [{"name": "other", "version": "1.0", "vulns": []}]}),
+        json.dumps({"dependencies": [{"name": "foo", "version": "2.0", "vulns": []}]}),
+        json.dumps({"dependencies": [{"name": "foo", "version": "1.0", "vulns": []}, {"name": "Foo", "version": "1.0", "vulns": []}]}),
     ],
 )
 def test_empty_malformed_or_truncated_reports_are_unknown(monkeypatch, tmp_path, capsys, stdout):

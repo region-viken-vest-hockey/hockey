@@ -109,29 +109,39 @@ def classify(report: dict, waivers: list[dict], today: dt.date) -> tuple[list[di
     return findings, waived, skipped
 
 
-def locked_pins(lock: Path) -> set[str]:
-    """Normalised names of every ``name==version`` pin in the lock file."""
-    pins = set()
+def _norm(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def locked_pins(lock: Path) -> dict[str, str]:
+    """Map normalised package name -> pinned version for every ``name==version`` line."""
+    pins: dict[str, str] = {}
     for line in lock.read_text(encoding="utf-8").splitlines():
-        match = re.match(r"^([A-Za-z0-9][A-Za-z0-9._-]*)==", line)
+        match = re.match(r"^([A-Za-z0-9][A-Za-z0-9._-]*)==([^\s\\;]+)", line)
         if match:
-            pins.add(re.sub(r"[-_.]+", "-", match.group(1)).lower())
+            pins[_norm(match.group(1))] = match.group(2)
     return pins
 
 
-def report_problem(report: dict, expected: set[str]) -> str:
-    """Return why *report* is not a complete audit of *expected*, or '' when it is."""
+def report_problem(report: dict, expected: dict[str, str]) -> str:
+    """Return why *report* is not a complete audit of the *expected* pins, or '' when it is."""
     deps = report.get("dependencies")
     if not isinstance(deps, list) or not deps:
         return "pip-audit report lists no dependencies"
-    seen: set[str] = set()
+    seen: dict[str, str] = {}
     for dep in deps:
         if not isinstance(dep, dict) or not isinstance(dep.get("name"), str):
             return "pip-audit report has a malformed dependency entry"
-        if "skip_reason" not in dep and not (isinstance(dep.get("version"), str) and isinstance(dep.get("vulns"), list)):
-            return f"pip-audit report has no vulnerability result for {dep['name']}"
-        seen.add(re.sub(r"[-_.]+", "-", dep["name"]).lower())
-    missing = sorted(expected - seen)
+        name = _norm(dep["name"])
+        if "skip_reason" not in dep:
+            if not (isinstance(dep.get("version"), str) and isinstance(dep.get("vulns"), list)):
+                return f"pip-audit report has no vulnerability result for {dep['name']}"
+            if name in seen:
+                return f"pip-audit report lists {dep['name']} more than once"
+            if name in expected and dep["version"] != expected[name]:
+                return f"pip-audit audited {dep['name']}=={dep['version']} but the lock pins {expected[name]}"
+        seen[name] = dep.get("version", "")
+    missing = sorted(set(expected) - set(seen))
     if missing:
         return f"pip-audit report does not cover locked dependencies: {', '.join(missing[:10])}"
     return ""
