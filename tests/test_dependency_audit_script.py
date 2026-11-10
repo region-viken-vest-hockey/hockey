@@ -11,6 +11,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 _spec = importlib.util.spec_from_file_location("dependency_audit", ROOT / "scripts" / "dependency-audit.py")
+assert _spec is not None and _spec.loader is not None
 audit = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(audit)
 
@@ -55,7 +56,7 @@ def test_skipped_dependency_is_reported():
 
 def test_missing_scanner_is_unknown_not_green(monkeypatch, capsys):
     monkeypatch.setattr(audit.shutil, "which", lambda _name: None)
-    assert audit.main(["--waivers", str(ROOT / "nope.json")]) == 2
+    assert audit.main(["--waivers", str(audit.DEFAULT_WAIVERS)]) == 2
     assert "UNKNOWN" in capsys.readouterr().err
 
 
@@ -74,3 +75,59 @@ def test_committed_waivers_are_valid_and_workflow_is_advisory():
     workflow = (ROOT / ".github" / "workflows" / "dependency-audit.yml").read_text(encoding="utf-8")
     assert "pull_request" not in workflow and "workflow_dispatch" in workflow
     assert "dependency-audit" not in (ROOT / "scripts" / "check").read_text(encoding="utf-8")
+
+
+class _Proc:
+    def __init__(self, stdout="", stderr="", returncode=0):
+        self.stdout, self.stderr, self.returncode = stdout, stderr, returncode
+
+
+def _lock(tmp_path, *names):
+    path = tmp_path / "lock.txt"
+    path.write_text("".join(f"{n}==1.0 \\\n    --hash=sha256:00\n" for n in names), encoding="utf-8")
+    return path
+
+
+def _run_main(monkeypatch, tmp_path, capsys, proc, lock_names=("foo",)):
+    monkeypatch.setattr(audit.shutil, "which", lambda _name: "/bin/pip-audit")
+    monkeypatch.setattr(audit.subprocess, "run", lambda *a, **k: proc)
+    waivers = tmp_path / "w.json"
+    waivers.write_text('{"waivers": []}', encoding="utf-8")
+    code = audit.main(["--lock", str(_lock(tmp_path, *lock_names)), "--waivers", str(waivers)])
+    captured = capsys.readouterr()
+    return code, captured.out + captured.err
+
+
+CLEAN = json.dumps({"dependencies": [{"name": "foo", "version": "1.0", "vulns": []}]})
+
+
+def test_complete_clean_report_exits_zero(monkeypatch, tmp_path, capsys):
+    code, output = _run_main(monkeypatch, tmp_path, capsys, _Proc(CLEAN, "", 0))
+    assert code == 0 and "OK" in output
+
+
+@pytest.mark.parametrize("returncode", [2, 3, 127])
+def test_failed_scanner_with_clean_json_is_unknown(monkeypatch, tmp_path, capsys, returncode):
+    code, output = _run_main(monkeypatch, tmp_path, capsys, _Proc(CLEAN, "feed unreachable", returncode))
+    assert code == 2 and "OK" not in output
+
+
+@pytest.mark.parametrize(
+    "stdout",
+    [
+        json.dumps({"dependencies": []}),
+        json.dumps({"dependencies": [{"name": "foo", "version": "1.0"}]}),
+        json.dumps({"dependencies": ["foo"]}),
+        json.dumps({"dependencies": [{"name": "other", "version": "1.0", "vulns": []}]}),
+    ],
+)
+def test_empty_malformed_or_truncated_reports_are_unknown(monkeypatch, tmp_path, capsys, stdout):
+    code, output = _run_main(monkeypatch, tmp_path, capsys, _Proc(stdout, "", 0))
+    assert code == 2 and "OK" not in output
+
+
+def test_missing_waiver_file_is_a_policy_error(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(audit.shutil, "which", lambda _name: "/bin/pip-audit")
+    monkeypatch.setattr(audit.subprocess, "run", lambda *a, **k: _Proc(CLEAN, "", 0))
+    code = audit.main(["--lock", str(_lock(tmp_path, "foo")), "--waivers", str(tmp_path / "typo.json")])
+    assert code == 3 and "OK" not in capsys.readouterr().out

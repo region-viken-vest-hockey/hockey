@@ -47,7 +47,7 @@ def redact(text: str) -> str:
 
 def load_waivers(path: Path, today: dt.date) -> list[dict]:
     if not path.exists():
-        return []
+        raise WaiverError(f"{path}: waiver file not found (use an explicit empty waivers list when none apply)")
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -109,6 +109,34 @@ def classify(report: dict, waivers: list[dict], today: dt.date) -> tuple[list[di
     return findings, waived, skipped
 
 
+def locked_pins(lock: Path) -> set[str]:
+    """Normalised names of every ``name==version`` pin in the lock file."""
+    pins = set()
+    for line in lock.read_text(encoding="utf-8").splitlines():
+        match = re.match(r"^([A-Za-z0-9][A-Za-z0-9._-]*)==", line)
+        if match:
+            pins.add(re.sub(r"[-_.]+", "-", match.group(1)).lower())
+    return pins
+
+
+def report_problem(report: dict, expected: set[str]) -> str:
+    """Return why *report* is not a complete audit of *expected*, or '' when it is."""
+    deps = report.get("dependencies")
+    if not isinstance(deps, list) or not deps:
+        return "pip-audit report lists no dependencies"
+    seen: set[str] = set()
+    for dep in deps:
+        if not isinstance(dep, dict) or not isinstance(dep.get("name"), str):
+            return "pip-audit report has a malformed dependency entry"
+        if "skip_reason" not in dep and not (isinstance(dep.get("version"), str) and isinstance(dep.get("vulns"), list)):
+            return f"pip-audit report has no vulnerability result for {dep['name']}"
+        seen.add(re.sub(r"[-_.]+", "-", dep["name"]).lower())
+    missing = sorted(expected - seen)
+    if missing:
+        return f"pip-audit report does not cover locked dependencies: {', '.join(missing[:10])}"
+    return ""
+
+
 def run_pip_audit(lock: Path, timeout: int) -> tuple[dict | None, str]:
     """Run pip-audit; return (report, error). report is None when the scan is unknown."""
     exe = shutil.which("pip-audit")
@@ -119,6 +147,9 @@ def run_pip_audit(lock: Path, timeout: int) -> tuple[dict | None, str]:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
     except subprocess.TimeoutExpired:
         return None, f"pip-audit timed out after {timeout}s"
+    # pip-audit exits 0 (clean) or 1 (vulnerabilities found); any other status is a failed scan even with JSON.
+    if proc.returncode not in (0, 1):
+        return None, redact(proc.stderr.strip()[-800:]) or f"pip-audit exited {proc.returncode}"
     try:
         report = json.loads(proc.stdout)
     except json.JSONDecodeError:
@@ -126,6 +157,9 @@ def run_pip_audit(lock: Path, timeout: int) -> tuple[dict | None, str]:
         return None, redact(proc.stderr.strip()[-800:]) or f"pip-audit exited {proc.returncode} with no report"
     if not isinstance(report, dict) or "dependencies" not in report:
         return None, "pip-audit produced an unrecognised report"
+    problem = report_problem(report, locked_pins(lock))
+    if problem:
+        return None, problem
     return report, ""
 
 
@@ -143,7 +177,7 @@ def render(findings: list[dict], waived: list[dict], skipped: list[str], total: 
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n")[0])
     parser.add_argument("--lock", type=Path, default=DEFAULT_LOCK)
     parser.add_argument("--waivers", type=Path, default=DEFAULT_WAIVERS)
     parser.add_argument("--timeout", type=int, default=300)
