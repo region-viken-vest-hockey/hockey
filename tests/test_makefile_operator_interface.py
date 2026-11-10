@@ -19,6 +19,7 @@ PUBLIC_TARGETS = [
     "check",
     "test",
     "dependency-lock",
+    "dependency-audit",
     "secret-scan",
     "rules-report",
     "operator-run",
