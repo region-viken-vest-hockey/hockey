@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from tournament_scheduler.pipeline.audit_result import (
     audit_is_fresh,
     build_audit_id,
@@ -196,3 +199,126 @@ class TestAuditIsFresh:
         assert current_export_fingerprint(tmp_path) is None
         _write_export_checkpoint(tmp_path, fingerprint="fp-1")
         assert current_export_fingerprint(tmp_path) == "fp-1"
+
+
+class TestStructuralSchemaBoundary:
+    """Structure is Pydantic-owned (issue #912); these pin the error contract
+    and the domain-only checks that remain in audit_result."""
+
+    def _errors(self, mutate) -> list[str]:
+        payload = _golden(status="PASS")
+        mutate(payload)
+        return validate_audit_result(payload)
+
+    def test_non_object_payload_is_rejected(self):
+        assert validate_audit_result([]) == ["payload is not a JSON object"]  # type: ignore[arg-type]
+
+    def test_unknown_fields_are_preserved_and_valid(self, tmp_path):
+        payload = _golden(status="PASS")
+        payload["future_field"] = {"x": 1}
+        assert write_audit_result(tmp_path, payload) == []
+        assert read_audit_result(tmp_path)["future_field"] == {"x": 1}
+
+    def test_known_good_version_1_json_remains_round_trip_compatible(self, tmp_path):
+        fixture = Path(__file__).with_name("fixtures") / "audit_result_v1_known_good.json"
+        payload = json.loads(fixture.read_text(encoding="utf-8"))
+        assert validate_audit_result(payload) == []
+        assert write_audit_result(tmp_path, payload) == []
+        assert read_audit_result(tmp_path) == payload
+
+    def test_empty_run_id_is_valid_but_absent_run_id_is_not(self):
+        assert self._errors(lambda p: p.update(run_id="")) == []
+        assert "missing required field: run_id" in self._errors(lambda p: p.pop("run_id"))
+
+    def test_unsupported_schema_version_fails_closed(self):
+        errors = self._errors(lambda p: p.update(schema_version=2))
+        assert any("unsupported schema_version" in e for e in errors)
+        assert any("schema_version" in e for e in self._errors(lambda p: p.update(schema_version="1")))
+
+    def test_legacy_presence_only_scalar_coercions_are_rejected(self):
+        def mutate(p):
+            p["audit_id"] = 123
+            p["run_id"] = 456
+            p["checklist_findings"][0]["question"] = 7
+            p["checklist_findings"][1]["finding"] = {"text": "ok"}
+
+        errors = self._errors(mutate)
+        assert any(error.startswith("audit_id:") for error in errors)
+        assert any(error.startswith("run_id:") for error in errors)
+        assert any("field question has an invalid value" in error for error in errors)
+        assert any("field finding has an invalid value" in error for error in errors)
+
+    def test_checklist_must_be_a_list(self):
+        assert "checklist_findings must be a list" in self._errors(lambda p: p.pop("checklist_findings"))
+        assert "checklist_findings must be a list" in self._errors(lambda p: p.update(checklist_findings="nope"))
+
+    def test_checklist_entry_errors_are_actionable(self):
+        def mutate(p):
+            p["checklist_findings"][0]["severity"] = "fatal"
+            p["checklist_findings"][1]["confidence"] = "sure"
+            del p["checklist_findings"][2]["question"]
+            p["checklist_findings"][3] = "not-an-object"
+
+        errors = self._errors(mutate)
+        assert "checklist_findings entry has invalid severity 'fatal'" in errors
+        assert "checklist_findings entry has invalid confidence 'sure'" in errors
+        assert "checklist_findings entry missing field: question" in errors
+        assert "checklist_findings entries must be objects" in errors
+
+    def test_boolean_item_id_does_not_cover_checklist_item_one(self):
+        def mutate(p):
+            p["checklist_findings"][0]["item_id"] = True
+
+        assert self._errors(mutate)
+
+    def test_duplicate_ids_do_not_cover_missing_items(self):
+        def mutate(p):
+            p["checklist_findings"][8]["item_id"] = 1
+
+        assert any("missing item_id(s): [9]" in e for e in self._errors(mutate))
+
+    def test_potential_missing_rule_requires_description(self):
+        errors = self._errors(lambda p: p.update(potential_missing_rule=[{"severity": "major"}]))
+        assert errors == ["potential_missing_rule entries must be objects with a 'description' field"]
+
+    def test_audit_context_fingerprint_must_be_string(self):
+        assert "audit_context_fingerprint must be a string when present" in self._errors(
+            lambda p: p.update(audit_context_fingerprint=5)
+        )
+
+    def test_operator_assessment_shape(self):
+        assert (
+            self._errors(
+                lambda p: p.update(
+                    operator_assessment={
+                        "operator_summary": "ok",
+                        "key_tradeoffs": [{"title": "t", "summary": "s", "severity": "major"}],
+                        "remaining_actions": [{"title": "t", "summary": "s", "category": "c"}],
+                        "limitations": ["l"],
+                    }
+                )
+            )
+            == []
+        )
+        errors = self._errors(
+            lambda p: p.update(
+                operator_assessment={
+                    "operator_summary": "  ",
+                    "key_tradeoffs": [{"title": "t"}, {"title": "t", "summary": "s", "severity": "bad"}],
+                    "remaining_actions": [{"title": "t", "summary": "s", "category": 3}],
+                    "limitations": [1],
+                }
+            )
+        )
+        assert "operator_assessment.operator_summary must be a non-empty string" in errors
+        assert "operator_assessment.key_tradeoffs entries must have title and summary" in errors
+        assert "operator_assessment.key_tradeoffs entry has invalid severity 'bad'" in errors
+        assert "operator_assessment.remaining_actions entry category must be a string" in errors
+        assert "operator_assessment.limitations entries must be strings" in errors
+        assert self._errors(lambda p: p.update(operator_assessment="x")) == ["operator_assessment must be an object"]
+
+    def test_invalid_payload_is_never_written(self, tmp_path):
+        payload = _golden(status="PASS")
+        payload["status"] = "MAYBE"
+        assert write_audit_result(tmp_path, payload)
+        assert read_audit_result(tmp_path) is None

@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .audit_result_schema import structural_errors
 from .fingerprints import stable_payload_sha256
 from .state import PipelineState, StageName
 
@@ -34,10 +35,7 @@ _RESULT_FILENAME = "audit_result.json"
 # A partial/failed audit run must never silently read as PASS (issue #325).
 # INCOMPLETE is the explicit "audit ran but produced no trustworthy verdict"
 # state; it is treated identically to FAIL for publish-gating purposes.
-_VALID_STATUSES = {"PASS", "REVIEW_REQUIRED", "FAIL", "INCOMPLETE"}
 _BLOCKING_STATUSES = {"FAIL", "INCOMPLETE"}
-_VALID_SEVERITIES = {"info", "minor", "major", "critical"}
-_VALID_CONFIDENCES = {"low", "medium", "high"}
 _REQUIRED_CHECKLIST_ITEM_IDS = set(range(1, 10))  # the 9-item checklist
 
 
@@ -60,110 +58,27 @@ def current_run_id(work_dir: "str | Path") -> str | None:
     return str(run_id) if run_id else None
 
 
-def _checklist_item_ids(payload: dict[str, Any]) -> set[int]:
-    ids: set[int] = set()
-    for item in payload.get("checklist_findings") or []:
-        if isinstance(item, dict) and isinstance(item.get("item_id"), int):
-            ids.add(item["item_id"])
-    return ids
-
-
 def validate_audit_result(payload: dict[str, Any]) -> list[str]:
-    """Structurally validate *payload* against the audit result schema.
+    """Validate *payload*; returns human-readable errors (empty means valid).
 
-    Returns a list of human-readable validation errors; an empty list means
-    the payload is valid. Deliberately a hand-rolled whitelist check (no new
-    JSON-schema dependency), matching ``llm_judge.prompts``' existing
-    "validate against a known whitelist, never trust unparsed output" style.
+    Structure (field presence/types, status/severity/confidence vocabularies,
+    nested operator assessment) is delegated to the single Pydantic schema in
+    :mod:`.audit_result_schema`. Only domain rules live here: the supported
+    schema version and required nine-item checklist coverage. Freshness and
+    publication policy are decided elsewhere, never by the schema.
     """
-    errors: list[str] = []
-    if not isinstance(payload, dict):
-        return ["payload is not a JSON object"]
+    errors = structural_errors(payload)
+    if errors:
+        return errors
 
-    for key in ("schema_version", "audit_id", "export_fingerprint", "generated_at", "status"):
-        if key not in payload or payload.get(key) in (None, ""):
-            errors.append(f"missing required field: {key}")
-    # run_id may legitimately be empty (e.g. no run manifest was started for
-    # this workspace yet) — it only needs to be present as a key so a
-    # stored result always has *some* value to compare freshness against.
-    if "run_id" not in payload:
-        errors.append("missing required field: run_id")
-
-    status = payload.get("status")
-    if status is not None and status not in _VALID_STATUSES:
-        errors.append(f"invalid status {status!r}; must be one of {sorted(_VALID_STATUSES)}")
-
-    findings = payload.get("checklist_findings")
-    if not isinstance(findings, list):
-        errors.append("checklist_findings must be a list")
-    else:
-        found_ids = _checklist_item_ids(payload)
-        missing_ids = _REQUIRED_CHECKLIST_ITEM_IDS - found_ids
-        if missing_ids:
-            errors.append(f"checklist_findings missing item_id(s): {sorted(missing_ids)}")
-        for entry in findings:
-            if not isinstance(entry, dict):
-                errors.append("checklist_findings entries must be objects")
-                continue
-            for key in ("item_id", "question", "finding", "severity", "confidence"):
-                if key not in entry:
-                    errors.append(f"checklist_findings entry missing field: {key}")
-            severity = entry.get("severity")
-            if severity is not None and severity not in _VALID_SEVERITIES:
-                errors.append(f"checklist_findings entry has invalid severity {severity!r}")
-            confidence = entry.get("confidence")
-            if confidence is not None and confidence not in _VALID_CONFIDENCES:
-                errors.append(f"checklist_findings entry has invalid confidence {confidence!r}")
-
-    for finding in payload.get("potential_missing_rule") or []:
-        if not isinstance(finding, dict) or "description" not in finding:
-            errors.append("potential_missing_rule entries must be objects with a 'description' field")
-
-    context_fingerprint = payload.get("audit_context_fingerprint")
-    if context_fingerprint is not None and not isinstance(context_fingerprint, str):
-        errors.append("audit_context_fingerprint must be a string when present")
-
-    if "operator_assessment" in payload and payload.get("operator_assessment") is not None:
-        _validate_operator_assessment(payload.get("operator_assessment"), errors)
-
+    version = payload["schema_version"]
+    if version != AUDIT_RESULT_SCHEMA_VERSION:
+        errors.append(f"unsupported schema_version {version!r}; this build reads version {AUDIT_RESULT_SCHEMA_VERSION}")
+    found_ids = {item["item_id"] for item in payload["checklist_findings"]}
+    missing_ids = _REQUIRED_CHECKLIST_ITEM_IDS - found_ids
+    if missing_ids:
+        errors.append(f"checklist_findings missing item_id(s): {sorted(missing_ids)}")
     return errors
-
-
-def _validate_operator_assessment(assessment: Any, errors: list[str]) -> None:
-    """Validate the optional structured harness assessment projection.
-
-    The assessment is the operator-facing conclusion the harness submits with
-    its verdict; it is explicitly not a second rule engine, so this only
-    enforces a small, stable shape (there is exactly one source of truth for
-    counts/validity: the deterministic evidence).
-    """
-    if not isinstance(assessment, dict):
-        errors.append("operator_assessment must be an object")
-        return
-    summary = assessment.get("operator_summary")
-    if not isinstance(summary, str) or not summary.strip():
-        errors.append("operator_assessment.operator_summary must be a non-empty string")
-    for key in ("key_tradeoffs", "remaining_actions", "limitations"):
-        value = assessment.get(key)
-        if value is not None and not isinstance(value, list):
-            errors.append(f"operator_assessment.{key} must be a list when present")
-    for entry in assessment.get("key_tradeoffs") or []:
-        if not isinstance(entry, dict) or not entry.get("title") or not entry.get("summary"):
-            errors.append("operator_assessment.key_tradeoffs entries must have title and summary")
-            continue
-        severity = entry.get("severity")
-        if severity is not None and severity not in _VALID_SEVERITIES:
-            errors.append(f"operator_assessment.key_tradeoffs entry has invalid severity {severity!r}")
-    for entry in assessment.get("remaining_actions") or []:
-        if not isinstance(entry, dict) or not entry.get("title") or not entry.get("summary"):
-            errors.append("operator_assessment.remaining_actions entries must have title and summary")
-            continue
-        category = entry.get("category")
-        if category is not None and not isinstance(category, str):
-            errors.append("operator_assessment.remaining_actions entry category must be a string")
-    for entry in assessment.get("limitations") or []:
-        if not isinstance(entry, str):
-            errors.append("operator_assessment.limitations entries must be strings")
 
 
 def read_audit_result(work_dir: "str | Path") -> dict[str, Any] | None:
