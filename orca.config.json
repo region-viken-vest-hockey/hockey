@@ -73,5 +73,8 @@
         "^docs/security\\.md$"
       ]
     }
-  ]
+  ],
+  "autonomy": {
+    "profile": "controlled-execution"
+  }
 }
