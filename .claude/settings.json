@@ -15,5 +15,17 @@
       "Bash(git update-ref -d refs/heads/gh-pages*)",
       "Bash(git update-ref -d *gh-pages*)"
     ]
+  },
+  "extraKnownMarketplaces": {
+    "orca-orchestrator-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "niclas-lindgren/orca-orchestrator"
+      },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "orca-orchestrator@orca-orchestrator-marketplace": true
   }
 }

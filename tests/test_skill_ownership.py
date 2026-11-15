@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -156,10 +157,11 @@ def test_pi_has_no_rvv_implementation_or_configuration_beyond_prompts() -> None:
     """Only command-transport prompts may exist under ``.pi``.
 
     A code/config file with a generic name (``.pi/extensions/operator.ts``), a
-    Python/shell helper, a project ``settings.json`` wiring in a package, or any
-    other top-level Pi resource would be reachable Pi-owned behavior. Runtime
-    directories (``.pi/logs``, ``.pi/lib``) are ignored, but committed code
-    inside them is not.
+    Python/shell helper, or any extra top-level Pi resource would be reachable
+    Pi-owned behavior. The sole permitted declarative settings file installs
+    Orca's unpinned external package (no copied policy, local implementation,
+    or alternate package). Runtime directories (``.pi/logs``, ``.pi/lib``)
+    are ignored, but committed code inside them is not.
     """
 
     pi_root = REPO_ROOT / ".pi"
@@ -167,7 +169,7 @@ def test_pi_has_no_rvv_implementation_or_configuration_beyond_prompts() -> None:
     # .pi/runtime is created by the pi harness at runtime and is not
     # committed; allow it at top level but do not recurse into it.
     ignored_top_level = runtime_only | {"runtime"}
-    allowed_top_level = {"prompts"}
+    allowed_top_level = {"prompts", "settings.json"}
     implementation_suffixes = {
         ".ts",
         ".tsx",
@@ -202,6 +204,10 @@ def test_pi_has_no_rvv_implementation_or_configuration_beyond_prompts() -> None:
         offenders.append(f".pi/prompts contains unexpected files: {prompt_files}")
 
     assert offenders == []
+    # Do not allow .pi/settings.json to become a second local implementation entrypoint.
+    assert json.loads((pi_root / "settings.json").read_text(encoding="utf-8")) == {
+        "packages": ["git:github.com/niclas-lindgren/orca-orchestrator"]
+    }
 
 
 def test_harness_command_adapters_delegate_to_shared_agent_neutral_procedures():
