@@ -10,10 +10,35 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import sys
 from typing import Any
+
+_READINESS_FILE = (
+    Path(__file__).resolve().parent.parent
+    / "tournament_scheduler"
+    / "application"
+    / "ports"
+    / "readiness.py"
+)
+
+
+def _load_readiness() -> Any:
+    """Load the stdlib-only readiness contract without importing the package."""
+    spec = importlib.util.spec_from_file_location("rvv_readiness_contract", _READINESS_FILE)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+readiness = _load_readiness()
+Reason = readiness.ReadinessReason
+BACKEND = "git"
 
 
 def _git(
@@ -51,7 +76,16 @@ def prepare(root: Path) -> dict[str, Any]:
         "update_performed": False,
         "workflow_commit": None,
         "reason": None,
+        "reason_code": None,
+        "backend": BACKEND,
+        "workflow_version": None,
+        "readiness_schema_version": readiness.READINESS_SCHEMA_VERSION,
     }
+
+    def refuse(code: Any, reason: str) -> dict[str, Any]:
+        report["reason"] = reason
+        report["reason_code"] = code.value
+        return report
 
     try:
         _git(
@@ -63,10 +97,10 @@ def prepare(root: Path) -> dict[str, Any]:
         )
         report["refresh_performed"] = True
     except (OSError, RuntimeError, subprocess.TimeoutExpired):
-        report["reason"] = (
+        return refuse(
+            Reason.REFRESH_FAILED,
             "Could not fetch origin/main; repository freshness is unverified."
         )
-        return report
 
     try:
         report["branch"] = _value(root, "branch", "--show-current") or None
@@ -77,23 +111,23 @@ def prepare(root: Path) -> dict[str, Any]:
             _value(root, "status", "--porcelain", "--untracked-files=no")
         )
     except (OSError, RuntimeError, subprocess.TimeoutExpired):
-        report["reason"] = (
+        return refuse(
+            Reason.INSPECTION_FAILED,
             "Could not inspect the local checkout after refreshing origin/main."
         )
-        return report
 
     if report["branch"] != "main":
-        report["reason"] = (
+        return refuse(
+            Reason.NOT_ON_DEFAULT_LINE,
             f"Current branch is {report['branch'] or 'detached HEAD'}, not main; "
             "no automatic branch switch or reset was attempted."
         )
-        return report
     if tracked_dirty:
-        report["reason"] = (
+        return refuse(
+            Reason.LOCAL_CHANGES,
             "Tracked files or the index are dirty; no automatic stash, reset, "
             "revert, clean, or update was attempted."
         )
-        return report
 
     if report["local_head"] != report["origin_main"]:
         try:
@@ -106,20 +140,20 @@ def prepare(root: Path) -> dict[str, Any]:
                 allowed=(0, 1),
             )
             if ancestor.returncode != 0:
-                report["reason"] = (
+                return refuse(
+                    Reason.DIVERGED,
                     "Local main has diverged from origin/main; a safe fast-forward "
                     "is not possible."
                 )
-                return report
             _git(root, "merge", "--ff-only", "--no-edit", "refs/remotes/origin/main")
             report["update_performed"] = True
             report["local_head"] = _value(root, "rev-parse", "HEAD")
         except (OSError, RuntimeError, subprocess.TimeoutExpired):
-            report["reason"] = (
+            return refuse(
+                Reason.UPDATE_FAILED,
                 "The clean local main could not be fast-forwarded; no destructive "
                 "recovery was attempted."
             )
-            return report
 
     try:
         final_branch = _value(root, "branch", "--show-current") or None
@@ -128,8 +162,10 @@ def prepare(root: Path) -> dict[str, Any]:
         )
         final_head = _value(root, "rev-parse", "HEAD")
     except (OSError, RuntimeError, subprocess.TimeoutExpired):
-        report["reason"] = "Could not verify the checkout after the freshness update."
-        return report
+        return refuse(
+            Reason.INSPECTION_FAILED,
+            "Could not verify the checkout after the freshness update.",
+        )
 
     report["branch"] = final_branch
     report["local_head"] = final_head
@@ -138,15 +174,25 @@ def prepare(root: Path) -> dict[str, Any]:
         or final_tracked_dirty
         or final_head != report["origin_main"]
     ):
-        report["reason"] = (
+        return refuse(
+            Reason.CHANGED_DURING_CHECK,
             "Checkout changed during the freshness gate; do not run a repository-owned workflow."
         )
-        return report
 
     report["status"] = "READY"
     report["workflow_commit"] = final_head
+    report["workflow_version"] = final_head
+    report["reason_code"] = Reason.READY_CURRENT.value
     report["reason"] = (
         "Local main is tracked-clean and equals the freshly fetched origin/main."
+    )
+    # Validate the verdict against the backend-neutral contract before reporting it.
+    readiness.ReadinessReport(
+        backend=BACKEND,
+        status=readiness.ReadinessStatus.READY,
+        reason_code=Reason.READY_CURRENT,
+        detail=report["reason"],
+        workflow_version=final_head,
     )
     return report
 
@@ -161,6 +207,7 @@ def render(report: dict[str, Any]) -> str:
             f"refresh_performed: {str(report['refresh_performed']).lower()}",
             f"update_performed: {str(report['update_performed']).lower()}",
             f"workflow_commit: {report['workflow_commit'] or 'UNVERIFIED'}",
+            f"reason_code: {report['reason_code']}",
             f"reason: {report['reason']}",
         )
     )
