@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from tournament_scheduler.booking.calendar_bookings import (
+from tournament_scheduler.booking.calendar_evidence import (
     club_calendar_fingerprint,
     club_calendar_positive_evidence_usable,
     iter_events,

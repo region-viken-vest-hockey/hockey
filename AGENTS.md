@@ -102,14 +102,14 @@ Production convergence is tracked by the production architecture issue; planner 
 
 Before a feature/change, identify the canonical owner, stable caller-facing boundary, adjacent responsibilities and focused tests.
 
-- Prefer cohesive modules with one reason to change. Extract focused internals behind an existing stable facade when a file mixes unrelated use cases.
+- Prefer cohesive modules with one reason to change. A shared domain name (for example, “booking”) is not evidence of cohesion: record lifecycle, source validation, matching, mutation and reporting can have independent reasons to change. Before extending a large file, enumerate those responsibilities and its direct dependencies; extract the affected capability behind the stable facade when they are mixed.
 - Preserve public CLI/service/schema/adapter contracts where practical.
 - Avoid circular dependencies, generic dumping-ground helpers, duplicated policy and unnecessary one-function abstractions.
 - For narrow work, inspect entry point -> owner -> direct dependencies/tests first. Use search/targeted reads instead of loading unrelated large files.
 - Do not turn a behavioral fix into a broad rewrite. Characterize behavior before structural extraction and separate discovered semantic defects.
-- Stable entry points, facades, CLI transports and agent routers/procedures must remain small and navigational. When a change adds a new reason to change or a substantial independent workflow, create or use the canonical focused owner rather than extending an already broad surface. `scripts/check` runs the file-size guard as a budget signal, not a hard limit; a file may exceed 300 lines when it is one cohesive owner. Split when a file mixes responsibilities, not merely to satisfy the count.
+- Stable entry points, facades, CLI transports and agent routers/procedures must remain small and navigational. Target at most 300 lines per module and split along responsibility boundaries, not arbitrary line ranges. Existing oversized files are migration debt, not permission to grow: the file-size ratchet in `scripts/check` is an enforced gate. Do not raise its baseline, compress code or remove whitespace merely to pass it; extract a focused owner instead. Any genuinely cohesive over-budget exception needs an explicit reviewed rationale.
 - For refactors compare observable behavior, failures, deterministic outputs, fingerprints/revisions, provenance and write ordering where relevant. Never use live season refresh/export/publication as a refactor test or commit incidental generated-season changes.
-- Leave a cohesive localized module alone even when long. Optimize for explicit ownership, safety and reviewability, not line counts.
+- “Keep a bug fix narrow” does not prohibit a bounded, behavior-preserving extraction of its mixed-responsibility owner. Characterize the existing contract first and keep structural changes separately reviewable from semantic fixes. Do not use it to justify unrelated rewrites or assume a long module is cohesive without the responsibility/dependency check above.
 
 A good capability facade answers: **what can I do, what is the typed contract, what invariants apply, where is it implemented, and where is it tested?**
 

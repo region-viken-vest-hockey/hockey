@@ -244,7 +244,7 @@ def test_duplicate_calendar_booking_association_has_one_calendar_interval_owner(
 
     code = "duplicate_calendar_booking_association"
     owner = "calendar_interval_classification"
-    assert _all_emitted_codes_by_module()[code] == {"tournament_scheduler/booking/calendar_bookings.py"}
+    assert _all_emitted_codes_by_module()[code] == {"tournament_scheduler/booking/calendar_associations.py"}
     assert {entry.id for entry in catalog.RULE_CATALOG if code in entry.finding_codes} == {owner}
     assert catalog.rule_id_for_finding_code(code) == owner
     assert catalog.CATALOG_BY_ID[owner].classification == catalog.FACT_EVIDENCE_SEMANTIC

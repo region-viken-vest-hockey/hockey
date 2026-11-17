@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
-from tournament_scheduler.booking.calendar_bookings import (
+from tournament_scheduler.booking.booking_vocabulary import (
     BOOKING_AUTHORITY_MANUAL,
     BOOKING_AUTHORITY_MANUAL_INTERPRETATION,
     BOOKING_CONFIRMED_NOT_BOOKED,

@@ -2,7 +2,7 @@
 
 Each candidate records the evidence and counterevidence for one calendar event
 that might be a tournament's booking. Candidates never decide the match; the
-assessment in ``calendar_bookings`` classifies them.
+assessment in ``assessment_tournament`` classifies them.
 """
 
 from __future__ import annotations
@@ -28,8 +28,7 @@ from tournament_scheduler.booking.interval_facts import (
 )
 
 
-# Assessment classification shared with calendar_bookings and the status crosswalk.
-ASSESSMENT_PRESUMED_UNSCHEDULED = "presumed_unscheduled"
+from tournament_scheduler.booking.booking_vocabulary import ASSESSMENT_PRESUMED_UNSCHEDULED as ASSESSMENT_PRESUMED_UNSCHEDULED
 RELATION_SAME_DATE_OVERLAP = "same_date_overlap"
 RELATION_SAME_DATE_TIME_SHIFT = "same_date_time_shift"
 RELATION_PROXIMATE_DATE_SHIFT = "proximate_date_shift"

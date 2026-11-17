@@ -166,6 +166,36 @@ moved one domain slice at a time.
 Layer rules for domain packages: they must not import from `tournament_scheduler.cli` or `tournament_scheduler.infrastructure`. Each domain package has a locality guard `tests/test_<package>_package_layout.py` that pins its module set, keeps the flat modules from reappearing at the package root, and blocks imports of the CLI and infrastructure layers.
 
 
+### Booking capability owners
+
+`booking/calendar_bookings.py` is a compatibility import facade, not an implementation
+owner. Existing application, verifier and export callers keep that interface.
+Implementation modules import their focused dependencies directly, never back
+through the facade.
+
+| Responsibility | Implementation under `booking/` |
+|---|---|
+| Persisted keys and status vocabulary | `booking_vocabulary` |
+| Calendar event reading, fingerprints and evidence usability | `calendar_evidence`, existing `interval_facts` |
+| Tournament booking identity | `booking_facts` |
+| Calendar association records, validity and findings | `calendar_associations` |
+| Manual assertion records and validity; source-stated interval parsing | `manual_assertions`, `stated_intervals` |
+| Club document identity/version and source records | `club_booking_sources` |
+| Cancellation authority release | `booking_cancellation` |
+| Exact accepted interval classification; authority projection and floor findings | `accepted_interval_evidence`, `booking_authority_projection` |
+| Observation records, freshness and effective calendar status | `calendar_observations` |
+| Rejected source evidence retention and unresolved records | `rejected_booking_evidence` |
+| One booking-status row; aggregate status/history | `booking_status_row`, `booking_status_report` |
+| Manual work queue; club-source interpretation/overlap report | `manual_booking_queue`, `club_source_projection` |
+| Read-only tournament/event crosswalk composition | `booking_assessment` |
+| Assessment source coverage, tournament classification and reverse event view | `assessment_sources`, `assessment_tournament`, `assessment_events` |
+
+The read models compose evidence/authority facts without persisting decisions or
+changing placements. Source coverage is not event identity; accepted evidence is
+not publication authority. The application/store still owns revision binding and
+atomic persistence. Projection characterization, canonical application integration
+and booking-package dependency tests guard these boundaries.
+
 Recorded exceptions: `publication/` still reaches outward for a few existing dependencies, tracked for follow-up rather than enforced by the locality guard: `pipeline/fingerprints` (stable payload hashing), `html` (the cancelled-tournaments filename constant), `hosting` and `season` helpers, and, lazily, `application/canonical_season/store_facade` (booking status and decision loads in `scope`). The publication-lifecycle orchestration that imports the canonical season store stays in `pipeline/publication_lifecycle`.
 
 ## Scheduling-rule implementation map

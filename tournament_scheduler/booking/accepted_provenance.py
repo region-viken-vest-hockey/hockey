@@ -10,6 +10,11 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
+from tournament_scheduler.booking.booking_vocabulary import (
+    CALENDAR_BOOKING_ASSOCIATIONS_KEY,
+    MANUAL_BOOKING_ASSERTIONS_KEY,
+)
+
 
 def accepted_association_provenance(
     records: Iterable[Mapping[str, Any]],
@@ -70,9 +75,7 @@ def accepted_manual_provenance(manual: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-# Keys are the decision-store keys owned by calendar_bookings.py. They are repeated
-# here because that module imports this one.
-_HISTORY_KEYS = (("calendar_booking_associations", "calendar"), ("manual_booking_assertions", "manual"))
+_HISTORY_KEYS = ((CALENDAR_BOOKING_ASSOCIATIONS_KEY, "calendar"), (MANUAL_BOOKING_ASSERTIONS_KEY, "manual"))
 # Each recognised end state, with the record fields that say when, by what and why it ended.
 _ENDING_FIELDS = {
     "superseded": (("superseded_at",), ("superseded_by", "superseded_by_operation"), ("supersede_reason",)),

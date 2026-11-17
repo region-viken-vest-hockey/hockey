@@ -126,9 +126,9 @@ Keep structural extraction separate from policy/behavior changes. Characterize c
 
 ### File size
 
-There is no hard per-file line limit. Split modules along responsibility boundaries when it genuinely improves clarity, rather than to satisfy an arbitrary length budget.
+Target at most 300 lines per module. The target guides design; it does not justify arbitrary splits, compressed code or whitespace deletion. Shared domain vocabulary alone does not establish cohesion: evidence validation, record lifecycle, matching and read-model construction can each change independently inside one domain. Map those responsibilities and direct dependencies before deciding that an oversized module should remain intact.
 
-The guard is `scripts/check_file_length.py`, run by `scripts/check`. It is a budget signal, not a hard limit: most files should stay at or under 300 lines, but a cohesive single-owner module may exceed it. Files over 300 lines are listed in `scripts/file-length-baseline.txt` and flagged when they grow. Split a file when it mixes responsibilities; do not split only to satisfy the count. Raising a recorded size is an explicit reviewed exception, not a routine baseline refresh. Stable facades and CLI transports should stay small even when a cohesive implementation module may legitimately be larger.
+The guard is `scripts/check_file_length.py`, run by `scripts/check`. Its ratchet is an enforced gate: existing oversized files in `scripts/file-length-baseline.txt` are migration debt and may not grow without an explicit reviewed exception. A genuinely cohesive over-budget owner requires a concrete rationale, not merely a domain label. Prefer focused implementation owners behind small stable facades, and remove obsolete baseline entries after extraction. Characterize behavior before extracting a mixed owner; keep the extraction separately reviewable from a bug fix rather than treating narrow-fix discipline as a ban on necessary structural work.
 
 ## Expected operating context
 

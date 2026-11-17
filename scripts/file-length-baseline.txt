@@ -133,7 +133,6 @@ tournament_scheduler/application/season_blockers.py	478
 tournament_scheduler/application/stage3_controller.py	340
 tournament_scheduler/application/stage3_session.py	780
 tournament_scheduler/application/stage3_session_store.py	777
-tournament_scheduler/booking/calendar_bookings.py	2488
 tournament_scheduler/booking/candidate_weekends.py	362
 tournament_scheduler/season/baseline_overlay.py	684
 tournament_scheduler/season/exception_policy.py	430
