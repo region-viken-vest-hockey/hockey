@@ -9,7 +9,10 @@ history stays available under `cancelled_tournaments`.
 
 from __future__ import annotations
 
-from tournament_scheduler.application.canonical_season.store_facade import booking_status_report
+from tournament_scheduler.application.canonical_season.store_facade import (
+    booking_status_report,
+    calendar_booking_assessment,
+)
 from tournament_scheduler.booking.calendar_bookings import (
     CLUB_BOOKING_SOURCE_ASSERTIONS_KEY,
     MANUAL_BOOKING_ASSERTIONS_KEY,
@@ -146,3 +149,32 @@ def test_cancelled_tournament_association_is_not_a_stale_finding():
 
     stale = [finding for finding in findings if finding["code"] == "stale_calendar_booking_association"]
     assert [finding["tournament_id"] for finding in stale] == ["t-active"]
+
+
+def test_cancelled_tournament_excluded_from_booking_assessment_rows_and_counts(tmp_path):
+    """The crosswalk assessment must agree with the status report: cancelled
+    tournaments occupy no ice and must not appear as active assessment rows
+    or be counted among unresolved/ambiguous bookings (#842).
+    """
+
+    active = _tournament("t1", date_str="2026-09-12", host="A")
+    cancelled = _tournament("t2", date_str="2026-09-19", host="A")
+    cancelled["cancelled"] = True
+    cancelled["cancellation_reason"] = "team_retirement"
+
+    root = _promote(tmp_path, [active, cancelled])
+    problem = _host_a_problem([])
+
+    report = booking_status_report(season="2026-2027", root=root, problem=problem)
+    assessment = calendar_booking_assessment(season="2026-2027", root=root, problem=problem)
+
+    # Only the active tournament is assessed; the cancelled one is excluded.
+    assert [row["tournament_id"] for row in report["tournaments"]] == ["t1"]
+    assert [row["tournament_id"] for row in assessment["tournaments"]] == ["t1"]
+    assert "t2" not in assessment["unresolved"]["tournament_ids"]
+    # The active tournament with no calendar coverage is genuinely unresolved;
+    # the cancelled one must not inflate the unresolved count.
+    assert assessment["counts"]["unresolved_tournaments"] == 1
+    assert assessment["counts"]["unmatched"] == 1
+    assert report["counts"]["needs_attention"] == 0
+    assert [row["tournament_id"] for row in report["cancelled_tournaments"]] == ["t2"]

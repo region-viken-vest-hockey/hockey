@@ -2199,6 +2199,14 @@ def booking_assessment(
     """
 
     tournaments = list(_tournaments_by_id(plan).values())
+    # A cancelled tournament occupies no ice and has no current booking to
+    # confirm against a calendar event, so it must not appear as an active
+    # assessment row or be counted among unresolved/ambiguous bookings.
+    tournaments = [
+        tournament
+        for tournament in tournaments
+        if not tournament.get("cancelled")
+    ]
     events = list(iter_events(problem))
     if clubs is not None:
         wanted = {str(club) for club in clubs}
