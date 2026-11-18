@@ -18,7 +18,7 @@ description = "Reinstall Python and project dependencies"
 run = "sh ${INSTALL:-scripts/install.sh} $ARGS"
 
 [tasks.tools]
-description = "Install pinned mise tools (node, pi coding agent)"
+description = "Install pinned mise tools"
 run = "mise install"
 
 [tasks.install]
