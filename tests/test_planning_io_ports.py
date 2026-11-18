@@ -38,7 +38,14 @@ from tournament_scheduler.application.ports.readiness import (
     ReadinessStatus,
 )
 from tournament_scheduler.application.ports.store import CanonicalStorePort
-from tournament_scheduler.infrastructure.canonical_season_store import CanonicalSeasonStore
+import tournament_scheduler.infrastructure.canonical_season_store as store_module
+from tournament_scheduler.infrastructure.canonical_season_store import (
+    CanonicalRevisionConflictError,
+    CanonicalSeasonSnapshot,
+    CanonicalSeasonStore,
+    SeasonStateError,
+)
+from tournament_scheduler.season.state import canonical_state_revision
 
 T0 = datetime(2027, 1, 9, 8, tzinfo=timezone.utc)
 T1 = T0 + timedelta(hours=3)
@@ -115,11 +122,63 @@ def test_readiness_verdict_invariants_and_serialisation() -> None:
         ReadinessReport("local", ReadinessStatus.REVIEW_REQUIRED, ReadinessReason.DIVERGED, "x", workflow_version="v")
     review = ReadinessReport("local", ReadinessStatus.REVIEW_REQUIRED, ReadinessReason.STORE_UNAVAILABLE, "no store")
     assert review.workflow_version is None
+    with pytest.raises(ValueError):
+        ReadinessReport("local", ReadinessStatus.READY, ReadinessReason.READY_CURRENT, "ok", workflow_version="v", canonical_revision="")
+    # Readiness vouches for the workflow contract only; state is the lifecycle gate's job.
+    assert ready.canonical_revision is None
+    assert "does **not** vouch for canonical season state" in Path(
+        "tournament_scheduler/application/ports/readiness.py"
+    ).read_text(encoding="utf-8")
 
 
-def test_legacy_store_satisfies_the_store_port_unchanged() -> None:
-    store = CanonicalSeasonStore("season")
+def _snapshot(marker: str) -> CanonicalSeasonSnapshot:
+    return CanonicalSeasonSnapshot(
+        season="2026-2027",
+        schedule={"schema_version": 1, "plan": {"start_date": "2026-09-01", "end_date": "2027-04-30", "tournaments": []}},
+        decisions={"schema_version": 1, "decisions": {"marker": marker}},
+    )
+
+
+def test_legacy_store_satisfies_the_store_port_unchanged(tmp_path: Path) -> None:
+    store = CanonicalSeasonStore(tmp_path / "season")
     assert isinstance(store, CanonicalStorePort)
+    assert not store.has_state("2026-2027")
+    first = _snapshot("a")
+    store.write(first, require_absent=True)
+    assert store.has_state("2026-2027")
+    loaded = store.load("2026-2027")
+    assert loaded.schedule == first.schedule and loaded.decisions == first.decisions
+
+
+def test_legacy_store_honours_port_write_semantics(tmp_path: Path, monkeypatch) -> None:
+    store = CanonicalSeasonStore(tmp_path / "season")
+    store.write(_snapshot("a"))
+    base = store.load("2026-2027")
+    revision = canonical_state_revision(base.schedule, base.decisions)
+
+    # require_absent refuses to replace existing state and leaves it intact.
+    with pytest.raises(SeasonStateError):
+        store.write(_snapshot("b"), require_absent=True)
+    assert store.load("2026-2027").decisions == base.decisions
+
+    # A stale expected_revision is a compare-and-swap conflict; state is unchanged.
+    with pytest.raises(CanonicalRevisionConflictError):
+        store.write(_snapshot("b"), expected_revision="stale")
+    assert store.load("2026-2027").decisions == base.decisions
+
+    # A failed write leaves the previous complete state in place.
+    def boom(*_a, **_k):
+        raise OSError("injected")
+
+    monkeypatch.setattr(store_module, "_fsync_tree", boom)
+    with pytest.raises(OSError):
+        store.write(_snapshot("c"), expected_revision=revision)
+    monkeypatch.undo()
+    assert store.load("2026-2027").decisions == base.decisions
+
+    # The matching revision commits atomically.
+    store.write(_snapshot("d"), expected_revision=revision)
+    assert store.load("2026-2027").decisions["decisions"]["marker"] == "d"
 
 
 def test_readiness_contract_loads_without_the_package() -> None:
