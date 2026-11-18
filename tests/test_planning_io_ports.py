@@ -110,6 +110,19 @@ def test_publication_requires_explicit_authorization_and_exact_bundle() -> None:
     other = ExportBundle("rev-2", 1, bundle.artifacts)
     assert not intent.matches(other)
 
+    # Any publication-relevant artifact metadata change alters the bundle identity.
+    for changed in (
+        ExportArtifact("plan.xlsx", "x/z", "a" * 64, 10),
+        ExportArtifact("plan.xlsx", "x/y", "a" * 64, 11),
+        ExportArtifact("plan.xlsx", "x/y", "b" * 64, 10),
+        ExportArtifact("plan2.xlsx", "x/y", "a" * 64, 10),
+    ):
+        assert ExportBundle("rev-1", 1, (changed,)).fingerprint() != bundle.fingerprint()
+        assert not intent.matches(ExportBundle("rev-1", 1, (changed,)))
+    # Artifact order does not matter.
+    two = (ExportArtifact("a", "t", "a" * 64, 1), ExportArtifact("b", "t", "b" * 64, 2))
+    assert ExportBundle("r", 1, two).fingerprint() == ExportBundle("r", 1, two[::-1]).fingerprint()
+
 
 def test_readiness_verdict_invariants_and_serialisation() -> None:
     ready = ReadinessReport("local", ReadinessStatus.READY, ReadinessReason.READY_CURRENT, "ok", workflow_version="v1")

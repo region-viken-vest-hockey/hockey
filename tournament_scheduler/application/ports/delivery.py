@@ -10,6 +10,7 @@ exact bundle.
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol, runtime_checkable
@@ -43,10 +44,21 @@ class ExportBundle:
             raise ValueError("a bundle needs a revision and uniquely named artifacts")
 
     def fingerprint(self) -> str:
-        """Order-independent identity of the bundle content (revision + artifact hashes)."""
-        parts = [self.canonical_revision, str(self.format_version)]
-        parts += sorted(f"{a.name}:{a.sha256}" for a in self.artifacts)
-        return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()
+        """Order-independent identity of everything publication-relevant.
+
+        Covers the revision, format version and, per artifact, name, media type,
+        size and content hash. Encoded as canonical JSON so no field boundary is
+        ambiguous.
+        """
+        payload = {
+            "canonical_revision": self.canonical_revision,
+            "format_version": self.format_version,
+            "artifacts": sorted(
+                [a.name, a.media_type, a.size_bytes, a.sha256] for a in self.artifacts
+            ),
+        }
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 class DestinationKind(str, Enum):
