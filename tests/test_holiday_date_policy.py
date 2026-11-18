@@ -16,6 +16,7 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from tournament_scheduler.planning.date_policy import (
     holiday_excluded_dates,
+    holiday_exclusions,
     problem_forbidden_dates,
 )
 from tournament_scheduler.repair.date_policy_relocation import (
@@ -480,3 +481,14 @@ def test_batch_relocation_demotes_when_no_admissible_date() -> None:
         str(entry.get("source_tournament_id")) for entry in result["candidate"]["unresolved_tournament_placements"]
     ]
     assert "T1" in obligation_ids
+
+
+def test_holiday_names_do_not_depend_on_process_locale(monkeypatch) -> None:
+    """Exclusion reasons are identical whatever locale the process runs under."""
+    holiday = date(2026, 12, 25)
+    reasons = set()
+    for locale_name in ("en_US.UTF-8", "C.UTF-8", "nb_NO.UTF-8", "de_DE.UTF-8"):
+        for variable in ("LC_ALL", "LANGUAGE", "LANG"):
+            monkeypatch.setenv(variable, locale_name)
+        reasons.add(holiday_exclusions(holiday, holiday)[holiday])
+    assert reasons == {"Holiday week: Første juledag"}
