@@ -147,6 +147,25 @@ def _overlap(a_start: datetime, a_end: datetime, b_start: datetime, b_end: datet
     return a_start < b_end and b_start < a_end
 
 
+def _typed_results(
+    allocations: object, events: object, coverage: object
+) -> tuple[tuple[AllocationWindow, ...], tuple[ObservedCalendarEvent, ...], tuple[SourceCoverage, ...]]:
+    """Require three real collections of the right DTOs; anything else is SCHEMA_INCOMPATIBLE."""
+    out = []
+    for label, value, kind in (
+        ("allocations", allocations, AllocationWindow),
+        ("observed_events", events, ObservedCalendarEvent),
+        ("coverage", coverage, SourceCoverage),
+    ):
+        if not isinstance(value, (tuple, list)):
+            raise PortError(PortErrorCode.SCHEMA_INCOMPATIBLE, f"{label} must be a tuple or list, got {type(value).__name__}")
+        for item in value:
+            if not isinstance(item, kind):
+                raise PortError(PortErrorCode.SCHEMA_INCOMPATIBLE, f"{label} contains {type(item).__name__}, expected {kind.__name__}")
+        out.append(tuple(value))
+    return out[0], out[1], out[2]
+
+
 def _foreign(
     adapter_id: str,
     scope: SourceScope,
@@ -251,27 +270,26 @@ def compose_planning_evidence(
             adapter_id, caps = type(source).__name__, None
             problem = _failure_of(exc)
         for scope in scopes:
-            got = None
             try:
                 if caps is None:
                     raise PortError(problem[0], problem[1])
                 caps.require()
-                got = (source.allocations(scope), source.observed_events(scope), source.coverage(scope))
-            except Exception as exc:  # unexpected adapter errors become typed failures, never empty results
+                got_alloc, got_events, got_cov = _typed_results(
+                    source.allocations(scope), source.observed_events(scope), source.coverage(scope)
+                )
+                reason = _foreign(adapter_id, scope, got_alloc, got_events, got_cov)
+                if reason is not None:
+                    raise PortError(PortErrorCode.SCHEMA_INCOMPATIBLE, reason)
+                finding = _finding(adapter_id, scope, got_cov, got_events, now)
+            except Exception as exc:  # nothing is accumulated unless the whole result validated
                 code, message = _failure_of(exc)
                 failures.append(SourceFailure(adapter_id, scope, code, message))
                 findings.append(ScopeFinding(adapter_id, scope, Absence.SOURCE_ERROR, message))
                 continue
-            got_alloc, got_events, got_cov = got
-            reason = _foreign(adapter_id, scope, got_alloc, got_events, got_cov)
-            if reason is not None:
-                failures.append(SourceFailure(adapter_id, scope, PortErrorCode.SCHEMA_INCOMPATIBLE, reason))
-                findings.append(ScopeFinding(adapter_id, scope, Absence.SOURCE_ERROR, reason))
-                continue
             allocations += got_alloc
             events += got_events
             coverage += got_cov
-            findings.append(_finding(adapter_id, scope, got_cov, got_events, now))
+            findings.append(finding)
     assertions = tuple(season.operator_assertions)
     venues = [s.venue_id for s in scopes] + [w.venue_id for w in season.operator_allocations]
     return PlanningEvidence(

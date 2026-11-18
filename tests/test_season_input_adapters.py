@@ -642,3 +642,39 @@ def test_frozen_rvv_fixture_evidence_parity_with_local_adapter(tmp_path):
         assert [c.kind for c in ev.conflicts] == [ConflictKind.OVERLAPPING_ASSERTIONS]
         assert ev.readiness is Readiness.INCOMPLETE  # conflict blocks trusted capacity
     assert (a.findings, a.conflicts, a.venue_capacity, a.assertions) == (b.findings, b.conflicts, b.venue_capacity, b.assertions)
+
+
+# -- malformed adapter results stay inside the typed boundary ---------------------------
+
+class _Malformed(FakeSource):
+    def __init__(self, **bad):
+        super().__init__()
+        self.bad = bad
+
+    def allocations(self, scope):
+        return self.bad.get("allocations", ())
+
+    def observed_events(self, scope):
+        return self.bad.get("events", ())
+
+    def coverage(self, scope):
+        return self.bad["coverage"] if "coverage" in self.bad else super().coverage(scope)
+
+
+@pytest.mark.parametrize("bad,needle", [
+    ({"coverage": None}, "coverage must be a tuple or list, got NoneType"),
+    ({"events": None}, "observed_events must be a tuple or list"),
+    ({"allocations": "abc"}, "allocations must be a tuple or list, got str"),
+    ({"events": [object()]}, "observed_events contains object"),
+    ({"coverage": [None]}, "coverage contains NoneType"),
+    ({"allocations": [{"venue_id": "hall"}]}, "allocations contains dict"),
+])
+def test_malformed_results_become_schema_failures_and_healthy_source_continues(season, bad, needle):
+    ev = compose_planning_evidence(season, [_Malformed(**bad), FakeSource()], [SCOPE], now=NOW)
+    failure = ev.failures[0]
+    assert failure.code is PortErrorCode.SCHEMA_INCOMPATIBLE and needle in failure.message
+    assert failure.source_id == "cal" and failure.scope == SCOPE
+    assert ev.findings[0].absence is Absence.SOURCE_ERROR
+    assert ev.findings[1].absence is Absence.CONFIRMED_ABSENT  # second source still composed
+    assert len(ev.coverage) == 1 and ev.observed_events == () and ev.allocations == ()
+    assert ev.readiness is Readiness.FAILED
