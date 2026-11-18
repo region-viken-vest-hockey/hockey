@@ -17,6 +17,42 @@ from .common import PortCapabilities, PortErrorCode, PortError
 STORE_FEATURES = frozenset({"atomic_write", "revision_cas", "revision_history", "evidence_archive"})
 
 
+@runtime_checkable
+class CanonicalStorePort(Protocol):
+    """Persistence of one season's complete canonical state.
+
+    Target contract (what the application may rely on once an adapter sits
+    behind the phase-2 translation boundary, ADR 0009):
+
+    * ``load`` returns schedule, decisions and export context together or raises
+      ``PortError(NOT_FOUND | SCHEMA_INCOMPATIBLE | UNAVAILABLE)``; never a half state.
+    * ``write`` installs the whole snapshot atomically. With ``expected_revision``
+      it is a compare-and-swap and raises ``PortError(REVISION_CONFLICT)`` when
+      the stored revision differs. ``require_absent`` refuses to overwrite.
+    * A failed write leaves the previous state intact.
+
+    Legacy status: the unchanged ``CanonicalSeasonStore`` already satisfies the
+    structural methods and the atomicity/CAS/preservation *behavior*, but still
+    raises its own exceptions (``CanonicalRevisionConflictError``,
+    ``SeasonStateError``, ``OSError``). Translating them to ``PortError`` belongs
+    to the phase-2 adapter boundary; until then callers must not assume
+    ``PortError`` from the legacy store.
+    """
+
+    def has_state(self, season: str) -> bool: ...
+
+    def load(self, season: str) -> Any: ...
+
+    def write(
+        self,
+        snapshot: Any,
+        *,
+        require_absent: bool = False,
+        expected_revision: str | None = None,
+    ) -> None: ...
+
+
+
 #
 # Local backend store implementation
 #
