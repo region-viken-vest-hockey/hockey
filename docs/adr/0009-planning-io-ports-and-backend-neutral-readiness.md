@@ -19,7 +19,7 @@ Planning, verification and season maintenance already sit below the adapters, bu
 ## Compatibility and errors
 
 - The port contract is versioned (`PORT_CONTRACT_VERSION`); `PortCapabilities.require` refuses an adapter that implements another version or lacks a needed feature, and `SchemaCompatibility.require` refuses an out-of-range persisted schema. Persisted canonical schema versions stay owned by the canonical store layout.
-- Failures use `PortErrorCode`: `not_found`, `unavailable`, `revision_conflict`, `schema_incompatible`, `unsupported_feature`, `authorization_required`. Adapters map native errors onto them; callers fail closed and never infer a default.
+- Failures use `PortErrorCode`: `not_found`, `unavailable`, `revision_conflict`, `schema_incompatible`, `unsupported_feature`, `authorization_required`. Adapters map native errors onto them; callers fail closed and never infer a default. The unchanged legacy store satisfies the store port's behavior but still raises its own exceptions until the phase-2 adapter translates them, so the normalized error contract is a target, not yet a guarantee of every implementation.
 - Existing CLI output, JSON reports and fingerprints do not change. `operate-preflight` adds `reason_code`, `backend`, `workflow_version` and `readiness_schema_version` and keeps every previous field and message.
 
 ## Phases

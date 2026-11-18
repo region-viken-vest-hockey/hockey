@@ -176,6 +176,12 @@ def test_legacy_store_honours_port_write_semantics(tmp_path: Path, monkeypatch) 
     monkeypatch.undo()
     assert store.load("2026-2027").decisions == base.decisions
 
+    # Legacy exception boundary: the unchanged store does NOT yet raise PortError.
+    # Translation is the phase-2 adapter's job (ADR 0009); consumers must not
+    # assume the normalized error contract from the reference store today.
+    assert not issubclass(CanonicalRevisionConflictError, PortError)
+    assert not issubclass(SeasonStateError, PortError)
+
     # The matching revision commits atomically.
     store.write(_snapshot("d"), expected_revision=revision)
     assert store.load("2026-2027").decisions["decisions"]["marker"] == "d"
