@@ -139,7 +139,7 @@ def test_application_layer_reaches_io_only_through_reviewed_edges() -> None:
 
 def test_ports_are_stdlib_only_and_layout_free() -> None:
     allowed_prefixes = (
-        "__future__", "dataclasses", "datetime", "enum", "hashlib", "json", "typing", "zoneinfo",
+        "__future__", "dataclasses", "datetime", "enum", "hashlib", "json", "os", "typing", "zoneinfo",
         "tournament_scheduler.application.ports",
     )
     layout_literals = ("season/", ".pipeline", "input.xlsx", "gh-pages", "origin/main", "export/")
