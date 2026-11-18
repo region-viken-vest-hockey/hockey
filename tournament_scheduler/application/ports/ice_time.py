@@ -143,6 +143,7 @@ class ConflictKind(str, Enum):
     OVERLAPPING_ASSERTIONS = "overlapping_assertions"
     ASSERTION_VS_BLOCKED_WINDOW = "assertion_vs_blocked_window"
     STALE_COVERAGE = "stale_coverage"
+    CONTRADICTORY_SOURCES = "contradictory_sources"
 
 
 @dataclass(frozen=True)
