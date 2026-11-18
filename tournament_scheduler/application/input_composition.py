@@ -23,7 +23,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Sequence
 
-from .ports.common import PortError, PortErrorCode, SourceKind, SourceRef
+from .ports.common import PortError, PortErrorCode, SourceKind
 from .ports.ice_time import (
     AllocationWindow,
     BookingAssertion,
@@ -36,6 +36,7 @@ from .ports.ice_time import (
     SourceScope,
     WindowKind,
 )
+from .evidence_validation import failure_of, foreign_reason, overlap, typed_results
 from .ports.season_input import NormalizedSeasonInput
 
 
@@ -137,66 +138,6 @@ class EvidenceNotReady(PortError):
         self.evidence = evidence
 
 
-def _failure_of(exc: Exception) -> tuple[PortErrorCode, str]:
-    if isinstance(exc, PortError):
-        return exc.code, exc.message
-    return PortErrorCode.UNAVAILABLE, f"unexpected {type(exc).__name__}: {exc}"
-
-
-def _overlap(a_start: datetime, a_end: datetime, b_start: datetime, b_end: datetime) -> bool:
-    return a_start < b_end and b_start < a_end
-
-
-def _typed_results(
-    allocations: object, events: object, coverage: object
-) -> tuple[tuple[AllocationWindow, ...], tuple[ObservedCalendarEvent, ...], tuple[SourceCoverage, ...]]:
-    """Require three real collections of the right DTOs; anything else is SCHEMA_INCOMPATIBLE."""
-    out = []
-    for label, value, kind in (
-        ("allocations", allocations, AllocationWindow),
-        ("observed_events", events, ObservedCalendarEvent),
-        ("coverage", coverage, SourceCoverage),
-    ):
-        if not isinstance(value, (tuple, list)):
-            raise PortError(PortErrorCode.SCHEMA_INCOMPATIBLE, f"{label} must be a tuple or list, got {type(value).__name__}")
-        for item in value:
-            if not isinstance(item, kind):
-                raise PortError(PortErrorCode.SCHEMA_INCOMPATIBLE, f"{label} contains {type(item).__name__}, expected {kind.__name__}")
-        out.append(tuple(value))
-    return out[0], out[1], out[2]
-
-
-def _foreign(
-    adapter_id: str,
-    scope: SourceScope,
-    allocations: Sequence[AllocationWindow],
-    events: Sequence[ObservedCalendarEvent],
-    coverage: Sequence[SourceCoverage],
-) -> str | None:
-    """Reason the returned evidence is not this adapter's, or not about *scope*, else None."""
-    refs: list[SourceRef] = [x.source for x in (*allocations, *events, *coverage)]
-    ids = {r.source_id for r in refs}
-    if len(ids) > 1:
-        return f"evidence mixes source identities {sorted(ids)}"
-    # Identity contract: a source id is the adapter id or ``<adapter id>:<detail>``.
-    for found in ids:
-        if found != adapter_id and not found.startswith(adapter_id + ":"):
-            return f"evidence from source {found!r} was returned by adapter {adapter_id!r}"
-    for c in coverage:
-        if c.scope != scope:
-            return f"coverage is for scope {c.scope.venue_id!r}, requested {scope.venue_id!r} {scope.from_date:%Y-%m-%d}..{scope.to_date:%Y-%m-%d}"
-    for x in (*allocations, *events):
-        if x.venue_id != scope.venue_id:
-            return f"evidence is for venue {x.venue_id!r}, requested {scope.venue_id!r}"
-        if x.starts_at < scope.from_date or x.ends_at > scope.to_date:
-            return "evidence is not contained in the requested period (no silent clipping)"
-    # One observation: provenance must agree across every item of one call.
-    shapes = {(r.kind, r.revision, r.fingerprint, r.captured_at, r.timezone) for r in refs}
-    if len(shapes) > 1:
-        return "evidence from one observation carries conflicting provenance (kind/revision/fingerprint/capture)"
-    return None
-
-
 def _finding(
     source_id: str, scope: SourceScope, coverage: Sequence[SourceCoverage], events: Sequence[ObservedCalendarEvent], now: datetime
 ) -> ScopeFinding:
@@ -207,7 +148,7 @@ def _finding(
         return ScopeFinding(source_id, scope, Absence.NOT_CONFIRMED, "coverage is partial or unknown")
     if not all(c.is_fresh(now) for c in mine):
         return ScopeFinding(source_id, scope, Absence.NOT_CONFIRMED, "coverage is stale or has no freshness bound")
-    seen = [e for e in events if e.venue_id == scope.venue_id and _overlap(e.starts_at, e.ends_at, scope.from_date, scope.to_date)]
+    seen = [e for e in events if e.venue_id == scope.venue_id and overlap(e.starts_at, e.ends_at, scope.from_date, scope.to_date)]
     if seen:
         return ScopeFinding(source_id, scope, Absence.PRESENT, f"{len(seen)} observed event(s)")
     return ScopeFinding(source_id, scope, Absence.CONFIRMED_ABSENT, "complete, fresh coverage with no events")
@@ -219,10 +160,10 @@ def _conflicts(
     out: list[SourceConflict] = []
     for i, a in enumerate(assertions):
         for b in assertions[i + 1 :]:
-            if a.venue_id == b.venue_id and a.tournament_id != b.tournament_id and _overlap(a.starts_at, a.ends_at, b.starts_at, b.ends_at):
+            if a.venue_id == b.venue_id and a.tournament_id != b.tournament_id and overlap(a.starts_at, a.ends_at, b.starts_at, b.ends_at):
                 out.append(SourceConflict(ConflictKind.OVERLAPPING_ASSERTIONS, (a.tournament_id, b.tournament_id), f"both claim {a.venue_id}"))
         for w in allocations:
-            if w.kind is WindowKind.BLOCKED and w.venue_id == a.venue_id and _overlap(a.starts_at, a.ends_at, w.starts_at, w.ends_at):
+            if w.kind is WindowKind.BLOCKED and w.venue_id == a.venue_id and overlap(a.starts_at, a.ends_at, w.starts_at, w.ends_at):
                 out.append(SourceConflict(ConflictKind.ASSERTION_VS_BLOCKED_WINDOW, (a.tournament_id, w.venue_id), "assertion overlaps a blocked window"))
     for c in coverage:
         if c.completeness is Completeness.COMPLETE and not c.is_fresh(now):
@@ -268,21 +209,21 @@ def compose_planning_evidence(
             adapter_id = caps.adapter_id
         except Exception as exc:  # adapter boundary: never let discovery escape typed failures
             adapter_id, caps = type(source).__name__, None
-            problem = _failure_of(exc)
+            problem = failure_of(exc)
         for scope in scopes:
             try:
                 if caps is None:
                     raise PortError(problem[0], problem[1])
                 caps.require()
-                got_alloc, got_events, got_cov = _typed_results(
+                got_alloc, got_events, got_cov = typed_results(
                     source.allocations(scope), source.observed_events(scope), source.coverage(scope)
                 )
-                reason = _foreign(adapter_id, scope, got_alloc, got_events, got_cov)
+                reason = foreign_reason(adapter_id, scope, got_alloc, got_events, got_cov)
                 if reason is not None:
                     raise PortError(PortErrorCode.SCHEMA_INCOMPATIBLE, reason)
                 finding = _finding(adapter_id, scope, got_cov, got_events, now)
             except Exception as exc:  # nothing is accumulated unless the whole result validated
-                code, message = _failure_of(exc)
+                code, message = failure_of(exc)
                 failures.append(SourceFailure(adapter_id, scope, code, message))
                 findings.append(ScopeFinding(adapter_id, scope, Absence.SOURCE_ERROR, message))
                 continue
