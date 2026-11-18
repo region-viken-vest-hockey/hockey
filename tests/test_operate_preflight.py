@@ -64,6 +64,9 @@ def test_preflight_fetches_advanced_origin_and_records_executed_contract(tmp_pat
     assert report["refresh_performed"] is True
     assert report["update_performed"] is True
     assert report["workflow_commit"] == fixed_head
+    assert report["workflow_version"] == fixed_head
+    assert report["reason_code"] == "ready_current"
+    assert report["backend"] == "git"
     assert report["reason"] == (
         "Local main is tracked-clean and equals the freshly fetched origin/main."
     )
@@ -103,5 +106,7 @@ def test_preflight_refuses_stale_dirty_main_without_discarding_work(tmp_path: Pa
     assert report["origin_main"] == fixed_head
     assert report["workflow_commit"] is None
     assert "dirty" in report["reason"]
+    assert report["reason_code"] == "local_changes"
+    assert report["workflow_version"] is None
     assert _git(checkout, "rev-parse", "HEAD") == old_head
     assert (checkout / "workflow.txt").read_text(encoding="utf-8") == local_contents

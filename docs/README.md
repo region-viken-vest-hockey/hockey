@@ -17,6 +17,7 @@ External federation policy is different: the NIHF Kampveileder is authoritative 
 | [`system-architecture.md`](system-architecture.md) | Current system boundaries, sources of truth and workflows. |
 | [`architecture/planning-model.md`](architecture/planning-model.md) | Maintained Mermaid diagrams for system/data flow, planning decisions and season authority; concept/owner routing. |
 | [`architecture/README.md`](architecture/README.md) | Archify regeneration and semantic diagram maintenance instructions. |
+| [`architecture/io-dependency-map.md`](architecture/io-dependency-map.md) | Inventory of Git/path/transport assumptions by I/O kind, with owners and target ports. |
 | [`architecture/rule-catalog.md`](architecture/rule-catalog.md) | Generated canonical rule/objective/obligation identity, classification, ownership and precedence catalog. |
 | [`rvv-miniputt-pipeline.md`](rvv-miniputt-pipeline.md) | Four-stage season-planning flow, review and publication workflow. |
 | [`rvv-miniputt-input-formats.md`](rvv-miniputt-input-formats.md) | Canonical planner workbook and registration interchange contract. |
@@ -35,6 +36,8 @@ External federation policy is different: the NIHF Kampveileder is authoritative 
 Shared agent operating policy lives in [`../.agents/skills/rvv/SKILL.md`](../.agents/skills/rvv/SKILL.md), not in harness-specific command files.
 
 See [ADR 0005: reconciliation is not planning](adr/0005-reconciliation-is-not-planning.md) for the binding workflow, evidence, hard-check and effective-projection boundaries. Its implementation is tracked by #504; do not assume current code already conforms.
+
+See [ADR 0009: planning I/O ports and backend-neutral readiness](adr/0009-planning-io-ports-and-backend-neutral-readiness.md) for the typed I/O contracts, ice-time source separation and phased decoupling from Git/RVV paths.
 
 See [ADR 0008: season maintenance ownership split](adr/0008-season-maintenance-ownership-split.md) for who owns domain rules, CP-SAT search, deterministic repair and operator judgement during maintenance of a promoted season.
 
