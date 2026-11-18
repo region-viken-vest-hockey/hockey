@@ -43,14 +43,27 @@ def _parse_date(value: Any) -> Optional[date]:
         return None
 
 
+def _country_calendar(country: str) -> Any:
+    """Build a calendar with names in the country's default language.
+
+    The ``holidays`` library otherwise derives the name language from the
+    process locale (``LANG``/``LC_ALL``/``LANGUAGE``), which would make the
+    exclusion reasons that flow into evidence and reports depend on the
+    environment. Pinning the country's own default language keeps identical
+    input deterministic everywhere.
+    """
+    default_language = _holidays.country_holidays(country).default_language
+    return _holidays.country_holidays(country, language=default_language)
+
+
 def _holiday_calendar(country: str) -> Any:
     try:
-        return _holidays.country_holidays(country)
+        return _country_calendar(country)
     except Exception:
         # An unknown country code must not make planning crash; falling back
         # to the canonical Norwegian calendar keeps date admissibility
         # deterministic instead of silently disabling the policy.
-        return _holidays.country_holidays(DEFAULT_COUNTRY)
+        return _country_calendar(DEFAULT_COUNTRY)
 
 
 def holiday_exclusions(
