@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional, Protocol, runtime_checkable
+from typing import Any
 
-from .common import PORT_CONTRACT_VERSION, PortCapabilities, PortError, PortErrorCode
+from .common import PortCapabilities, PortError, PortErrorCode
 
 
 class Format(str, Enum):
@@ -92,7 +92,6 @@ def format_csv_season_plan(plan: Any) -> FormatterResult:
     content = ""
     if games_rows:
         headers = "date,arena,age_group,home,away,parallel_slot\n"
-        rows = ",".join(h.headers) if False else ",".join(headers.split("\n"))
         # Simplified CSV generation
         lines = [headers]
         for row in games_rows:
@@ -120,11 +119,11 @@ def format_ics_season_plan(plan: Any) -> FormatterResult:
     if hasattr(plan, 'tournaments'):
         for t in plan.tournaments:
             date_str = str(getattr(t, 'date', ''))
-            lines.append(f"BEGIN:VEVENT")
+            lines.append("BEGIN:VEVENT")
             lines.append(f"DTSTART;VALUE=DATE:{date_str.replace('-', '')}")
             tname = getattr(t, 'name', 'Unnamed Tournament')
             lines.append(f"SUMMARY:{tname}")
-            lines.append(f"END:VEVENT")
+            lines.append("END:VEVENT")
     lines.append("END:VCALENDAR")
     content = "\n".join(lines)
     return FormatterResult(

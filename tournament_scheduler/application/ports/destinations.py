@@ -3,9 +3,9 @@ from typing import runtime_checkable
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional, Protocol
+from typing import Protocol
 
-from .common import PORT_CONTRACT_VERSION, PortCapabilities, PortError, PortErrorCode
+from .common import PortCapabilities, PortError, PortErrorCode
 
 
 class DestinationKind(str, Enum):
