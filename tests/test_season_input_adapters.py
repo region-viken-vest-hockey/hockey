@@ -369,7 +369,7 @@ def test_incomplete_or_conflicting_evidence_is_not_trusted(season):
     (FakeSource(cover_scope=SourceScope("elsewhere", NOW, NOW + timedelta(days=7))), "elsewhere"),
     (FakeSource(cover_scope=SourceScope("hall", NOW, NOW + timedelta(days=1))), "coverage is for scope"),
     (FakeSource(events=[ObservedCalendarEvent(REF, "e", "elsewhere", NOW, NOW + timedelta(hours=1))]), "elsewhere"),
-    (FakeSource(events=[ObservedCalendarEvent(REF, "e", "hall", NOW + timedelta(days=30), NOW + timedelta(days=31))]), "outside"),
+    (FakeSource(events=[ObservedCalendarEvent(REF, "e", "hall", NOW + timedelta(days=30), NOW + timedelta(days=31))]), "not contained"),
     (FakeSource(events=[ObservedCalendarEvent(SourceRef("zzz", SourceKind.LIVE, NOW, "Europe/Oslo", fingerprint="x"), "e", "hall", NOW, NOW + timedelta(hours=1))]), "mixes"),
 ])
 def test_foreign_or_out_of_scope_evidence_is_a_typed_failure(season, source, needle):
@@ -485,3 +485,160 @@ def test_csv_non_numeric_age_group_parameter_is_rejected(tmp_path):
     root = _bundle(tmp_path / "b")
     (root / "age_groups.csv").write_text("age_group,parallel_games\nU10,abc\nU12,2\n")
     assert [d.code for d in _diags(root)] == [DiagnosticCode.INVALID_VALUE]
+
+
+# -- containment, provenance consistency, adapter boundary ------------------------------
+
+class _Alloc(FakeSource):
+    def __init__(self, windows):
+        super().__init__()
+        self.windows = windows
+
+    def allocations(self, scope):
+        return tuple(self.windows)
+
+
+def _window(start, end, ref=REF):
+    from tournament_scheduler.application.ports.ice_time import AllocationWindow, WindowKind
+    return AllocationWindow(ref, "hall", start, end, WindowKind.AVAILABLE)
+
+
+def test_cross_boundary_allocation_is_rejected_not_clipped(season):
+    straddling = _window(NOW - timedelta(hours=1), NOW + timedelta(hours=1))
+    ev = compose_planning_evidence(season, [_Alloc([straddling])], [SCOPE], now=NOW)
+    assert "not contained" in ev.failures[0].message and ev.allocations == ()
+    exact = _window(NOW, NOW + timedelta(days=7))
+    assert compose_planning_evidence(season, [_Alloc([exact])], [SCOPE], now=NOW).failures == ()
+
+
+@pytest.mark.parametrize("field,value", [
+    ("fingerprint", "different"), ("revision", "r2"), ("captured_at", NOW + timedelta(minutes=1)),
+])
+def test_conflicting_provenance_within_one_observation_is_rejected(season, field, value):
+    from dataclasses import replace
+    other = replace(REF, **{field: value})
+    event = ObservedCalendarEvent(other, "e", "hall", NOW, NOW + timedelta(hours=1))
+    ev = compose_planning_evidence(season, [FakeSource(events=[event])], [SCOPE], now=NOW)
+    assert "conflicting provenance" in ev.failures[0].message and ev.observed_events == ()
+
+
+def test_conflicting_source_kind_is_rejected(season):
+    manual = SourceRef("cal", SourceKind.MANUAL, NOW, "Europe/Oslo", actor="x")
+    event = ObservedCalendarEvent(manual, "e", "hall", NOW, NOW + timedelta(hours=1))
+    ev = compose_planning_evidence(season, [FakeSource(events=[event])], [SCOPE], now=NOW)
+    assert "conflicting provenance" in ev.failures[0].message
+
+
+class Exploding:
+    def __init__(self, where, exc=RuntimeError("kaboom")):
+        self.where, self.exc = where, exc
+
+    def capabilities(self):
+        if self.where == "caps":
+            raise self.exc
+        return PortCapabilities("cal")
+
+    def allocations(self, scope):
+        if self.where == "allocations":
+            raise self.exc
+        return ()
+
+    def observed_events(self, scope):
+        if self.where == "events":
+            raise self.exc
+        return ()
+
+    def coverage(self, scope):
+        return ()
+
+
+@pytest.mark.parametrize("where", ["caps", "allocations", "events"])
+def test_unexpected_adapter_exceptions_become_typed_failures(season, where):
+    ev = compose_planning_evidence(season, [Exploding(where), FakeSource()], [SCOPE], now=NOW)
+    failure = ev.failures[0]
+    assert failure.code is PortErrorCode.UNAVAILABLE and "RuntimeError: kaboom" in failure.message
+    assert ev.findings[0].absence is Absence.SOURCE_ERROR and ev.observed_events == ()
+    assert ev.readiness is Readiness.FAILED  # the healthy second source did not mask it
+    assert ev.findings[1].absence is Absence.CONFIRMED_ABSENT
+
+
+def test_port_error_from_capabilities_keeps_its_code(season):
+    exc = PortError(PortErrorCode.AUTHORIZATION_REQUIRED, "login")
+    ev = compose_planning_evidence(season, [Exploding("caps", exc)], [SCOPE], now=NOW)
+    assert (ev.failures[0].code, ev.failures[0].message) == (PortErrorCode.AUTHORIZATION_REQUIRED, "login")
+    assert ev.failures[0].source_id == "Exploding"
+
+
+# -- evidence identity -------------------------------------------------------------------
+
+def _with_facts(tmp_path, bookings):
+    (tmp_path / "s.json").write_text(
+        '{"start_date":"2026-09-01","end_date":"2027-03-31","teams":[{"club":"A","label":"A1","age_group":"U10"}]' + bookings + "}"
+    )
+    return LocalBundleAdapter(tmp_path / "s.json", actor="op", clock=clock).read()
+
+
+def test_evidence_fingerprint_covers_operator_facts_problem_fingerprint_does_not(tmp_path):
+    book = ',"bookings":[{"tournament_id":"t1","venue_id":"hall","starts_at":"2026-10-03T09:00","ends_at":"2026-10-03T12:00","trust":"confirmed"}]'
+    alloc = ',"allocations":[{"venue_id":"hall","starts_at":"2026-10-03T09:00","ends_at":"2026-10-03T12:00"}]'
+    bare, booked, allocated = (_with_facts(tmp_path, x) for x in ("", book, alloc))
+    assert bare.problem_fingerprint() == booked.problem_fingerprint() == allocated.problem_fingerprint()
+    assert len({bare.evidence_fingerprint(), booked.evidence_fingerprint(), allocated.evidence_fingerprint()}) == 3
+    assert booked.evidence_fingerprint() == _with_facts(tmp_path, book).evidence_fingerprint()  # deterministic
+    later = LocalBundleAdapter(tmp_path / "s.json", actor="op", clock=lambda: NOW + timedelta(days=1)).read()
+    assert later.evidence_fingerprint() == booked.evidence_fingerprint()  # capture time excluded
+
+
+def test_local_fingerprint_comes_from_bytes_already_read(tmp_path, monkeypatch):
+    path = _bundle(tmp_path / "b")
+    real = Path.read_bytes
+    calls = []
+    monkeypatch.setattr(Path, "read_bytes", lambda self: calls.append(self.name) or real(self))
+    LocalBundleAdapter(path, clock=clock).read()
+    assert sorted(calls) == ["age_groups.csv", "settings.csv", "teams.csv"]  # one read per file
+    (tmp_path / "s.json").write_text('{"start_date":"2026-09-01","end_date":"2027-03-31","teams":[{"club":"A","label":"A1","age_group":"U10"}]}')
+    calls.clear()
+    LocalBundleAdapter(tmp_path / "s.json", clock=clock).read()
+    assert calls == ["s.json"]
+
+
+def test_csv_digest_read_failure_is_typed_unreadable(tmp_path, monkeypatch):
+    path = _bundle(tmp_path / "b")
+    real = Path.read_bytes
+
+    def flaky(self):
+        if self.name == "teams.csv":
+            raise PermissionError("denied")
+        return real(self)
+
+    monkeypatch.setattr(Path, "read_bytes", flaky)
+    assert [d.code for d in _diags(path)] == [DiagnosticCode.UNREADABLE]
+
+
+# -- frozen RVV fixture: observed evidence + assertions, parity across adapters ---------
+
+def _frozen_evidence(season):
+    from dataclasses import replace
+    from tournament_scheduler.application.ports.ice_time import BookingAssertion
+    manual = SourceRef("op", SourceKind.MANUAL, NOW, "Europe/Oslo", actor="planner")
+    hour = timedelta(hours=1)
+    claims = (
+        BookingAssertion(manual, "t1", "hall", NOW + hour, NOW + 3 * hour, AssertionTrust.CONFIRMED),
+        BookingAssertion(manual, "t2", "hall", NOW + 2 * hour, NOW + 4 * hour, AssertionTrust.PROVISIONAL),
+    )
+    seen = ObservedCalendarEvent(REF, "ev1", "hall", NOW + hour, NOW + 3 * hour, "Turnering")
+    return compose_planning_evidence(replace(season, operator_assertions=claims), [FakeSource(events=[seen])], [SCOPE], now=NOW)
+
+
+def test_frozen_rvv_fixture_evidence_parity_with_local_adapter(tmp_path):
+    rvv = WorkbookSeasonInputAdapter(_rvv_fixture(tmp_path / "rvv.xlsx"), clock=clock).read()
+    local = LocalBundleAdapter(_bundle(tmp_path / "b"), clock=clock).read()
+    a, b = _frozen_evidence(rvv), _frozen_evidence(local)
+    for ev in (a, b):
+        assert [f.absence for f in ev.findings] == [Absence.PRESENT]  # observed, not "confirmed booking"
+        assert origin_of(ev.observed_events[0].source.kind) is FactOrigin.SOURCE_BACKED
+        assert {origin_of(x.source.kind) for x in ev.assertions} == {FactOrigin.OPERATOR_SUPPLIED}
+        assert [x.trust for x in ev.assertions] == [AssertionTrust.CONFIRMED, AssertionTrust.PROVISIONAL]
+        assert [c.kind for c in ev.conflicts] == [ConflictKind.OVERLAPPING_ASSERTIONS]
+        assert ev.readiness is Readiness.INCOMPLETE  # conflict blocks trusted capacity
+    assert (a.findings, a.conflicts, a.venue_capacity, a.assertions) == (b.findings, b.conflicts, b.venue_capacity, b.assertions)

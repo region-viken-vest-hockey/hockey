@@ -109,7 +109,12 @@ class NormalizedSeasonInput:
         SEASON_INPUT_SCHEMA.require(self.schema_version)
 
     def problem_fingerprint(self) -> str:
-        """Stable identity of the normalized *facts*, independent of origin/adapter."""
+        """Identity of the registration, season-window and rule facts only.
+
+        It deliberately excludes origin and the operator-supplied allocations and
+        assertions, so it is *not* the full input identity: use
+        :meth:`evidence_fingerprint` when operator facts matter.
+        """
         payload = {
             "start_date": self.start_date,
             "end_date": self.end_date,
@@ -121,6 +126,29 @@ class NormalizedSeasonInput:
         }
         blob = json.dumps(payload, sort_keys=True, default=str, ensure_ascii=False)
         return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+    def evidence_fingerprint(self) -> str:
+        """Deterministic identity of the problem facts plus the operator-supplied facts.
+
+        Covers each allocation window and booking assertion with its source identity
+        (id, kind, actor, document fingerprint, revision) but not capture time.
+        """
+
+        def ref(r: SourceRef) -> list[Any]:
+            return [r.source_id, r.kind.value, r.actor, r.document, r.fingerprint, r.revision]
+
+        payload = {
+            "problem": self.problem_fingerprint(),
+            "allocations": sorted(
+                [ref(w.source), w.venue_id, w.starts_at.isoformat(), w.ends_at.isoformat(), w.kind.value]
+                for w in self.operator_allocations
+            ),
+            "assertions": sorted(
+                [ref(a.source), a.tournament_id, a.venue_id, a.starts_at.isoformat(), a.ends_at.isoformat(), a.trust.value, a.event_id or ""]
+                for a in self.operator_assertions
+            ),
+        }
+        return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
 @runtime_checkable

@@ -137,6 +137,12 @@ class EvidenceNotReady(PortError):
         self.evidence = evidence
 
 
+def _failure_of(exc: Exception) -> tuple[PortErrorCode, str]:
+    if isinstance(exc, PortError):
+        return exc.code, exc.message
+    return PortErrorCode.UNAVAILABLE, f"unexpected {type(exc).__name__}: {exc}"
+
+
 def _overlap(a_start: datetime, a_end: datetime, b_start: datetime, b_end: datetime) -> bool:
     return a_start < b_end and b_start < a_end
 
@@ -163,8 +169,12 @@ def _foreign(
     for x in (*allocations, *events):
         if x.venue_id != scope.venue_id:
             return f"evidence is for venue {x.venue_id!r}, requested {scope.venue_id!r}"
-        if not _overlap(x.starts_at, x.ends_at, scope.from_date, scope.to_date):
-            return "evidence lies outside the requested period"
+        if x.starts_at < scope.from_date or x.ends_at > scope.to_date:
+            return "evidence is not contained in the requested period (no silent clipping)"
+    # One observation: provenance must agree across every item of one call.
+    shapes = {(r.kind, r.revision, r.fingerprint, r.captured_at, r.timezone) for r in refs}
+    if len(shapes) > 1:
+        return "evidence from one observation carries conflicting provenance (kind/revision/fingerprint/capture)"
     return None
 
 
@@ -222,7 +232,8 @@ def compose_planning_evidence(
     """Gather evidence for *scopes* from *sources* and the operator's local facts.
 
     ``sources`` may be empty (manual-only). A source whose capabilities the
-    application cannot use, or that raises :class:`PortError`, is recorded as a
+    application cannot use, or that raises anything (a :class:`PortError` keeps
+    its code; other exceptions become ``UNAVAILABLE`` with the detail), is recorded as a
     failure for every scope; remaining sources are still composed.
     """
     if now.tzinfo is None:
@@ -233,26 +244,34 @@ def compose_planning_evidence(
     findings: list[ScopeFinding] = []
     failures: list[SourceFailure] = []
     for source in sources:
-        caps = source.capabilities()
+        try:
+            caps = source.capabilities()
+            adapter_id = caps.adapter_id
+        except Exception as exc:  # adapter boundary: never let discovery escape typed failures
+            adapter_id, caps = type(source).__name__, None
+            problem = _failure_of(exc)
         for scope in scopes:
+            got = None
             try:
+                if caps is None:
+                    raise PortError(problem[0], problem[1])
                 caps.require()
-                got_alloc = source.allocations(scope)
-                got_events = source.observed_events(scope)
-                got_cov = source.coverage(scope)
-            except PortError as exc:
-                failures.append(SourceFailure(caps.adapter_id, scope, exc.code, exc.message))
-                findings.append(ScopeFinding(caps.adapter_id, scope, Absence.SOURCE_ERROR, exc.message))
+                got = (source.allocations(scope), source.observed_events(scope), source.coverage(scope))
+            except Exception as exc:  # unexpected adapter errors become typed failures, never empty results
+                code, message = _failure_of(exc)
+                failures.append(SourceFailure(adapter_id, scope, code, message))
+                findings.append(ScopeFinding(adapter_id, scope, Absence.SOURCE_ERROR, message))
                 continue
-            reason = _foreign(caps.adapter_id, scope, got_alloc, got_events, got_cov)
+            got_alloc, got_events, got_cov = got
+            reason = _foreign(adapter_id, scope, got_alloc, got_events, got_cov)
             if reason is not None:
-                failures.append(SourceFailure(caps.adapter_id, scope, PortErrorCode.SCHEMA_INCOMPATIBLE, reason))
-                findings.append(ScopeFinding(caps.adapter_id, scope, Absence.SOURCE_ERROR, reason))
+                failures.append(SourceFailure(adapter_id, scope, PortErrorCode.SCHEMA_INCOMPATIBLE, reason))
+                findings.append(ScopeFinding(adapter_id, scope, Absence.SOURCE_ERROR, reason))
                 continue
             allocations += got_alloc
             events += got_events
             coverage += got_cov
-            findings.append(_finding(caps.adapter_id, scope, got_cov, got_events, now))
+            findings.append(_finding(adapter_id, scope, got_cov, got_events, now))
     assertions = tuple(season.operator_assertions)
     venues = [s.venue_id for s in scopes] + [w.venue_id for w in season.operator_allocations]
     return PlanningEvidence(

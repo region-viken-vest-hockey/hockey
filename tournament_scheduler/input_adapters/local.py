@@ -146,13 +146,18 @@ class LocalBundleAdapter:
         raw["teams"] = [_team(r) for _, r in teams or []]
         if sources:
             raw["sources"] = [dict(r) for _, r in sources]
-        digest = b"".join(p.read_bytes() for p in sorted(loc.glob("*.csv")))
+        try:
+            digest = b"".join(p.read_bytes() for p in sorted(loc.glob("*.csv")))
+        except OSError as exc:
+            found.append(InputDiagnostic(Code.UNREADABLE, loc.name, str(exc)))
+            digest = b""
         return raw, facts["allocations"], facts["bookings"], digest
 
     def _load_json(self, found: list[InputDiagnostic]) -> tuple[dict[str, Any], Rows, Rows, bytes]:
         loc = self._location
         try:
-            data = json.loads(loc.read_text(encoding="utf-8"))
+            content = loc.read_bytes()
+            data = json.loads(content.decode("utf-8"))
         except (OSError, ValueError) as exc:
             found.append(InputDiagnostic(Code.UNREADABLE, loc.name, str(exc)))
             return {}, [], [], b""
@@ -161,7 +166,7 @@ class LocalBundleAdapter:
             return {}, [], [], b""
         allocations = _json_rows(data, "allocations", loc.name, found)
         bookings = _json_rows(data, "bookings", loc.name, found)
-        return data, allocations, bookings, loc.read_bytes()
+        return data, allocations, bookings, content
 
     def _instant(self, value: Any, where: str, found: list[InputDiagnostic]) -> datetime | None:
         try:
