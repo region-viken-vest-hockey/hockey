@@ -53,3 +53,9 @@ Method: import/AST and path-literal search over `tournament_scheduler/`, `script
 | Activity/registration publishing | `pipeline/activity_publish.py`, `activity_publication.py` | activity publication | Same destination port |
 | CI/Actions (`ci.yml`, `season-*.yml`) | `.github/workflows/` | CI | Out of scope; Git-backed RVV keeps them |
 | Operator/agent startup assumes Git and `gh` | `.agents/commands/rvv-miniputt/{operate,guide,handover}.md` | shared procedures | Readiness contract; Git-backed RVV keeps `make operate-preflight` |
+
+## Season input adapters (#958)
+
+Input facts are normalized behind `SeasonInputPort` (`application/ports/season_input.py`). Adapters live in `tournament_scheduler/input_adapters/`: `WorkbookSeasonInputAdapter` is the compatibility adapter for the RVV `input.xlsx` (`Lag`, `Kilder`, `Aldersgrupper`, `Innstillinger`; its output converts back to the legacy raw config unchanged), and `LocalBundleAdapter` reads a CSV directory or JSON file with no workbook, Git or repo-root path. Both share one normalizer, so `NormalizedSeasonInput.problem_fingerprint()` is identical for equivalent facts. Invalid or ambiguous input raises `SeasonInputError` with every typed `InputDiagnostic`; nothing partial is returned or written.
+
+`application/input_composition.compose_planning_evidence` combines that input with any `IceTimeSourcePort` (adapters owned by #968; none are implemented here). A source error is a `SourceFailure`, absence is confirmed only for complete, fresh coverage, a venue with no offered window is `UNKNOWN` (never free), and only operator-supplied `BookingAssertion`s exist — observed events never become assertions. A manual-only region supplies allocations locally with no `Kilder` row, URL or scraper. Alias/default normalization stays with #337 and source trust with #333.

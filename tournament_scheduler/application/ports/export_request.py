@@ -9,10 +9,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional
-import json
 
-from .common import PORT_CONTRACT_VERSION, PortCapabilities, PortError, PortErrorCode
+from .common import PortCapabilities, PortError, PortErrorCode
 
 
 class Format(str, Enum):
