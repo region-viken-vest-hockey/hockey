@@ -86,7 +86,9 @@ class NormalizedSeasonInput:
     ``age_group_params`` maps ``parameter -> {age_group: value}`` (for example
     ``parallel_games``); ``rules`` holds the remaining controlled settings
     (hosting limits, fairness thresholds, participant pools, date preferences).
-    ``operator_allocations`` / ``operator_assertions`` are operator-supplied
+    ``age_groups`` is the declared list, or - when the input declares none - the
+    explicit derivation *the age groups used by the teams* (``age_groups_declared``
+    is then False). ``operator_allocations`` / ``operator_assertions`` are operator-supplied
     facts, never source observations; empty means *nothing supplied*, not free.
     """
 
@@ -100,6 +102,7 @@ class NormalizedSeasonInput:
     sources: tuple[SourceDeclaration, ...] = ()
     operator_allocations: tuple[AllocationWindow, ...] = ()
     operator_assertions: tuple[BookingAssertion, ...] = ()
+    age_groups_declared: bool = True
     schema_version: int = 1
 
     def __post_init__(self) -> None:

@@ -23,7 +23,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Sequence
 
-from .ports.common import PortError, PortErrorCode, SourceKind
+from .ports.common import PortError, PortErrorCode, SourceKind, SourceRef
 from .ports.ice_time import (
     AllocationWindow,
     BookingAssertion,
@@ -63,6 +63,12 @@ class Absence(str, Enum):
     SOURCE_ERROR = "source_error"
 
 
+class Readiness(str, Enum):
+    READY = "ready"
+    INCOMPLETE = "incomplete"
+    FAILED = "failed"
+
+
 class VenueCapacity(str, Enum):
     OFFERED = "offered"
     BLOCKED_ONLY = "blocked_only"
@@ -98,13 +104,68 @@ class PlanningEvidence:
     venue_capacity: tuple[tuple[str, VenueCapacity], ...]
 
     @property
+    def readiness(self) -> Readiness:
+        """FAILED if any source failed, INCOMPLETE if any absence or conflict is unresolved."""
+        if self.failures:
+            return Readiness.FAILED
+        undecided = any(f.absence is Absence.NOT_CONFIRMED for f in self.findings)
+        return Readiness.INCOMPLETE if undecided or self.conflicts else Readiness.READY
+
+    @property
     def complete(self) -> bool:
-        """True only when no source failed and every scope absence is decided."""
-        return not self.failures and all(f.absence is not Absence.NOT_CONFIRMED for f in self.findings)
+        return self.readiness is Readiness.READY
+
+    def trusted_capacity(self) -> tuple[tuple[str, VenueCapacity], ...]:
+        """The only way to consume capacity as planning input: fails closed.
+
+        ``venue_capacity`` is diagnostic. Partial, failed, stale or conflicting
+        evidence raises :class:`EvidenceNotReady`; diagnostics stay on the evidence.
+        """
+        if self.readiness is not Readiness.READY:
+            raise EvidenceNotReady(self)
+        return self.venue_capacity
+
+
+class EvidenceNotReady(PortError):
+    """Evidence is failed/incomplete and must not be used as trusted capacity."""
+
+    def __init__(self, evidence: PlanningEvidence) -> None:
+        reasons = [f"{f.source_id}/{f.scope.venue_id}: {f.message}" for f in evidence.failures]
+        reasons += [f"{f.source_id}/{f.scope.venue_id}: {f.reason}" for f in evidence.findings if f.absence is Absence.NOT_CONFIRMED]
+        reasons += [f"{c.kind.value}: {c.detail}" for c in evidence.conflicts]
+        super().__init__(PortErrorCode.UNAVAILABLE, f"evidence is {evidence.readiness.value}: " + "; ".join(reasons))
+        self.evidence = evidence
 
 
 def _overlap(a_start: datetime, a_end: datetime, b_start: datetime, b_end: datetime) -> bool:
     return a_start < b_end and b_start < a_end
+
+
+def _foreign(
+    adapter_id: str,
+    scope: SourceScope,
+    allocations: Sequence[AllocationWindow],
+    events: Sequence[ObservedCalendarEvent],
+    coverage: Sequence[SourceCoverage],
+) -> str | None:
+    """Reason the returned evidence is not this adapter's, or not about *scope*, else None."""
+    refs: list[SourceRef] = [x.source for x in (*allocations, *events, *coverage)]
+    ids = {r.source_id for r in refs}
+    if len(ids) > 1:
+        return f"evidence mixes source identities {sorted(ids)}"
+    # Identity contract: a source id is the adapter id or ``<adapter id>:<detail>``.
+    for found in ids:
+        if found != adapter_id and not found.startswith(adapter_id + ":"):
+            return f"evidence from source {found!r} was returned by adapter {adapter_id!r}"
+    for c in coverage:
+        if c.scope != scope:
+            return f"coverage is for scope {c.scope.venue_id!r}, requested {scope.venue_id!r} {scope.from_date:%Y-%m-%d}..{scope.to_date:%Y-%m-%d}"
+    for x in (*allocations, *events):
+        if x.venue_id != scope.venue_id:
+            return f"evidence is for venue {x.venue_id!r}, requested {scope.venue_id!r}"
+        if not _overlap(x.starts_at, x.ends_at, scope.from_date, scope.to_date):
+            return "evidence lies outside the requested period"
+    return None
 
 
 def _finding(
@@ -182,6 +243,11 @@ def compose_planning_evidence(
             except PortError as exc:
                 failures.append(SourceFailure(caps.adapter_id, scope, exc.code, exc.message))
                 findings.append(ScopeFinding(caps.adapter_id, scope, Absence.SOURCE_ERROR, exc.message))
+                continue
+            reason = _foreign(caps.adapter_id, scope, got_alloc, got_events, got_cov)
+            if reason is not None:
+                failures.append(SourceFailure(caps.adapter_id, scope, PortErrorCode.SCHEMA_INCOMPATIBLE, reason))
+                findings.append(ScopeFinding(caps.adapter_id, scope, Absence.SOURCE_ERROR, reason))
                 continue
             allocations += got_alloc
             events += got_events

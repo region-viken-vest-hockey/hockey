@@ -45,6 +45,44 @@ def _parse_day(value: Any, where: str, found: list[InputDiagnostic]) -> str | No
         return None
 
 
+def _declared_groups(value: Any, doc: str, found: list[InputDiagnostic]) -> tuple[str, ...]:
+    if value in (None, [], ()):
+        return ()
+    if not isinstance(value, (list, tuple)) or not all(isinstance(g, str) and g.strip() for g in value):
+        found.append(InputDiagnostic(Code.INVALID_VALUE, f"{doc}:age_groups", "expected a list of non-empty age-group names"))
+        return ()
+    return tuple(dict.fromkeys(g.strip() for g in value))
+
+
+def _is_int(value: Any, minimum: int) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= minimum
+
+
+def _check_value(param: str, value: Any) -> str | None:
+    if param == "preferanse_vekt":
+        ok = isinstance(value, (int, float)) and not isinstance(value, bool)
+        return None if ok else "expected a number"
+    if param == "participation_targets_by_age_group":
+        ok = isinstance(value, Mapping) and set(value) <= {"before_christmas", "after_christmas"} and all(_is_int(v, 0) for v in value.values())
+        return None if ok else "expected before_christmas/after_christmas non-negative integers"
+    return None if _is_int(value, 1) else "expected a positive integer"
+
+
+def _check_param(param: str, value: Any, groups: tuple[str, ...], doc: str, found: list[InputDiagnostic]) -> None:
+    if value in (None, {}):
+        return
+    if not isinstance(value, Mapping):
+        found.append(InputDiagnostic(Code.INVALID_VALUE, f"{doc}:{param}", "expected a mapping of age group to value"))
+        return
+    for group, item in value.items():
+        where = f"{doc}:{param}.{group}"
+        if group not in groups:
+            found.append(InputDiagnostic(Code.UNKNOWN_REFERENCE, where, f"age group {group!r} is not declared or used by any team"))
+        problem = _check_value(param, item)
+        if problem:
+            found.append(InputDiagnostic(Code.INVALID_VALUE, where, f"{problem}, got {item!r}"))
+
+
 def _teams(raw: Any, age_groups: tuple[str, ...], doc: str, found: list[InputDiagnostic]) -> tuple[TeamInput, ...]:
     where = f"{doc}:teams"
     if not isinstance(raw, (list, tuple)) or not raw:
@@ -74,8 +112,14 @@ def _teams(raw: Any, age_groups: tuple[str, ...], doc: str, found: list[InputDia
 
 def _sources(raw: Any, doc: str, found: list[InputDiagnostic]) -> tuple[SourceDeclaration, ...]:
     declared: dict[str, SourceDeclaration] = {}
+    if raw is not None and not isinstance(raw, (list, tuple)):
+        found.append(InputDiagnostic(Code.INVALID_VALUE, f"{doc}:sources", "expected a list of objects"))
+        return ()
     for n, row in enumerate(raw or (), start=1):
         loc = f"{doc}:sources#{n}"
+        if not isinstance(row, Mapping):
+            found.append(InputDiagnostic(Code.INVALID_VALUE, loc, f"expected an object, got {type(row).__name__}"))
+            continue
         name = str(row.get("name") or "").strip()
         if not name:
             found.append(InputDiagnostic(Code.MISSING_FIELD, loc, "a source needs a name"))
@@ -110,12 +154,14 @@ def normalize_raw_config(
     for legacy in ("deltakelser_per_lag", "target_tournament_count"):
         if legacy in raw:
             found.append(InputDiagnostic(Code.INVALID_VALUE, f"{document}:{legacy}", "global participation target is no longer supported; use per-age-group targets"))
-    groups = tuple(dict.fromkeys(str(g) for g in raw.get("age_groups") or ()))
+    groups = _declared_groups(raw.get("age_groups"), document, found)
     teams = _teams(raw.get("teams"), groups, document, found)
+    declared = bool(groups)
+    if not declared:
+        # Explicit rule: without a declared list, the groups the teams use.
+        groups = tuple(dict.fromkeys(t.age_group for t in teams))
     for param in AGE_GROUP_PARAMS:
-        for group in raw.get(param) or {}:
-            if groups and group not in groups:
-                found.append(InputDiagnostic(Code.UNKNOWN_REFERENCE, f"{document}:{param}", f"age group {group!r} is not declared"))
+        _check_param(param, raw.get(param), groups, document, found)
     sources = _sources(raw.get("sources"), document, found)
     if found:
         raise SeasonInputError(tuple(found))
@@ -123,6 +169,7 @@ def normalize_raw_config(
         start_date=start or "",
         end_date=end or "",
         age_groups=groups,
+        age_groups_declared=declared,
         teams=teams,
         origin=origin,
         age_group_params={p: dict(raw[p]) for p in AGE_GROUP_PARAMS if raw.get(p)},
@@ -136,7 +183,7 @@ def normalize_raw_config(
 def to_legacy_config(season: NormalizedSeasonInput) -> dict[str, Any]:
     """The legacy Stage 1 raw-config shape, for consumers not yet on the DTO."""
     raw: dict[str, Any] = {"start_date": season.start_date, "end_date": season.end_date}
-    if season.age_groups:
+    if season.age_groups_declared:
         raw["age_groups"] = list(season.age_groups)
     raw.update({k: dict(v) for k, v in season.age_group_params.items()})
     raw["teams"] = [

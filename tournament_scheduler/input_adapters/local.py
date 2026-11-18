@@ -1,19 +1,20 @@
 """Local structured input: a JSON file or a CSV bundle, no workbook, no Git.
 
-CSV bundle (a directory): ``settings.csv`` (``felt,verdi``), ``teams.csv``
-(``club,label,age_group[,target_tournament_count]``) and optionally
+CSV bundle (a directory): ``settings.csv`` (``felt,verdi``) and ``teams.csv``
+(``club,label,age_group[,target_tournament_count]``) are required; optional:
 ``age_groups.csv``, ``sources.csv`` (``name,type,url``; no URL needed),
 ``allocations.csv`` (``venue_id,starts_at,ends_at,kind``) and ``bookings.csv``
 (``tournament_id,venue_id,starts_at,ends_at,trust``). A JSON file carries the
-same keys as the legacy raw config plus ``allocations``/``bookings`` lists.
+same keys as the legacy raw config plus ``allocations``/``bookings`` lists of
+objects. A missing optional file means "nothing supplied"; a present but
+malformed one is a typed diagnostic with file, row and column.
 
 Allocations and bookings are *operator-supplied* facts and need an accountable
-``actor``. Absent files mean "nothing supplied", never free capacity.
+``actor``. Nothing supplied is never free capacity.
 """
 
 from __future__ import annotations
 
-import csv
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -36,10 +37,17 @@ from tournament_scheduler.application.ports.season_input import (
     season_input_capabilities,
 )
 
+from .csv_tables import read_table
 from .normalize import normalize_raw_config
 
 _AGE_COLUMNS = ("parallel_games", "round_length_minutes", "rounds_per_tournament", "ice_time_minutes", "preferanse_vekt")
 _TARGET_COLUMNS = (("deltakelser_per_lag_før_jul", "before_christmas"), ("deltakelser_per_lag_etter_jul", "after_christmas"))
+_FACT_COLUMNS = {
+    "allocations": ("venue_id", "starts_at", "ends_at"),
+    "bookings": ("tournament_id", "venue_id", "starts_at", "ends_at"),
+}
+
+Rows = list[tuple[int, Mapping[str, Any]]]
 
 
 def _scalar(value: str) -> Any:
@@ -51,28 +59,28 @@ def _scalar(value: str) -> Any:
     return value
 
 
-def _rows(path: Path, found: list[InputDiagnostic], *, required: bool) -> list[dict[str, str]]:
-    if not path.is_file():
-        if required:
-            found.append(InputDiagnostic(Code.MISSING_INPUT, path.name, "required file not found"))
-        return []
-    try:
-        with path.open(newline="", encoding="utf-8-sig") as handle:
-            return [{k.strip(): (v or "").strip() for k, v in row.items() if k} for row in csv.DictReader(handle)]
-    except (OSError, UnicodeDecodeError, csv.Error) as exc:
-        found.append(InputDiagnostic(Code.UNREADABLE, path.name, str(exc)))
-        return []
+def _settings(rows: Rows, name: str, found: list[InputDiagnostic]) -> dict[str, Any]:
+    raw: dict[str, Any] = {}
+    for n, row in rows:
+        key, value = row["felt"], row["verdi"]
+        if not key:
+            found.append(InputDiagnostic(Code.MISSING_FIELD, f"{name}#{n}.felt", "setting name is blank"))
+        elif key in raw:
+            found.append(InputDiagnostic(Code.DUPLICATE, f"{name}#{n}.felt", f"setting {key!r} is repeated"))
+        elif value:
+            raw[key] = _scalar(value)
+    return raw
 
 
-def _age_groups(rows: list[dict[str, str]]) -> dict[str, Any]:
-    rows = [r for r in rows if r.get("age_group")]
-    raw: dict[str, Any] = {"age_groups": [r["age_group"] for r in rows]}
+def _age_groups(rows: Rows) -> dict[str, Any]:
+    cells = [r for _, r in rows if r.get("age_group")]
+    raw: dict[str, Any] = {"age_groups": [r["age_group"] for r in cells]}
     for column in _AGE_COLUMNS:
-        values = {r["age_group"]: _scalar(r[column]) for r in rows if r.get(column)}
+        values = {r["age_group"]: _scalar(r[column]) for r in cells if r.get(column)}
         if values:
             raw[column] = values
     targets: dict[str, dict[str, Any]] = {}
-    for r in rows:
+    for r in cells:
         for key, name in _TARGET_COLUMNS:
             if r.get(key):
                 targets.setdefault(r["age_group"], {})[name] = _scalar(r[key])
@@ -81,11 +89,25 @@ def _age_groups(rows: list[dict[str, str]]) -> dict[str, Any]:
     return raw
 
 
-def _team(row: dict[str, str]) -> dict[str, Any]:
+def _team(row: Mapping[str, Any]) -> dict[str, Any]:
     team: dict[str, Any] = {k: v for k, v in row.items() if v and k != "target_tournament_count"}
     if row.get("target_tournament_count"):
         team["target_tournament_count"] = _scalar(row["target_tournament_count"])
     return team
+
+
+def _json_rows(data: dict[str, Any], key: str, name: str, found: list[InputDiagnostic]) -> Rows:
+    value = data.pop(key, [])
+    if not isinstance(value, list):
+        found.append(InputDiagnostic(Code.INVALID_VALUE, f"{name}:{key}", f"expected a list of objects, got {type(value).__name__}"))
+        return []
+    rows: Rows = []
+    for n, item in enumerate(value, start=1):
+        if isinstance(item, Mapping):
+            rows.append((n, item))
+        else:
+            found.append(InputDiagnostic(Code.INVALID_VALUE, f"{name}:{key}#{n}", f"expected an object, got {type(item).__name__}"))
+    return rows
 
 
 class LocalBundleAdapter:
@@ -107,48 +129,50 @@ class LocalBundleAdapter:
     def capabilities(self) -> PortCapabilities:
         return season_input_capabilities(self.adapter_id)
 
-    def _load(self, found: list[InputDiagnostic]) -> tuple[dict[str, Any], list[Mapping], list[Mapping], bytes]:
+    def _load_csv(self, found: list[InputDiagnostic]) -> tuple[dict[str, Any], Rows, Rows, bytes]:
         loc = self._location
-        if loc.is_dir():
-            settings = _rows(loc / "settings.csv", found, required=True)
-            teams = _rows(loc / "teams.csv", found, required=True)
-            raw: dict[str, Any] = {r["felt"]: _scalar(r["verdi"]) for r in settings if r.get("felt") and r.get("verdi")}
-            raw.update(_age_groups(_rows(loc / "age_groups.csv", found, required=False)))
-            if not raw["age_groups"]:
-                del raw["age_groups"]
-            raw["teams"] = [_team(t) for t in teams]
-            sources = _rows(loc / "sources.csv", found, required=False)
-            if sources:
-                raw["sources"] = sources
-            allocations = _rows(loc / "allocations.csv", found, required=False)
-            bookings = _rows(loc / "bookings.csv", found, required=False)
-            digest = b"".join(p.read_bytes() for p in sorted(loc.glob("*.csv")))
-            return raw, allocations, bookings, digest
-        if loc.is_file() and loc.suffix.lower() == ".json":
-            try:
-                data = json.loads(loc.read_text(encoding="utf-8"))
-            except (OSError, ValueError) as exc:
-                found.append(InputDiagnostic(Code.UNREADABLE, loc.name, str(exc)))
-                return {}, [], [], b""
-            if not isinstance(data, dict):
-                found.append(InputDiagnostic(Code.INVALID_VALUE, loc.name, "top level must be an object"))
-                return {}, [], [], b""
-            allocations, bookings = data.pop("allocations", []), data.pop("bookings", [])
-            return data, allocations, bookings, loc.read_bytes()
-        code = Code.MISSING_INPUT if not loc.exists() else Code.UNSUPPORTED_FORMAT
-        found.append(InputDiagnostic(code, loc.name, "expected a directory of CSV files or a .json file"))
-        return {}, [], [], b""
+        settings = read_table(loc / "settings.csv", ("felt", "verdi"), found, optional_file=False)
+        teams = read_table(loc / "teams.csv", ("club", "label", "age_group"), found, optional_file=False)
+        ages = read_table(loc / "age_groups.csv", ("age_group",), found, optional_file=True)
+        sources = read_table(loc / "sources.csv", ("name",), found, optional_file=True)
+        facts = {
+            key: read_table(loc / f"{key}.csv", cols, found, optional_file=True) or []
+            for key, cols in _FACT_COLUMNS.items()
+        }
+        raw: dict[str, Any] = _settings(settings or [], "settings.csv", found)
+        raw.update(_age_groups(ages or []))
+        if not raw["age_groups"]:
+            del raw["age_groups"]
+        raw["teams"] = [_team(r) for _, r in teams or []]
+        if sources:
+            raw["sources"] = [dict(r) for _, r in sources]
+        digest = b"".join(p.read_bytes() for p in sorted(loc.glob("*.csv")))
+        return raw, facts["allocations"], facts["bookings"], digest
 
-    def _instant(self, text: str, where: str, found: list[InputDiagnostic]) -> datetime | None:
+    def _load_json(self, found: list[InputDiagnostic]) -> tuple[dict[str, Any], Rows, Rows, bytes]:
+        loc = self._location
         try:
-            moment = datetime.fromisoformat(text)
+            data = json.loads(loc.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            found.append(InputDiagnostic(Code.UNREADABLE, loc.name, str(exc)))
+            return {}, [], [], b""
+        if not isinstance(data, dict):
+            found.append(InputDiagnostic(Code.INVALID_VALUE, loc.name, "top level must be an object"))
+            return {}, [], [], b""
+        allocations = _json_rows(data, "allocations", loc.name, found)
+        bookings = _json_rows(data, "bookings", loc.name, found)
+        return data, allocations, bookings, loc.read_bytes()
+
+    def _instant(self, value: Any, where: str, found: list[InputDiagnostic]) -> datetime | None:
+        try:
+            moment = datetime.fromisoformat(str(value))
         except ValueError:
-            found.append(InputDiagnostic(Code.INVALID_VALUE, where, f"expected ISO date-time, got {text!r}"))
+            found.append(InputDiagnostic(Code.INVALID_VALUE, where, f"expected ISO date-time, got {value!r}"))
             return None
         return moment if moment.tzinfo else moment.replace(tzinfo=ZoneInfo(self._timezone))
 
     def _facts(
-        self, ref: SourceRef | None, allocations: list[Mapping], bookings: list[Mapping], found: list[InputDiagnostic]
+        self, ref: SourceRef | None, allocations: Rows, bookings: Rows, found: list[InputDiagnostic]
     ) -> tuple[tuple[AllocationWindow, ...], tuple[BookingAssertion, ...]]:
         if not (allocations or bookings):
             return (), ()
@@ -158,27 +182,38 @@ class LocalBundleAdapter:
         windows: list[AllocationWindow] = []
         claims: list[BookingAssertion] = []
         for kind, rows in (("allocations", allocations), ("bookings", bookings)):
-            for n, row in enumerate(rows, start=1):
+            for n, row in rows:
                 where = f"{self._location.name}:{kind}#{n}"
-                start = self._instant(str(row.get("starts_at", "")), f"{where}.starts_at", found)
-                end = self._instant(str(row.get("ends_at", "")), f"{where}.ends_at", found)
+                absent = [c for c in _FACT_COLUMNS[kind] if not str(row.get(c) or "").strip()]
+                if absent:
+                    found.append(InputDiagnostic(Code.MISSING_FIELD, where, f"missing {', '.join(absent)}"))
+                    continue
+                start = self._instant(row["starts_at"], f"{where}.starts_at", found)
+                end = self._instant(row["ends_at"], f"{where}.ends_at", found)
                 if start is None or end is None:
                     continue
                 try:
                     if kind == "allocations":
-                        windows.append(AllocationWindow(ref, row["venue_id"], start, end, WindowKind(row.get("kind") or "available")))
+                        windows.append(AllocationWindow(ref, str(row["venue_id"]), start, end, WindowKind(row.get("kind") or "available")))
                     else:
-                        claims.append(BookingAssertion(ref, row["tournament_id"], row["venue_id"], start, end, AssertionTrust(row.get("trust") or "provisional")))
-                except (KeyError, ValueError) as exc:
-                    found.append(InputDiagnostic(Code.INVALID_VALUE, where, f"{type(exc).__name__}: {exc}"))
+                        claims.append(BookingAssertion(ref, str(row["tournament_id"]), str(row["venue_id"]), start, end, AssertionTrust(row.get("trust") or "provisional")))
+                except ValueError as exc:
+                    found.append(InputDiagnostic(Code.INVALID_VALUE, where, str(exc)))
         return tuple(windows), tuple(claims)
 
     def read(self) -> NormalizedSeasonInput:
+        loc = self._location
         found: list[InputDiagnostic] = []
-        raw, allocations, bookings, digest = self._load(found)
-        if not raw:
-            raise SeasonInputError(tuple(found))
-        name = self._location.name
+        if loc.is_dir():
+            raw, allocations, bookings, digest = self._load_csv(found)
+            if found:  # structural file problems: later diagnostics would only be consequences
+                raise SeasonInputError(tuple(found))
+        elif loc.is_file() and loc.suffix.lower() == ".json":
+            raw, allocations, bookings, digest = self._load_json(found)
+        else:
+            code = Code.MISSING_INPUT if not loc.exists() else Code.UNSUPPORTED_FORMAT
+            raise SeasonInputError((InputDiagnostic(code, loc.name, "expected a directory of CSV files or a .json file"),))
+        name = loc.name
         now = self._clock()
         fingerprint = hashlib.sha256(digest).hexdigest()
         origin = SourceRef(f"{self.adapter_id}:{name}", SourceKind.FILE, now, self._timezone, document=name, fingerprint=fingerprint)
