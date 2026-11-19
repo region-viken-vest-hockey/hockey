@@ -64,7 +64,7 @@ def _dump(s: IceTimeSnapshot) -> dict:
         "to": s.scope.to_date.isoformat(),
         "revision_ref": r.revision,
         "authority": None if s.authority is None else {
-            "issuer": s.authority.issuer, "scope": s.authority.scope,
+            "issuer": s.authority.issuer, "scope": s.authority.scope, "document": s.authority.document,
             "from": s.authority.effective_from.isoformat(), "until": s.authority.effective_until.isoformat()},
         "windows": [[w.starts_at.isoformat(), w.ends_at.isoformat(), w.kind.value] for w in s.windows],
     }
@@ -78,7 +78,8 @@ def _load(d: dict) -> IceTimeSnapshot:
                     d["timezone"], actor=d["actor"], document=d["document"], revision=d.get("revision_ref"))
     a = d.get("authority")
     authority = None if a is None else Authority(
-        a["issuer"], a["scope"], datetime.fromisoformat(a["from"]), datetime.fromisoformat(a["until"]))
+        a["issuer"], a["scope"], datetime.fromisoformat(a["from"]), datetime.fromisoformat(a["until"]),
+        a.get("document", ""))
     wins = tuple(AllocationWindow(ref, scope.venue_id, datetime.fromisoformat(a),
                                   datetime.fromisoformat(b), WindowKind(k)) for a, b, k in d["windows"])
     return IceTimeSnapshot(ref, scope, Completeness(d["completeness"]), wins,
@@ -119,7 +120,8 @@ class ManualSnapshotStore:
             raise PortError(PortErrorCode.REVISION_CONFLICT, "manual snapshot changed since it was read")
         diff = diff_snapshots(old.windows if old else (), snapshot.windows,
                               old.completeness if old else Completeness.UNKNOWN, snapshot.completeness,
-                              old.events if old else (), snapshot.events)
+                              old.events if old else (), snapshot.events,
+                              old.authority if old else None, snapshot.authority)
         fd, tmp = tempfile.mkstemp(dir=self._root, suffix=".tmp")
         try:
             with os.fdopen(fd, "w") as fh:

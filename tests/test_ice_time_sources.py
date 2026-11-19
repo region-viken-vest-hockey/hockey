@@ -106,6 +106,12 @@ def test_additions_alone_do_not_invalidate():
     assert not d.invalidates_previews and not d.is_empty
 
 
+def file_auth(document="ice.csv", **kw):
+    args = dict(issuer="rink office", scope="rink-a November", effective_from=NOW - timedelta(days=1),
+                effective_until=NOW + timedelta(days=30), document=document)
+    return Authority(**{**args, **kw})
+
+
 def csv_file(tmp_path, body):
     p = tmp_path / "ice.csv"
     p.write_text("venue_id,date,start,end,kind\n" + body)
@@ -115,8 +121,7 @@ def csv_file(tmp_path, body):
 def test_csv_matches_manual_verdict(tmp_path):
     p = csv_file(tmp_path, "rink-a,2026-11-07,09:00,12:00,available\n")
     snap = import_snapshot(p, source_id="f", timezone="Europe/Oslo", scope=SCOPE,
-                           captured_at=NOW, attested_complete=True,
-                           fresh_until=NOW + timedelta(days=30))
+                           captured_at=NOW, authority=file_auth())
     assert snap.source.fingerprint and snap.source.document == "ice.csv"
     assert [w.starts_at for w in snap.windows] == [START]
     assert verdict(file_source(snap)) is verdict(manual_source(manual())) is Verdict.AVAILABLE
@@ -198,7 +203,7 @@ def test_health_manual_vs_unconfigured():
     assert source_health((), NOW).status is HealthStatus.UNCONFIGURED
     cov = manual_source(manual()).coverage(SCOPE)
     assert source_health(cov, NOW).status is HealthStatus.CURRENT
-    assert source_health(cov, NOW + timedelta(days=60)).status is HealthStatus.NEEDS_REATTESTATION
+    assert source_health(cov, NOW + timedelta(days=60)).status is HealthStatus.AUTHORITY_EXPIRED
     unk = manual_source(manual(windows=(), complete=False)).coverage(SCOPE)
     assert source_health(unk, NOW).status is HealthStatus.UNVERIFIED
 
@@ -341,9 +346,9 @@ def test_header_validated_without_rows(tmp_path):
     ok = csv_file(tmp_path, "")
     assert import_snapshot(ok, source_id="f", timezone="Europe/Oslo", scope=SCOPE,
                            captured_at=NOW).completeness is Completeness.UNKNOWN
-    with pytest.raises(IceTimeValidationError, match="freshness"):
-        import_snapshot(ok, source_id="f", timezone="Europe/Oslo", scope=SCOPE, captured_at=NOW,
-                        attested_complete=True)
+    declared = import_snapshot(ok, source_id="f", timezone="Europe/Oslo", scope=SCOPE, captured_at=NOW,
+                               authority=file_auth())
+    assert declared.completeness is Completeness.COMPLETE and not declared.windows
 
 
 def test_concurrent_writers_are_serialized(tmp_path):
@@ -403,8 +408,7 @@ def test_composition_uses_shared_conflict_policy_for_contradictory_sources(tmp_p
     allowed = manual_source(manual())
     blocked = file_source(import_snapshot(
         csv_file(tmp_path, "rink-a,2026-11-07,09:00,12:00,blocked\n"), source_id="f",
-        timezone="Europe/Oslo", scope=SCOPE, captured_at=NOW, attested_complete=True,
-        fresh_until=NOW + timedelta(days=30)))
+        timezone="Europe/Oslo", scope=SCOPE, captured_at=NOW, authority=file_auth()))
     ev = compose_planning_evidence(season, [allowed, blocked], [SCOPE], now=NOW)
     assert ConflictKind.CONTRADICTORY_SOURCES in {c.kind for c in ev.conflicts}
     assert ev.readiness is Readiness.INCOMPLETE
@@ -412,3 +416,48 @@ def test_composition_uses_shared_conflict_policy_for_contradictory_sources(tmp_p
         ev.trusted_capacity()
     agreeing = compose_planning_evidence(season, [allowed], [SCOPE], now=NOW)
     assert agreeing.readiness is Readiness.READY and not agreeing.conflicts
+
+
+# ---- review round 2 regressions ----
+
+def test_complete_file_import_requires_valid_typed_authority(tmp_path):
+    p = csv_file(tmp_path, "rink-a,2026-11-07,09:00,12:00,available\n")
+    kw = dict(source_id="f", timezone="Europe/Oslo", scope=SCOPE, captured_at=NOW)
+    without = import_snapshot(p, **kw)
+    assert without.completeness is Completeness.PARTIAL and without.authority is None
+    with pytest.raises(IceTimeValidationError, match="does not match imported file"):
+        import_snapshot(p, authority=file_auth(document="other.csv"), **kw)
+    with pytest.raises(IceTimeValidationError, match="effective interval"):
+        import_snapshot(p, authority=file_auth(effective_from=NOW + timedelta(days=1),
+                                               effective_until=NOW + timedelta(days=2)), **kw)
+    from tournament_scheduler.application.ports.ice_time import Completeness as C
+    from tournament_scheduler.infrastructure.ice_time.snapshot import IceTimeSnapshot
+    with pytest.raises(IceTimeValidationError, match="typed authority"):
+        IceTimeSnapshot(without.source, SCOPE, C.COMPLETE, without.windows, fresh_until=NOW + timedelta(days=1))
+    ok = import_snapshot(p, authority=file_auth(), **kw)
+    assert ok.authority.document == "ice.csv" and ok.fresh_until == ok.authority.effective_until
+    assert ok.revision != without.revision
+    assert ok.revision != import_snapshot(p, authority=file_auth(issuer="someone else"), **kw).revision
+
+
+def test_manual_health_distinguishes_expired_authority_from_age():
+    short = Authority("ola", "rink-a", NOW - timedelta(days=1), NOW + timedelta(days=5))
+    cov = manual_source(manual(authority=short)).coverage(SCOPE)
+    assert source_health(cov, NOW + timedelta(days=1)).status is HealthStatus.CURRENT
+    assert source_health(cov, NOW + timedelta(days=6)).status is HealthStatus.AUTHORITY_EXPIRED
+    long_ = manual_source(manual()).coverage(SCOPE)  # valid 30 days, aged 31 > reattest_after
+    assert source_health(long_, NOW + timedelta(days=10), timedelta(days=7)).status \
+        is HealthStatus.NEEDS_REATTESTATION
+
+
+def test_authority_change_with_identical_windows_invalidates_previews(tmp_path):
+    store = ManualSnapshotStore(tmp_path)
+    first = manual()
+    store.replace(first, None)
+    shorter = manual(authority=Authority("ola", "rink-a November", AUTH.effective_from,
+                                         NOW + timedelta(days=2)))
+    assert shorter.windows == first.windows and shorter.revision != first.revision
+    diff = store.replace(shorter, first.revision)
+    assert diff.authority_changed and not diff.changes and diff.invalidates_previews and not diff.is_empty
+    same = store.replace(shorter, shorter.revision)
+    assert same.is_empty and not same.invalidates_previews

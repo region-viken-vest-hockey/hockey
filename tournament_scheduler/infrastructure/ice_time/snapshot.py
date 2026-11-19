@@ -11,7 +11,7 @@ from tournament_scheduler.application.ice_time_sources.validation import (
     IceTimeValidationError,
     validate_snapshot,
 )
-from tournament_scheduler.application.ports.common import PortCapabilities, SourceRef
+from tournament_scheduler.application.ports.common import PortCapabilities, SourceKind, SourceRef
 from tournament_scheduler.application.ports.ice_time import (
     AllocationWindow,
     Completeness,
@@ -37,6 +37,9 @@ class IceTimeSnapshot:
         validate_snapshot(self.scope, self.windows, self.events)
         if self.completeness is Completeness.COMPLETE and self.fresh_until is None:
             raise IceTimeValidationError(["a COMPLETE snapshot needs a freshness bound"])
+        if (self.completeness is Completeness.COMPLETE and self.authority is None
+                and self.source.kind is not SourceKind.LIVE):
+            raise IceTimeValidationError(["a COMPLETE manual or file snapshot needs a typed authority"])
 
     @property
     def revision(self) -> str:

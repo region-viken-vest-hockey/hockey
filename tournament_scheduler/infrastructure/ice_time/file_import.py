@@ -9,6 +9,7 @@ from datetime import date, datetime, time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from tournament_scheduler.application.ice_time_sources.authority import Authority
 from tournament_scheduler.application.ice_time_sources.validation import IceTimeValidationError
 from tournament_scheduler.application.ports.common import PortError, PortErrorCode, SourceKind, SourceRef
 from tournament_scheduler.application.ports.ice_time import (
@@ -53,12 +54,13 @@ def _rows_xlsx(data: bytes) -> tuple[list[str], list[dict[str, str]]]:
 
 def import_snapshot(
     path: Path, *, source_id: str, timezone: str, scope: SourceScope,
-    captured_at: datetime, attested_complete: bool = False,
-    fresh_until: datetime | None = None,
+    captured_at: datetime, authority: Authority | None = None,
 ) -> IceTimeSnapshot:
     """Parse and validate the whole file; any bad row rejects the import (no partial result).
 
-    Imports only ever yield AVAILABLE/BLOCKED windows, never booking assertions.
+    A ``COMPLETE`` declaration requires a typed ``Authority`` naming this file
+    as its document; without one the import is PARTIAL/UNKNOWN. Imports only
+    ever yield AVAILABLE/BLOCKED windows, never booking assertions.
     """
     path = Path(path)
     suffix = path.suffix.lower()
@@ -83,12 +85,16 @@ def import_snapshot(
             issues.append(f"row {n}: {exc}")
     if issues:
         raise IceTimeValidationError(issues)
-    if attested_complete and fresh_until is None:
-        raise IceTimeValidationError(["a complete import needs a freshness bound (fresh_until)"])
-    completeness = Completeness.COMPLETE if attested_complete else (
+    if authority is not None:
+        if authority.document != path.name:
+            raise IceTimeValidationError(
+                [f"authority document {authority.document!r} does not match imported file {path.name!r}"])
+        if not authority.effective_from <= captured_at < authority.effective_until:
+            raise IceTimeValidationError(["captured_at must fall inside the authority's effective interval"])
+    completeness = Completeness.COMPLETE if authority else (
         Completeness.PARTIAL if windows else Completeness.UNKNOWN)
     return IceTimeSnapshot(ref, scope, completeness, tuple(windows),
-                           fresh_until=fresh_until if attested_complete else None)
+                           fresh_until=authority.effective_until if authority else None, authority=authority)
 
 
 def file_source(snapshot: IceTimeSnapshot) -> SnapshotSource:

@@ -42,7 +42,10 @@ def availability_verdict(
 ) -> Verdict:
     """Same normalized facts give the same verdict whatever the source kind.
 
-    Blocking evidence always wins. Positive AVAILABLE (and a "nothing here"
+    Whole-probe semantics: the probe interval is judged as one unit. AVAILABLE
+    needs a single AVAILABLE window covering all of it (adjacent windows are not
+    stitched) and coverage spanning all of it; any overlapping blocker makes it
+    UNAVAILABLE. Blocking evidence always wins. Positive AVAILABLE (and a "nothing here"
     UNAVAILABLE) needs COMPLETE, fresh coverage of the probe; anything else
     (partial, unverified, stale or retained evidence) is UNKNOWN, never free ice.
     """
@@ -104,6 +107,7 @@ class HealthStatus(str, Enum):
     PARTIAL = "partial"
     UNVERIFIED = "unverified"
     NEEDS_REATTESTATION = "needs_reattestation"
+    AUTHORITY_EXPIRED = "authority_expired"
     UNCONFIGURED = "unconfigured"
 
 
@@ -128,6 +132,9 @@ def source_health(
     if c.completeness is Completeness.PARTIAL:
         return SourceHealth(HealthStatus.PARTIAL, c.source.kind, c.observed_at, "partial coverage")
     if c.source.kind is SourceKind.MANUAL:
+        if not c.is_fresh(now):  # the attestation's effective interval has ended
+            return SourceHealth(HealthStatus.AUTHORITY_EXPIRED, c.source.kind, c.observed_at,
+                                f"attestation by {c.source.actor} expired")
         if now - c.observed_at > reattest_after:
             return SourceHealth(HealthStatus.NEEDS_REATTESTATION, c.source.kind, c.observed_at,
                                 f"attested {c.observed_at.date()} by {c.source.actor}")

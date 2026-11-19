@@ -18,6 +18,7 @@ class Authority:
     scope: str
     effective_from: datetime
     effective_until: datetime
+    document: str = ""  # source document the attestation covers (required for file imports)
 
     def __post_init__(self) -> None:
         if not self.issuer.strip() or not self.scope.strip():
@@ -28,4 +29,4 @@ class Authority:
             raise ValueError("authority interval must have positive duration")
 
     def fingerprint(self) -> str:
-        return f"{self.issuer}|{self.scope}|{self.effective_from.isoformat()}|{self.effective_until.isoformat()}"
+        return f"{self.issuer}|{self.document}|{self.scope}|{self.effective_from.isoformat()}|{self.effective_until.isoformat()}"

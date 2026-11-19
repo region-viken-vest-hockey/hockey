@@ -53,10 +53,12 @@ class SnapshotDiff:
     changes: tuple[WindowChange, ...]
     completeness_changed: bool = False
     event_changes: tuple[EventChange, ...] = ()
+    authority_changed: bool = False
 
     @property
     def is_empty(self) -> bool:
-        return not self.changes and not self.completeness_changed and not self.event_changes
+        return (not self.changes and not self.completeness_changed and not self.event_changes
+                and not self.authority_changed)
 
     @property
     def invalidates_previews(self) -> bool:
@@ -67,6 +69,7 @@ class SnapshotDiff:
         """
         return (
             self.completeness_changed
+            or self.authority_changed
             or bool(self.event_changes)
             or any(c.kind is not ChangeKind.ADDED for c in self.changes)
         )
@@ -83,7 +86,7 @@ def _diff_events(old, new) -> tuple[EventChange, ...]:
 
 
 def diff_snapshots(old, new, old_completeness: Completeness, new_completeness: Completeness,
-                   old_events=(), new_events=()) -> SnapshotDiff:
+                   old_events=(), new_events=(), old_authority=None, new_authority=None) -> SnapshotDiff:
     """Diff two snapshots. Never mutates anything (no booking is moved)."""
     old_avail = [w for w in old if w.kind is WindowKind.AVAILABLE]
     new_avail = [w for w in new if w.kind is WindowKind.AVAILABLE]
@@ -106,4 +109,4 @@ def diff_snapshots(old, new, old_completeness: Completeness, new_completeness: C
                        for o in old_avail):
                 changes.append(WindowChange(ChangeKind.ADDED, w))
     return SnapshotDiff(tuple(changes), old_completeness is not new_completeness,
-                        _diff_events(old_events, new_events))
+                        _diff_events(old_events, new_events), old_authority != new_authority)
