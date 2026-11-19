@@ -22,7 +22,7 @@ Method: import/AST and path-literal search over `tournament_scheduler/`, `script
 
 | Assumption | Where | Owner | Target |
 |---|---|---|---|
-| Live scrapers (requests/Playwright) per booking system | `pipeline/scraper_*.py`, `data_sources/` | scraper adapters | `IceTimeSourcePort` live adapter (#968) |
+| Live scrapers (requests/Playwright) per booking system | `pipeline/scraper_*.py`, `data_sources/` | scraper adapters | `IceTimeSourcePort` live adapter (#968); per-club Outlook/BookUp/iCal bound by `infrastructure/ice_time/club_sources.py` (#978) |
 | Fixed allocation from the `Kilder` sheet | `pipeline/fixed_allocation_source.py` | source normalization | Allocation windows (a) from a manual/file adapter (#968) |
 | Calendar events, coverage, bookings | `booking/calendar_evidence.py`, `booking/calendar_bookings.py` | booking domain | Observed events/coverage (b) and assertions (c), kept distinct |
 | Source health and fabricated-interval detection | `pipeline/source_health.py`, `pipeline/source_integrity.py` | evidence owner | Unchanged; consumed through typed coverage |
