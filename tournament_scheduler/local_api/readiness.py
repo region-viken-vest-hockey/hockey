@@ -57,9 +57,12 @@ class LocalWorkspaceReadiness:
     """Checks contract, canonical schema/revision, writer lock, evidence and publication state."""
 
     def __init__(self, service: CanonicalSeasonService, season: str, root: Path,
+                 expected_version: str | None = None,
                  workflow_version: Callable[[], str] = application_workflow_version) -> None:
         self._service, self._season, self._root = service, season, Path(root)
         self._version = workflow_version
+        # The contract this session was started under; a different running version fails closed.
+        self._expected = expected_version if expected_version is not None else workflow_version()
 
     def check(self) -> ReadinessReport:
         b = LOCAL_BACKEND
@@ -67,6 +70,9 @@ class LocalWorkspaceReadiness:
             version = self._version()
         except Exception:
             return _refuse(b, R.WORKFLOW_VERSION_MISMATCH, "application workflow version could not be determined")
+        if version != self._expected:
+            return _refuse(b, R.WORKFLOW_VERSION_MISMATCH,
+                           f"running workflow {version} differs from the expected contract {self._expected}")
         if not self._service.store.has_state(self._season):
             return _refuse(b, R.STORE_UNAVAILABLE, "no canonical season state in this workspace")
         if not _writer_lock_free(self._root, self._season):

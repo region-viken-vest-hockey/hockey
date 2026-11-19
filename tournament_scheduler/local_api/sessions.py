@@ -26,13 +26,25 @@ MAX_SESSIONS = 32
 MAX_IDEMPOTENT = 200
 
 
+class Reservation:
+    """Atomic claim on one request_id: exactly one caller routes; repeats share its outcome."""
+
+    def __init__(self, digest: tuple) -> None:
+        self.digest = digest
+        self.started = threading.Event()
+        self.lock = threading.Lock()
+        self.job_id: str | None = None
+        self.result: dict[str, Any] | None = None
+        self.error: ApiError | None = None
+
+
 class OperateSession:
     def __init__(self, season: str, operator: str) -> None:
         self.session_id = uuid.uuid4().hex
         self.season, self.operator = season, operator
         self.phase = Phase.RECEIVED
         self.events: list[dict[str, Any]] = []
-        self.seen: dict[str, tuple[tuple, dict[str, Any]]] = {}
+        self.seen: dict[str, Reservation] = {}
         self.lock = threading.Lock()
 
     def emit(self, kind: str, data: Mapping[str, Any]) -> None:
@@ -44,9 +56,12 @@ class OperateSession:
 class OperateService:
     def __init__(self, uses: SeasonUseCases, jobs: JobManager, readiness: ReadinessCheck,
                  tools: ToolRegistry, router: IntentRouterPort | None = None,
-                 evidence_revision: Callable[[], str] = lambda: "none", wait_s: float = 5.0) -> None:
+                 evidence_revision: Callable[[], str] = lambda: "none", wait_s: float = 5.0,
+                 commit_gate: Any = None) -> None:
         self.uses, self.jobs, self.readiness, self.tools = uses, jobs, readiness, tools
         self.router, self.evidence_revision, self.wait_s = router, evidence_revision, wait_s
+        # One boundary serializes evidence changes with canonical commits (shared with IceTimeEvidence).
+        self.commit_gate = commit_gate or threading.RLock()
         self.proposals = ProposalBook()
         self._sessions: dict[str, OperateSession] = {}
         self._lock = threading.Lock()
@@ -85,39 +100,66 @@ class OperateService:
         if intent.season != s.season:
             raise ApiError(400, ErrorCode.BAD_REQUEST, "intent season differs from the session season")
         digest = intent.body_digest_fields()
-        with s.lock:
-            prior = s.seen.get(intent.request_id)
-            if prior is not None:
-                if prior[0] != digest:
-                    raise ApiError(409, ErrorCode.REQUEST_ID_REUSED, "request_id was used for a different intent")
-                return prior[1]
-        result = self._route(s, intent)
-        with s.lock:
-            if result["outcome"] != Outcome.PROPOSAL_PENDING.value:
-                s.seen[intent.request_id] = (digest, result)
+        with s.lock:  # atomic reservation: check and claim happen under one lock
+            res = s.seen.get(intent.request_id)
+            owner = res is None
+            if owner:
+                res = s.seen[intent.request_id] = Reservation(digest)
                 while len(s.seen) > MAX_IDEMPOTENT:
                     s.seen.pop(next(iter(s.seen)))
-        return result
+            elif res.digest != digest:
+                raise ApiError(409, ErrorCode.REQUEST_ID_REUSED, "request_id was used for a different intent")
+        if owner:
+            try:
+                self._start(s, intent, res)
+            except ApiError as exc:
+                res.error = exc
+                with s.lock:
+                    s.seen.pop(intent.request_id, None)  # a failed ingress may be retried
+                raise
+            finally:
+                res.started.set()
+        else:
+            res.started.wait(self.wait_s + 5)
+            if res.error is not None:
+                raise res.error
+        return self._resolve(s, res)
+
+    def _resolve(self, s: OperateSession, res: Reservation) -> dict[str, Any]:
+        with res.lock:
+            if res.result is not None:
+                return res.result
+            if res.job_id is None:
+                raise ApiError(503, ErrorCode.REVIEW_REQUIRED, "request is still being routed")
+            done = self.jobs.wait(res.job_id, self.wait_s)
+            if done.status in ("queued", "running"):
+                return {"outcome": Outcome.PROPOSAL_PENDING.value, "job": done.view()}
+            res.result = self._finish(s, done)
+            return res.result
 
     def _blocked(self, s: OperateSession, outcome: Outcome, reason: str, **extra: Any) -> dict[str, Any]:
         s.phase = Phase.DONE
         s.emit("outcome", {"outcome": outcome.value, "reason": reason})
         return {"outcome": outcome.value, "reason": reason, **extra}
 
-    def _route(self, s: OperateSession, intent: OperatorIntent) -> dict[str, Any]:
+    def _start(self, s: OperateSession, intent: OperatorIntent, res: Reservation) -> None:
         report = self.readiness.check()
         if report.status is not ReadinessStatus.READY:
-            return self._blocked(s, Outcome.REVIEW_REQUIRED, report.reason_code.value, readiness=report.to_dict())
+            res.result = self._blocked(s, Outcome.REVIEW_REQUIRED, report.reason_code.value,
+                                       readiness=report.to_dict())
+            return
         caps = self.uses.capabilities(s.season, s.operator, self.router is not None)
         if not caps["writable"]:
-            return self._blocked(s, Outcome.BLOCKED, "season_sealed_read_only")
+            res.result = self._blocked(s, Outcome.BLOCKED, "season_sealed_read_only")
+            return
         if intent.gesture is Gesture.TEXT and self.router is None:
-            return self._blocked(s, Outcome.REVIEW_REQUIRED, "no_provider_configured")
+            res.result = self._blocked(s, Outcome.REVIEW_REQUIRED, "no_provider_configured")
+            return
         s.phase = Phase.ROUTING
-        job = self.jobs.submit("operate_intent", intent.request_id, lambda ctx: self._work(s, intent, ctx))
-        done = self.jobs.wait(job.job_id, self.wait_s)
-        if done.status == "running" or done.status == "queued":
-            return {"outcome": Outcome.PROPOSAL_PENDING.value, "job": done.view()}
+        res.job_id = self.jobs.submit("operate_intent", intent.request_id,
+                                      lambda ctx: self._work(s, intent, ctx)).job_id
+
+    def _finish(self, s: OperateSession, done) -> dict[str, Any]:
         if done.status == "cancelled":
             s.phase = Phase.CANCELLED
             return {"outcome": Outcome.REVIEW_REQUIRED.value, "reason": "cancelled", "job": done.view()}
@@ -148,7 +190,8 @@ class OperateService:
         s.phase = Phase.PREVIEWING
         preview = self.uses.preview_move(intent)
         ctx.checkpoint()
-        proposal = self.proposals.add(intent, preview["revision"], self.evidence_revision(), preview, s.operator)
+        proposal = self.proposals.add(intent, preview["revision"], self.evidence_revision(), preview, s.operator,
+                                     s.session_id)
         clean = verdict_is_clean(preview["verdict"])
         outcome = Outcome.PREVIEWED if clean else Outcome.BLOCKED
         s.phase = Phase.AWAITING_APPROVAL if clean else Phase.DONE
@@ -159,22 +202,29 @@ class OperateService:
     # -- human-confirmed apply ----------------------------------------------
     def apply_proposal(self, session_id: str, proposal_id: str, confirm: str, actor: str) -> dict[str, Any]:
         s = self.session(session_id)
-        proposal = self.proposals.get(proposal_id)
-        report = self.readiness.check()
-        if report.status is not ReadinessStatus.READY:
-            raise ApiError(422, ErrorCode.REVIEW_REQUIRED, "readiness no longer verified",
-                           reason=report.reason_code.value)
-        if not verdict_is_clean(proposal.preview["verdict"]):
-            raise ApiError(422, ErrorCode.REVIEW_REQUIRED, "a blocked proposal cannot be applied")
-        claimed = self.proposals.claim(proposal_id, confirm)
+        if s.operator != actor:
+            raise ApiError(403, ErrorCode.FORBIDDEN, "session belongs to a different operator")
+        claimed = self.proposals.claim(proposal_id, confirm, session_id=session_id, actor=actor)
         s.phase = Phase.APPLYING
         try:
-            if claimed.evidence_revision != self.evidence_revision():
-                raise ApiError(409, ErrorCode.STALE_REVISION, "ice-time evidence changed since the preview")
-            result = self.uses.apply_move(claimed.intent, expected_revision=claimed.revision, actor=actor)
+            if not verdict_is_clean(claimed.preview["verdict"]):
+                raise ApiError(422, ErrorCode.REVIEW_REQUIRED, "a blocked proposal cannot be applied")
+            with self.commit_gate:  # evidence changes cannot interleave between the checks and the commit
+                report = self.readiness.check()
+                if report.status is not ReadinessStatus.READY:
+                    raise ApiError(422, ErrorCode.REVIEW_REQUIRED, "readiness no longer verified",
+                                   reason=report.reason_code.value)
+                if not self.uses.capabilities(s.season, s.operator, self.router is not None)["writable"]:
+                    raise ApiError(403, ErrorCode.READ_ONLY, "season is no longer writable")
+                if claimed.evidence_revision != self.evidence_revision():
+                    raise ApiError(409, ErrorCode.STALE_REVISION, "ice-time evidence changed since the preview")
+                result = self.uses.apply_move(claimed.intent, expected_revision=claimed.revision, actor=actor)
         except ApiError as exc:
             claimed.status = "stale" if exc.code is ErrorCode.STALE_REVISION else "pending"
             s.phase = Phase.FAILED
+            raise
+        except BaseException:
+            claimed.status = "pending"
             raise
         claimed.status = "applied"
         s.phase = Phase.DONE

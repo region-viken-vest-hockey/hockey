@@ -11,6 +11,7 @@ Booking assertions stay owned by the canonical booking-assertion use cases.
 from __future__ import annotations
 
 import hashlib
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
@@ -56,6 +57,8 @@ class IceTimeEvidence:
     def __init__(self, directory: Path) -> None:
         self.store = ManualSnapshotStore(directory)
         self.directory = Path(directory)
+        # Shared with OperateService: evidence swaps and canonical commits never interleave.
+        self.gate = threading.RLock()
 
     def source_ids(self) -> list[str]:
         if not self.directory.is_dir():
@@ -111,7 +114,8 @@ class IceTimeEvidence:
             raise ApiError(400, ErrorCode.BAD_REQUEST, f"invalid manual ice-time snapshot: {exc}") from exc
         expected = body.get("expected_revision")
         try:
-            diff = self.store.replace(snap, expected if isinstance(expected, str) else None)
+            with self.gate:
+                diff = self.store.replace(snap, expected if isinstance(expected, str) else None)
         except PortError as exc:
             code = ErrorCode.STALE_REVISION if exc.code is PortErrorCode.REVISION_CONFLICT else ErrorCode.BAD_REQUEST
             raise ApiError(409 if code is ErrorCode.STALE_REVISION else 400, code, exc.message) from exc

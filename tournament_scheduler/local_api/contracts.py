@@ -43,6 +43,7 @@ class ErrorCode(str, Enum):
     FORBIDDEN_ORIGIN = "forbidden_origin"
     FORBIDDEN_HOST = "forbidden_host"
     CSRF_REJECTED = "csrf_rejected"
+    FORBIDDEN = "forbidden"
     NOT_FOUND = "not_found"
     METHOD_NOT_ALLOWED = "method_not_allowed"
     PAYLOAD_TOO_LARGE = "payload_too_large"

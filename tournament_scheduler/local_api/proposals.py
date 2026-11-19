@@ -9,6 +9,7 @@ revision moved. Nothing in this module writes canonical state.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import threading
 import uuid
@@ -35,6 +36,7 @@ class Proposal:
     preview: dict[str, Any]
     status: str = "pending"  # pending | applied | superseded | stale
     created_by: str = ""
+    session_id: str = ""
     extra: dict[str, Any] = field(default_factory=dict)
 
     def view(self) -> dict[str, Any]:
@@ -48,13 +50,14 @@ class ProposalBook:
         self._items: dict[str, Proposal] = {}
 
     def add(self, intent: OperatorIntent, revision: str, evidence: str, preview: dict[str, Any],
-            actor: str) -> Proposal:
+            actor: str, session_id: str) -> Proposal:
         with self._lock:
             for old in self._items.values():  # a newer preview for the same target supersedes older ones
                 if (old.status == "pending" and old.intent.tournament_id == intent.tournament_id):
                     old.status = "superseded"
             digest = proposal_digest(intent, revision, evidence, preview.get("after_fingerprint"))
-            item = Proposal(uuid.uuid4().hex, intent, revision, evidence, digest, preview, created_by=actor)
+            item = Proposal(uuid.uuid4().hex, intent, revision, evidence, digest, preview, created_by=actor,
+                        session_id=session_id)
             self._items[item.proposal_id] = item
             while len(self._items) > MAX_PROPOSALS:
                 self._items.pop(next(iter(self._items)))
@@ -66,15 +69,23 @@ class ProposalBook:
             raise ApiError(404, ErrorCode.NOT_FOUND, "unknown proposal")
         return item
 
-    def claim(self, proposal_id: str, confirm: str) -> Proposal:
-        """Atomically consume a pending proposal for apply; replay/supersede/digest mismatch are rejected."""
+    def claim(self, proposal_id: str, confirm: str, *, session_id: str, actor: str) -> Proposal:
+        """Atomically consume a pending proposal for apply.
+
+        Ownership (creating session and operator), pending state and the exact reviewed
+        digest are all verified before the status changes; nothing else is touched here.
+        """
         with self._lock:
-            item = self.get(proposal_id)
+            item = self._items.get(proposal_id)
+            if item is None or item.session_id != session_id:
+                raise ApiError(404, ErrorCode.NOT_FOUND, "unknown proposal")  # no cross-session probing
+            if not hmac.compare_digest(item.created_by, actor):
+                raise ApiError(403, ErrorCode.FORBIDDEN, "proposal belongs to a different operator")
             if item.status == "applied":
                 raise ApiError(409, ErrorCode.REPLAYED, "this proposal was already applied")
             if item.status != "pending":
                 raise ApiError(409, ErrorCode.STALE_REVISION, f"proposal is {item.status}")
-            if confirm != item.digest:
+            if not hmac.compare_digest(confirm.encode(), item.digest.encode()):
                 raise ApiError(400, ErrorCode.BAD_REQUEST, "confirmation does not match the reviewed change")
             item.status = "applying"
             return item

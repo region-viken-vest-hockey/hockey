@@ -24,7 +24,7 @@ from .routes import LocalApp
 from .security import SecurityPolicy
 from .server import make_server
 from .sessions import OperateService
-from .tools import IntentRouterPort, Tool, ToolRegistry
+from .tools import IntentRouterPort, ToolRegistry
 from .usecases import SeasonUseCases
 
 LOG = logging.getLogger("operate.local_api")
@@ -37,14 +37,10 @@ def build_app(workspace: Path, season: str, *, service: CanonicalSeasonService |
     uses = SeasonUseCases(service)
     ice = IceTimeEvidence(workspace / "ice_time")
     jobs = JobManager()
-    tools = ToolRegistry([
-        Tool("season_summary", "inspect", lambda season: uses.summary(season)),
-        Tool("tournament_inspection", "inspect", lambda season, tournament_id: uses.tournament(season, tournament_id)),
-        Tool("ice_time_sources", "search", lambda: ice.list()),
-        Tool("move_preview", "preview", lambda intent: uses.preview_move(intent)),
-    ])
+    tools = ToolRegistry(uses, ice)
     readiness = LocalWorkspaceReadiness(service, season, workspace / "season")
-    operate = OperateService(uses, jobs, readiness, tools, router, ice.evidence_revision, wait_s)
+    operate = OperateService(uses, jobs, readiness, tools, router, ice.evidence_revision, wait_s,
+                             commit_gate=ice.gate)
     security = SecurityPolicy(operator=operator or getpass.getuser())
     app = LocalApp(security=security, uses=uses, operate=operate, ice=ice, jobs=jobs, season=season,
                    log=lambda r: LOG.info("%s", r))

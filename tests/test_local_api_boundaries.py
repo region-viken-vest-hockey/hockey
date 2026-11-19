@@ -12,7 +12,7 @@ import pytest
 from tests.local_api_support import SEASON, Client, make_app, make_workspace
 from tournament_scheduler.application.ports.readiness import ReadinessReason as R, ReadinessStatus
 from tournament_scheduler.local_api.readiness import LegacyGitReadiness, LocalWorkspaceReadiness
-from tournament_scheduler.local_api.tools import Tool, ToolRefused, ToolRegistry
+from tournament_scheduler.local_api.tools import ToolRefused, ToolRegistry
 
 
 def test_local_readiness_is_git_free_and_ready_on_a_plain_directory(tmp_path):
@@ -80,15 +80,18 @@ def test_legacy_git_preflight_adapter_survives_runner_failure():
     assert LegacyGitReadiness(Path("."), runner=boom).check().status is ReadinessStatus.REVIEW_REQUIRED
 
 
-def test_tool_registry_allows_only_inspect_search_preview_plan():
-    ok = ToolRegistry([Tool("season_summary", "inspect", lambda: 1), Tool("plan_options", "plan", lambda: 2)])
-    assert ok.invoke("plan_options") == 2
+def test_tool_registry_is_closed_to_arbitrary_callables_and_unknown_names(tmp_path):
+    app, _ = make_app(make_workspace(tmp_path))
+    reg = app.operate.tools
     with pytest.raises(ToolRefused):
-        ok.invoke("shell")
-    for name, kind in [("apply_move", "preview"), ("publish_season", "inspect"), ("git_push", "search"),
-                       ("read_file", "inspect"), ("anything", "apply"), ("approve_tournament", "plan")]:
+        ToolRegistry([lambda: None], None)  # type: ignore[arg-type]
+    with pytest.raises(ToolRefused):
+        ToolRegistry(object(), object())  # type: ignore[arg-type]
+    for name in ("shell", "apply_move", "publish_season", "git_push", "read_file", "approve_tournament"):
         with pytest.raises(ToolRefused):
-            ToolRegistry([Tool(name, kind, lambda: None)])
+            reg.invoke(name)
+    assert {reg.kind(n) for n in reg.names()} <= {"inspect", "search", "preview", "plan"}
+    assert not hasattr(reg, "register") and not hasattr(reg, "add")
 
 
 def test_default_app_registry_has_no_mutating_capability(tmp_path):

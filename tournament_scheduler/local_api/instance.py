@@ -45,8 +45,13 @@ class WorkspaceInstance:
         self._fh.truncate()
         self._fh.write(json.dumps({"pid": os.getpid(), "port": port}))
         self._fh.flush()
-        fd = os.open(self.bootstrap_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        path = self.bootstrap_file
+        if path.is_symlink():
+            raise OSError(f"refusing to write the bootstrap token through a symlink: {path}")
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW, 0o600)
         with os.fdopen(fd, "w") as out:
+            os.fchmod(out.fileno(), 0o600)  # an existing file keeps its old mode otherwise
+            out.truncate(0)
             out.write(bootstrap_token)
 
     def release(self) -> None:
