@@ -207,11 +207,13 @@ def test_process_interruption_mid_apply_leaves_canonical_state_intact(env, monke
         raise KeyboardInterrupt  # simulates the process dying inside the atomic commit
 
     monkeypatch.setattr(service.store, "write", die)
-    with pytest.raises(KeyboardInterrupt):
-        app.handle("POST", f"/api/v1/operate/sessions/{sid}/proposals/{p['proposal_id']}/apply",
+    r = app.handle("POST", f"/api/v1/operate/sessions/{sid}/proposals/{p['proposal_id']}/apply",
                    {"Host": "127.0.0.1:5555", "Origin": "http://127.0.0.1:5555", "Cookie": c.cookie,
                     "X-CSRF-Token": c.csrf, "Content-Type": "application/json"},
                    json.dumps({"confirm": p["digest"]}).encode())
+    # an interrupted write is ambiguous at the boundary: terminal recovery, never a blind retry
+    assert r.status == 409 and r.payload["error"]["code"] == "recovery_required"
+    assert app.operate.proposals.get(p["proposal_id"]).status == "recovery_required"
     monkeypatch.undo()
     assert tree_digest(ws / "season") == before
     app2, _ = make_app(ws)  # restart: state loads and is still at the old revision

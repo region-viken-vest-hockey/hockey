@@ -1,7 +1,7 @@
 """Revision-bound proposals: ONE lifecycle state machine behind one lock.
 
     pending -> applying -> applied | stale | recovery_required
-    pending -> superseded | cancelled          applying -> pending (only if provably unwritten
+    pending -> superseded | cancelled          applying -> pending (only after a typed no-write rejection,
                                                and not replaced meanwhile, else superseded)
 
 Every transition is a method of :class:`ProposalBook` taking the book lock; callers
@@ -23,7 +23,7 @@ from typing import Any, Callable
 from .contracts import ApiError, ErrorCode, OperatorIntent
 
 MAX_PROPOSALS = 64
-TERMINAL = frozenset({"applied", "stale", "recovery_required", "superseded", "cancelled"})
+TERMINAL = frozenset({"applied", "stale", "recovery_required", "superseded"})
 LIVE = frozenset({"pending", "applying"})
 
 
@@ -74,6 +74,7 @@ class ProposalBook:
     def register(self, intent: OperatorIntent, revision: str, evidence: str, preview: dict[str, Any],
                  actor: str, session_id: str, *, job_id: str | None = None,
                  still_active: Callable[[], bool] = lambda: True) -> Proposal | None:
+        # ``still_active`` is the job's atomic cancellation boundary (JobContext.try_commit).
         """Create a pending proposal, superseding older pending ones for the same target.
 
         Returns ``None`` (creating nothing) when the originating job is no longer active,
@@ -138,13 +139,6 @@ class ProposalBook:
                            and q.status != "cancelled" for q in self._items.values())
             item.status = "superseded" if replaced else "pending"
             return item.status
-
-    def cancel_for_job(self, job_id: str) -> int:
-        with self._lock:
-            hit = [p for p in self._items.values() if p.job_id == job_id and p.status == "pending"]
-            for p in hit:
-                p.status = "cancelled"
-            return len(hit)
 
     def _move(self, item: Proposal, src: str, dst: str) -> None:
         with self._lock:

@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from tournament_scheduler.application.canonical_season_service import CanonicalSeasonService
+from tournament_scheduler.distribution_update import WriteBlockedError
 from tournament_scheduler.infrastructure.canonical_season_store import CanonicalRevisionConflictError
 
 from .contracts import ApiError, ErrorCode, MOVE_DIMENSIONS, OperatorIntent
@@ -25,6 +26,22 @@ def _season_error(exc: Exception) -> ApiError:
     if isinstance(exc, FileNotFoundError):
         return ApiError(404, ErrorCode.NOT_FOUND, "unknown season")
     return ApiError(422, ErrorCode.REVIEW_REQUIRED, str(exc) or name)
+
+
+class NoWriteRejection(ApiError):
+    """A rejection the canonical service raises *before* any write (its typed contract):
+
+    ``CanonicalRevisionConflictError`` (compare-and-swap inside the write lock, before the swap) and
+    ``WriteBlockedError`` (the write gate runs before the use case does any work). Nothing else is
+    ever treated as proof that no write happened.
+    """
+
+
+class AmbiguousCommit(Exception):
+    """The commit boundary was entered and the outcome is unknown: the caller must reconcile."""
+
+
+NO_WRITE_TYPES = (CanonicalRevisionConflictError, WriteBlockedError)
 
 
 class SeasonUseCases:
@@ -106,8 +123,11 @@ class SeasonUseCases:
             self.service.move_tournament(
                 season=intent.season, dry_run=False, request_id=intent.request_id, actor=actor,
                 expected_revision=expected_revision, **self._move_kwargs(intent))
-        except Exception as exc:
-            raise _season_error(exc) from exc
+        except NO_WRITE_TYPES as exc:
+            mapped = _season_error(exc)
+            raise NoWriteRejection(mapped.status, mapped.code, mapped.message) from exc
+        except BaseException as exc:  # every other failure after the boundary is ambiguous
+            raise AmbiguousCommit(type(exc).__name__) from exc
         try:  # the write has committed; a failed read-back must not turn success into a failure
             after: str | None = self.revision(intent.season)
         except Exception:

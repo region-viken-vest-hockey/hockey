@@ -56,25 +56,31 @@ def run(workspace: Path, season: str, *, host: str = "127.0.0.1", open_browser: 
     except InstanceRunningError as exc:
         print(str(exc))
         return 2
-    app = build_app(workspace, season)
-    server = make_server(app, host, 0, allow_remote=allow_remote)
-    port = server.server_port
-    app.security.set_port(port)
-    instance.publish(port, app.security.bootstrap_token())
-    stop = threading.Event()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        signal.signal(sig, lambda *_: stop.set())
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    print(f"operate listening on http://127.0.0.1:{port}/ (bootstrap token in {instance.bootstrap_file})", flush=True)
-    if open_browser:
-        webbrowser.open(f"http://127.0.0.1:{port}/#{app.security.bootstrap_token()}")
+    # Cleanup boundary starts here: whatever was initialised is torn down, in reverse order.
+    app = server = thread = None
     try:
+        app = build_app(workspace, season)
+        server = make_server(app, host, 0, allow_remote=allow_remote)
+        port = server.server_port
+        app.security.set_port(port)
+        instance.publish(port, app.security.bootstrap_token())
+        stop = threading.Event()
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            signal.signal(sig, lambda *_: stop.set())
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        print(f"operate listening on http://127.0.0.1:{port}/ (bootstrap token in {instance.bootstrap_file})",
+              flush=True)
+        if open_browser:
+            webbrowser.open(f"http://127.0.0.1:{port}/#{app.security.bootstrap_token()}")
         stop.wait()
     finally:
-        server.shutdown()
-        server.server_close()
-        app.jobs.shutdown()
+        if server is not None:
+            if thread is not None:
+                server.shutdown()
+            server.server_close()
+        if app is not None:
+            app.jobs.shutdown()
         instance.release()
     return 0
 

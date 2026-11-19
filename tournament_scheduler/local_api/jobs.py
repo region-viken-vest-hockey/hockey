@@ -37,6 +37,8 @@ class JobState:
     error: dict[str, Any] | None = None
     cost: dict[str, Any] = field(default_factory=lambda: {"provider_calls": 0, "elapsed_s": 0.0})
     result: Any = None
+    committed: bool = False  # past the cancellation boundary: the job will finish, cancel is "too late"
+    guard: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def view(self) -> dict[str, Any]:
         return {"job_id": self.job_id, "kind": self.kind, "request_id": self.request_id,
@@ -54,6 +56,20 @@ class JobContext:
 
     def is_active(self) -> bool:
         return not self._cancel.is_set()
+
+    def try_commit(self) -> bool:
+        """The single atomic cancellation boundary for this job.
+
+        Under the job guard either cancellation was already requested (returns False and the
+        caller must create nothing) or the job is marked committed (a later cancel is "too late"
+        and the job may finish ``succeeded``). A job therefore never both succeeds with a
+        registered result and reports cancelled.
+        """
+        with self._state.guard:
+            if self._cancel.is_set():
+                return False
+            self._state.committed = True
+            return True
 
     def report(self, phase: str, progress: float) -> None:
         self.checkpoint()
@@ -92,8 +108,12 @@ class JobManager:
             if cancel.is_set():
                 raise JobCancelled()
             state.status = "running"
-            state.result = work(JobContext(state, cancel))
-            state.status, state.phase, state.progress = "succeeded", "done", 1.0
+            result = work(JobContext(state, cancel))
+            with state.guard:  # final cancellation checkpoint, consistent with try_commit
+                if cancel.is_set() and not state.committed:
+                    raise JobCancelled()
+                state.result = result
+                state.status, state.phase, state.progress = "succeeded", "done", 1.0
         except JobCancelled:
             state.status, state.phase = "cancelled", "cancelled"
         except ApiError as exc:
@@ -119,10 +139,14 @@ class JobManager:
         entry[2].wait(timeout)
         return entry[0]
 
-    def cancel(self, job_id: str) -> JobState:
-        self.get(job_id)
-        self._jobs[job_id][1].set()
-        return self._jobs[job_id][0]
+    def cancel(self, job_id: str) -> tuple[JobState, bool]:
+        """Request cancellation. Returns ``(state, accepted)``; ``accepted`` is False when too late."""
+        state = self.get(job_id)
+        with state.guard:
+            if state.committed or state.status in ("succeeded", "failed", "cancelled"):
+                return state, False
+            self._jobs[job_id][1].set()
+            return state, True
 
     def shutdown(self) -> None:
         with self._lock:

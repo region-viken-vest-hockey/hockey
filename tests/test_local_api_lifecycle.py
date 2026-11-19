@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import threading
 import time
 from datetime import datetime, timedelta, timezone
@@ -65,14 +66,56 @@ def test_failure_after_commit_before_response_is_recovery_required_never_pending
     assert "reconciliation_required" in kinds
 
 
-def test_ambiguous_failure_that_provably_wrote_nothing_returns_to_pending(env, monkeypatch):
+@pytest.mark.parametrize("make", [
+    lambda: RuntimeError("unknown"), lambda: OSError("disk full during swap"),
+    lambda: __import__("tournament_scheduler.infrastructure.canonical_season_store", fromlist=["x"])
+    .CanonicalCommitDurabilityError("durability uncertain"),
+    lambda: __import__("tournament_scheduler.application.canonical_season.shared", fromlist=["x"])
+    .SeasonStateError("validation-looking refusal"),
+])
+def test_any_untyped_failure_after_the_commit_boundary_is_recovery_required_not_retryable(env, monkeypatch, make):
+    """Unchanged revision is NOT proof of no write: only the service's typed pre-write errors may release."""
     _, app, service, c, sid, rev = env
     p = _preview(c, sid, rev)["proposal"]
-    monkeypatch.setattr(app.operate.uses, "apply_move", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("x")))
+
+    def boom(**kw):
+        if not kw.get("dry_run"):
+            raise make()
+        return real(**kw)
+
+    real = service.move_tournament
+    monkeypatch.setattr(service, "move_tournament", boom)
     r = _apply(c, sid, p)
-    assert r.status == 500
-    # RuntimeError is wrapped by the route into 500; the proposal is retryable because the revision is unchanged
-    assert app.operate.proposals.get(p["proposal_id"]).status == "pending"
+    assert r.status == 409 and r.payload["error"]["code"] == "recovery_required"
+    assert app.operate.proposals.get(p["proposal_id"]).status == "recovery_required"
+    monkeypatch.undo()
+    again = _apply(c, sid, p)
+    assert again.status == 409 and again.payload["error"]["code"] == "recovery_required"  # not retryable
+
+
+def test_typed_no_write_rejections_are_the_only_ones_that_release_or_stale(env, monkeypatch):
+    from tournament_scheduler.distribution_update import WriteBlockedError
+    from tournament_scheduler.infrastructure.canonical_season_store import CanonicalRevisionConflictError
+    _, app, service, c, sid, rev = env
+    p = _preview(c, sid, rev)["proposal"]
+    real = service.move_tournament
+
+    def raiser(exc):
+        def f(**kw):
+            if kw.get("dry_run"):
+                return real(**kw)
+            raise exc
+        return f
+
+    monkeypatch.setattr(service, "move_tournament", raiser(WriteBlockedError("blocked by manifest")))
+    r = _apply(c, sid, p)
+    assert r.status == 403 and r.payload["error"]["code"] == "read_only"
+    assert app.operate.proposals.get(p["proposal_id"]).status == "pending"  # gate runs before any work
+    monkeypatch.setattr(service, "move_tournament",
+                        raiser(CanonicalRevisionConflictError(expected_revision=rev, current_revision="x")))
+    r = _apply(c, sid, p)
+    assert r.status == 409 and r.payload["error"]["code"] == "stale_revision"
+    assert app.operate.proposals.get(p["proposal_id"]).status == "stale"
 
 
 def test_readback_failure_after_a_successful_commit_still_reports_applied(env, monkeypatch):
@@ -243,12 +286,89 @@ def test_cancelled_operation_creates_no_applicable_proposal(env, monkeypatch):
     assert app.operate.submit(sid, _intent("req-can-0001", rev))["reason"] == "cancelled"
 
 
-def test_cancel_for_job_cancels_pending_proposals_of_that_job_only():
-    book = ProposalBook()
-    i = OperatorIntent.parse(move_intent(revision="r"))
-    a = book.register(i, "r", "e", {"after_fingerprint": "a"}, "op", "s", job_id="j1")
-    assert book.cancel_for_job("j1") == 1 and a.status == "cancelled"
-    assert book.register(i, "r", "e", {}, "op", "s", still_active=lambda: False) is None
+def test_cancel_after_registration_loses_job_succeeds_and_proposal_stays_pending(env, monkeypatch):
+    """Barrier fires cancel between registration and worker return: cancel is 'too late', one terminal state."""
+    _, app, service, c, sid, rev = env
+    box = {}
+    real_register = app.operate.proposals.register
+
+    def register_then_cancel(*a, **kw):
+        prop = real_register(*a, **kw)
+        t = threading.Thread(target=lambda: box.update(cancel=app.operate.cancel_job(kw["job_id"])))
+        t.start()
+        t.join(5)
+        return prop
+
+    monkeypatch.setattr(app.operate.proposals, "register", register_then_cancel)
+    out = app.operate.submit(sid, _intent("req-cr-0001", rev))
+    assert box["cancel"]["cancel"] == "too_late"
+    assert out["outcome"] == "previewed" and out["job"]["status"] == "succeeded"
+    (prop,) = app.operate.proposals.snapshot()
+    assert prop.status == "pending" and _apply(c, sid, out["proposal"]).status == 200
+
+
+def test_cancel_before_registration_wins_job_cancelled_and_no_proposal(env, monkeypatch):
+    _, app, service, c, sid, rev = env
+    real_preview = app.operate.uses.preview_move
+    box = {}
+
+    def preview_then_cancel(intent):
+        result = real_preview(intent)
+        job_id = app.jobs._jobs and next(iter(app.jobs._jobs))
+        box["cancel"] = app.operate.cancel_job(job_id)  # fires after preview, before registration
+        return result
+
+    monkeypatch.setattr(app.operate.uses, "preview_move", preview_then_cancel)
+    out = app.operate.submit(sid, _intent("req-cr-0002", rev))
+    assert box["cancel"]["cancel"] == "requested"
+    assert out["outcome"] == "review_required" and out["reason"] == "cancelled"
+    assert out["job"]["status"] == "cancelled" and app.operate.proposals.snapshot() == []
+
+
+def test_try_commit_is_the_single_boundary_even_under_a_cancel_race():
+    from tournament_scheduler.local_api.jobs import JobManager
+    for _ in range(100):
+        jm = JobManager()
+        go, hold, seen = threading.Event(), threading.Event(), {}
+
+        def work(ctx):
+            go.set()
+            hold.wait(5)
+            seen["committed"] = ctx.try_commit()
+            return "r"
+
+        job = jm.submit("t", "req-tc-00001", work)
+        go.wait(5)
+        t = threading.Thread(target=lambda: seen.update(cancel=jm.cancel(job.job_id)[1]))
+        t.start()
+        hold.set()
+        t.join(5)
+        done = jm.wait(job.job_id, 5)
+        assert (done.status == "succeeded") == seen["committed"]  # never succeeded-and-cancelled or neither
+        assert seen["cancel"] != seen["committed"]  # exactly one side wins
+        jm.shutdown()
+
+
+# 3 (round 3) ---------------------------------------------------------------------------------
+def test_evicted_request_ids_are_tombstoned_never_reused_as_new(env, monkeypatch):
+    _, app, service, c, sid, rev = env
+    monkeypatch.setattr(sessions_mod, "MAX_IDEMPOTENT", 2)
+    calls = []
+    real = service.move_tournament
+    monkeypatch.setattr(service, "move_tournament", lambda **kw: (calls.append(kw), real(**kw))[1])
+    for n, d in enumerate(("2026-09-13", "2026-09-14", "2026-09-15", "2026-09-16"), 1):
+        app.operate.submit(sid, _intent(f"req-ts-000{n}", rev, d))
+    s = app.operate.session(sid)
+    assert "req-ts-0001" not in s.seen and "req-ts-0001" in s.tombstones
+    before = len(calls)
+    with pytest.raises(ApiError) as err:
+        app.operate.submit(sid, _intent("req-ts-0001", rev, "2026-09-13"))
+    assert err.value.status == 410 and err.value.code.value == "request_id_expired"
+    assert err.value.details["recorded_outcome"] == "previewed"
+    with pytest.raises(ApiError) as other:  # same id, different body: still a reuse conflict
+        app.operate.submit(sid, _intent("req-ts-0001", rev, "2026-09-20"))
+    assert other.value.code.value == "request_id_reused"
+    assert len(calls) == before  # no fresh job, no new preview
 
 
 # 6 ---------------------------------------------------------------------------------------------
@@ -295,3 +415,54 @@ def test_bootstrap_file_replacement_is_atomic_and_leaves_no_temp(tmp_path):
     inst.release()
 
 
+
+
+# 4 (round 3) ---------------------------------------------------------------------------------
+def test_launcher_failure_during_bootstrap_publish_releases_lock_and_removes_files(tmp_path, monkeypatch):
+    from tournament_scheduler.local_api import launcher
+    from tournament_scheduler.local_api.instance import WorkspaceInstance
+    ws = make_workspace(tmp_path)
+
+    def failing_publish(self, port, token):
+        self.bootstrap_file.write_text("partial")
+        raise OSError("disk full")
+
+    monkeypatch.setattr(WorkspaceInstance, "publish", failing_publish)
+    with pytest.raises(OSError):
+        launcher.run(ws, SEASON, open_browser=False)
+    probe = WorkspaceInstance(ws)
+    probe.acquire()  # the lock was released
+    assert not probe.bootstrap_file.exists()
+    probe.release()
+
+
+def test_launcher_failure_while_building_the_app_releases_the_instance(tmp_path, monkeypatch):
+    from tournament_scheduler.local_api import launcher
+    from tournament_scheduler.local_api.instance import WorkspaceInstance
+    ws = make_workspace(tmp_path)
+    monkeypatch.setattr(launcher, "build_app", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("init failed")))
+    with pytest.raises(RuntimeError):
+        launcher.run(ws, SEASON, open_browser=False)
+    probe = WorkspaceInstance(ws)
+    probe.acquire()
+    probe.release()
+
+
+def test_publish_failure_removes_the_temp_bootstrap_file(tmp_path, monkeypatch):
+    from tournament_scheduler.local_api.instance import WorkspaceInstance
+    inst = WorkspaceInstance(tmp_path)
+    inst.acquire()
+    monkeypatch.setattr(os, "replace", lambda *a, **k: (_ for _ in ()).throw(OSError("rename failed")))
+    with pytest.raises(OSError):
+        inst.publish(1, "tok")
+    assert not list(inst.state_dir.glob("*.tmp"))
+    monkeypatch.undo()
+    inst.release()
+
+
+def test_readiness_detail_keeps_source_specific_reasons(env):
+    ws, app, _, c, sid, rev = env
+    c.result("PUT", "/api/v1/ice-time/sources", dict(MANUAL, authority=_authority()))
+    app.ice._clock = lambda: NOW + timedelta(days=2)
+    detail = c.result("GET", "/api/v1/readiness")["detail"]
+    assert "skien-manual (stale)" in detail

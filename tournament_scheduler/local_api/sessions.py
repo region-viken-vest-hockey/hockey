@@ -19,11 +19,12 @@ from .jobs import JobCancelled, JobContext, JobManager
 from .proposals import ProposalBook
 from .readiness import ReadinessCheck
 from .tools import IntentRouterPort, ToolRegistry
-from .usecases import SeasonUseCases, verdict_is_clean
+from .usecases import NoWriteRejection, SeasonUseCases, verdict_is_clean
 
 MAX_EVENTS = 500
 MAX_SESSIONS = 32
 MAX_IDEMPOTENT = 200
+MAX_TOMBSTONES = 2000
 
 
 class Reservation:
@@ -45,6 +46,7 @@ class OperateSession:
         self.phase = Phase.RECEIVED
         self.events: list[dict[str, Any]] = []
         self.seen: dict[str, Reservation] = {}
+        self.tombstones: dict[str, tuple[tuple, str]] = {}  # evicted id -> (digest, recorded outcome)
         self.lock = threading.Lock()
 
     def emit(self, kind: str, data: Mapping[str, Any]) -> None:
@@ -101,6 +103,13 @@ class OperateService:
             raise ApiError(400, ErrorCode.BAD_REQUEST, "intent season differs from the session season")
         digest = intent.body_digest_fields()
         with s.lock:  # atomic reservation: check and claim happen under one lock
+            old = s.tombstones.get(intent.request_id)
+            if old is not None:  # an evicted id is never treated as new
+                if old[0] != digest:
+                    raise ApiError(409, ErrorCode.REQUEST_ID_REUSED, "request_id was used for a different intent")
+                raise ApiError(410, ErrorCode.REQUEST_ID_EXPIRED,
+                               "request_id was already processed; its reservation has expired",
+                               recorded_outcome=old[1])
             res = s.seen.get(intent.request_id)
             owner = res is None
             if owner:
@@ -130,7 +139,11 @@ class OperateService:
             gone = next((k for k, r in s.seen.items() if self._completed(r)), None)
             if gone is None:
                 raise ApiError(503, ErrorCode.REVIEW_REQUIRED, "too many active requests in this session")
-            del s.seen[gone]
+            gone_res = s.seen.pop(gone)
+            outcome = (gone_res.result or {}).get("outcome") or ("error" if gone_res.error else "completed")
+            s.tombstones[gone] = (gone_res.digest, str(outcome))
+            while len(s.tombstones) > MAX_TOMBSTONES:
+                s.tombstones.pop(next(iter(s.tombstones)))
 
     def _completed(self, res: Reservation) -> bool:
         if res.error is not None or res.result is not None:
@@ -209,7 +222,7 @@ class OperateService:
             preview = self.uses.preview_move(intent)
             proposal = self.proposals.register(
                 intent, preview["revision"], self.evidence_revision(), preview, s.operator, s.session_id,
-                job_id=ctx.job_id, still_active=ctx.is_active)
+                job_id=ctx.job_id, still_active=ctx.try_commit)
         if proposal is None:
             raise JobCancelled()  # cancelled before registration: nothing applicable is created
         clean = verdict_is_clean(preview["verdict"])
@@ -252,32 +265,27 @@ class OperateService:
         return {"outcome": Outcome.APPLIED.value, "result": result}
 
     def _settle_failed_apply(self, s: OperateSession, claimed, exc: BaseException, committing: bool) -> None:
-        """Pick the terminal/next state; only a *proven* no-write may return a proposal to pending."""
+        """Conservative policy. Before the commit boundary nothing was written. After it, ONLY a typed
+        ``NoWriteRejection`` (the service's own pre-write errors) may stale/release the proposal; every
+        other exception, including unknown ones, is ``recovery_required`` and terminal. An unchanged
+        revision is deliberately NOT accepted as proof of no write."""
         book = self.proposals
-        if isinstance(exc, ApiError) and exc.code is ErrorCode.STALE_REVISION:
-            book.finish_stale(claimed)  # compare-and-swap refusal or evidence change: nothing was written
-            return
-        if not committing:
-            book.release_unwritten(claimed)
-            return
-        try:  # ambiguous: prove "no write" from the durable revision, otherwise reconcile
-            unchanged = self.uses.revision(s.season) == claimed.revision
-        except Exception:
-            unchanged = False
-        if unchanged:
-            book.release_unwritten(claimed)
+        typed_no_write = not committing or isinstance(exc, NoWriteRejection)
+        if typed_no_write:
+            if isinstance(exc, ApiError) and exc.code is ErrorCode.STALE_REVISION:
+                book.finish_stale(claimed)
+            else:
+                book.release_unwritten(claimed)
             return
         book.mark_recovery_required(claimed)
         s.emit("reconciliation_required", {"proposal_id": claimed.proposal_id, "revision_before": claimed.revision})
+        if not isinstance(exc, Exception):
+            return  # KeyboardInterrupt/SystemExit propagate unchanged; the proposal is already terminal
         raise ApiError(409, ErrorCode.RECOVERY_REQUIRED,
                        "the canonical write may have committed; reconcile against the durable revision before retrying",
                        proposal_id=claimed.proposal_id) from exc
 
     def cancel_job(self, job_id: str) -> dict[str, Any]:
-        state = self.jobs.get(job_id)
-        if state.status in ("queued", "running"):
-            self.jobs.cancel(job_id)
-            self.proposals.cancel_for_job(job_id)  # closes the register/cancel race
-        return self.jobs.get(job_id).view()
-
-
+        """Cancel wins only before the job registered its result; afterwards it is "too late"."""
+        state, accepted = self.jobs.cancel(job_id)
+        return {**state.view(), "cancel": "requested" if accepted else "too_late"}

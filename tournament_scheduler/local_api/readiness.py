@@ -97,10 +97,12 @@ class LocalWorkspaceReadiness:
                 ev = self._evidence()
             except Exception:
                 return _refuse(b, R.INSPECTION_FAILED, "ice-time evidence status could not be established")
+            bad = ", ".join(f"{sid} ({st})" for sid, st in sorted(ev.get("sources", {}).items()) if st != "ok")
             if ev["state"] == "unreadable":
-                return _refuse(b, R.INSPECTION_FAILED, "an ice-time source is unreadable")
+                return _refuse(b, R.INSPECTION_FAILED, f"ice-time source unreadable: {bad}")
             if ev["state"] in ("stale", "missing"):
-                return _refuse(b, R.EVIDENCE_STALE, f"ice-time evidence is {ev['state']}")
+                return _refuse(b, R.EVIDENCE_STALE,
+                               f"ice-time evidence is {ev['state']}" + (f": {bad}" if bad else " (none configured)"))
         return ReadinessReport(b, ReadinessStatus.READY, R.READY_CURRENT,
                                "local workspace contract and canonical state verified",
                                workflow_version=version, canonical_revision=str(revision))

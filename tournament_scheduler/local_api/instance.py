@@ -50,13 +50,18 @@ class WorkspaceInstance:
             raise OSError(f"refusing to write the bootstrap token through a symlink: {path}")
         tmp = path.with_name(path.name + ".tmp")
         tmp.unlink(missing_ok=True)
-        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-        with os.fdopen(fd, "w") as out:
-            out.write(bootstrap_token)
-        os.replace(tmp, path)  # atomic: a reader never sees a partial or wrong-mode token file
+        try:
+            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, "w") as out:
+                out.write(bootstrap_token)
+            os.replace(tmp, path)  # atomic: a reader never sees a partial or wrong-mode token file
+        except BaseException:
+            tmp.unlink(missing_ok=True)
+            raise
 
     def release(self) -> None:
         self.bootstrap_file.unlink(missing_ok=True)
+        self.bootstrap_file.with_name(self.bootstrap_file.name + ".tmp").unlink(missing_ok=True)
         if self._fh is not None:
             fcntl.flock(self._fh, fcntl.LOCK_UN)
             self._fh.close()
