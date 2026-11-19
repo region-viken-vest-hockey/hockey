@@ -1,8 +1,8 @@
 """Thin adapter: legacy ``CalendarEvent`` producer output -> live port.
 
 Wraps any callable that returns legacy ``CalendarEvent`` lists; today only the
-fixed-allocation source (``run_fixed_allocation_source``) is exercised. Binding
-the per-club Outlook/BookUp/iCal scrapers is out of scope here (tracked in #978). It adds no policy: each
+fixed-allocation source (``run_fixed_allocation_source``) is exercised. The
+per-club Outlook/BookUp/iCal bindings live in ``club_sources`` (#978). It adds no policy: each
 busy event becomes one observed event; trust/freshness come from the port.
 """
 

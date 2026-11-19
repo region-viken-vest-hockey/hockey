@@ -1,0 +1,103 @@
+{
+ "outlook": {
+  "source": {
+   "name": "Kongsberg ishall",
+   "type": "outlook",
+   "url": "https://frozen.invalid/outlook"
+  },
+  "events": [
+   {
+    "date": "07.11.2026",
+    "name": "Kongsberg Miniputt",
+    "datetime": "2026-11-07T09:00:00",
+    "duration_hours": 3.0,
+    "duration_minutes": 180
+   },
+   {
+    "date": "14.11.2026",
+    "name": "Hockeyskole",
+    "datetime": "2026-11-14T10:00:00",
+    "duration_hours": 1.5,
+    "duration_minutes": 90
+   },
+   {
+    "date": "21.11.2026",
+    "name": "A-lag trening",
+    "datetime": "2026-11-21T12:00:00",
+    "duration_hours": 1.0,
+    "duration_minutes": 60
+   }
+  ],
+  "coverage": {
+   "status": "complete",
+   "navigation_complete": true,
+   "requested_start": "2026-11-01",
+   "requested_end": "2026-12-01",
+   "observed_start": "2026-11-01",
+   "observed_end": "2026-12-01"
+  }
+ },
+ "bookup": {
+  "source": {
+   "name": "Tønsberg",
+   "type": "outlook",
+   "url": "https://frozen.invalid/bookup"
+  },
+  "events": [
+   {
+    "date": "07.11.2026",
+    "name": "Booket",
+    "datetime": "2026-11-07T09:00:00",
+    "duration_hours": 2.0,
+    "duration_minutes": 120,
+    "location": "Tonsberghallen",
+    "order_id": "B-1001"
+   },
+   {
+    "date": "08.11.2026",
+    "name": "Booket",
+    "datetime": "2026-11-08T10:00:00",
+    "duration_hours": 1.0,
+    "duration_minutes": 60,
+    "location": "Tonsberghallen",
+    "order_id": "B-1002"
+   }
+  ],
+  "coverage": {
+   "status": "complete",
+   "navigation_complete": true,
+   "requested_start": "2026-11-01",
+   "requested_end": "2026-12-01",
+   "observed_start": "2026-11-01",
+   "observed_end": "2026-12-01"
+  }
+ },
+ "ical": {
+  "source": {
+   "name": "Frisk Asker",
+   "type": "ical",
+   "url": "https://frozen.invalid/frisk.ics"
+  },
+  "events": [
+   {
+    "date": "07.11.2026",
+    "name": "FA Miniputt",
+    "datetime": "2026-11-07T09:00:00",
+    "duration_hours": 2.0,
+    "duration_minutes": 120,
+    "location": "Askerhallen",
+    "order_id": "uid-1"
+   },
+   {
+    "date": "15.11.2026",
+    "name": "Kamp",
+    "datetime": "2026-11-15T14:00:00",
+    "duration_hours": 1.5,
+    "duration_minutes": 90,
+    "location": "Askerhallen",
+    "order_id": "uid-2"
+   }
+  ],
+  "coverage": null
+ }
+}
