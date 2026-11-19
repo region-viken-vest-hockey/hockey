@@ -28,7 +28,6 @@ from .ports.ice_time import (
     AllocationWindow,
     BookingAssertion,
     Completeness,
-    ConflictKind,
     IceTimeSourcePort,
     ObservedCalendarEvent,
     SourceConflict,
@@ -36,6 +35,7 @@ from .ports.ice_time import (
     SourceScope,
     WindowKind,
 )
+from .ice_time_sources.verdict import find_conflicts
 from .evidence_validation import failure_of, foreign_reason, overlap, typed_results
 from .ports.season_input import NormalizedSeasonInput
 
@@ -154,23 +154,6 @@ def _finding(
     return ScopeFinding(source_id, scope, Absence.CONFIRMED_ABSENT, "complete, fresh coverage with no events")
 
 
-def _conflicts(
-    allocations: Sequence[AllocationWindow], assertions: Sequence[BookingAssertion], coverage: Sequence[SourceCoverage], now: datetime
-) -> tuple[SourceConflict, ...]:
-    out: list[SourceConflict] = []
-    for i, a in enumerate(assertions):
-        for b in assertions[i + 1 :]:
-            if a.venue_id == b.venue_id and a.tournament_id != b.tournament_id and overlap(a.starts_at, a.ends_at, b.starts_at, b.ends_at):
-                out.append(SourceConflict(ConflictKind.OVERLAPPING_ASSERTIONS, (a.tournament_id, b.tournament_id), f"both claim {a.venue_id}"))
-        for w in allocations:
-            if w.kind is WindowKind.BLOCKED and w.venue_id == a.venue_id and overlap(a.starts_at, a.ends_at, w.starts_at, w.ends_at):
-                out.append(SourceConflict(ConflictKind.ASSERTION_VS_BLOCKED_WINDOW, (a.tournament_id, w.venue_id), "assertion overlaps a blocked window"))
-    for c in coverage:
-        if c.completeness is Completeness.COMPLETE and not c.is_fresh(now):
-            out.append(SourceConflict(ConflictKind.STALE_COVERAGE, (c.source.source_id, c.scope.venue_id), "complete coverage is no longer fresh"))
-    return tuple(out)
-
-
 def _capacity(venues: Sequence[str], allocations: Sequence[AllocationWindow]) -> tuple[tuple[str, VenueCapacity], ...]:
     result = []
     for venue in sorted(set(venues)):
@@ -241,6 +224,6 @@ def compose_planning_evidence(
         assertions=assertions,
         findings=tuple(findings),
         failures=tuple(failures),
-        conflicts=_conflicts(allocations, assertions, coverage, now),
+        conflicts=find_conflicts(tuple(allocations), assertions, tuple(coverage), now),
         venue_capacity=_capacity(venues, allocations),
     )

@@ -43,3 +43,12 @@ Every phase is additive behind a port. The legacy Git-backed adapters remain the
 - A new I/O dependency in core fails a test instead of relying on review.
 - Backend-specific startup is one reviewable contract rather than prose in three procedures.
 - Some adapters (revision history, parity checks) still shell out to Git; they remain adapters until their phase moves them.
+
+## Ice-time source adapters (#968)
+
+`application/ice_time_sources/` holds the pure, source-independent policy
+(all-or-nothing validation, revision diff, availability verdict, conflicts,
+source health). `infrastructure/ice_time/` holds the manual (local JSON,
+revision-bound replace), CSV/XLSX file and live (injected fetcher, stale
+retention) adapters. None emits a `BookingAssertion`; assertion stays a
+separate canonical operation. An unattested or empty snapshot is never free ice.
