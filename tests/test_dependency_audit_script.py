@@ -43,7 +43,16 @@ def test_waiver_matches_alias_and_expires(tmp_path):
     assert audit.classify(report, waivers, dt.date(2026, 12, 2))[0]
 
 
-@pytest.mark.parametrize("override", [{"reason": ""}, {"expires": "soon"}, {"expires": "2030-01-01"}])
+@pytest.mark.parametrize("override", [
+        {"reason": ""},
+        {"expires": "soon"},
+        {"expires": "2030-01-01"},
+        {"package": 5},
+        {"advisory": ["CVE-1"]},
+        {"reason": None},
+        {"reason": 7},
+        {"expires": 20261201},
+    ],)
 def test_invalid_waivers_fail_closed(tmp_path, override):
     with pytest.raises(audit.WaiverError):
         audit.load_waivers(_waiver_file(tmp_path, **override), TODAY)
@@ -156,3 +165,28 @@ def test_exit_status_must_agree_with_reported_vulnerabilities(monkeypatch, tmp_p
 def test_unexpected_dependencies_and_malformed_vulns_are_unknown(monkeypatch, tmp_path, capsys, stdout):
     code, output = _run_main(monkeypatch, tmp_path, capsys, _Proc(stdout, "", 1))
     assert code == 2 and "OK" not in output
+
+
+@pytest.mark.parametrize(
+    "stdout",
+    [
+        json.dumps({"dependencies": [{"name": "foo", "version": "1.0", "vulns": []}], "error": "feed down"}),
+        json.dumps({"dependencies": [{"name": "foo", "version": "1.0", "vulns": [], "status": "error"}]}),
+        json.dumps({"dependencies": [{"name": "foo", "version": "1.0", "vulns": [], "error": "boom"}]}),
+        json.dumps({"dependencies": [{"name": "foo", "version": "1.0", "vulns": [{"id": "X", "aliases": [1]}]}]}),
+        json.dumps({"dependencies": [{"name": "foo", "version": "1.0", "vulns": [{"id": "X", "fix_versions": [["2"]]}]}]}),
+        json.dumps({"dependencies": [{"name": "foo", "skip_reason": 5}]}),
+    ],
+)
+def test_unknown_fields_and_bad_element_types_are_unknown(monkeypatch, tmp_path, capsys, stdout):
+    code, output = _run_main(monkeypatch, tmp_path, capsys, _Proc(stdout, "", 0))
+    assert code == 2 and "OK" not in output and "Traceback" not in output
+
+
+def test_malformed_waiver_types_exit_three_without_traceback(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(audit.shutil, "which", lambda _name: "/bin/pip-audit")
+    monkeypatch.setattr(audit.subprocess, "run", lambda *a, **k: _Proc(CLEAN, "", 0))
+    path = tmp_path / "w.json"
+    path.write_text(json.dumps({"waivers": [{"package": ["foo"], "advisory": "CVE-1", "reason": "r", "expires": "2026-12-01"}]}), encoding="utf-8")
+    code = audit.main(["--lock", str(_lock(tmp_path, "foo")), "--waivers", str(path)])
+    assert code == 3 and "OK" not in capsys.readouterr().out
