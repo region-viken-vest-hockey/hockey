@@ -31,7 +31,9 @@ SCOPE = SourceScope("rink-a", datetime(2026, 11, 1, tzinfo=OSLO), datetime(2026,
 AVAIL = WindowKind.AVAILABLE
 
 
-AUTH = Authority("ola", "rink-a November", NOW - timedelta(days=1), NOW + timedelta(days=30))
+AUTH = Authority("ola", "rink-a November", NOW - timedelta(days=1), NOW + timedelta(days=30),
+                 "rink-a", SCOPE.from_date, SCOPE.to_date)
+COVER = ("rink-a", SCOPE.from_date, SCOPE.to_date)
 
 
 def manual(windows=((START, END, AVAIL),), complete=True, scope=SCOPE, authority=None):
@@ -75,7 +77,7 @@ def test_bad_manual_snapshots_rejected(windows, needle):
 
 def test_wrong_rink_rejected(tmp_path):
     scope = SourceScope("rink-b", SCOPE.from_date, SCOPE.to_date)
-    snap = manual(scope=scope)
+    snap = manual(scope=scope, authority=file_auth(document="", venue_id="rink-b"))
     assert snap.scope.venue_id == "rink-b"  # windows adopt the scope venue
     csv = tmp_path / "a.csv"
     csv.write_text("venue_id,date,start,end,kind\nrink-a,2026-11-07,09:00,12:00,available\n")
@@ -108,7 +110,8 @@ def test_additions_alone_do_not_invalidate():
 
 def file_auth(document="ice.csv", **kw):
     args = dict(issuer="rink office", scope="rink-a November", effective_from=NOW - timedelta(days=1),
-                effective_until=NOW + timedelta(days=30), document=document)
+                effective_until=NOW + timedelta(days=30), venue_id="rink-a",
+                covers_from=SCOPE.from_date, covers_to=SCOPE.to_date, document=document)
     return Authority(**{**args, **kw})
 
 
@@ -323,18 +326,18 @@ def test_malformed_live_payload_rejected_atomically():
 
 def test_authority_is_typed_validated_and_roundtrips(tmp_path):
     with pytest.raises(ValueError):
-        Authority("", "scope", NOW, NOW + timedelta(days=1))
+        Authority("", "scope", NOW, NOW + timedelta(days=1), *COVER)
     with pytest.raises(ValueError):
-        Authority("ola", "scope", NOW, NOW)
+        Authority("ola", "scope", NOW, NOW, *COVER)
     with pytest.raises(ValueError):
-        manual(authority=Authority("ola", "s", NOW + timedelta(days=1), NOW + timedelta(days=2)))
+        manual(authority=Authority("ola", "s", NOW + timedelta(days=1), NOW + timedelta(days=2), *COVER))
     store = ManualSnapshotStore(tmp_path)
     snap = manual()
     store.replace(snap, None)
     back = store.load("m1")
     assert back.authority == AUTH and back.source.revision == "r7"
     assert back.fresh_until == AUTH.effective_until and back.revision == snap.revision
-    other = manual(authority=Authority("kari", "rink-a November", AUTH.effective_from, AUTH.effective_until))
+    other = manual(authority=Authority("kari", "rink-a November", AUTH.effective_from, AUTH.effective_until, *COVER))
     assert other.revision != snap.revision  # a new issuer changes revision identity
 
 
@@ -441,7 +444,7 @@ def test_complete_file_import_requires_valid_typed_authority(tmp_path):
 
 
 def test_manual_health_distinguishes_expired_authority_from_age():
-    short = Authority("ola", "rink-a", NOW - timedelta(days=1), NOW + timedelta(days=5))
+    short = Authority("ola", "rink-a", NOW - timedelta(days=1), NOW + timedelta(days=5), *COVER)
     cov = manual_source(manual(authority=short)).coverage(SCOPE)
     assert source_health(cov, NOW + timedelta(days=1)).status is HealthStatus.CURRENT
     assert source_health(cov, NOW + timedelta(days=6)).status is HealthStatus.AUTHORITY_EXPIRED
@@ -455,9 +458,43 @@ def test_authority_change_with_identical_windows_invalidates_previews(tmp_path):
     first = manual()
     store.replace(first, None)
     shorter = manual(authority=Authority("ola", "rink-a November", AUTH.effective_from,
-                                         NOW + timedelta(days=2)))
+                                         NOW + timedelta(days=2), *COVER))
     assert shorter.windows == first.windows and shorter.revision != first.revision
     diff = store.replace(shorter, first.revision)
     assert diff.authority_changed and not diff.changes and diff.invalidates_previews and not diff.is_empty
     same = store.replace(shorter, shorter.revision)
     assert same.is_empty and not same.invalidates_previews
+
+
+# ---- review round 3: authority bound to structured scope ----
+
+def test_authority_must_cover_declared_venue_and_period(tmp_path):
+    p = csv_file(tmp_path, "rink-a,2026-11-07,09:00,12:00,available\n")
+    kw = dict(source_id="f", timezone="Europe/Oslo", scope=SCOPE, captured_at=NOW)
+    wrong_rink = {"venue_id": "rink-b"}
+    short_period = {"covers_to": SCOPE.to_date - timedelta(days=10)}
+    late_period = {"covers_from": SCOPE.from_date + timedelta(days=1)}
+    for bad in (wrong_rink, short_period, late_period):
+        with pytest.raises(IceTimeValidationError, match="does not cover"):
+            import_snapshot(p, authority=file_auth(**bad), **kw)
+        a = file_auth(document="", **bad)
+        with pytest.raises(IceTimeValidationError, match="does not cover"):
+            manual(authority=a)
+    wider = dict(covers_from=SCOPE.from_date - timedelta(days=30), covers_to=SCOPE.to_date + timedelta(days=30))
+    assert import_snapshot(p, authority=file_auth(**wider), **kw).completeness is Completeness.COMPLETE
+    assert manual(authority=file_auth(document="", **wider)).completeness is Completeness.COMPLETE
+    assert import_snapshot(p, authority=file_auth(), **kw).completeness is Completeness.COMPLETE
+    with pytest.raises(ValueError):
+        file_auth(venue_id=" ")
+    with pytest.raises(ValueError):
+        file_auth(covers_to=SCOPE.from_date)
+
+
+def test_authority_coverage_is_in_revision_and_roundtrips(tmp_path):
+    wider = file_auth(document="", covers_to=SCOPE.to_date + timedelta(days=30))
+    assert manual(authority=wider).revision != manual().revision
+    store = ManualSnapshotStore(tmp_path)
+    snap = manual(authority=wider)
+    store.replace(snap, None)
+    back = store.load("m1")
+    assert back.authority == wider and back.revision == snap.revision

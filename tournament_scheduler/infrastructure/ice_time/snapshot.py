@@ -37,6 +37,11 @@ class IceTimeSnapshot:
         validate_snapshot(self.scope, self.windows, self.events)
         if self.completeness is Completeness.COMPLETE and self.fresh_until is None:
             raise IceTimeValidationError(["a COMPLETE snapshot needs a freshness bound"])
+        a = self.authority
+        if a is not None and not a.covers(self.scope.venue_id, self.scope.from_date, self.scope.to_date):
+            raise IceTimeValidationError(
+                [f"authority for {a.venue_id} {a.covers_from.date()}..{a.covers_to.date()} does not cover "
+                 f"declared scope {self.scope.venue_id} {self.scope.from_date.date()}..{self.scope.to_date.date()}"])
         if (self.completeness is Completeness.COMPLETE and self.authority is None
                 and self.source.kind is not SourceKind.LIVE):
             raise IceTimeValidationError(["a COMPLETE manual or file snapshot needs a typed authority"])

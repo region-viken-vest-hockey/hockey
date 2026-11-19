@@ -1,7 +1,8 @@
-"""Thin adapter: existing RVV per-club scraper / fixed-allocation output -> live port.
+"""Thin adapter: legacy ``CalendarEvent`` producer output -> live port.
 
-Wraps whatever already produces legacy ``CalendarEvent`` lists (a scraper run,
-the cached calendar, or ``run_fixed_allocation_source``). It adds no policy: each
+Wraps any callable that returns legacy ``CalendarEvent`` lists; today only the
+fixed-allocation source (``run_fixed_allocation_source``) is exercised. Binding
+the per-club Outlook/BookUp/iCal scrapers is out of scope here (tracked in #978). It adds no policy: each
 busy event becomes one observed event; trust/freshness come from the port.
 """
 

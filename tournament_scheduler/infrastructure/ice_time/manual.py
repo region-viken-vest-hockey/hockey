@@ -65,6 +65,8 @@ def _dump(s: IceTimeSnapshot) -> dict:
         "revision_ref": r.revision,
         "authority": None if s.authority is None else {
             "issuer": s.authority.issuer, "scope": s.authority.scope, "document": s.authority.document,
+            "venue_id": s.authority.venue_id, "covers_from": s.authority.covers_from.isoformat(),
+            "covers_to": s.authority.covers_to.isoformat(),
             "from": s.authority.effective_from.isoformat(), "until": s.authority.effective_until.isoformat()},
         "windows": [[w.starts_at.isoformat(), w.ends_at.isoformat(), w.kind.value] for w in s.windows],
     }
@@ -79,6 +81,7 @@ def _load(d: dict) -> IceTimeSnapshot:
     a = d.get("authority")
     authority = None if a is None else Authority(
         a["issuer"], a["scope"], datetime.fromisoformat(a["from"]), datetime.fromisoformat(a["until"]),
+        a["venue_id"], datetime.fromisoformat(a["covers_from"]), datetime.fromisoformat(a["covers_to"]),
         a.get("document", ""))
     wins = tuple(AllocationWindow(ref, scope.venue_id, datetime.fromisoformat(a),
                                   datetime.fromisoformat(b), WindowKind(k)) for a, b, k in d["windows"])
