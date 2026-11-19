@@ -33,6 +33,8 @@ DEFAULT_LOCK = ROOT / "requirements.lock"
 DEFAULT_WAIVERS = ROOT / "docs" / "dependency-audit-waivers.json"
 MAX_WAIVER_DAYS = 180
 REQUIRED_WAIVER_FIELDS = ("package", "advisory", "reason", "expires")
+KNOWN_REPORT_FIELDS = frozenset({"dependencies", "fixes"})
+KNOWN_DEPENDENCY_FIELDS = frozenset({"name", "version", "vulns", "skip_reason"})
 _URL_CREDENTIALS = re.compile(r"(://)[^/\s:@]+:[^/\s@]+@")
 
 
@@ -58,9 +60,10 @@ def load_waivers(path: Path, today: dt.date) -> list[dict]:
     for entry in entries:
         if not isinstance(entry, dict):
             raise WaiverError(f"{path}: waiver entries must be objects")
-        missing = [f for f in REQUIRED_WAIVER_FIELDS if not str(entry.get(f, "")).strip()]
-        if missing:
-            raise WaiverError(f"{path}: waiver {entry.get('advisory', '?')} missing {', '.join(missing)}")
+        invalid = [f for f in REQUIRED_WAIVER_FIELDS if not (isinstance(entry.get(f), str) and entry[f].strip())]
+        if invalid:
+            label = entry["advisory"] if isinstance(entry.get("advisory"), str) else "?"
+            raise WaiverError(f"{path}: waiver {label} has missing or non-string/empty {', '.join(invalid)}")
         try:
             expires = dt.date.fromisoformat(str(entry["expires"]))
         except ValueError as exc:
@@ -125,6 +128,9 @@ def locked_pins(lock: Path) -> dict[str, str]:
 
 def report_problem(report: dict, expected: dict[str, str]) -> str:
     """Return why *report* is not a complete audit of the *expected* pins, or '' when it is."""
+    unknown_report = sorted(str(k) for k in set(report) - KNOWN_REPORT_FIELDS)
+    if unknown_report:
+        return f"pip-audit report has unrecognised report field(s): {', '.join(unknown_report)}"
     deps = report.get("dependencies")
     if not isinstance(deps, list) or not deps:
         return "pip-audit report lists no dependencies"
@@ -132,7 +138,12 @@ def report_problem(report: dict, expected: dict[str, str]) -> str:
     for dep in deps:
         if not isinstance(dep, dict) or not isinstance(dep.get("name"), str):
             return "pip-audit report has a malformed dependency entry"
+        unknown_dep = sorted(str(k) for k in set(dep) - KNOWN_DEPENDENCY_FIELDS)
+        if unknown_dep:
+            return f"pip-audit report has unrecognised field(s) for {dep['name']}: {', '.join(unknown_dep)}"
         name = _norm(dep["name"])
+        if "skip_reason" in dep and not (isinstance(dep["skip_reason"], str) and dep["skip_reason"].strip()):
+            return f"pip-audit report has a malformed skip_reason for {dep['name']}"
         if "skip_reason" not in dep:
             if not (isinstance(dep.get("version"), str) and isinstance(dep.get("vulns"), list)):
                 return f"pip-audit report has no vulnerability result for {dep['name']}"
@@ -144,7 +155,13 @@ def report_problem(report: dict, expected: dict[str, str]) -> str:
         for vuln in dep.get("vulns", []) if isinstance(dep.get("vulns"), list) else []:
             if not isinstance(vuln, dict) or not isinstance(vuln.get("id"), str):
                 return f"pip-audit report has a malformed vulnerability entry for {dep['name']}"
-            if not isinstance(vuln.get("aliases", []), list) or not isinstance(vuln.get("fix_versions") or [], list):
+            aliases, fixes = vuln.get("aliases") or [], vuln.get("fix_versions") or []
+            if not (
+                isinstance(aliases, list)
+                and isinstance(fixes, list)
+                and all(isinstance(x, str) for x in aliases)
+                and all(isinstance(x, str) for x in fixes)
+            ):
                 return f"pip-audit report has a malformed vulnerability entry for {dep['name']}"
     unexpected = sorted(set(seen) - set(expected))
     if unexpected:
