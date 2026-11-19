@@ -5,8 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
+from tournament_scheduler.application.ice_time_sources.authority import Authority
 from tournament_scheduler.application.ice_time_sources.diff import windows_fingerprint
-from tournament_scheduler.application.ice_time_sources.validation import validate_snapshot
+from tournament_scheduler.application.ice_time_sources.validation import (
+    IceTimeValidationError,
+    validate_snapshot,
+)
 from tournament_scheduler.application.ports.common import PortCapabilities, SourceRef
 from tournament_scheduler.application.ports.ice_time import (
     AllocationWindow,
@@ -27,13 +31,16 @@ class IceTimeSnapshot:
     windows: tuple[AllocationWindow, ...] = ()
     events: tuple[ObservedCalendarEvent, ...] = ()
     fresh_until: datetime | None = None
+    authority: Authority | None = None
 
     def __post_init__(self) -> None:
         validate_snapshot(self.scope, self.windows, self.events)
+        if self.completeness is Completeness.COMPLETE and self.fresh_until is None:
+            raise IceTimeValidationError(["a COMPLETE snapshot needs a freshness bound"])
 
     @property
     def revision(self) -> str:
-        return windows_fingerprint(self.windows, self.completeness)
+        return windows_fingerprint(self.windows, self.completeness, self.events, self.scope, self.authority)
 
 
 class SnapshotSource:

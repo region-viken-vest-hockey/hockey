@@ -36,23 +36,25 @@ def _local(day: str, clock: str, tz: ZoneInfo) -> datetime:
     return a
 
 
-def _rows_csv(data: bytes) -> list[dict[str, str]]:
-    return list(csv.DictReader(io.StringIO(data.decode("utf-8-sig"))))
+def _rows_csv(data: bytes) -> tuple[list[str], list[dict[str, str]]]:
+    reader = csv.DictReader(io.StringIO(data.decode("utf-8-sig")))
+    return [h.strip() for h in (reader.fieldnames or [])], list(reader)
 
 
-def _rows_xlsx(data: bytes) -> list[dict[str, str]]:
+def _rows_xlsx(data: bytes) -> tuple[list[str], list[dict[str, str]]]:
     from openpyxl import load_workbook
 
     ws = load_workbook(io.BytesIO(data), read_only=True, data_only=True).active
     it = iter(ws.iter_rows(values_only=True))
     head = [str(h).strip() if h is not None else "" for h in next(it, ())]
-    return [{h: ("" if v is None else str(v)) for h, v in zip(head, r)} for r in it
-            if any(v is not None for v in r)]
+    return head, [{h: ("" if v is None else str(v)) for h, v in zip(head, r)} for r in it
+                  if any(v is not None for v in r)]
 
 
 def import_snapshot(
     path: Path, *, source_id: str, timezone: str, scope: SourceScope,
     captured_at: datetime, attested_complete: bool = False,
+    fresh_until: datetime | None = None,
 ) -> IceTimeSnapshot:
     """Parse and validate the whole file; any bad row rejects the import (no partial result).
 
@@ -64,9 +66,9 @@ def import_snapshot(
         raise PortError(PortErrorCode.UNSUPPORTED_FEATURE, f"unsupported import format {suffix}")
     data = path.read_bytes()
     fingerprint = hashlib.sha256(data).hexdigest()
-    rows = _rows_csv(data) if suffix == ".csv" else _rows_xlsx(data)
-    if rows and not set(COLUMNS) <= set(rows[0]):
-        raise IceTimeValidationError([f"missing columns: {sorted(set(COLUMNS) - set(rows[0]))}"])
+    header, rows = _rows_csv(data) if suffix == ".csv" else _rows_xlsx(data)
+    if not set(COLUMNS) <= set(header):
+        raise IceTimeValidationError([f"missing columns: {sorted(set(COLUMNS) - set(header))}"])
     tz = ZoneInfo(timezone)
     ref = SourceRef(source_id, SourceKind.FILE, captured_at, timezone,
                     document=path.name, fingerprint=fingerprint)
@@ -81,12 +83,15 @@ def import_snapshot(
             issues.append(f"row {n}: {exc}")
     if issues:
         raise IceTimeValidationError(issues)
+    if attested_complete and fresh_until is None:
+        raise IceTimeValidationError(["a complete import needs a freshness bound (fresh_until)"])
     completeness = Completeness.COMPLETE if attested_complete else (
         Completeness.PARTIAL if windows else Completeness.UNKNOWN)
-    return IceTimeSnapshot(ref, scope, completeness, tuple(windows))
+    return IceTimeSnapshot(ref, scope, completeness, tuple(windows),
+                           fresh_until=fresh_until if attested_complete else None)
 
 
 def file_source(snapshot: IceTimeSnapshot) -> SnapshotSource:
     if snapshot.source.kind is not SourceKind.FILE:
         raise ValueError("file_source needs a file snapshot")
-    return SnapshotSource(snapshot, FEATURES, "file-import")
+    return SnapshotSource(snapshot, FEATURES, snapshot.source.source_id)

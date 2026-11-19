@@ -52,6 +52,12 @@ def validate_snapshot(
     for e in events:
         if e.venue_id != scope.venue_id:
             issues.append(f"wrong rink: event {e.event_id} at {e.venue_id}")
+        if e.ends_at <= scope.from_date or e.starts_at >= scope.to_date:
+            issues.append(f"event outside declared period: {e.event_id}")
+        if not (_minute_aligned(e.starts_at) and _minute_aligned(e.ends_at)):
+            issues.append(f"sub-minute precision: event {e.event_id}")
+        if not e.event_id:
+            issues.append("event without identity")
         if e.event_id in seen:
             issues.append(f"duplicate event id: {e.event_id}")
         seen.add(e.event_id)

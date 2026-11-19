@@ -42,10 +42,9 @@ def availability_verdict(
 ) -> Verdict:
     """Same normalized facts give the same verdict whatever the source kind.
 
-    AVAILABLE needs a covering AVAILABLE window and no blocking window or
-    observed event. A complete+fresh "nothing here" is UNAVAILABLE (explicit
-    no-availability declaration); partial/unknown/stale coverage is UNKNOWN,
-    never free ice.
+    Blocking evidence always wins. Positive AVAILABLE (and a "nothing here"
+    UNAVAILABLE) needs COMPLETE, fresh coverage of the probe; anything else
+    (partial, unverified, stale or retained evidence) is UNKNOWN, never free ice.
     """
     probe = _Span(starts_at, ends_at)
     wins = [w for w in source.allocations(scope) if w.venue_id == venue_id]
@@ -53,13 +52,18 @@ def availability_verdict(
         return Verdict.UNAVAILABLE
     if any(e.venue_id == venue_id and _overlaps(e, probe) for e in source.observed_events(scope)):
         return Verdict.UNAVAILABLE
+    covs = source.coverage(scope)
+    trusted = bool(covs) and all(
+        c.completeness is Completeness.COMPLETE and c.is_fresh(now)
+        and c.scope.venue_id == venue_id and c.scope.from_date <= starts_at and ends_at <= c.scope.to_date
+        for c in covs
+    )
+    if not trusted:
+        return Verdict.UNKNOWN
     if any(w.kind is WindowKind.AVAILABLE and w.starts_at <= starts_at and w.ends_at >= ends_at
            for w in wins):
         return Verdict.AVAILABLE
-    covs = source.coverage(scope)
-    if covs and all(c.completeness is Completeness.COMPLETE and c.is_fresh(now) for c in covs):
-        return Verdict.UNAVAILABLE
-    return Verdict.UNKNOWN
+    return Verdict.UNAVAILABLE
 
 
 def find_conflicts(
@@ -74,13 +78,13 @@ def find_conflicts(
         for b in assertions[i + 1:]:
             if a.venue_id == b.venue_id and _overlaps(a, b) and a.tournament_id != b.tournament_id:
                 out.append(SourceConflict(ConflictKind.OVERLAPPING_ASSERTIONS,
-                                          (a.tournament_id, b.tournament_id), "overlapping assertions"))
+                                          (a.tournament_id, b.tournament_id), f"both claim {a.venue_id}"))
     blocked = [w for w in windows if w.kind is WindowKind.BLOCKED]
     for a in assertions:
         for w in blocked:
             if a.venue_id == w.venue_id and _overlaps(a, w):
                 out.append(SourceConflict(ConflictKind.ASSERTION_VS_BLOCKED_WINDOW,
-                                          (a.tournament_id, w.source.source_id), "assertion inside blocked window"))
+                                          (a.tournament_id, w.venue_id), "assertion overlaps a blocked window"))
     for i, a in enumerate(windows):
         for b in windows[i + 1:]:
             if (a.venue_id == b.venue_id and a.source.source_id != b.source.source_id
@@ -89,8 +93,8 @@ def find_conflicts(
                                           (a.source.source_id, b.source.source_id),
                                           f"{a.kind.value} vs {b.kind.value} at {a.venue_id}"))
     if now is not None:
-        out += [SourceConflict(ConflictKind.STALE_COVERAGE, (c.source.source_id,), "coverage not fresh")
-                for c in coverages if not c.is_fresh(now)]
+        out += [SourceConflict(ConflictKind.STALE_COVERAGE, (c.source.source_id, c.scope.venue_id), "complete coverage is no longer fresh")
+                for c in coverages if c.completeness is Completeness.COMPLETE and not c.is_fresh(now)]
     return tuple(out)
 
 
