@@ -162,27 +162,112 @@ def test_observed_events_block_and_never_become_booking_assertions(monkeypatch):
     assert not hasattr(src, "assertions")
 
 
-def test_verdict_matches_manual_adapter_for_equivalent_semantics(monkeypatch):
+def test_verdict_parity_with_manual_and_csv_for_all_three_verdicts(monkeypatch, tmp_path):
+    from tournament_scheduler.application.ice_time_sources.authority import Authority
     from tournament_scheduler.application.ports.ice_time import WindowKind
+    from tournament_scheduler.infrastructure.ice_time.file_import import file_source, import_snapshot
     from tournament_scheduler.infrastructure.ice_time.manual import build_manual_snapshot, manual_source
 
     fx, _ = install(monkeypatch, "ical")
     binding = bind_club_source(fx["source"])
-    sc = scope_for(binding.venue_id)
+    v = binding.venue_id
+    sc = scope_for(v)
     live = club_live_source(fx["source"], lambda: NOW)
     live.refresh(sc)
-    manual = manual_source(build_manual_snapshot(
-        source_id="m", actor="op", timezone="Europe/Oslo", scope=sc,
-        windows=[(datetime(2026, 11, 7, 9, tzinfo=OSLO), datetime(2026, 11, 7, 11, tzinfo=OSLO), WindowKind.BLOCKED),
-                 (datetime(2026, 11, 15, 14, tzinfo=OSLO), datetime(2026, 11, 15, 15, 30, tzinfo=OSLO), WindowKind.BLOCKED)],
-        authority=None, captured_at=NOW))
-    busy = (datetime(2026, 11, 7, 9, tzinfo=OSLO), datetime(2026, 11, 7, 10, tzinfo=OSLO))
-    other = (datetime(2026, 11, 28, 9, tzinfo=OSLO), datetime(2026, 11, 28, 10, tzinfo=OSLO))
-    for probe in (busy,):  # blocking evidence is verdict-equal across source kinds
-        assert (availability_verdict(live, sc, binding.venue_id, *probe, NOW)
-                is availability_verdict(manual, sc, binding.venue_id, *probe, NOW) is Verdict.UNAVAILABLE)
-    # without a typed authority the manual snapshot is UNKNOWN; so is a free probe on a partial live source
-    assert availability_verdict(manual, sc, binding.venue_id, *other, NOW) is Verdict.UNKNOWN
+    assert live.coverage(sc)[0].completeness is Completeness.COMPLETE and live.coverage(sc)[0].is_fresh(NOW)
+    auth = Authority(issuer="rink office", scope="November", effective_from=NOW - timedelta(days=1),
+                     effective_until=NOW + timedelta(days=30), venue_id=v,
+                     covers_from=sc.from_date, covers_to=sc.to_date, document="ice.csv")
+
+    def at(d, h1, h2):
+        return datetime(2026, 11, d, h1, tzinfo=OSLO), datetime(2026, 11, d, h2, tzinfo=OSLO)
+
+    busy, free = at(7, 9, 10), at(28, 9, 10)
+    blocked_w = [(*at(7, 9, 11), WindowKind.BLOCKED)]
+    avail_w = [(*at(28, 9, 12), WindowKind.AVAILABLE)]
+
+    def man(windows, authority=auth):
+        return manual_source(build_manual_snapshot(
+            source_id="m", actor="op", timezone="Europe/Oslo", scope=sc, windows=windows,
+            authority=authority, captured_at=NOW))
+
+    def csv(body, authority=auth):
+        p = tmp_path / "ice.csv"
+        p.write_text("venue_id,date,start,end,kind\n" + body)
+        return file_source(import_snapshot(p, source_id="f", timezone="Europe/Oslo", scope=sc,
+                                           captured_at=NOW, authority=authority))
+
+    def verdict(src, probe):
+        return availability_verdict(src, sc, v, *probe, NOW)
+
+    # UNAVAILABLE: a complete, fresh live event, a manual block and a CSV block agree.
+    assert (verdict(live, busy) is verdict(man(blocked_w), busy)
+            is verdict(csv(f"{v},2026-11-07,09:00,11:00,blocked\n"), busy) is Verdict.UNAVAILABLE)
+    # AVAILABLE needs an explicit allocation window: manual/CSV give it, live absence never does.
+    assert (verdict(man(avail_w), free)
+            is verdict(csv(f"{v},2026-11-28,09:00,12:00,available\n"), free) is Verdict.AVAILABLE)
+    assert verdict(live, free) is not Verdict.AVAILABLE
+    empty = fx_empty_live(monkeypatch)
+    assert empty.coverage(sc)[0].completeness is Completeness.COMPLETE
+    assert verdict(empty, free) is not Verdict.AVAILABLE
+    # UNKNOWN: unattested manual, unattested CSV, partial live all refuse a positive answer.
+    assert (verdict(man([], authority=None), free) is verdict(csv("", authority=None), free)
+            is Verdict.UNKNOWN)
+    fx2, _ = install(monkeypatch, "ical", coverage={"status": "partial", "navigation_complete": False,
+                                                    "exceptions": ["stopped early"]})
+    part = club_live_source(fx2["source"], lambda: NOW)
+    part.refresh(sc)
+    assert verdict(part, free) is Verdict.UNKNOWN
+
+
+def fx_empty_live(monkeypatch):
+    fx = FIX["ical"]
+    monkeypatch.setattr(stage2, "_run_ical_scraper", lambda *a, **k: [])
+    src = club_live_source(fx["source"], lambda: NOW)
+    src.refresh(scope_for(bind_club_source(fx["source"]).venue_id))
+    return src
+
+
+@pytest.mark.parametrize("provider", ["outlook", "bookup", "ical"])
+def test_unexpected_acquisition_exception_is_typed_and_retains_stale(monkeypatch, provider):
+    fx, _ = install(monkeypatch, provider)
+    binding = bind_club_source(fx["source"])
+    clock = {"now": NOW}
+    src = club_live_source(fx["source"], lambda: clock["now"])
+    sc = scope_for(binding.venue_id)
+    src.refresh(sc)
+    from tournament_scheduler.infrastructure.ice_time import club_sources
+
+    def explode(cfg, start, end):
+        raise ValueError("unexpected parser crash")
+
+    fetch = club_sources.club_source_fetcher(binding, explode)
+    with pytest.raises(PortError) as exc:
+        fetch(sc)
+    assert exc.value.code is PortErrorCode.UNAVAILABLE and "ValueError" in exc.value.message
+    # Through the live adapter with a previous good snapshot: retained as stale, not raised.
+    src._fetch = fetch
+    clock["now"] = NOW + timedelta(hours=7)
+    src.refresh(sc)
+    (cov,) = src.coverage(sc)
+    assert cov.completeness is Completeness.PARTIAL and not cov.is_fresh(clock["now"])
+    assert src.observed_events(sc)
+    # Same boundary for a malformed payload.
+    bad = club_sources.club_source_fetcher(binding, lambda c, s, e: {"events": [{"oops": 1}]})
+    with pytest.raises(PortError) as exc2:
+        bad(sc)
+    assert exc2.value.code is PortErrorCode.UNAVAILABLE
+
+
+def test_source_identity_is_unique_per_configured_calendar_and_stable():
+    ice = {"name": "Kongsberg ishall", "type": "outlook", "url": "https://frozen.invalid/a"}
+    ball = {"name": "Kongsberg ballhall", "type": "outlook", "url": "https://frozen.invalid/b"}
+    a, b = bind_club_source(ice), bind_club_source(ball)
+    assert a.club == b.club and a.provider == b.provider
+    assert a.source_id != b.source_id
+    assert a.source_id == bind_club_source(dict(ice)).source_id
+    assert b.source_id == bind_club_source(dict(ball)).source_id
+    assert club_live_source(ice, lambda: NOW).capabilities().adapter_id == a.source_id
 
 
 def test_non_club_or_unsupported_source_is_rejected():

@@ -49,8 +49,12 @@ class ClubSourceBinding:
 
     @property
     def source_id(self) -> str:
-        slug = re.sub(r"[^a-z0-9]+", "-", self.club.lower()).strip("-")
-        return f"rvv-club/{slug}/{self.provider}"
+        """Club + provider + the configured source key (the Stage 1 ``name``), so two
+        calendars of one club/provider (e.g. ice hall and ball hall) stay distinct."""
+        def slug(text: str) -> str:
+            return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+        key = hashlib.sha256(self.source_name.encode()).hexdigest()[:8]
+        return f"rvv-club/{slug(self.club)}/{self.provider}/{slug(self.source_name)}-{key}"
 
 
 def _provider(source_cfg: Mapping[str, Any]) -> str:
@@ -111,7 +115,13 @@ def club_source_fetcher(binding: ClubSourceBinding, scrape: ScrapeFn | None = No
             captured["integrity"] = integrity
             return [CalendarEvent.from_source_dict(e) for e in result.get("events") or []]
 
-        payload = legacy_events_fetcher(run, venue_id=binding.venue_id, timezone=TIMEZONE)(scope)
+        try:
+            payload = legacy_events_fetcher(run, venue_id=binding.venue_id, timezone=TIMEZONE)(scope)
+        except PortError:
+            raise
+        except Exception as exc:  # any acquisition/translation failure is a typed port failure
+            raise PortError(PortErrorCode.UNAVAILABLE,
+                            f"{binding.source_id}: acquisition failed: {type(exc).__name__}: {exc}") from exc
         integrity = captured["integrity"]
         trusted = (integrity["status"] == INTEGRITY_COMPLETE and integrity["coverage_proven"]
                    and CLUB_REGISTRY[binding.club].trusted_for_auto_placement)
