@@ -139,11 +139,13 @@ class OperateService:
             gone = next((k for k, r in s.seen.items() if self._completed(r)), None)
             if gone is None:
                 raise ApiError(503, ErrorCode.REVIEW_REQUIRED, "too many active requests in this session")
+            if len(s.tombstones) >= MAX_TOMBSTONES:
+                # Request-id history is never dropped: refuse NEW ids instead of making an old one reusable.
+                raise ApiError(429, ErrorCode.SESSION_REQUEST_LIMIT,
+                               "this session reached its request-id history limit; open a new session")
             gone_res = s.seen.pop(gone)
             outcome = (gone_res.result or {}).get("outcome") or ("error" if gone_res.error else "completed")
             s.tombstones[gone] = (gone_res.digest, str(outcome))
-            while len(s.tombstones) > MAX_TOMBSTONES:
-                s.tombstones.pop(next(iter(s.tombstones)))
 
     def _completed(self, res: Reservation) -> bool:
         if res.error is not None or res.result is not None:

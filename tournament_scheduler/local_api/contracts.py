@@ -52,6 +52,7 @@ class ErrorCode(str, Enum):
     RECOVERY_REQUIRED = "recovery_required"
     REQUEST_ID_REUSED = "request_id_reused"
     REQUEST_ID_EXPIRED = "request_id_expired"
+    SESSION_REQUEST_LIMIT = "session_request_limit"
     READ_ONLY = "read_only"
     REVIEW_REQUIRED = "review_required"
     UNSUPPORTED = "unsupported"

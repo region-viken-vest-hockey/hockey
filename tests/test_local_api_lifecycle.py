@@ -466,3 +466,28 @@ def test_readiness_detail_keeps_source_specific_reasons(env):
     app.ice._clock = lambda: NOW + timedelta(days=2)
     detail = c.result("GET", "/api/v1/readiness")["detail"]
     assert "skien-manual (stale)" in detail
+
+
+def test_request_id_history_is_never_dropped_new_ids_are_refused_at_the_limit(env, monkeypatch):
+    _, app, service, c, sid, rev = env
+    monkeypatch.setattr(sessions_mod, "MAX_IDEMPOTENT", 1)
+    monkeypatch.setattr(sessions_mod, "MAX_TOMBSTONES", 2)
+    calls = []
+    real = service.move_tournament
+    monkeypatch.setattr(service, "move_tournament", lambda **kw: (calls.append(kw), real(**kw))[1])
+    dates = ("2026-09-13", "2026-09-14", "2026-09-15", "2026-09-16")
+    for n, d in enumerate(dates[:3], 1):  # 1 live + 2 tombstones fills the history
+        app.operate.submit(sid, _intent(f"req-lm-000{n}", rev, d))
+    s = app.operate.session(sid)
+    assert set(s.tombstones) == {"req-lm-0001", "req-lm-0002"}
+    before = len(calls)
+    with pytest.raises(ApiError) as full:  # a NEW id is refused rather than evicting history
+        app.operate.submit(sid, _intent("req-lm-0004", rev, dates[3]))
+    assert full.value.status == 429 and full.value.code.value == "session_request_limit"
+    assert set(s.tombstones) == {"req-lm-0001", "req-lm-0002"} and "req-lm-0003" in s.seen
+    for rid, d in (("req-lm-0001", dates[0]), ("req-lm-0002", dates[1])):  # old ids stay known, never fresh work
+        with pytest.raises(ApiError) as old:
+            app.operate.submit(sid, _intent(rid, rev, d))
+        assert old.value.code.value == "request_id_expired"
+    assert app.operate.submit(sid, _intent("req-lm-0003", rev, dates[2]))["outcome"] == "previewed"
+    assert len(calls) == before  # none of the repeats or the refusal ran a preview
