@@ -46,6 +46,9 @@ class ReadinessReason(str, Enum):
     SCHEMA_INCOMPATIBLE = "schema_incompatible"
     WORKFLOW_VERSION_MISMATCH = "workflow_version_mismatch"
     REVISION_UNVERIFIED = "revision_unverified"
+    WRITER_LOCKED = "writer_locked"
+    EVIDENCE_STALE = "evidence_stale"
+    PUBLICATION_STATE_UNVERIFIED = "publication_state_unverified"
 
 
 @dataclass(frozen=True)
