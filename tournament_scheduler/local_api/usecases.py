@@ -108,8 +108,11 @@ class SeasonUseCases:
                 expected_revision=expected_revision, **self._move_kwargs(intent))
         except Exception as exc:
             raise _season_error(exc) from exc
-        return {"operation": "move_tournament", "revision_before": expected_revision,
-                "revision_after": self.revision(intent.season)}
+        try:  # the write has committed; a failed read-back must not turn success into a failure
+            after: str | None = self.revision(intent.season)
+        except Exception:
+            after = None
+        return {"operation": "move_tournament", "revision_before": expected_revision, "revision_after": after}
 
 
 def _unexpected(what: str) -> ApiError:

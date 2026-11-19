@@ -58,7 +58,9 @@ class LocalWorkspaceReadiness:
 
     def __init__(self, service: CanonicalSeasonService, season: str, root: Path,
                  expected_version: str | None = None,
-                 workflow_version: Callable[[], str] = application_workflow_version) -> None:
+                 workflow_version: Callable[[], str] = application_workflow_version,
+                 evidence_status: Callable[[], dict] | None = None) -> None:
+        self._evidence = evidence_status
         self._service, self._season, self._root = service, season, Path(root)
         self._version = workflow_version
         # The contract this session was started under; a different running version fails closed.
@@ -90,6 +92,15 @@ class LocalWorkspaceReadiness:
             return _refuse(b, R.PUBLICATION_STATE_UNVERIFIED, "sealed season does not reconcile with its baseline")
         if (snap.schedule.get("calendar_evidence_stale") or snap.decisions.get("evidence_stale")) is True:
             return _refuse(b, R.EVIDENCE_STALE, "calendar evidence is marked stale")
+        if self._evidence is not None:
+            try:
+                ev = self._evidence()
+            except Exception:
+                return _refuse(b, R.INSPECTION_FAILED, "ice-time evidence status could not be established")
+            if ev["state"] == "unreadable":
+                return _refuse(b, R.INSPECTION_FAILED, "an ice-time source is unreadable")
+            if ev["state"] in ("stale", "missing"):
+                return _refuse(b, R.EVIDENCE_STALE, f"ice-time evidence is {ev['state']}")
         return ReadinessReport(b, ReadinessStatus.READY, R.READY_CURRENT,
                                "local workspace contract and canonical state verified",
                                workflow_version=version, canonical_revision=str(revision))

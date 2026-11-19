@@ -14,7 +14,7 @@ import hashlib
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 from zoneinfo import ZoneInfo
 
 from tournament_scheduler.application.ice_time_sources.authority import Authority
@@ -54,7 +54,18 @@ def snapshot_view(snap: IceTimeSnapshot) -> dict[str, Any]:
 
 
 class IceTimeEvidence:
-    def __init__(self, directory: Path) -> None:
+    """Ice-time evidence policy for ``operate`` (explicit, see ``status``).
+
+    * No source configured: the workspace does not use ice-time evidence; the operation does not depend on
+      it unless ``required`` is set, in which case absence is ``missing`` (review required).
+    * A configured source that cannot be read is ``unreadable`` and one whose freshness bound has passed is
+      ``stale``. Both make readiness ``REVIEW_REQUIRED`` (writes stay blocked) rather than silently writable.
+    * ``partial``/``unknown`` completeness is declared uncertainty carried in the snapshot, not staleness.
+    """
+
+    def __init__(self, directory: Path, *, required: bool = False,
+                 clock: Callable[[], datetime] = lambda: datetime.now(ZoneInfo("UTC"))) -> None:
+        self.required, self._clock = required, clock
         self.store = ManualSnapshotStore(directory)
         self.directory = Path(directory)
         # Shared with OperateService: evidence swaps and canonical commits never interleave.
@@ -82,6 +93,23 @@ class IceTimeEvidence:
             return snapshot_view(self.store.load(source_id))
         except PortError as exc:
             raise ApiError(404, ErrorCode.NOT_FOUND, exc.message) from exc
+
+    def status(self) -> dict[str, Any]:
+        """Overall evidence state: ok | missing | stale | unreadable (worst source wins)."""
+        ids, now = self.source_ids(), self._clock()
+        per: dict[str, str] = {}
+        for sid in ids:
+            try:
+                snap = self.store.load(sid)
+            except Exception:
+                per[sid] = "unreadable"
+                continue
+            per[sid] = "stale" if (snap.fresh_until is not None and now > snap.fresh_until) else "ok"
+        if not ids:
+            overall = "missing" if self.required else "ok"
+        else:
+            overall = next((st for st in ("unreadable", "stale") if st in per.values()), "ok")
+        return {"state": overall, "required": self.required, "sources": per}
 
     def evidence_revision(self) -> str:
         parts = [f"{i['source_id']}={i.get('revision', i['status'])}" for i in self.list()]

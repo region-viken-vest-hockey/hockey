@@ -1,9 +1,13 @@
-"""Revision-bound proposals and the single-use human approval gate.
+"""Revision-bound proposals: ONE lifecycle state machine behind one lock.
 
-A proposal is created only by a preview. It records the canonical revision and the
-evidence revision it was computed against and a digest of the exact change; apply
-must present that digest, succeeds at most once, and fails ``stale`` if either
-revision moved. Nothing in this module writes canonical state.
+    pending -> applying -> applied | stale | recovery_required
+    pending -> superseded | cancelled          applying -> pending (only if provably unwritten
+                                               and not replaced meanwhile, else superseded)
+
+Every transition is a method of :class:`ProposalBook` taking the book lock; callers
+never assign ``status``. ``recovery_required`` is terminal: the canonical write may
+have committed, so the proposal is never offered again and the operator must reconcile
+against the durable revision. Nothing here writes canonical state.
 """
 
 from __future__ import annotations
@@ -14,11 +18,13 @@ import json
 import threading
 import uuid
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from .contracts import ApiError, ErrorCode, OperatorIntent
 
 MAX_PROPOSALS = 64
+TERMINAL = frozenset({"applied", "stale", "recovery_required", "superseded", "cancelled"})
+LIVE = frozenset({"pending", "applying"})
 
 
 def proposal_digest(intent: OperatorIntent, revision: str, evidence: str, after: Any) -> str:
@@ -34,9 +40,11 @@ class Proposal:
     evidence_revision: str
     digest: str
     preview: dict[str, Any]
-    status: str = "pending"  # pending | applied | superseded | stale
+    status: str = "pending"
     created_by: str = ""
     session_id: str = ""
+    job_id: str | None = None
+    seq: int = 0
     extra: dict[str, Any] = field(default_factory=dict)
 
     def view(self) -> dict[str, Any]:
@@ -48,33 +56,49 @@ class ProposalBook:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._items: dict[str, Proposal] = {}
+        self._seq = 0
 
-    def add(self, intent: OperatorIntent, revision: str, evidence: str, preview: dict[str, Any],
-            actor: str, session_id: str) -> Proposal:
-        with self._lock:
-            for old in self._items.values():  # a newer preview for the same target supersedes older ones
-                if (old.status == "pending" and old.intent.tournament_id == intent.tournament_id):
-                    old.status = "superseded"
-            digest = proposal_digest(intent, revision, evidence, preview.get("after_fingerprint"))
-            item = Proposal(uuid.uuid4().hex, intent, revision, evidence, digest, preview, created_by=actor,
-                        session_id=session_id)
-            self._items[item.proposal_id] = item
-            while len(self._items) > MAX_PROPOSALS:
-                self._items.pop(next(iter(self._items)))
-            return item
-
+    # -- reads ------------------------------------------------------------------
     def get(self, proposal_id: str) -> Proposal:
-        item = self._items.get(proposal_id)
+        with self._lock:
+            item = self._items.get(proposal_id)
         if item is None:
             raise ApiError(404, ErrorCode.NOT_FOUND, "unknown proposal")
         return item
 
-    def claim(self, proposal_id: str, confirm: str, *, session_id: str, actor: str) -> Proposal:
-        """Atomically consume a pending proposal for apply.
+    def snapshot(self) -> list[Proposal]:
+        with self._lock:
+            return list(self._items.values())
 
-        Ownership (creating session and operator), pending state and the exact reviewed
-        digest are all verified before the status changes; nothing else is touched here.
+    # -- transitions (all under the lock) -----------------------------------------
+    def register(self, intent: OperatorIntent, revision: str, evidence: str, preview: dict[str, Any],
+                 actor: str, session_id: str, *, job_id: str | None = None,
+                 still_active: Callable[[], bool] = lambda: True) -> Proposal | None:
+        """Create a pending proposal, superseding older pending ones for the same target.
+
+        Returns ``None`` (creating nothing) when the originating job is no longer active,
+        so a cancelled operation can never leave an applicable proposal behind.
         """
+        with self._lock:
+            if not still_active():
+                return None
+            for old in self._items.values():
+                if old.status == "pending" and old.intent.tournament_id == intent.tournament_id:
+                    old.status = "superseded"
+            self._seq += 1
+            digest = proposal_digest(intent, revision, evidence, preview.get("after_fingerprint"))
+            item = Proposal(uuid.uuid4().hex, intent, revision, evidence, digest, preview, created_by=actor,
+                            session_id=session_id, job_id=job_id, seq=self._seq)
+            self._items[item.proposal_id] = item
+            while len(self._items) > MAX_PROPOSALS:  # evict only finished proposals
+                gone = next((k for k, v in self._items.items() if v.status in TERMINAL), None)
+                if gone is None:
+                    break
+                del self._items[gone]
+            return item
+
+    def claim(self, proposal_id: str, confirm: str, *, session_id: str, actor: str) -> Proposal:
+        """pending -> applying, after ownership, state and the exact reviewed digest are verified."""
         with self._lock:
             item = self._items.get(proposal_id)
             if item is None or item.session_id != session_id:
@@ -83,9 +107,47 @@ class ProposalBook:
                 raise ApiError(403, ErrorCode.FORBIDDEN, "proposal belongs to a different operator")
             if item.status == "applied":
                 raise ApiError(409, ErrorCode.REPLAYED, "this proposal was already applied")
+            if item.status == "recovery_required":
+                raise ApiError(409, ErrorCode.RECOVERY_REQUIRED, "an earlier apply may have committed; reconcile first")
             if item.status != "pending":
                 raise ApiError(409, ErrorCode.STALE_REVISION, f"proposal is {item.status}")
             if not hmac.compare_digest(confirm.encode(), item.digest.encode()):
                 raise ApiError(400, ErrorCode.BAD_REQUEST, "confirmation does not match the reviewed change")
             item.status = "applying"
             return item
+
+    def finish_applied(self, item: Proposal) -> None:
+        self._move(item, "applying", "applied")
+
+    def finish_stale(self, item: Proposal) -> None:
+        self._move(item, "applying", "stale")
+
+    def mark_recovery_required(self, item: Proposal) -> None:
+        self._move(item, "applying", "recovery_required")
+
+    def release_unwritten(self, item: Proposal) -> str:
+        """applying -> pending, only when no write occurred AND nothing replaced it meanwhile.
+
+        If a newer proposal for the same target exists the older one becomes ``superseded``;
+        an older proposal never becomes pending again once replaced.
+        """
+        with self._lock:
+            if item.status != "applying":
+                return item.status
+            replaced = any(q.seq > item.seq and q.intent.tournament_id == item.intent.tournament_id
+                           and q.status != "cancelled" for q in self._items.values())
+            item.status = "superseded" if replaced else "pending"
+            return item.status
+
+    def cancel_for_job(self, job_id: str) -> int:
+        with self._lock:
+            hit = [p for p in self._items.values() if p.job_id == job_id and p.status == "pending"]
+            for p in hit:
+                p.status = "cancelled"
+            return len(hit)
+
+    def _move(self, item: Proposal, src: str, dst: str) -> None:
+        with self._lock:
+            if item.status != src:
+                raise ApiError(409, ErrorCode.INTERNAL, f"illegal proposal transition {item.status} -> {dst}")
+            item.status = dst

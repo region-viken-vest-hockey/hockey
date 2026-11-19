@@ -31,14 +31,15 @@ LOG = logging.getLogger("operate.local_api")
 
 
 def build_app(workspace: Path, season: str, *, service: CanonicalSeasonService | None = None,
-              router: IntentRouterPort | None = None, operator: str | None = None, wait_s: float = 5.0):
+              router: IntentRouterPort | None = None, operator: str | None = None, wait_s: float = 5.0,
+              require_ice_time: bool = False):
     workspace = Path(workspace)
     service = service or CanonicalSeasonService(root=workspace / "season")
     uses = SeasonUseCases(service)
-    ice = IceTimeEvidence(workspace / "ice_time")
+    ice = IceTimeEvidence(workspace / "ice_time", required=require_ice_time)
     jobs = JobManager()
     tools = ToolRegistry(uses, ice)
-    readiness = LocalWorkspaceReadiness(service, season, workspace / "season")
+    readiness = LocalWorkspaceReadiness(service, season, workspace / "season", evidence_status=ice.status)
     operate = OperateService(uses, jobs, readiness, tools, router, ice.evidence_revision, wait_s,
                              commit_gate=ice.gate)
     security = SecurityPolicy(operator=operator or getpass.getuser())

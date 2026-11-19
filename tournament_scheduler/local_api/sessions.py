@@ -15,7 +15,7 @@ from typing import Any, Callable, Mapping
 from tournament_scheduler.application.ports.readiness import ReadinessStatus
 
 from .contracts import ApiError, ErrorCode, Gesture, OperatorIntent, Outcome, Phase
-from .jobs import JobContext, JobManager
+from .jobs import JobCancelled, JobContext, JobManager
 from .proposals import ProposalBook
 from .readiness import ReadinessCheck
 from .tools import IntentRouterPort, ToolRegistry
@@ -104,9 +104,8 @@ class OperateService:
             res = s.seen.get(intent.request_id)
             owner = res is None
             if owner:
+                self._make_room(s)
                 res = s.seen[intent.request_id] = Reservation(digest)
-                while len(s.seen) > MAX_IDEMPOTENT:
-                    s.seen.pop(next(iter(s.seen)))
             elif res.digest != digest:
                 raise ApiError(409, ErrorCode.REQUEST_ID_REUSED, "request_id was used for a different intent")
         if owner:
@@ -124,6 +123,24 @@ class OperateService:
             if res.error is not None:
                 raise res.error
         return self._resolve(s, res)
+
+    def _make_room(self, s: OperateSession) -> None:
+        """Evict only completed reservations; never an active one (reject at capacity instead)."""
+        while len(s.seen) >= MAX_IDEMPOTENT:
+            gone = next((k for k, r in s.seen.items() if self._completed(r)), None)
+            if gone is None:
+                raise ApiError(503, ErrorCode.REVIEW_REQUIRED, "too many active requests in this session")
+            del s.seen[gone]
+
+    def _completed(self, res: Reservation) -> bool:
+        if res.error is not None or res.result is not None:
+            return True
+        if res.job_id is None:
+            return False
+        try:
+            return self.jobs.get(res.job_id).status not in ("queued", "running")
+        except ApiError:
+            return True
 
     def _resolve(self, s: OperateSession, res: Reservation) -> dict[str, Any]:
         with res.lock:
@@ -188,10 +205,13 @@ class OperateService:
                 raise ApiError(422, ErrorCode.REVIEW_REQUIRED, "router must return a structured intent for this season")
         ctx.report("previewing", 0.5)
         s.phase = Phase.PREVIEWING
-        preview = self.uses.preview_move(intent)
-        ctx.checkpoint()
-        proposal = self.proposals.add(intent, preview["revision"], self.evidence_revision(), preview, s.operator,
-                                     s.session_id)
+        with self.commit_gate:  # preview, evidence capture and registration see one evidence revision
+            preview = self.uses.preview_move(intent)
+            proposal = self.proposals.register(
+                intent, preview["revision"], self.evidence_revision(), preview, s.operator, s.session_id,
+                job_id=ctx.job_id, still_active=ctx.is_active)
+        if proposal is None:
+            raise JobCancelled()  # cancelled before registration: nothing applicable is created
         clean = verdict_is_clean(preview["verdict"])
         outcome = Outcome.PREVIEWED if clean else Outcome.BLOCKED
         s.phase = Phase.AWAITING_APPROVAL if clean else Phase.DONE
@@ -204,8 +224,10 @@ class OperateService:
         s = self.session(session_id)
         if s.operator != actor:
             raise ApiError(403, ErrorCode.FORBIDDEN, "session belongs to a different operator")
-        claimed = self.proposals.claim(proposal_id, confirm, session_id=session_id, actor=actor)
+        book = self.proposals
+        claimed = book.claim(proposal_id, confirm, session_id=session_id, actor=actor)
         s.phase = Phase.APPLYING
+        committing = False
         try:
             if not verdict_is_clean(claimed.preview["verdict"]):
                 raise ApiError(422, ErrorCode.REVIEW_REQUIRED, "a blocked proposal cannot be applied")
@@ -218,20 +240,44 @@ class OperateService:
                     raise ApiError(403, ErrorCode.READ_ONLY, "season is no longer writable")
                 if claimed.evidence_revision != self.evidence_revision():
                     raise ApiError(409, ErrorCode.STALE_REVISION, "ice-time evidence changed since the preview")
+                committing = True  # from here a write may have happened
                 result = self.uses.apply_move(claimed.intent, expected_revision=claimed.revision, actor=actor)
-        except ApiError as exc:
-            claimed.status = "stale" if exc.code is ErrorCode.STALE_REVISION else "pending"
+        except BaseException as exc:
             s.phase = Phase.FAILED
+            self._settle_failed_apply(s, claimed, exc, committing)
             raise
-        except BaseException:
-            claimed.status = "pending"
-            raise
-        claimed.status = "applied"
+        book.finish_applied(claimed)
         s.phase = Phase.DONE
         s.emit("applied", result)
         return {"outcome": Outcome.APPLIED.value, "result": result}
 
+    def _settle_failed_apply(self, s: OperateSession, claimed, exc: BaseException, committing: bool) -> None:
+        """Pick the terminal/next state; only a *proven* no-write may return a proposal to pending."""
+        book = self.proposals
+        if isinstance(exc, ApiError) and exc.code is ErrorCode.STALE_REVISION:
+            book.finish_stale(claimed)  # compare-and-swap refusal or evidence change: nothing was written
+            return
+        if not committing:
+            book.release_unwritten(claimed)
+            return
+        try:  # ambiguous: prove "no write" from the durable revision, otherwise reconcile
+            unchanged = self.uses.revision(s.season) == claimed.revision
+        except Exception:
+            unchanged = False
+        if unchanged:
+            book.release_unwritten(claimed)
+            return
+        book.mark_recovery_required(claimed)
+        s.emit("reconciliation_required", {"proposal_id": claimed.proposal_id, "revision_before": claimed.revision})
+        raise ApiError(409, ErrorCode.RECOVERY_REQUIRED,
+                       "the canonical write may have committed; reconcile against the durable revision before retrying",
+                       proposal_id=claimed.proposal_id) from exc
+
     def cancel_job(self, job_id: str) -> dict[str, Any]:
-        return self.jobs.cancel(job_id).view()
+        state = self.jobs.get(job_id)
+        if state.status in ("queued", "running"):
+            self.jobs.cancel(job_id)
+            self.proposals.cancel_for_job(job_id)  # closes the register/cancel race
+        return self.jobs.get(job_id).view()
 
 

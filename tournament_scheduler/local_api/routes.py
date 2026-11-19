@@ -133,7 +133,13 @@ class LocalApp:
         return value
 
     def _capabilities(self, c: Ctx) -> dict[str, Any]:
-        return self.uses.capabilities(self.season, c.auth.operator, self.operate.router is not None)
+        caps = self.uses.capabilities(self.season, c.auth.operator, self.operate.router is not None)
+        report = self.operate.readiness.check()
+        caps["readiness"] = report.to_dict()
+        caps["evidence"] = self.ice.status()
+        if report.status.value != "READY":  # writability is never silent when readiness is uncertain
+            caps.update(writable=False, mode="review_required", operations=[])
+        return caps
 
     def _season_summary(self, c: Ctx) -> dict[str, Any]:
         return self.uses.summary(self._season(c.params[0]))

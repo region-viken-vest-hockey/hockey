@@ -49,6 +49,7 @@ class ErrorCode(str, Enum):
     PAYLOAD_TOO_LARGE = "payload_too_large"
     STALE_REVISION = "stale_revision"
     REPLAYED = "replayed"
+    RECOVERY_REQUIRED = "recovery_required"
     REQUEST_ID_REUSED = "request_id_reused"
     READ_ONLY = "read_only"
     REVIEW_REQUIRED = "review_required"

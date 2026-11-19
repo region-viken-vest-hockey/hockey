@@ -48,6 +48,13 @@ class JobContext:
     def __init__(self, state: JobState, cancel: threading.Event) -> None:
         self._state, self._cancel = state, cancel
 
+    @property
+    def job_id(self) -> str:
+        return self._state.job_id
+
+    def is_active(self) -> bool:
+        return not self._cancel.is_set()
+
     def report(self, phase: str, progress: float) -> None:
         self.checkpoint()
         self._state.phase, self._state.progress = phase, progress
